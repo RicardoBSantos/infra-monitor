@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: infra-monitor-backend
+
+  profiles:
+    default: dev
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:inframonitor}
+    username: ${DB_USERNAME:inframonitor}
+    password: ${DB_PASSWORD:inframonitor}
+    hikari:
+      pool-name: inframonitor-pool
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Schema e responsabilidade exclusiva do Flyway.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  jackson:
+    # Jackson 3 ja serializa datas em ISO-8601 por padrao; aqui fixamos o fuso em UTC.
+    time-zone: UTC
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Somente health: demais endpoints administrativos ficam fechados.
+        include: health
+  endpoint:
+    health:
+      show-details: always
+  health:
+    db:
+      enabled: true

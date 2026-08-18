@@ -1,0 +1,9 @@
+logging:
+  level:
+    br.com.inframonitor: INFO
+
+management:
+  endpoint:
+    health:
+      # Em producao os detalhes do health nao sao publicos.
+      show-details: never

@@ -1,0 +1,10 @@
+logging:
+  level:
+    br.com.inframonitor: DEBUG
+    org.flywaydb: INFO
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true

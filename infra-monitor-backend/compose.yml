@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inframonitor-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-inframonitor}
+      POSTGRES_USER: ${DB_USERNAME:-inframonitor}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-inframonitor}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - inframonitor-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-inframonitor} -d ${DB_NAME:-inframonitor}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  inframonitor-postgres-data:
