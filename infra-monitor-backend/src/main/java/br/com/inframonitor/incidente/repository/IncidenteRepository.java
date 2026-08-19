@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 
 public interface IncidenteRepository extends JpaRepository<Incidente, Long>, JpaSpecificationExecutor<Incidente> {
 
@@ -27,4 +29,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
 
     @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
     Optional<Incidente> findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(Long monitorId, StatusIncidente status);
+
+    @EntityGraph(attributePaths = "monitor")
+    List<Incidente> findByMonitorIdInAndStatus(Collection<Long> monitorIds, StatusIncidente status);
 }

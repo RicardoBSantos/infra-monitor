@@ -1,0 +1,1844 @@
+# Prompt 15 — Preparação da API para Integração com Angular
+
+## 1. Contexto
+
+Com base no contexto permanente definido em:
+
+`CodeContext.md`
+
+e considerando o estado atual do repositório após a implementação e consolidação de:
+
+```text
+Unidade
+TipoEquipamento
+Equipamento
+Monitor
+Medição
+Incidente
+Monitoring Engine ICMP
+Incident Engine
+Notificação
+Telegram Dispatcher
+Dashboard API
+```
+
+realize agora a preparação final do backend para integração com o frontend Angular.
+
+Esta etapa deve consolidar o contrato público da API.
+
+O objetivo é deixar o backend:
+
+```text
+previsível
+documentado
+consistente
+consumível pelo Angular
+configurável por ambiente
+testado
+```
+
+IMPORTANTE:
+
+NÃO implemente Angular nesta etapa.
+
+NÃO implemente autenticação/JWT ainda.
+
+NÃO adicione novas features de negócio sem necessidade direta para integração frontend/backend.
+
+---
+
+# 2. Objetivo principal
+
+O Angular deverá conseguir consumir de forma clara as APIs existentes para:
+
+```text
+Dashboard
+Inventário
+Unidades
+Tipos de Equipamento
+Equipamentos
+Monitores
+Medições
+Incidentes
+Notificações
+```
+
+O frontend não deve precisar conhecer:
+
+```text
+detalhes de JPA
+nomes de tabelas
+constraints internas
+implementação do Monitoring Engine
+detalhes do Telegram
+```
+
+---
+
+# 3. Mapa esperado da API
+
+Revise e documente o mapa real dos endpoints.
+
+Conceitualmente:
+
+```text
+/api/v1/dashboard/...
+
+/api/v1/unidades
+/api/v1/tipos-equipamento
+/api/v1/equipamentos
+
+/api/v1/monitores
+/api/v1/medicoes
+/api/v1/incidentes
+/api/v1/notificacoes
+```
+
+Não crie rotas duplicadas apenas para adequar ao exemplo.
+
+O código atual é a fonte de verdade.
+
+Corrija apenas inconsistências reais.
+
+---
+
+# 4. CORS
+
+Configure CORS de forma centralizada.
+
+NÃO utilize:
+
+```java
+@CrossOrigin("*")
+```
+
+espalhado pelos Controllers.
+
+NÃO permita `*` indiscriminadamente em produção.
+
+Crie configuração global apropriada.
+
+---
+
+# 5. Origem do Angular em desenvolvimento
+
+Permita configuração externa.
+
+Exemplo conceitual:
+
+```yaml
+app:
+  cors:
+    allowed-origins:
+      - ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+```
+
+ou estrutura equivalente coerente com o projeto.
+
+Em desenvolvimento, o Angular normalmente utilizará:
+
+```text
+http://localhost:4200
+```
+
+Mas não hardcode isso como única origem válida.
+
+---
+
+# 6. Configuração por ambiente
+
+A configuração deve permitir:
+
+```text
+dev:
+http://localhost:4200
+
+produção:
+origem real do frontend
+```
+
+sem recompilar a aplicação.
+
+Utilize environment variables/profiles.
+
+---
+
+# 7. Métodos CORS
+
+Permita somente o necessário para a API.
+
+Exemplo:
+
+```text
+GET
+POST
+PUT
+PATCH
+DELETE
+OPTIONS
+```
+
+Não abra métodos desnecessários.
+
+---
+
+# 8. Headers CORS
+
+Permita headers necessários para JSON/API.
+
+Nesta etapa não existe JWT, portanto não crie configuração complexa de Authorization apenas antecipadamente.
+
+Se permitir `Authorization` não causar problema, documente, mas não crie Spring Security apenas por isso.
+
+---
+
+# 9. Credentials
+
+Não habilite:
+
+```text
+allowCredentials=true
+```
+
+sem necessidade real.
+
+Como autenticação ainda não existe, prefira configuração mínima.
+
+---
+
+# 10. DTOs como contrato público
+
+Revise todos os endpoints consumíveis pelo Angular.
+
+Garanta que eles retornem DTOs estáveis.
+
+Nenhuma Entity JPA deve chegar ao frontend.
+
+---
+
+# 11. Nomenclatura JSON
+
+Revise consistência de propriedades.
+
+Exemplos:
+
+```text
+createdAt
+updatedAt
+executadoEm
+iniciadoEm
+encerradoEm
+tipoEquipamentoId
+equipamentoId
+monitorId
+```
+
+Não misture sem necessidade:
+
+```text
+snake_case
+camelCase
+PascalCase
+```
+
+A preferência da API Java/Angular deve ser:
+
+```text
+camelCase
+```
+
+salvo padrão existente diferente.
+
+---
+
+# 12. IDs
+
+Garanta consistência de representação dos IDs em todas as respostas.
+
+Não retorne ID como string em um endpoint e número em outro sem justificativa.
+
+Preserve o tipo real do projeto.
+
+---
+
+# 13. Enums
+
+Enums devem ser serializados como strings legíveis.
+
+Exemplos:
+
+```text
+ICMP
+
+SUCESSO
+FALHA
+
+ABERTO
+FECHADO
+
+PENDENTE
+ENVIADA
+FALHA
+
+DISPONIVEL
+INDISPONIVEL
+SEM_DADOS
+```
+
+Nunca ordinal.
+
+---
+
+# 14. Datas
+
+Todos os timestamps da API devem possuir representação consistente.
+
+Prefira ISO-8601.
+
+Exemplo:
+
+```text
+2026-08-19T12:00:00Z
+```
+
+Não devolver formatos locais variados por endpoint.
+
+O Angular ficará responsável pela apresentação no timezone adequado.
+
+---
+
+# 15. Nulls
+
+Defina comportamento previsível.
+
+Exemplos:
+
+```text
+encerradoEm = null
+```
+
+para Incidente aberto.
+
+```text
+ultimaMedicao = null
+```
+
+quando ainda não houver dado.
+
+Não utilize:
+
+```text
+""
+0
+{}
+```
+
+como substitutos artificiais de ausência.
+
+---
+
+# 16. Collections
+
+Quando uma coleção não possui elementos, prefira:
+
+```json
+[]
+```
+
+e não:
+
+```json
+null
+```
+
+onde isso estiver sob controle do contrato.
+
+---
+
+# 17. Erros
+
+Padronize definitivamente a resposta de erro.
+
+O Angular precisa conseguir tratar erros sem interpretar mensagens livres.
+
+Exemplo conceitual:
+
+```json
+{
+  "timestamp": "2026-08-19T12:00:00Z",
+  "status": 400,
+  "error": "Bad Request",
+  "code": "VALIDATION_ERROR",
+  "message": "Dados inválidos.",
+  "path": "/api/v1/equipamentos",
+  "fields": {
+    "nome": "não deve estar vazio"
+  }
+}
+```
+
+Adapte ao modelo já existente.
+
+Não refaça toda infraestrutura se já houver um bom padrão.
+
+---
+
+# 18. Campo code
+
+Avalie adicionar um código de erro estável, se ainda não existir.
+
+Exemplos:
+
+```text
+VALIDATION_ERROR
+RESOURCE_NOT_FOUND
+BUSINESS_CONFLICT
+DATA_INTEGRITY_VIOLATION
+INVALID_ENUM
+MALFORMED_REQUEST
+INTERNAL_ERROR
+```
+
+Esse código é útil para Angular.
+
+Não crie dezenas de códigos hiper-específicos.
+
+---
+
+# 19. Message
+
+`message` deve ser legível para debug/interface.
+
+Mas o frontend não deve depender apenas do texto para identificar tipo do erro.
+
+---
+
+# 20. Fields
+
+Erros de Bean Validation devem possuir estrutura consistente de campos inválidos.
+
+Exemplo:
+
+```json
+{
+  "fields": {
+    "nome": "não deve estar vazio",
+    "unidadeId": "é obrigatório"
+  }
+}
+```
+
+---
+
+# 21. Enum inválido
+
+Requests como:
+
+```text
+?status=QUALQUER_COISA
+```
+
+ou JSON com enum inválido devem retornar:
+
+```text
+400
+```
+
+com erro previsível.
+
+Não retornar stack trace/Jackson internals.
+
+---
+
+# 22. JSON malformado
+
+JSON inválido deve retornar:
+
+```text
+400 Bad Request
+```
+
+com contrato padronizado.
+
+---
+
+# 23. 404
+
+Recurso inexistente deve permanecer:
+
+```text
+404
+```
+
+Exemplos:
+
+```text
+Unidade inexistente
+Equipamento inexistente
+Monitor inexistente
+Incidente inexistente
+```
+
+---
+
+# 24. 409
+
+Conflitos de negócio/integridade:
+
+```text
+nome duplicado
+Unidade inativa
+Tipo inativo
+FK impedindo DELETE
+Incidente aberto duplicado
+```
+
+devem usar:
+
+```text
+409 Conflict
+```
+
+quando essa já for a convenção consolidada.
+
+---
+
+# 25. 500
+
+Não exponha:
+
+```text
+SQL
+constraint names
+stack trace
+Hibernate internals
+Telegram token
+```
+
+Retorne erro genérico.
+
+Log interno pode manter detalhes adequados sem secrets.
+
+---
+
+# 26. Paginação
+
+Revise o contrato de paginação usado pelos endpoints.
+
+Principalmente:
+
+```text
+Equipamentos
+Monitores
+Medições
+Incidentes
+Notificações
+Dashboard equipamentos
+```
+
+O Angular precisa receber formato consistente.
+
+---
+
+# 27. Modelo de página
+
+Se já existe envelope próprio, preserve.
+
+Caso o projeto atualmente exponha `Page` diretamente, avalie se o JSON é aceitável e estável.
+
+Se necessário, crie um read model simples:
+
+```json
+{
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 100,
+  "totalPages": 5,
+  "first": true,
+  "last": false
+}
+```
+
+Não faça mudança ampla sem necessidade.
+
+---
+
+# 28. page
+
+Defina:
+
+```text
+page
+```
+
+como zero-based ou one-based.
+
+Preserve padrão atual.
+
+Documente explicitamente.
+
+Preferência Spring:
+
+```text
+zero-based
+```
+
+---
+
+# 29. size
+
+Defina defaults e máximo.
+
+Documente.
+
+Não permita tamanho ilimitado.
+
+---
+
+# 30. sort
+
+Revise comportamento de sort.
+
+Evite permitir ordenar por campo arbitrário inexistente e gerar 500.
+
+Valide/sanitize quando necessário.
+
+Se cada endpoint possui ordenação fixa, documente.
+
+---
+
+# 31. Filtros
+
+Documente todos os filtros realmente suportados.
+
+Equipamentos:
+
+```text
+unidadeId
+tipoEquipamentoId
+ativo
+```
+
+Monitores:
+
+```text
+equipamentoId
+tipo
+ativo
+```
+
+Medições:
+
+```text
+monitorId
+status
+inicio
+fim
+```
+
+Incidentes:
+
+```text
+monitorId
+equipamentoId
+unidadeId
+status
+inicio
+fim
+```
+
+Notificações:
+
+```text
+incidenteId
+status
+canal
+tipoEvento
+inicio
+fim
+```
+
+Dashboard conforme Prompt 14.
+
+---
+
+# 32. Intervalos de data
+
+Garanta:
+
+```text
+inicio <= fim
+```
+
+com:
+
+```text
+400
+```
+
+quando inválido.
+
+---
+
+# 33. Parâmetros booleanos
+
+Confirme comportamento previsível para:
+
+```text
+ativo=true
+ativo=false
+```
+
+Valor inválido deve retornar 400 ou padrão claro, não ser silenciosamente ignorado.
+
+---
+
+# 34. Endpoints auxiliares para selects
+
+O Angular terá formulários que precisam carregar:
+
+```text
+Unidades
+Tipos de Equipamento
+Equipamentos
+```
+
+para selects.
+
+Antes de criar endpoints novos, verifique se os GETs atuais já resolvem bem isso.
+
+---
+
+# 35. Select de Unidade
+
+Se:
+
+```text
+GET /api/v1/unidades?ativo=true
+```
+
+retorna lista pequena e apropriada:
+
+reutilize.
+
+Não crie:
+
+```text
+/api/v1/lookups/unidades
+```
+
+sem necessidade.
+
+---
+
+# 36. Select de TipoEquipamento
+
+Mesma regra.
+
+Reutilize:
+
+```text
+GET /api/v1/tipos-equipamento?ativo=true
+```
+
+se já satisfizer.
+
+---
+
+# 37. Select de Equipamento
+
+Pode haver muitos equipamentos.
+
+Para seleção de Monitor, o frontend provavelmente precisará filtrar por Unidade.
+
+Garanta que a API existente suporta:
+
+```text
+GET /api/v1/equipamentos?unidadeId=...&ativo=true
+```
+
+de forma adequada.
+
+Não crie lookup redundante.
+
+---
+
+# 38. Payload de criação de Equipamento
+
+Revise e documente claramente o contrato.
+
+Exemplo conceitual:
+
+```json
+{
+  "unidadeId": 1,
+  "tipoEquipamentoId": 2,
+  "nome": "SW-CORE-01",
+  "ip": "10.0.0.1",
+  "hostname": "sw-core-01",
+  "descricao": "Switch core",
+  "localizacao": "CPD"
+}
+```
+
+Use o contrato real.
+
+---
+
+# 39. Payload de criação de Monitor
+
+Documente.
+
+Exemplo:
+
+```json
+{
+  "equipamentoId": 10,
+  "tipo": "ICMP",
+  "nome": "ICMP principal",
+  "intervaloSegundos": 60,
+  "timeoutMs": 2000,
+  "falhasParaIncidente": 3,
+  "sucessosParaRecovery": 2
+}
+```
+
+---
+
+# 40. Status administrativo x operacional
+
+Documente para o Angular a diferença entre:
+
+```text
+ativo
+```
+
+e:
+
+```text
+status operacional
+```
+
+Exemplo:
+
+```text
+Equipamento.ativo = true
+```
+
+não significa automaticamente:
+
+```text
+DISPONIVEL
+```
+
+O status operacional vem da Dashboard API.
+
+---
+
+# 41. Evitar regra no frontend
+
+Documente que Angular NÃO deve inferir:
+
+```text
+última Medição FALHA
+=
+INDISPONIVEL
+```
+
+Deve utilizar o status operacional fornecido pelo backend.
+
+---
+
+# 42. Dashboard API
+
+Revise contratos implementados no Prompt 14.
+
+Garanta DTOs estáveis e documentados.
+
+Principalmente:
+
+```text
+GET /api/v1/dashboard/resumo
+GET /api/v1/dashboard/unidades
+GET /api/v1/dashboard/unidades/{id}
+GET /api/v1/dashboard/unidades/{id}/equipamentos
+```
+
+e outros realmente existentes.
+
+---
+
+# 43. OpenAPI
+
+Avalie o estado atual.
+
+Se SpringDoc/OpenAPI já estiver presente:
+
+* revise;
+* documente endpoints;
+* documente DTOs;
+* documente enums;
+* documente parâmetros;
+* documente status HTTP.
+
+Se NÃO estiver presente, avalie adicionar SpringDoc somente se compatível com a versão atual do Spring Boot e trouxer valor claro.
+
+Antes de adicionar dependência:
+
+1. confirme versão compatível;
+2. evite versões arbitrárias;
+3. não quebre build.
+
+Se houver dúvida, não adicione e produza documentação Markdown consistente.
+
+---
+
+# 44. Swagger UI
+
+Se OpenAPI for adicionado/já existir, exponha Swagger UI apenas conforme configuração adequada.
+
+Em produção pode ser desabilitável.
+
+Não exponha secrets.
+
+---
+
+# 45. Documentação alternativa
+
+Se não usar OpenAPI, crie documentação da API em arquivo como:
+
+```text
+docs/api.md
+```
+
+ou padrão existente.
+
+Não crie dezenas de documentos.
+
+---
+
+# 46. O que documentar
+
+Para cada recurso principal:
+
+```text
+rota
+método
+request
+response
+filtros
+paginação
+status HTTP
+erros relevantes
+```
+
+Evite documentação excessivamente extensa.
+
+---
+
+# 47. CORS tests
+
+Crie teste para garantir que origem configurada:
+
+```text
+http://localhost:4200
+```
+
+em ambiente de teste/dev apropriado recebe headers CORS esperados.
+
+Também teste origem não permitida quando viável.
+
+---
+
+# 48. OPTIONS/preflight
+
+Garanta que preflight funciona adequadamente para operações:
+
+```text
+POST
+PUT
+PATCH
+DELETE
+```
+
+do Angular.
+
+---
+
+# 49. Content-Type
+
+APIs devem consumir/produzir:
+
+```text
+application/json
+```
+
+quando aplicável.
+
+---
+
+# 50. UTF-8
+
+Garanta suporte normal a nomes como:
+
+```text
+São Paulo
+Câmera
+Recepção
+```
+
+Não crie tratamento manual de charset desnecessário.
+
+---
+
+# 51. CORS e Actuator
+
+Não exponha Actuator inteiro ao frontend apenas por causa do CORS.
+
+Mantenha exposição administrativa mínima.
+
+---
+
+# 52. Health
+
+Documente endpoint de health separadamente.
+
+Angular não precisa necessariamente consumir health diretamente nesta primeira versão.
+
+---
+
+# 53. Configuração de base URL
+
+Backend não precisa conhecer URL do Angular além de CORS.
+
+Angular futuramente configurará:
+
+```text
+API_BASE_URL
+```
+
+ou environment correspondente.
+
+Não crie dependência circular.
+
+---
+
+# 54. Versionamento
+
+Preserve:
+
+```text
+/api/v1
+```
+
+Não crie `/v2` nesta etapa.
+
+---
+
+# 55. Compatibilidade
+
+Não altere contratos já consolidados sem necessidade.
+
+Se identificar inconsistência que justifique alteração, documente explicitamente:
+
+```text
+antes
+depois
+motivo
+impacto esperado no frontend
+```
+
+---
+
+# 56. Naming de rotas
+
+Revise pluralização.
+
+Exemplos esperados:
+
+```text
+/unidades
+/tipos-equipamento
+/equipamentos
+/monitores
+/medicoes
+/incidentes
+/notificacoes
+/dashboard
+```
+
+Não renomeie rota funcionando sem forte justificativa.
+
+---
+
+# 57. Acentos nas rotas
+
+Não utilize acentos em URL.
+
+Exemplo:
+
+```text
+/medicoes
+```
+
+e não:
+
+```text
+/medições
+```
+
+---
+
+# 58. Respostas de DELETE
+
+Confirme:
+
+```text
+204 No Content
+```
+
+sem body.
+
+Angular deve poder tratar isso de forma previsível.
+
+---
+
+# 59. PATCH ativar/desativar
+
+Documente respostas.
+
+Exemplos:
+
+```text
+PATCH /equipamentos/{id}/ativar
+PATCH /equipamentos/{id}/desativar
+```
+
+Defina se retornam recurso atualizado ou apenas 204.
+
+Preserve padrão real e torne consistente.
+
+---
+
+# 60. Incidente fechar
+
+Documente:
+
+```text
+PATCH /api/v1/incidentes/{id}/fechar
+```
+
+com request/response real.
+
+---
+
+# 61. Notificações
+
+Notificações são leitura administrativa.
+
+Não exponha token/chat ID nos DTOs.
+
+---
+
+# 62. Monitoring Engine
+
+Nenhum endpoint do Angular deve acionar diretamente:
+
+```text
+ping
+worker
+scheduler
+```
+
+nesta etapa.
+
+Monitoramento continua automático.
+
+---
+
+# 63. Botão "testar ping"
+
+NÃO implemente endpoint de teste de ping apenas antecipando UI.
+
+Se o design exigir isso depois, será feature específica.
+
+---
+
+# 64. Autocomplete / search
+
+Não implemente busca textual nova sem necessidade real.
+
+Se frontend precisar depois, crie feature específica.
+
+---
+
+# 65. CORS Properties
+
+Se fizer sentido, crie classe:
+
+```text
+CorsProperties
+```
+
+ou equivalente.
+
+Não espalhe `@Value` em vários locais.
+
+---
+
+# 66. Defaults seguros
+
+Em desenvolvimento pode existir default:
+
+```text
+http://localhost:4200
+```
+
+Mas produção deve permitir substituição.
+
+Não use:
+
+```text
+*
+```
+
+como default.
+
+---
+
+# 67. Profiles
+
+Revise:
+
+```text
+application.yml
+application-dev.yml
+application-test.yml
+application-prod.yml
+```
+
+quando existentes.
+
+Não crie profiles complexos apenas por estilo.
+
+---
+
+# 68. Test profile
+
+Garanta:
+
+```text
+Monitoring Engine disabled
+Telegram Dispatcher disabled
+Telegram disabled
+```
+
+nos testes comuns.
+
+CORS pode utilizar origem de teste previsível.
+
+---
+
+# 69. Secrets
+
+Realize busca final por:
+
+```text
+token
+password
+secret
+chat-id
+```
+
+Garanta que valores reais não estejam versionados.
+
+---
+
+# 70. README
+
+Atualize README com seção:
+
+```text
+Integração Frontend
+```
+
+Inclua:
+
+```text
+base API
+CORS
+origem Angular dev
+paginação
+datas
+erro padrão
+```
+
+---
+
+# 71. Documento de contrato frontend
+
+Crie, se ainda não existir:
+
+```text
+docs/frontend-api-contract.md
+```
+
+Esse documento deve ser curto e objetivo.
+
+Deve conter:
+
+```text
+Base URL
+CORS
+Formato de datas
+Paginação
+Erro padrão
+Enums importantes
+Endpoints consumidos pelo Angular
+```
+
+---
+
+# 72. Enums importantes para frontend
+
+Documente pelo menos os que realmente aparecem na API:
+
+```text
+TipoMonitor
+StatusMedicao
+StatusIncidente
+CanalNotificacao
+TipoEventoNotificacao
+StatusNotificacao
+StatusOperacionalMonitor
+StatusOperacionalEquipamento
+StatusOperacionalUnidade
+```
+
+Não documente enums internos não expostos.
+
+---
+
+# 73. Tipos TypeScript
+
+NÃO crie frontend ou interfaces `.ts` nesta tarefa.
+
+Pode documentar formatos JSON.
+
+Tipos TypeScript serão criados no módulo frontend.
+
+---
+
+# 74. Contract tests
+
+Crie testes de Controller focados no formato de JSON dos contratos críticos.
+
+Principalmente Dashboard e Equipamento.
+
+Não precisa snapshot de tudo.
+
+Valide campos importantes.
+
+---
+
+# 75. JSON inesperado
+
+Garanta que DTOs não exponham por acidente campos novos de Entity ao adicionar relacionamento futuro.
+
+Isso reforça uso de DTOs explícitos.
+
+---
+
+# 76. Smoke test de fluxo frontend
+
+Sem Angular real, simule sequência típica:
+
+```text
+GET unidades ativas
+GET tipos ativos
+POST equipamento
+GET equipamentos da unidade
+POST monitor
+GET dashboard unidade
+GET incidentes
+```
+
+Valide contratos.
+
+---
+
+# 77. Endpoint de configuração frontend
+
+NÃO crie:
+
+```text
+/api/config
+```
+
+sem necessidade.
+
+Angular pode possuir sua própria configuração de base URL.
+
+---
+
+# 78. API docs e secrets
+
+Se usar OpenAPI, nenhum example deve conter:
+
+```text
+token real
+chatId real
+password
+```
+
+---
+
+# 79. Performance
+
+Não permita que documentação/CORS altere performance crítica.
+
+Não refaça Dashboard nesta etapa se Prompt 14 já foi validado.
+
+---
+
+# 80. Nenhuma migration esperada
+
+A expectativa é:
+
+```text
+nenhuma migration
+```
+
+Esta etapa trata de contrato/API/configuração.
+
+Se surgir migration, justifique claramente.
+
+---
+
+# 81. Inspeção inicial
+
+Antes de modificar:
+
+```bash
+pwd
+git status
+```
+
+Analise principalmente:
+
+```text
+Controllers
+DTOs
+GlobalExceptionHandler
+paginação
+Dashboard API
+application*.yml
+README
+pom.xml
+testes de API
+```
+
+---
+
+# 82. Sequência sugerida
+
+```text
+1. mapear API real
+2. mapear contratos JSON
+3. revisar erros
+4. revisar paginação
+5. configurar CORS
+6. testar preflight
+7. revisar enums/datas/nulls
+8. identificar lookups já atendidos pelos CRUDs
+9. evitar endpoints redundantes
+10. documentar API
+11. criar/ajustar contract tests
+12. executar suíte completa
+13. executar verify
+14. revisar git diff
+```
+
+---
+
+# 83. Testes obrigatórios
+
+Cubra pelo menos:
+
+```text
+CORS origem permitida
+
+CORS preflight
+
+erro Bean Validation
+
+erro 404
+
+erro 409
+
+enum inválido
+
+JSON malformado
+
+paginação
+
+contrato Dashboard resumo
+
+contrato Dashboard unidade
+
+contrato EquipamentoResponse
+
+datas ISO-8601
+```
+
+Adapte à infraestrutura real.
+
+---
+
+# 84. Toda suíte
+
+Execute:
+
+```bash
+./mvnw test
+./mvnw verify
+```
+
+se wrapper existir.
+
+Caso contrário:
+
+```bash
+mvn test
+mvn verify
+```
+
+Não execute apenas testes novos.
+
+---
+
+# 85. Startup
+
+Se possível, valide startup com configuração de desenvolvimento.
+
+Confirme CORS configurado sem afetar:
+
+```text
+Flyway
+Monitoring Engine
+Telegram
+Actuator
+```
+
+---
+
+# 86. Git
+
+Ao final:
+
+```bash
+git status
+git diff
+```
+
+Não execute:
+
+```text
+git commit
+git push
+git reset --hard
+git clean -fd
+git checkout .
+```
+
+---
+
+# 87. Revisão final
+
+Confirme explicitamente:
+
+```text
+CORS centralizado
+sem @CrossOrigin espalhado
+sem wildcard inseguro
+DTOs estáveis
+camelCase consistente
+datas ISO-8601
+enums string
+erro padrão
+paginação documentada
+filtros documentados
+sem endpoints lookup redundantes
+sem Entity exposta
+sem secrets
+```
+
+---
+
+# 88. Critérios de aceite
+
+A etapa estará concluída quando:
+
+* Angular localhost puder acessar a API em desenvolvimento;
+* origem CORS for configurável;
+* CORS não usar wildcard inseguro;
+* preflight funcionar;
+* DTOs estiverem consistentes;
+* datas estiverem em ISO-8601;
+* enums forem strings;
+* nulls/collections forem previsíveis;
+* erros tiverem contrato consistente;
+* Bean Validation fornecer erros por campo;
+* 404/409 estiverem consistentes;
+* paginação estiver documentada;
+* filtros estiverem documentados;
+* Dashboard API estiver documentada;
+* endpoints existentes forem reutilizados para selects quando possível;
+* documentação do contrato frontend existir;
+* nenhum secret estiver versionado;
+* toda suíte passar;
+* build passar;
+* nenhuma feature Angular tiver sido implementada.
+
+---
+
+# 89. Resposta final
+
+Ao concluir, apresente:
+
+```text
+RESUMO
+
+...
+
+
+MAPA DA API
+
+Dashboard:
+...
+
+Unidade:
+...
+
+TipoEquipamento:
+...
+
+Equipamento:
+...
+
+Monitor:
+...
+
+Medição:
+...
+
+Incidente:
+...
+
+Notificação:
+...
+
+
+CORS
+
+Configuração:
+...
+
+Origem dev:
+...
+
+Variáveis:
+...
+
+
+CONTRATO JSON
+
+Naming:
+...
+
+Datas:
+...
+
+Enums:
+...
+
+Nulls:
+...
+
+
+CONTRATO DE ERRO
+
+Formato:
+...
+
+Codes:
+...
+
+
+PAGINAÇÃO
+
+Formato:
+...
+
+page:
+...
+
+size:
+...
+
+sort:
+...
+
+
+FILTROS
+
+...
+
+
+LOOKUPS / SELECTS DO ANGULAR
+
+Unidade:
+...
+
+TipoEquipamento:
+...
+
+Equipamento:
+...
+
+
+DASHBOARD
+
+Endpoints:
+...
+
+Contratos:
+...
+
+
+OPENAPI / DOCUMENTAÇÃO
+
+Estratégia adotada:
+...
+
+Arquivos:
+...
+
+
+ARQUIVOS CRIADOS
+
+...
+
+
+ARQUIVOS ALTERADOS
+
+...
+
+
+MIGRATIONS
+
+Nenhuma.
+
+ou:
+...
+
+
+TESTES CRIADOS / ALTERADOS
+
+...
+
+
+RESULTADO DOS TESTES
+
+Comando:
+...
+
+Resultado:
+...
+
+
+RESULTADO DO BUILD
+
+Comando:
+...
+
+Resultado:
+...
+
+
+GIT STATUS
+
+...
+
+
+GIT DIFF
+
+...
+
+
+QUEBRAS DE CONTRATO IDENTIFICADAS
+
+Nenhuma.
+
+ou:
+
+- antes:
+- depois:
+- motivo:
+
+
+SECRETS
+
+Resultado da revisão:
+...
+
+
+PENDÊNCIAS PARA O FRONTEND
+
+Liste apenas necessidades reais.
+
+
+PRÓXIMO PASSO RECOMENDADO
+
+Iniciar módulo 06 - Frontend Angular consumindo os contratos documentados.
+
+Não implemente Angular nesta tarefa.
+```
+
+---
+
+# 90. Princípio final
+
+Ao final desta etapa, o backend deve funcionar como um produto de API independente.
+
+O Angular deve poder ser implementado utilizando somente:
+
+```text
+documentação
+contratos JSON
+endpoints
+status HTTP
+```
+
+sem precisar ler código Java ou entender entidades JPA.
+
+Preserve:
+
+```text
+Backend
+    ↓
+contrato REST estável
+    ↓
+Angular
+```
+
+e não:
+
+```text
+Angular
+    ↓
+conhecimento de detalhes internos do backend
+```
+
+Agora analise integralmente a API atual e execute a preparação final para integração com Angular, sem implementar o frontend.

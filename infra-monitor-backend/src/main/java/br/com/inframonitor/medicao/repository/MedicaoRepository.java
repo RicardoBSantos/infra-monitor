@@ -10,6 +10,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 import java.util.List;
+import java.util.Collection;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface MedicaoRepository extends JpaRepository<Medicao, Long>, JpaSpecificationExecutor<Medicao> {
 
@@ -27,4 +30,16 @@ public interface MedicaoRepository extends JpaRepository<Medicao, Long>, JpaSpec
     Optional<Medicao> findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(Long monitorId);
 
     List<Medicao> findByMonitorIdOrderByExecutadoEmDescIdDesc(Long monitorId, Pageable pageable);
+
+    @Query("""
+            select md from Medicao md join fetch md.monitor m
+            where m.id in :monitorIds
+              and not exists (
+                select 1 from Medicao posterior
+                where posterior.monitor = m
+                  and (posterior.executadoEm > md.executadoEm
+                    or (posterior.executadoEm = md.executadoEm and posterior.id > md.id))
+              )
+            """)
+    List<Medicao> findLatestByMonitorIds(@Param("monitorIds") Collection<Long> monitorIds);
 }

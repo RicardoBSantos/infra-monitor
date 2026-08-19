@@ -4,9 +4,9 @@ import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.dto.EquipamentoResponse;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
+import br.com.inframonitor.common.api.PaginaResposta;
+import br.com.inframonitor.common.api.Paginacao;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -25,12 +25,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/equipamentos")
 public class EquipamentoController {
 
-    private static final int TAMANHO_MAXIMO_PAGINA = 100;
+    private static final Set<String> CAMPOS_ORDENAVEIS = Set.of("id", "nome", "ip", "hostname", "localizacao", "ativo", "createdAt", "updatedAt");
     private final EquipamentoService equipamentoService;
 
     public EquipamentoController(EquipamentoService equipamentoService) {
@@ -51,13 +52,12 @@ public class EquipamentoController {
     }
 
     @GetMapping
-    public Page<EquipamentoResponse> listar(@RequestParam(required = false) Long unidadeId,
+    public PaginaResposta<EquipamentoResponse> listar(@RequestParam(required = false) Long unidadeId,
                                              @RequestParam(required = false) Long tipoEquipamentoId,
                                              @RequestParam(required = false) Boolean ativo,
                                              @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-        Pageable limitado = pageable.getPageSize() > TAMANHO_MAXIMO_PAGINA
-                ? PageRequest.of(pageable.getPageNumber(), TAMANHO_MAXIMO_PAGINA, pageable.getSort()) : pageable;
-        return equipamentoService.listar(unidadeId, tipoEquipamentoId, ativo, limitado);
+        return PaginaResposta.de(equipamentoService.listar(unidadeId, tipoEquipamentoId, ativo,
+                Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
     }
 
     @PutMapping("/{id}")

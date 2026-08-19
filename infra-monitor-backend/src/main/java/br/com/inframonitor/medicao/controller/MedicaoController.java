@@ -4,9 +4,9 @@ import br.com.inframonitor.medicao.dto.CreateMedicaoRequest;
 import br.com.inframonitor.medicao.dto.MedicaoResponse;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.service.MedicaoService;
+import br.com.inframonitor.common.api.PaginaResposta;
+import br.com.inframonitor.common.api.Paginacao;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -24,12 +24,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/medicoes")
 public class MedicaoController {
 
-    private static final int TAMANHO_MAXIMO_PAGINA = 100;
+    private static final Set<String> CAMPOS_ORDENAVEIS = Set.of("id", "status", "latenciaMs", "executadoEm", "createdAt");
     private final MedicaoService medicaoService;
 
     public MedicaoController(MedicaoService medicaoService) {
@@ -50,15 +51,13 @@ public class MedicaoController {
     }
 
     @GetMapping
-    public Page<MedicaoResponse> listar(@RequestParam(required = false) Long monitorId,
+    public PaginaResposta<MedicaoResponse> listar(@RequestParam(required = false) Long monitorId,
                                          @RequestParam(required = false) StatusMedicao status,
                                          @RequestParam(required = false) Instant inicio,
                                          @RequestParam(required = false) Instant fim,
                                          @PageableDefault(size = 50, sort = {"executadoEm", "id"}, direction = Sort.Direction.DESC)
                                          Pageable pageable) {
-        Pageable limitado = pageable.getPageSize() > TAMANHO_MAXIMO_PAGINA
-                ? PageRequest.of(pageable.getPageNumber(), TAMANHO_MAXIMO_PAGINA, pageable.getSort())
-                : pageable;
-        return medicaoService.listar(monitorId, status, inicio, fim, limitado);
+        return PaginaResposta.de(medicaoService.listar(monitorId, status, inicio, fim,
+                Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
     }
 }

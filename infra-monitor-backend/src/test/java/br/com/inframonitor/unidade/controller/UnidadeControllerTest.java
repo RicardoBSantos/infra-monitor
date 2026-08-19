@@ -62,7 +62,8 @@ class UnidadeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nome\":\"   \",\"sigla\":\"MTZ\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.campos[0].campo").value("nome"));
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.nome").exists());
     }
 
     @Test

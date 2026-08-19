@@ -5,9 +5,9 @@ import br.com.inframonitor.monitor.dto.MonitorResponse;
 import br.com.inframonitor.monitor.dto.UpdateMonitorRequest;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.service.MonitorService;
+import br.com.inframonitor.common.api.PaginaResposta;
+import br.com.inframonitor.common.api.Paginacao;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -26,11 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/monitores")
 public class MonitorController {
-    private static final int TAMANHO_MAXIMO_PAGINA = 100;
+    private static final Set<String> CAMPOS_ORDENAVEIS = Set.of("id", "nome", "tipo", "intervaloSegundos", "timeoutMs", "ativo", "createdAt", "updatedAt");
     private final MonitorService monitorService;
     public MonitorController(MonitorService monitorService) { this.monitorService = monitorService; }
 
@@ -42,13 +43,12 @@ public class MonitorController {
     }
     @GetMapping("/{id}") public MonitorResponse buscarPorId(@PathVariable Long id) { return monitorService.buscarPorId(id); }
     @GetMapping
-    public Page<MonitorResponse> listar(@RequestParam(required = false) Long equipamentoId,
+    public PaginaResposta<MonitorResponse> listar(@RequestParam(required = false) Long equipamentoId,
                                          @RequestParam(required = false) TipoMonitor tipo,
                                          @RequestParam(required = false) Boolean ativo,
                                          @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-        Pageable limitado = pageable.getPageSize() > TAMANHO_MAXIMO_PAGINA
-                ? PageRequest.of(pageable.getPageNumber(), TAMANHO_MAXIMO_PAGINA, pageable.getSort()) : pageable;
-        return monitorService.listar(equipamentoId, tipo, ativo, limitado);
+        return PaginaResposta.de(monitorService.listar(equipamentoId, tipo, ativo,
+                Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
     }
     @PutMapping("/{id}") public MonitorResponse atualizar(@PathVariable Long id, @Valid @RequestBody UpdateMonitorRequest requisicao) { return monitorService.atualizar(id, requisicao); }
     @PatchMapping("/{id}/ativar") public MonitorResponse ativar(@PathVariable Long id) { return monitorService.ativar(id); }

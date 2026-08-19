@@ -58,7 +58,8 @@ class TipoEquipamentoControllerTest {
     void rejeitaPostInvalidoEDuplicado() throws Exception {
         mockMvc.perform(post("/api/v1/tipos-equipamento").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nome\":\"   \"}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.campos[0].campo").value("nome"));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.nome").exists());
 
         when(tipoEquipamentoService.criar(any(CreateTipoEquipamentoRequest.class)))
                 .thenThrow(new ConflitoException("Ja existe um tipo de equipamento com este nome"));

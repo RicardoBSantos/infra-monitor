@@ -2,6 +2,7 @@ package br.com.inframonitor;
 
 import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
+import br.com.inframonitor.dashboard.DashboardService;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.medicao.dto.CreateMedicaoRequest;
@@ -62,6 +63,7 @@ class BackendEndToEndIntegrationTest {
     @Autowired private TipoEquipamentoService tipoEquipamentoService;
     @Autowired private EquipamentoService equipamentoService;
     @Autowired private MonitorService monitorService;
+    @Autowired private DashboardService dashboardService;
     @Autowired private MedicaoService medicaoService;
     @Autowired private IncidenteRepository incidenteRepository;
     @Autowired private NotificacaoRepository notificacaoRepository;
@@ -97,6 +99,10 @@ class BackendEndToEndIntegrationTest {
         var incidenteAberto = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(
                 monitorId, StatusIncidente.ABERTO).orElseThrow();
         assertThat(incidenteAberto.getIniciadoEm()).isEqualTo(inicio);
+        var resumoDuranteIncidente = dashboardService.resumo();
+        assertThat(resumoDuranteIncidente.equipamentos().indisponiveis()).isEqualTo(1);
+        assertThat(resumoDuranteIncidente.monitores().indisponiveis()).isEqualTo(1);
+        assertThat(resumoDuranteIncidente.incidentes().abertos()).isEqualTo(1);
         Notificacao abertura = notificacao(incidenteAberto.getId(), TipoEventoNotificacao.INCIDENTE_ABERTO);
         assertThat(abertura.getStatus()).isEqualTo(StatusNotificacao.PENDENTE);
 

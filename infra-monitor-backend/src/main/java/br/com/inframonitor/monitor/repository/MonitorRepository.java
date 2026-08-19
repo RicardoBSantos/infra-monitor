@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
+import java.util.Collection;
 
 public interface MonitorRepository extends JpaRepository<Monitor, Long>, JpaSpecificationExecutor<Monitor> {
     boolean existsByEquipamentoId(Long equipamentoId);
@@ -35,4 +36,7 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long>, JpaSpec
             group by m.id, m.tipo, m.intervaloSegundos, m.timeoutMs, e.ip
             """)
     java.util.List<MonitorCandidate> findActiveExecutionCandidates();
+
+    @EntityGraph(attributePaths = "equipamento")
+    java.util.List<Monitor> findByEquipamentoIdIn(Collection<Long> equipamentoIds);
 }

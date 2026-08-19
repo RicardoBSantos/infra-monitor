@@ -3,8 +3,8 @@
 Backend do sistema interno de monitoramento de infraestrutura de rede.
 
 O backend consolida o inventário, monitores ICMP, histórico de medições,
-detecção de incidentes e a fila de notificações Telegram. Autenticação e
-endpoints agregados de dashboard permanecem fora do escopo.
+detecção de incidentes, leitura operacional para dashboard e a fila de
+notificações Telegram. Autenticação permanece fora do escopo.
 
 Fluxo operacional:
 
@@ -144,6 +144,10 @@ externo.
 | `PATCH /api/v1/incidentes/{id}/fechar` | Fecha um incidente e cria a notificação de recovery. |
 | `GET /api/v1/notificacoes` | Lista notificações paginadas; filtros `incidenteId`, `status`, `canal`, `tipoEvento`, `inicio`, `fim`. |
 | `GET /api/v1/notificacoes/{id}` | Consulta uma notificação. |
+| `GET /api/v1/dashboard/resumo` | Cards globais de inventário, monitoramento e incidentes abertos. |
+| `GET /api/v1/dashboard/unidades` | Resumo operacional das unidades ativas, por nome. |
+| `GET /api/v1/dashboard/unidades/{id}` | Detalhe operacional agregado de uma unidade. |
+| `GET /api/v1/dashboard/unidades/{id}/equipamentos` | Equipamentos operacionais paginados da unidade; filtros `tipoEquipamentoId` e `ativo`. |
 
 ```bash
 curl http://localhost:8080/actuator/health
@@ -152,6 +156,44 @@ curl http://localhost:8080/api/v1/status
 
 Somente o endpoint `health` do Actuator é exposto. No perfil `prod` os detalhes
 do health ficam ocultos (`show-details: never`).
+
+## Dashboard operacional
+
+Os status do Dashboard são projeções de leitura: nenhum status é persistido.
+O Incident Engine é a fonte de verdade para indisponibilidade; portanto uma
+única medição `FALHA` sem incidente `ABERTO` ainda resulta em `DISPONIVEL`.
+
+- Monitor: `DESABILITADO` quando inativo; depois `INDISPONIVEL` se houver
+  incidente aberto; `SEM_DADOS` sem medição; caso contrário `DISPONIVEL`.
+- Equipamento: inativo é `DESABILITADO`; sem monitor ativo é
+  `SEM_MONITORAMENTO`; incidente aberto em qualquer monitor ativo é
+  `INDISPONIVEL`; todos os monitores ativos sem dados é `SEM_DADOS`; os demais
+  são `DISPONIVEL`.
+- Unidade: equipamentos inativos não afetam seu estado. Sem equipamento ativo
+  é `SEM_EQUIPAMENTOS`; sem equipamento monitorado é `SEM_DADOS`; todos os
+  monitorados indisponíveis é `INDISPONIVEL`; parte deles indisponível é
+  `DEGRADADA`; todos sem dados é `SEM_DADOS`; os demais são `DISPONIVEL`.
+
+As contagens globais e por unidade são agregadas no PostgreSQL. A página de
+equipamentos é paginada no banco e enriquecida por consultas em lote para
+monitores, últimas medições e incidentes abertos. `ultimaMedicao` em um
+equipamento é a mais recente entre seus monitores ativos; ela é `null` quando
+nenhum deles possui medição.
+
+## Integração Frontend
+
+A API pública utiliza a base `/api/v1`, JSON `camelCase`, IDs numéricos, enums
+como strings e timestamps ISO-8601 em UTC. As listas paginadas possuem o
+envelope estável `content`, `page`, `size`, `totalElements`, `totalPages`,
+`first` e `last` (`page` começa em zero; `size` máximo é 100).
+
+CORS é centralizado para `/api/**`. A origem padrão de desenvolvimento é
+`http://localhost:4200`; em outro ambiente, defina `CORS_ALLOWED_ORIGINS` sem
+recompilar. Não há origem wildcard nem cookies/credentials nesta etapa.
+
+Erros têm `code` estável para o frontend e `fields` em erros de validação.
+O contrato completo, incluindo rotas, filtros, payloads e Dashboard, está em
+[docs/frontend-api-contract.md](docs/frontend-api-contract.md).
 
 ## Convenções
 

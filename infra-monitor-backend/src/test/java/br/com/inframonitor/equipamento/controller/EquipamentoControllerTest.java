@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -58,20 +59,25 @@ class EquipamentoControllerTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/equipamentos/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tipoEquipamento.nome").value("Switch"));
+                .andExpect(jsonPath("$.tipoEquipamento.nome").value("Switch"))
+                .andExpect(jsonPath("$.createdAt").value("2026-08-18T10:00:00Z"));
     }
 
     @Test
     void listaComFiltrosAtualizaAlteraStatusEExclui() throws Exception {
         when(equipamentoService.listar(eq(1L), eq(2L), eq(true), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(EQUIPAMENTO)));
+                .thenReturn(new PageImpl<>(List.of(EQUIPAMENTO), PageRequest.of(0, 20), 1));
         when(equipamentoService.atualizar(eq(1L), any(UpdateEquipamentoRequest.class))).thenReturn(EQUIPAMENTO);
         when(equipamentoService.ativar(1L)).thenReturn(EQUIPAMENTO);
         when(equipamentoService.desativar(1L)).thenReturn(EQUIPAMENTO);
 
         mockMvc.perform(get("/api/v1/equipamentos?unidadeId=1&tipoEquipamentoId=2&ativo=true&page=0&size=20"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].nome").value("SW-CORE-01"));
+                .andExpect(jsonPath("$.content[0].nome").value("SW-CORE-01"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
         mockMvc.perform(put("/api/v1/equipamentos/1").contentType(MediaType.APPLICATION_JSON).content(corpoValido()))
                 .andExpect(status().isOk());
         mockMvc.perform(patch("/api/v1/equipamentos/1/ativar")).andExpect(status().isOk());
@@ -95,6 +101,7 @@ class EquipamentoControllerTest {
                 .andExpect(status().isConflict());
         mockMvc.perform(delete("/api/v1/equipamentos/1"))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BUSINESS_CONFLICT"))
                 .andExpect(jsonPath("$.message").value("Nao e possivel excluir o equipamento porque existem monitores associados"));
     }
 

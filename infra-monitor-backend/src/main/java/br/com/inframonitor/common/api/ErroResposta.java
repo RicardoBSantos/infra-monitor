@@ -3,7 +3,7 @@ package br.com.inframonitor.common.api;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Corpo padrao de erro da API.
@@ -14,16 +14,17 @@ public record ErroResposta(
         Instant timestamp,
         int status,
         String error,
+        String code,
         String message,
         String path,
-        List<CampoInvalido> campos) {
+        Map<String, String> fields) {
 
-    public static ErroResposta de(int status, String error, String message, String path) {
-        return new ErroResposta(Instant.now(), status, error, message, path, null);
+    public static ErroResposta de(int status, String error, String code, String message, String path) {
+        return new ErroResposta(Instant.now(), status, error, code, message, path, null);
     }
 
     public static ErroResposta deValidacao(int status, String error, String message, String path,
-                                           List<CampoInvalido> campos) {
-        return new ErroResposta(Instant.now(), status, error, message, path, campos);
+                                           Map<String, String> fields) {
+        return new ErroResposta(Instant.now(), status, error, "VALIDATION_ERROR", message, path, fields);
     }
 }

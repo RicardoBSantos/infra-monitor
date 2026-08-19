@@ -35,6 +35,11 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+app:
+  cors:
+    # Lista separada por vírgulas também pode ser informada por CORS_ALLOWED_ORIGINS.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 management:
   endpoints:
     web:

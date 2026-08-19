@@ -5,9 +5,9 @@ import br.com.inframonitor.incidente.dto.CreateIncidenteRequest;
 import br.com.inframonitor.incidente.dto.IncidenteResponse;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.service.IncidenteService;
+import br.com.inframonitor.common.api.PaginaResposta;
+import br.com.inframonitor.common.api.Paginacao;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -26,12 +26,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/incidentes")
 public class IncidenteController {
 
-    private static final int TAMANHO_MAXIMO_PAGINA = 100;
+    private static final Set<String> CAMPOS_ORDENAVEIS = Set.of("id", "status", "iniciadoEm", "encerradoEm", "createdAt", "updatedAt");
     private final IncidenteService incidenteService;
 
     public IncidenteController(IncidenteService incidenteService) {
@@ -52,7 +53,7 @@ public class IncidenteController {
     }
 
     @GetMapping
-    public Page<IncidenteResponse> listar(@RequestParam(required = false) Long monitorId,
+    public PaginaResposta<IncidenteResponse> listar(@RequestParam(required = false) Long monitorId,
                                            @RequestParam(required = false) Long equipamentoId,
                                            @RequestParam(required = false) Long unidadeId,
                                            @RequestParam(required = false) StatusIncidente status,
@@ -60,10 +61,8 @@ public class IncidenteController {
                                            @RequestParam(required = false) Instant fim,
                                            @PageableDefault(size = 20, sort = {"iniciadoEm", "id"}, direction = Sort.Direction.DESC)
                                            Pageable pageable) {
-        Pageable limitado = pageable.getPageSize() > TAMANHO_MAXIMO_PAGINA
-                ? PageRequest.of(pageable.getPageNumber(), TAMANHO_MAXIMO_PAGINA, pageable.getSort())
-                : pageable;
-        return incidenteService.listar(monitorId, equipamentoId, unidadeId, status, inicio, fim, limitado);
+        return PaginaResposta.de(incidenteService.listar(monitorId, equipamentoId, unidadeId, status, inicio, fim,
+                Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
     }
 
     @PatchMapping("/{id}/fechar")
