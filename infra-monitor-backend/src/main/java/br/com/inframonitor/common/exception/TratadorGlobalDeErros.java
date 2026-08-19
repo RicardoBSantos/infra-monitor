@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -76,6 +77,30 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
                 caminho(request));
 
         return ResponseEntity.internalServerError().body(corpo);
+    }
+
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public ResponseEntity<ErroResposta> tratarRecursoNaoEncontrado(RecursoNaoEncontradoException ex,
+                                                                    WebRequest request) {
+        return respostaDeErro(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler({ConflitoException.class, DataIntegrityViolationException.class})
+    public ResponseEntity<ErroResposta> tratarConflito(RuntimeException ex, WebRequest request) {
+        String mensagem = ex instanceof ConflitoException
+                ? ex.getMessage()
+                : "Conflito de integridade dos dados";
+        return respostaDeErro(HttpStatus.CONFLICT, mensagem, request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErroResposta> tratarRequisicaoInvalida(IllegalArgumentException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    private ResponseEntity<ErroResposta> respostaDeErro(HttpStatus status, String mensagem, WebRequest request) {
+        ErroResposta corpo = ErroResposta.de(status.value(), status.getReasonPhrase(), mensagem, caminho(request));
+        return ResponseEntity.status(status).body(corpo);
     }
 
     private CampoInvalido paraCampoInvalido(FieldError erro) {

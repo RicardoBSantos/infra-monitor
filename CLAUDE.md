@@ -1,3 +1,96 @@
+Você está trabalhando no projeto **Infra Monitor**, uma aplicação interna de monitoramento de infraestrutura.
+
+## Stack
+
+* Backend: Java + Spring Boot
+* Frontend: Angular
+* Banco: PostgreSQL
+* Migrations: Flyway
+* Monitoramento inicial: ICMP
+* Alertas iniciais: Telegram
+
+Antes de modificar qualquer arquivo, analise o projeto existente.
+
+Leia também, caso estejam disponíveis no workspace, os documentos de orientação do projeto:
+
+* `instrução-principal.txt`
+* `Guia-de-implementação.txt`
+* `Função-de-cada-agente-de-IA.txt`
+
+## Arquitetura conceitual já aprovada
+
+A estrutura principal será:
+
+`Unidade → Equipamento → Monitor → Medição / Incidente`
+
+E também:
+
+`TipoEquipamento → Equipamento`
+
+Regras de negócio já aprovadas:
+
+1. Todo equipamento pertence obrigatoriamente a uma unidade.
+2. Todo equipamento possui obrigatoriamente um tipo.
+3. Uma unidade possui N equipamentos.
+4. Um equipamento pode possuir N monitores.
+5. Monitor e equipamento são entidades separadas.
+6. Medições pertencem ao monitor, não diretamente ao equipamento.
+7. Incidentes pertencem ao monitor.
+8. Uma falha de ping isolada não necessariamente cria um incidente.
+9. Um incidente pode gerar várias notificações.
+10. Notificação e incidente são entidades diferentes.
+11. Telegram será apenas um tipo de canal de alerta.
+12. Equipamentos poderão ser desativados e também excluídos logicamente.
+13. Datas operacionais deverão usar `TIMESTAMPTZ`.
+14. Endereços IP deverão utilizar o tipo PostgreSQL `INET`.
+15. IDs devem utilizar `BIGINT GENERATED ... AS IDENTITY`.
+
+## Objetivo desta etapa
+
+NÃO implemente ainda todas as tabelas do sistema.
+
+Nesta etapa quero apenas que você:
+
+1. Analise a estrutura atual do backend.
+2. Identifique:
+
+  * versão do Java;
+  * versão do Spring Boot;
+  * sistema de build utilizado;
+  * configuração atual do PostgreSQL;
+  * existência ou não do Flyway;
+  * migrations existentes;
+  * entidades JPA existentes relacionadas ao inventário.
+3. Informe onde as migrations Flyway devem ficar.
+4. Verifique qual padrão de nomenclatura está sendo usado no projeto.
+5. Proponha a estratégia para a migration inicial do módulo de inventário contendo somente:
+
+  * `unidade`
+  * `tipo_equipamento`
+  * `equipamento`
+6. Identifique qualquer conflito entre o projeto atual e as decisões arquiteturais acima.
+
+## Importante
+
+* Não crie tabelas de monitoramento ainda.
+* Não crie `monitor`.
+* Não crie `medicao`.
+* Não crie `incidente`.
+* Não crie `notificacao`.
+* Não crie `canal_alerta`.
+* Não crie abstrações desnecessárias.
+* Não altere código que não seja necessário.
+* Não assuma bibliotecas ou versões: confira no projeto.
+* Não execute mudanças destrutivas.
+
+No final, apresente:
+
+1. diagnóstico da estrutura atual;
+2. arquivos que precisarão ser criados ou modificados;
+3. proposta da migration;
+4. eventuais decisões que ainda precisam ser observadas.
+
+Pare após a análise. Não implemente a migration ainda.
 # Infra Monitor
 
 Sistema interno de monitoramento de infraestrutura de rede.
