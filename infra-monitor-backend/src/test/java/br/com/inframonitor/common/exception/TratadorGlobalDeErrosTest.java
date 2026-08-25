@@ -37,10 +37,10 @@ class TratadorGlobalDeErrosTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.path").value("/apoio"))
                 .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.campos[0].campo").value("nome"))
-                .andExpect(jsonPath("$.campos[0].mensagem").exists());
+                .andExpect(jsonPath("$.fields.nome").exists());
     }
 
     @Test
@@ -48,8 +48,9 @@ class TratadorGlobalDeErrosTest {
         mockMvc.perform(get("/apoio/ausente"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("REQUEST_ERROR"))
                 .andExpect(jsonPath("$.message").value("Recurso nao encontrado"))
-                .andExpect(jsonPath("$.campos").doesNotExist());
+                .andExpect(jsonPath("$.fields").doesNotExist());
     }
 
     @RestController
