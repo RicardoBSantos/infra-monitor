@@ -1,12 +1,27 @@
 import { Routes } from '@angular/router';
 import { authGuard, businessGuard, loginGuard, passwordChangeGuard, roleGuard } from './core/guards/auth.guards';
 import { ApplicationShellComponent } from './layout/application-shell/application-shell.component';
+import { UnidadeDetalheStore } from './features/unidades/detalhe/unidade-detalhe.store';
 
 const businessRoutes: Routes = [
   { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent), data: { breadcrumb: 'Painel', title: 'Painel', section: 'Operações' } },
   { path: 'mapa', loadComponent: () => import('./features/mapa/mapa.component').then(m => m.MapaComponent), data: { breadcrumb: 'Mapa', title: 'Mapa', section: 'Operações' } },
   { path: 'unidades', loadComponent: () => import('./features/unidades/unidade-list.component').then(m => m.UnidadeListComponent), data: { breadcrumb: 'Unidades', title: 'Unidades', section: 'Gerenciamento' } },
-  { path: 'unidades/:id', loadComponent: () => import('./features/unidades/unidade-detalhe.component').then(m => m.UnidadeDetalheComponent), data: { breadcrumb: 'Detalhe da unidade', title: 'Unidade', section: 'Operações' } },
+  {
+    path: 'unidades/:id',
+    loadComponent: () => import('./features/unidades/unidade-detalhe.component').then(m => m.UnidadeDetalheComponent),
+    // Estado compartilhado pelas abas: uma instância por unidade aberta.
+    providers: [UnidadeDetalheStore],
+    data: { breadcrumb: 'Detalhe da unidade', title: 'Unidade', section: 'Operações' },
+    children: [
+      { path: '', redirectTo: 'visao-geral', pathMatch: 'full' },
+      { path: 'visao-geral', loadComponent: () => import('./features/unidades/detalhe/visao-geral.component').then(m => m.VisaoGeralComponent), data: { title: 'Unidade · Visão geral' } },
+      { path: 'equipamentos', loadComponent: () => import('./features/unidades/detalhe/equipamentos-tab.component').then(m => m.EquipamentosTabComponent), data: { title: 'Unidade · Equipamentos' } },
+      { path: 'incidentes', loadComponent: () => import('./features/unidades/detalhe/incidentes-tab.component').then(m => m.IncidentesTabComponent), data: { title: 'Unidade · Incidentes' } },
+      { path: 'historico', loadComponent: () => import('./features/unidades/detalhe/placeholder-tab.component').then(m => m.PlaceholderTabComponent), data: { title: 'Unidade · Histórico', titulo: 'Histórico de disponibilidade' } },
+      { path: 'configuracoes', loadComponent: () => import('./features/unidades/detalhe/placeholder-tab.component').then(m => m.PlaceholderTabComponent), data: { title: 'Unidade · Configurações', titulo: 'Configurações da unidade' } },
+    ],
+  },
   { path: 'equipamentos', loadComponent: () => import('./features/equipamentos/equipamento-list.component').then(m => m.EquipamentoListComponent), data: { breadcrumb: 'Equipamentos', title: 'Equipamentos', section: 'Gerenciamento' } },
   { path: 'equipamentos/:id', loadComponent: () => import('./features/equipamentos/equipamento-detail.component').then(m => m.EquipamentoDetailComponent), data: { breadcrumb: 'Detalhe do equipamento', title: 'Equipamento', section: 'Gerenciamento' } },
   { path: 'tipos-equipamento', loadComponent: () => import('./features/tipos-equipamento/tipo-equipamento-list.component').then(m => m.TipoEquipamentoListComponent), data: { breadcrumb: 'Tipos de equipamento', title: 'Tipos de equipamento', section: 'Gerenciamento' } },

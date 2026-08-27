@@ -1,0 +1,38 @@
+<div class="incidentes-aba">
+  @if (estado() === 'loading') {
+    <div class="esqueleto" aria-label="Carregando incidentes">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+  } @else if (estado() === 'error') {
+    <div class="vazio" role="alert">
+      <strong>Não foi possível carregar os incidentes.</strong>
+      <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else if (ordenados().length === 0) {
+    <div class="vazio">
+      <strong>Nenhum incidente registrado nesta unidade.</strong>
+      <p>Uma falha de ping isolada não gera incidente: ele só é aberto quando o monitoramento consolida a indisponibilidade.</p>
+    </div>
+  } @else {
+    <div class="incidentes-aba__rolagem">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th>INCIDENTE</th><th>EQUIPAMENTO</th><th>EVENTO</th>
+            <th>INÍCIO</th><th class="numerico">DURAÇÃO</th><th class="numerico">STATUS</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (incidente of ordenados(); track incidente.id) {
+            <tr>
+              <td class="mono"><a [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a></td>
+              <td class="mono">{{ incidente.monitor.equipamentoNome }}</td>
+              <td>{{ incidente.motivo ?? 'Indisponibilidade consolidada' }}</td>
+              <td class="mono">{{ incidente.iniciadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td class="numerico mono">{{ duracao(incidente) }}</td>
+              <td class="numerico"><app-status-badge [status]="incidente.status" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -68,3 +68,55 @@
 .contagens { display: inline-flex; gap: 7px; align-items: baseline; font: 12px var(--im-mono); }
 .contagens b { font-weight: 600; } .contagens em { color: var(--im-text-dim); font-style: normal; }
 .ok { color: var(--im-success); } .warn { color: var(--im-warning); } .down { color: var(--im-danger); }
+
+/* Select estilizado. O <select> nativo do SO renderiza fundo branco e seta clara,
+   quebrando o tema escuro. appearance:none + seta própria resolve o visual sem
+   abrir mão de teclado, leitor de tela e do picker nativo no mobile. */
+.campo-select { position: relative; display: inline-flex; align-items: center; }
+.campo-select select {
+  appearance: none; height: 28px; padding: 0 26px 0 10px; border: 1px solid var(--im-border-strong);
+  border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text);
+  font-size: 11.5px; font-family: inherit; cursor: pointer;
+}
+.campo-select select:hover { border-color: var(--im-border-muted); }
+.campo-select select:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+/* Firefox/Windows pintam a lista com as cores do SO se não forem declaradas. */
+.campo-select select option { background: var(--im-surface-raised); color: var(--im-text); }
+.campo-select::after {
+  position: absolute; right: 10px; width: 7px; height: 7px; border-right: 1.5px solid var(--im-text-dim);
+  border-bottom: 1.5px solid var(--im-text-dim); transform: translateY(-2px) rotate(45deg);
+  content: ''; pointer-events: none;
+}
+
+/* Barra proporcional horizontal (latência por dispositivo, equipamentos por tipo). */
+.barra { position: relative; height: 6px; flex: 1; overflow: hidden; border-radius: 3px; background: var(--im-surface-active); }
+.barra i { display: block; height: 100%; border-radius: 3px; background: var(--im-info-soft); }
+.barra--down i { background: var(--im-danger); }
+
+/* Tabela de dados densa, compartilhada pelas abas e pela lista administrativa. */
+.tabela { width: 100%; border-collapse: collapse; }
+.tabela th { padding: 0 14px 8px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-align: left; white-space: nowrap; }
+.tabela td { padding: 8px 14px; border-top: 1px solid var(--im-border); font-size: 12px; }
+.tabela th.numerico, .tabela td.numerico { text-align: right; }
+.tabela tbody tr:hover { background: var(--im-surface-hover); }
+.tabela .ponto { margin-right: 6px; }
+
+/* Estado vazio: mensagem específica, nunca um "sem dados" genérico. */
+.vazio { display: grid; gap: 8px; justify-items: center; padding: 28px 14px; color: var(--im-text-secondary); font-size: 12px; text-align: center; }
+.vazio strong { color: var(--im-text); font-size: 13px; }
+.vazio p { margin: 0; max-width: 46ch; }
+
+/* Cartão de conteúdo das abas. */
+.cartao { border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.cartao__titulo { padding: 13px 14px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .12em; }
+
+/* Ação primária: usada no "+ Novo equipamento" do detalhe e no "+ Nova unidade" da lista. */
+.botao--primario { border-color: var(--im-info-soft); background: rgba(64, 132, 233, .14); color: var(--im-text); }
+.botao--primario:hover { border-color: var(--im-info-soft); background: rgba(64, 132, 233, .22); }
+.botao:disabled { opacity: .45; cursor: not-allowed; }
+
+.campo-busca { height: 28px; padding: 0 10px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface); color: var(--im-text); font-size: 11.5px; font-family: inherit; }
+.campo-busca::placeholder { color: var(--im-text-dim); }
+.campo-busca:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+
+.visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
