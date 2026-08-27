@@ -5,6 +5,7 @@ import br.com.inframonitor.monitoring.execution.MonitorCandidate;
 import br.com.inframonitor.monitoring.execution.MonitorExecutionResult;
 import br.com.inframonitor.monitoring.execution.MonitorExecutor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ public class IcmpMonitorExecutor implements MonitorExecutor {
     private final IcmpCommandRunner commandRunner;
     private final Clock clock;
 
-    public IcmpMonitorExecutor(IcmpCommandRunner commandRunner, Clock clock) {
+    public IcmpMonitorExecutor(IcmpCommandRunner commandRunner, @Qualifier("monitoringClock") Clock clock) {
         this.commandRunner = commandRunner;
         this.clock = clock;
     }

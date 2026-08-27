@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UnidadeControllerTest {
 
     private static final UnidadeResponse UNIDADE = new UnidadeResponse(
-            1L, "Matriz", "MTZ", "Unidade principal", true,
+            1L, "Matriz", "MTZ", "Unidade principal", "2800308", true,
             Instant.parse("2026-08-18T10:00:00Z"), Instant.parse("2026-08-18T10:00:00Z"));
 
     @Autowired
@@ -48,11 +48,12 @@ class UnidadeControllerTest {
 
         mockMvc.perform(post("/api/v1/unidades")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Unidade principal\"}"))
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Unidade principal\",\"codigoIbge\":\"2800308\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/v1/unidades/1"))
                 .andExpect(jsonPath("$.nome").value("Matriz"))
                 .andExpect(jsonPath("$.sigla").value("MTZ"))
+                .andExpect(jsonPath("$.codigoIbge").value("2800308"))
                 .andExpect(jsonPath("$.ativo").value(true));
     }
 
@@ -64,6 +65,13 @@ class UnidadeControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.fields.nome").exists());
+
+        mockMvc.perform(post("/api/v1/unidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"codigoIbge\":\"28003\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.codigoIbge").exists());
     }
 
     @Test
@@ -93,13 +101,15 @@ class UnidadeControllerTest {
 
         mockMvc.perform(get("/api/v1/unidades/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.codigoIbge").value("2800308"));
         mockMvc.perform(get("/api/v1/unidades?ativo=true"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nome").value("Matriz"));
+                .andExpect(jsonPath("$[0].nome").value("Matriz"))
+                .andExpect(jsonPath("$[0].codigoIbge").value("2800308"));
         mockMvc.perform(put("/api/v1/unidades/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Nova\"}"))
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Nova\",\"codigoIbge\":null}"))
                 .andExpect(status().isOk());
         mockMvc.perform(patch("/api/v1/unidades/1/ativar"))
                 .andExpect(status().isOk())

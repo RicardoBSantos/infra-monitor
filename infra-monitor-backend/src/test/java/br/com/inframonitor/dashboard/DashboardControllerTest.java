@@ -30,25 +30,51 @@ class DashboardControllerTest {
 
     @Test void expoeResumoUnidadesDetalheEPaginaDeEquipamentos() throws Exception {
         when(dashboardService.resumo()).thenReturn(new DashboardResumoResponse(
-                new DashboardResumoResponse.Unidades(2), new DashboardResumoResponse.Equipamentos(4, 3, 2, 1, 0, 0),
-                new DashboardResumoResponse.Monitores(3, 3, 2, 1, 0), new DashboardResumoResponse.Incidentes(1), Instant.parse("2026-08-19T12:00:00Z")));
-        var unidade = new DashboardUnidadeResponse(1L, "Matriz", true, StatusOperacionalUnidade.DISPONIVEL, 2, 2, 2, 0, 0, 0, 0);
+                new DashboardResumoResponse.Unidades(2), new DashboardResumoResponse.Equipamentos(4, 3, 2, 1, 1, 0, 0, 0),
+                new DashboardResumoResponse.Monitores(3, 3, 2, 0, 1, 0), new DashboardResumoResponse.Incidentes(1), 250, Instant.parse("2026-08-19T12:00:00Z")));
+        var unidade = new DashboardUnidadeResponse(1L, "Matriz", "2800308", true, StatusOperacionalUnidade.DISPONIVEL, 2, 2, 2, 0, 0, 0, 0, 0, 0);
         when(dashboardService.unidades()).thenReturn(List.of(unidade));
-        when(dashboardService.unidade(1L)).thenReturn(new DashboardUnidadeDetalheResponse(1L, "Matriz", true, StatusOperacionalUnidade.DISPONIVEL,
-                new DashboardUnidadeDetalheResponse.Equipamentos(2, 2, 2, 0, 0, 0), new DashboardUnidadeDetalheResponse.Monitores(2, 0), 0));
+        when(dashboardService.unidade(1L)).thenReturn(new DashboardUnidadeDetalheResponse(1L, "Matriz", "2800308", true, StatusOperacionalUnidade.DISPONIVEL,
+                new DashboardUnidadeDetalheResponse.Equipamentos(2, 2, 2, 0, 0, 0, 0, 0), new DashboardUnidadeDetalheResponse.Monitores(2, 0), 0));
         var equipamento = new DashboardEquipamentoResponse(10L, "SW-CORE", "10.0.0.1", "Rack 1", true,
-                StatusOperacionalEquipamento.DISPONIVEL, new DashboardEquipamentoResponse.TipoEquipamento(2L, "Switch"), 1, 0, null);
+                StatusOperacionalEquipamento.DISPONIVEL, new DashboardEquipamentoResponse.TipoEquipamento(2L, "Switch"), false, 1, 0, null, "sw-core.rede.local");
         when(dashboardService.equipamentosDaUnidade(eq(1L), eq(2L), eq(true), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(equipamento)));
 
         mockMvc.perform(get("/api/v1/dashboard/resumo")).andExpect(status().isOk()).andExpect(jsonPath("$.equipamentos.indisponiveis").value(1));
-        mockMvc.perform(get("/api/v1/dashboard/unidades")).andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("DISPONIVEL"));
-        mockMvc.perform(get("/api/v1/dashboard/unidades/1")).andExpect(status().isOk()).andExpect(jsonPath("$.monitores.ativos").value(2));
+        mockMvc.perform(get("/api/v1/dashboard/unidades")).andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("DISPONIVEL")).andExpect(jsonPath("$[0].codigoIbge").value("2800308"));
+        mockMvc.perform(get("/api/v1/dashboard/unidades/1")).andExpect(status().isOk()).andExpect(jsonPath("$.monitores.ativos").value(2)).andExpect(jsonPath("$.codigoIbge").value("2800308"));
         mockMvc.perform(get("/api/v1/dashboard/unidades/1/equipamentos?tipoEquipamentoId=2&ativo=true&page=0&size=20"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].tipoEquipamento.nome").value("Switch"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].tipoEquipamento.nome").value("Switch"))
+                .andExpect(jsonPath("$.content[0].hostname").value("sw-core.rede.local"))
+                .andExpect(jsonPath("$.content[0].ip").value("10.0.0.1"))
+                .andExpect(jsonPath("$.content[0].emManutencao").value(false))
+                .andExpect(jsonPath("$.content[0].monitoresAtivos").value(1));
     }
 
     @Test void unidadeInexistenteRetorna404() throws Exception {
         when(dashboardService.unidade(99999L)).thenThrow(new RecursoNaoEncontradoException("Unidade nao encontrada"));
         mockMvc.perform(get("/api/v1/dashboard/unidades/99999")).andExpect(status().isNotFound());
+    }
+
+    @Test void expoeCodigoIbgeNuloQuandoUnidadeNaoFoiGeorreferenciada() throws Exception {
+        when(dashboardService.unidades()).thenReturn(List.of(
+                new DashboardUnidadeResponse(2L, "Filial", null, true, StatusOperacionalUnidade.SEM_EQUIPAMENTOS,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0)));
+
+        mockMvc.perform(get("/api/v1/dashboard/unidades"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigoIbge").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    /** hostname e campo adicional e opcional: ausencia no cadastro nao pode virar erro nem sumir do payload. */
+    @Test void expoeHostnameNuloQuandoEquipamentoNaoTemHostname() throws Exception {
+        var equipamento = new DashboardEquipamentoResponse(11L, "AP-01", "10.0.0.2", null, true,
+                StatusOperacionalEquipamento.SEM_MONITORAMENTO, new DashboardEquipamentoResponse.TipoEquipamento(3L, "Access Point"), false, 0, 0, null, null);
+        when(dashboardService.equipamentosDaUnidade(eq(1L), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(equipamento)));
+
+        mockMvc.perform(get("/api/v1/dashboard/unidades/1/equipamentos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].hostname").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].nome").value("AP-01"));
     }
 }

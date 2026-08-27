@@ -9,6 +9,7 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
 import br.com.inframonitor.unidade.entity.Unidade;
@@ -18,6 +19,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import br.com.inframonitor.relatorio.service.CicloJanelaMonitoramentoService;
 
 import java.util.Objects;
 
@@ -29,14 +32,18 @@ public class EquipamentoService {
     private final UnidadeRepository unidadeRepository;
     private final TipoEquipamentoRepository tipoEquipamentoRepository;
     private final MonitorRepository monitorRepository;
+    private final CicloJanelaMonitoramentoService cicloJanela;
 
+    @Autowired
     public EquipamentoService(EquipamentoRepository equipamentoRepository, UnidadeRepository unidadeRepository,
-                              TipoEquipamentoRepository tipoEquipamentoRepository, MonitorRepository monitorRepository) {
+                              TipoEquipamentoRepository tipoEquipamentoRepository, MonitorRepository monitorRepository, CicloJanelaMonitoramentoService cicloJanela) {
         this.equipamentoRepository = equipamentoRepository;
         this.unidadeRepository = unidadeRepository;
         this.tipoEquipamentoRepository = tipoEquipamentoRepository;
         this.monitorRepository = monitorRepository;
+        this.cicloJanela = cicloJanela;
     }
+    public EquipamentoService(EquipamentoRepository a, UnidadeRepository b, TipoEquipamentoRepository c, MonitorRepository d){this(a,b,c,d,null);}
 
     @Transactional
     public EquipamentoResponse criar(CreateEquipamentoRequest requisicao) {
@@ -53,10 +60,16 @@ public class EquipamentoService {
     }
 
     public Page<EquipamentoResponse> listar(Long unidadeId, Long tipoEquipamentoId, Boolean ativo, Pageable pageable) {
-        Specification<Equipamento> filtro = Specification.allOf(
-                unidadeId == null ? null : (root, query, cb) -> cb.equal(root.get("unidade").get("id"), unidadeId),
-                tipoEquipamentoId == null ? null : (root, query, cb) -> cb.equal(root.get("tipoEquipamento").get("id"), tipoEquipamentoId),
-                ativo == null ? null : (root, query, cb) -> cb.equal(root.get("ativo"), ativo));
+        Specification<Equipamento> filtro = Specification.unrestricted();
+        if (unidadeId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("unidade").get("id"), unidadeId));
+        }
+        if (tipoEquipamentoId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("tipoEquipamento").get("id"), tipoEquipamentoId));
+        }
+        if (ativo != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("ativo"), ativo));
+        }
         return equipamentoRepository.findAll(filtro, pageable).map(this::paraResposta);
     }
 
@@ -87,6 +100,21 @@ public class EquipamentoService {
             throw new ConflitoException("Nao e possivel ativar o equipamento porque o tipo de equipamento esta inativo");
         }
         equipamento.setAtivo(true);
+        if (cicloJanela != null) monitorRepository.findByEquipamentoIdIn(java.util.List.of(id)).stream().filter(Monitor::isAtivo).forEach(cicloJanela::abrir);
+        return paraResposta(equipamento);
+    }
+
+    @Transactional
+    public EquipamentoResponse entrarEmManutencao(Long id) {
+        Equipamento equipamento = obterEquipamento(id);
+        equipamento.setEmManutencao(true);
+        return paraResposta(equipamento);
+    }
+
+    @Transactional
+    public EquipamentoResponse sairDeManutencao(Long id) {
+        Equipamento equipamento = obterEquipamento(id);
+        equipamento.setEmManutencao(false);
         return paraResposta(equipamento);
     }
 
@@ -94,6 +122,7 @@ public class EquipamentoService {
     public EquipamentoResponse desativar(Long id) {
         Equipamento equipamento = obterEquipamento(id);
         equipamento.setAtivo(false);
+        if (cicloJanela != null) cicloJanela.fecharEquipamento(id);
         return paraResposta(equipamento);
     }
 
@@ -155,7 +184,7 @@ public class EquipamentoService {
 
     private EquipamentoResponse paraResposta(Equipamento equipamento) {
         return new EquipamentoResponse(equipamento.getId(), equipamento.getNome(), equipamento.getIp(),
-                equipamento.getHostname(), equipamento.getDescricao(), equipamento.getLocalizacao(), equipamento.isAtivo(),
+                equipamento.getHostname(), equipamento.getDescricao(),                 equipamento.getLocalizacao(), equipamento.isAtivo(), equipamento.isEmManutencao(),
                 new ReferenciaResponse(equipamento.getUnidade().getId(), equipamento.getUnidade().getNome()),
                 new ReferenciaResponse(equipamento.getTipoEquipamento().getId(), equipamento.getTipoEquipamento().getNome()),
                 equipamento.getCreatedAt(), equipamento.getUpdatedAt());

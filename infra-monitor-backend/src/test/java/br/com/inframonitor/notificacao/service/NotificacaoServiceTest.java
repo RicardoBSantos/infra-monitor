@@ -97,6 +97,18 @@ class NotificacaoServiceTest {
                 PageRequest.of(0, 20))).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void listaSemFiltrosEPorCadaFiltroOpcional() {
+        when(notificacaoRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Notificacao>>any(),
+                org.mockito.ArgumentMatchers.<Pageable>any())).thenReturn(new PageImpl<>(List.of()));
+        Pageable pagina = PageRequest.of(0, 20);
+
+        notificacaoService.listar(null, null, null, null, null, null, pagina);
+        notificacaoService.listar(10L, null, null, null, null, null, pagina);
+        notificacaoService.listar(null, StatusNotificacao.PENDENTE, CanalNotificacao.TELEGRAM,
+                TipoEventoNotificacao.INCIDENTE_ABERTO, INICIO, INICIO.plusSeconds(60), pagina);
+    }
+
     private Incidente incidente() {
         Unidade unidade = new Unidade("Matriz", "MTZ", null);
         Equipamento equipamento = new Equipamento(unidade, new TipoEquipamento("Switch", null), "SW-01", "10.0.0.10", null, null, null);

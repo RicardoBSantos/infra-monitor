@@ -28,6 +28,9 @@ public class Unidade {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
+    @Column(name = "codigo_ibge", length = 7)
+    private String codigoIbge;
+
     @Column(nullable = false)
     private boolean ativo;
 
@@ -85,6 +88,14 @@ public class Unidade {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getCodigoIbge() {
+        return codigoIbge;
+    }
+
+    public void setCodigoIbge(String codigoIbge) {
+        this.codigoIbge = codigoIbge;
     }
 
     public boolean isAtivo() {

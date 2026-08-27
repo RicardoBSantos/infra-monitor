@@ -98,13 +98,25 @@ public class IncidenteService {
     public Page<IncidenteResponse> listar(Long monitorId, Long equipamentoId, Long unidadeId, StatusIncidente status,
                                            Instant inicio, Instant fim, Pageable pageable) {
         validarPeriodo(inicio, fim);
-        Specification<Incidente> filtro = Specification.allOf(
-                monitorId == null ? null : (root, query, cb) -> cb.equal(root.get("monitor").get("id"), monitorId),
-                equipamentoId == null ? null : (root, query, cb) -> cb.equal(root.get("monitor").get("equipamento").get("id"), equipamentoId),
-                unidadeId == null ? null : (root, query, cb) -> cb.equal(root.get("monitor").get("equipamento").get("unidade").get("id"), unidadeId),
-                status == null ? null : (root, query, cb) -> cb.equal(root.get("status"), status),
-                inicio == null ? null : (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("iniciadoEm"), inicio),
-                fim == null ? null : (root, query, cb) -> cb.lessThanOrEqualTo(root.get("iniciadoEm"), fim));
+        Specification<Incidente> filtro = Specification.unrestricted();
+        if (monitorId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("monitor").get("id"), monitorId));
+        }
+        if (equipamentoId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("monitor").get("equipamento").get("id"), equipamentoId));
+        }
+        if (unidadeId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("monitor").get("equipamento").get("unidade").get("id"), unidadeId));
+        }
+        if (status != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (inicio != null) {
+            filtro = filtro.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("iniciadoEm"), inicio));
+        }
+        if (fim != null) {
+            filtro = filtro.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("iniciadoEm"), fim));
+        }
         return incidenteRepository.findAll(filtro, pageable).map(this::paraResposta);
     }
 

@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -65,13 +67,14 @@ public class NotificacaoService {
                                              TipoEventoNotificacao tipoEvento, Instant inicio, Instant fim,
                                              Pageable pageable) {
         validarPeriodo(inicio, fim);
-        Specification<Notificacao> filtro = Specification.allOf(
-                incidenteId == null ? null : (root, query, cb) -> cb.equal(root.get("incidente").get("id"), incidenteId),
-                status == null ? null : (root, query, cb) -> cb.equal(root.get("status"), status),
-                canal == null ? null : (root, query, cb) -> cb.equal(root.get("canal"), canal),
-                tipoEvento == null ? null : (root, query, cb) -> cb.equal(root.get("tipoEvento"), tipoEvento),
-                inicio == null ? null : (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), inicio),
-                fim == null ? null : (root, query, cb) -> cb.lessThanOrEqualTo(root.get("createdAt"), fim));
+        List<Specification<Notificacao>> filtros = new ArrayList<>();
+        if (incidenteId != null) filtros.add((root, query, cb) -> cb.equal(root.get("incidente").get("id"), incidenteId));
+        if (status != null) filtros.add((root, query, cb) -> cb.equal(root.get("status"), status));
+        if (canal != null) filtros.add((root, query, cb) -> cb.equal(root.get("canal"), canal));
+        if (tipoEvento != null) filtros.add((root, query, cb) -> cb.equal(root.get("tipoEvento"), tipoEvento));
+        if (inicio != null) filtros.add((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), inicio));
+        if (fim != null) filtros.add((root, query, cb) -> cb.lessThanOrEqualTo(root.get("createdAt"), fim));
+        Specification<Notificacao> filtro = Specification.allOf(filtros);
         return notificacaoRepository.findAll(filtro, pageable).map(this::paraResposta);
     }
 

@@ -32,7 +32,9 @@ public class UnidadeService {
         validarNomeDisponivel(nome);
         validarSiglaDisponivel(sigla);
 
-        Unidade unidade = unidadeRepository.save(new Unidade(nome, sigla, requisicao.descricao()));
+        Unidade unidade = new Unidade(nome, sigla, requisicao.descricao());
+        unidade.setCodigoIbge(normalizarCodigoIbge(requisicao.codigoIbge()));
+        unidade = unidadeRepository.save(unidade);
         return paraResposta(unidade);
     }
 
@@ -62,6 +64,7 @@ public class UnidadeService {
             unidade.setSigla(sigla);
         }
         unidade.setDescricao(requisicao.descricao());
+        unidade.setCodigoIbge(normalizarCodigoIbge(requisicao.codigoIbge()));
         return paraResposta(unidade);
     }
 
@@ -113,12 +116,17 @@ public class UnidadeService {
         return sigla.trim();
     }
 
+    private String normalizarCodigoIbge(String codigoIbge) {
+        return codigoIbge == null ? null : codigoIbge.trim();
+    }
+
     private UnidadeResponse paraResposta(Unidade unidade) {
         return new UnidadeResponse(
                 unidade.getId(),
                 unidade.getNome(),
                 unidade.getSigla(),
                 unidade.getDescricao(),
+                unidade.getCodigoIbge(),
                 unidade.isAtivo(),
                 unidade.getCreatedAt(),
                 unidade.getUpdatedAt());

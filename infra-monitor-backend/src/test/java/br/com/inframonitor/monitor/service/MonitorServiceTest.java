@@ -20,9 +20,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -53,6 +58,22 @@ class MonitorServiceTest {
         assertThat(captor.getValue().getFalhasParaIncidente()).isEqualTo(Monitor.DEFAULT_FALHAS_PARA_INCIDENTE);
         assertThat(captor.getValue().getSucessosParaRecovery()).isEqualTo(Monitor.DEFAULT_SUCESSOS_PARA_RECOVERY);
         assertThat(resposta.ativo()).isTrue();
+    }
+
+    @Test
+    void listaComFiltrosOpcionaisSemCombinarSpecificationsNulas() {
+        when(monitorRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Monitor>>any(),
+                org.mockito.ArgumentMatchers.<Pageable>any())).thenReturn(new PageImpl<>(List.of()));
+        Pageable pagina = PageRequest.of(0, 20);
+
+        monitorService.listar(null, null, null, pagina);
+        monitorService.listar(10L, null, null, pagina);
+        monitorService.listar(null, TipoMonitor.ICMP, null, pagina);
+        monitorService.listar(null, null, true, pagina);
+        monitorService.listar(10L, TipoMonitor.ICMP, false, pagina);
+
+        verify(monitorRepository, org.mockito.Mockito.times(5)).findAll(
+                org.mockito.ArgumentMatchers.<Specification<Monitor>>any(), org.mockito.ArgumentMatchers.<Pageable>any());
     }
 
     @Test

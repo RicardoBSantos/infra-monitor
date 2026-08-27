@@ -117,6 +117,20 @@ class MedicaoServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void listaComCadaFiltroOpcionalSemCombinarSpecificationsNulas() {
+        when(medicaoRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Medicao>>any(),
+                org.mockito.ArgumentMatchers.<Pageable>any())).thenReturn(new PageImpl<>(List.of()));
+        Pageable pagina = PageRequest.of(0, 50);
+
+        medicaoService.listar(null, null, null, null, pagina);
+        medicaoService.listar(1L, null, null, null, pagina);
+        medicaoService.listar(null, StatusMedicao.SUCESSO, null, null, pagina);
+        medicaoService.listar(null, StatusMedicao.FALHA, null, null, pagina);
+        medicaoService.listar(null, null, Instant.parse("2026-08-19T00:00:00Z"), null, pagina);
+        medicaoService.listar(null, null, null, Instant.parse("2026-08-20T00:00:00Z"), pagina);
+    }
+
     private CreateMedicaoRequest requisicao(StatusMedicao status, Integer latencia) {
         return new CreateMedicaoRequest(1L, status, latencia, " resposta ", Instant.parse("2026-08-19T12:00:00Z"));
     }

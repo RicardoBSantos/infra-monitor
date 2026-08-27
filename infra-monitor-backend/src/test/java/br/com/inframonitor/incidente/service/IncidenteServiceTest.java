@@ -139,6 +139,18 @@ class IncidenteServiceTest {
                 PageRequest.of(0, 20))).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void listaComFiltrosOpcionaisSemCombinarSpecificationsNulas() {
+        when(incidenteRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Incidente>>any(),
+                org.mockito.ArgumentMatchers.<Pageable>any())).thenReturn(new PageImpl<>(List.of()));
+        Pageable pagina = PageRequest.of(0, 20);
+
+        incidenteService.listar(null, null, null, null, null, null, pagina);
+        incidenteService.listar(1L, null, null, null, null, null, pagina);
+        incidenteService.listar(null, 2L, null, null, null, null, pagina);
+        incidenteService.listar(null, null, 3L, StatusIncidente.ABERTO, INICIO, INICIO.plusSeconds(60), pagina);
+    }
+
     private CreateIncidenteRequest criacao() {
         return new CreateIncidenteRequest(1L, INICIO, " indisponibilidade ", " investigando ");
     }

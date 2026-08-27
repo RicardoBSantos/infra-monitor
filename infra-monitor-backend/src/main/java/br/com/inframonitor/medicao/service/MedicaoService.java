@@ -61,11 +61,19 @@ public class MedicaoService {
     public Page<MedicaoResponse> listar(Long monitorId, StatusMedicao status, Instant inicio, Instant fim,
                                          Pageable pageable) {
         validarPeriodo(inicio, fim);
-        Specification<Medicao> filtro = Specification.allOf(
-                monitorId == null ? null : (root, query, cb) -> cb.equal(root.get("monitor").get("id"), monitorId),
-                status == null ? null : (root, query, cb) -> cb.equal(root.get("status"), status),
-                inicio == null ? null : (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("executadoEm"), inicio),
-                fim == null ? null : (root, query, cb) -> cb.lessThanOrEqualTo(root.get("executadoEm"), fim));
+        Specification<Medicao> filtro = Specification.unrestricted();
+        if (monitorId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("monitor").get("id"), monitorId));
+        }
+        if (status != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (inicio != null) {
+            filtro = filtro.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("executadoEm"), inicio));
+        }
+        if (fim != null) {
+            filtro = filtro.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("executadoEm"), fim));
+        }
         return medicaoRepository.findAll(filtro, pageable).map(this::paraResposta);
     }
 

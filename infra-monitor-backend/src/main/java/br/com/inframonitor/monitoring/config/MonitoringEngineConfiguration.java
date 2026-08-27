@@ -28,5 +28,5 @@ public class MonitoringEngineConfiguration {
                 new ThreadPoolExecutor.AbortPolicy());
     }
 
-    @Bean Clock monitoringClock() { return Clock.systemUTC(); }
+    @Bean("monitoringClock") Clock monitoringClock() { return Clock.systemUTC(); }
 }

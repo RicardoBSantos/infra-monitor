@@ -10,6 +10,7 @@ public record EquipamentoResponse(
         String descricao,
         String localizacao,
         boolean ativo,
+        boolean emManutencao,
         ReferenciaResponse unidade,
         ReferenciaResponse tipoEquipamento,
         Instant createdAt,

@@ -6,6 +6,8 @@ import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 public class NotificacaoMessageBuilder {
 
@@ -13,7 +15,7 @@ public class NotificacaoMessageBuilder {
         Monitor monitor = incidente.getMonitor();
         Equipamento equipamento = monitor.getEquipamento();
         String cabecalho = tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO
-                ? "Incidente aberto" : "Incidente encerrado";
+                ? "INCIDENTE ABERTO" : "INCIDENTE ENCERRADO";
         StringBuilder mensagem = new StringBuilder(cabecalho)
                 .append("\n\nUnidade: ").append(equipamento.getUnidade().getNome())
                 .append("\nEquipamento: ").append(equipamento.getNome());
@@ -22,9 +24,24 @@ public class NotificacaoMessageBuilder {
         }
         mensagem.append("\nMonitor: ").append(monitor.getNome())
                 .append("\nInicio: ").append(incidente.getIniciadoEm());
+        if (tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO && incidente.getMotivo() != null) {
+            mensagem.append("\nMotivo: ").append(incidente.getMotivo());
+        }
         if (tipoEvento == TipoEventoNotificacao.INCIDENTE_FECHADO) {
             mensagem.append("\nFim: ").append(incidente.getEncerradoEm());
+            if (incidente.getIniciadoEm() != null && incidente.getEncerradoEm() != null) {
+                mensagem.append("\nDuracao: ").append(formatarDuracao(Duration.between(
+                        incidente.getIniciadoEm(), incidente.getEncerradoEm())));
+            }
         }
         return mensagem.toString();
+    }
+
+    private String formatarDuracao(Duration duracao) {
+        long segundos = duracao.getSeconds();
+        long horas = segundos / 3600;
+        long minutos = (segundos % 3600) / 60;
+        long restantes = segundos % 60;
+        return horas + "h " + minutos + "m " + restantes + "s";
     }
 }

@@ -40,21 +40,23 @@ class UnidadeServiceTest {
     void criaUnidadeAtivaComNomeNormalizado() {
         when(unidadeRepository.save(any(Unidade.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var resposta = unidadeService.criar(new CreateUnidadeRequest("  Matriz  ", "  MTZ  ", "Unidade principal"));
+        var resposta = unidadeService.criar(new CreateUnidadeRequest("  Matriz  ", "  MTZ  ", "Unidade principal", " 2800308 "));
 
         ArgumentCaptor<Unidade> captor = ArgumentCaptor.forClass(Unidade.class);
         verify(unidadeRepository).save(captor.capture());
         assertThat(captor.getValue().getNome()).isEqualTo("Matriz");
         assertThat(captor.getValue().getSigla()).isEqualTo("MTZ");
+        assertThat(captor.getValue().getCodigoIbge()).isEqualTo("2800308");
         assertThat(captor.getValue().isAtivo()).isTrue();
         assertThat(resposta.nome()).isEqualTo("Matriz");
+        assertThat(resposta.codigoIbge()).isEqualTo("2800308");
     }
 
     @Test
     void impedeCriacaoComNomeDuplicado() {
         when(unidadeRepository.existsByNomeIgnoreCase("Matriz")).thenReturn(true);
 
-        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null)))
+        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null)))
                 .isInstanceOf(ConflitoException.class);
 
         verify(unidadeRepository, never()).save(any());
@@ -64,7 +66,7 @@ class UnidadeServiceTest {
     void impedeCriacaoComSiglaDuplicada() {
         when(unidadeRepository.existsBySiglaIgnoreCase("MTZ")).thenReturn(true);
 
-        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null)))
+        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null)))
                 .isInstanceOf(ConflitoException.class)
                 .hasMessage("Ja existe uma unidade com esta sigla");
 
@@ -77,6 +79,7 @@ class UnidadeServiceTest {
         when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
 
         assertThat(unidadeService.buscarPorId(1L).nome()).isEqualTo("Matriz");
+        assertThat(unidadeService.buscarPorId(1L).codigoIbge()).isNull();
 
         assertThatThrownBy(() -> unidadeService.buscarPorId(2L))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
@@ -87,15 +90,29 @@ class UnidadeServiceTest {
         Unidade unidade = new Unidade("Matriz", "MTZ", "Anterior");
         when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
 
-        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz Central", "MTZ", "Nova descricao"));
+        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz Central", "MTZ", "Nova descricao", "2800308"));
 
         assertThat(unidade.getNome()).isEqualTo("Matriz Central");
         assertThat(unidade.getDescricao()).isEqualTo("Nova descricao");
+        assertThat(unidade.getCodigoIbge()).isEqualTo("2800308");
         verify(unidadeRepository).existsByNomeIgnoreCase("Matriz Central");
 
         when(unidadeRepository.existsByNomeIgnoreCase("Filial")).thenReturn(true);
-        assertThatThrownBy(() -> unidadeService.atualizar(1L, new UpdateUnidadeRequest("Filial", "FIL", null)))
+        assertThatThrownBy(() -> unidadeService.atualizar(1L, new UpdateUnidadeRequest("Filial", "FIL", null, "2800209")))
                 .isInstanceOf(ConflitoException.class);
+    }
+
+    @Test
+    void atualizaEPermiteRemoverCodigoIbge() {
+        Unidade unidade = new Unidade("Matriz", "MTZ", null);
+        unidade.setCodigoIbge("2800308");
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
+
+        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz", "MTZ", null, "2800209"));
+        assertThat(unidade.getCodigoIbge()).isEqualTo("2800209");
+
+        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz", "MTZ", null, null));
+        assertThat(unidade.getCodigoIbge()).isNull();
     }
 
     @Test

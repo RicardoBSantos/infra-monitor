@@ -17,9 +17,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -53,6 +58,22 @@ class EquipamentoServiceTest {
         assertThat(captor.getValue().getIp()).isEqualTo("10.0.0.10");
         assertThat(captor.getValue().isAtivo()).isTrue();
         assertThat(resposta.unidade().nome()).isEqualTo("Matriz");
+    }
+
+    @Test
+    void listaComFiltrosOpcionaisSemCombinarSpecificationsNulas() {
+        when(equipamentoRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Equipamento>>any(),
+                org.mockito.ArgumentMatchers.<Pageable>any())).thenReturn(new PageImpl<>(List.of()));
+        Pageable pagina = PageRequest.of(0, 20);
+
+        equipamentoService.listar(null, null, null, pagina);
+        equipamentoService.listar(1L, null, null, pagina);
+        equipamentoService.listar(null, 2L, null, pagina);
+        equipamentoService.listar(null, null, true, pagina);
+        equipamentoService.listar(1L, 2L, false, pagina);
+
+        verify(equipamentoRepository, org.mockito.Mockito.times(5)).findAll(
+                org.mockito.ArgumentMatchers.<Specification<Equipamento>>any(), org.mockito.ArgumentMatchers.<Pageable>any());
     }
 
     @Test

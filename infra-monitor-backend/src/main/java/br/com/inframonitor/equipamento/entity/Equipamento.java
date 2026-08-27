@@ -50,6 +50,9 @@ public class Equipamento {
     @Column(nullable = false)
     private boolean ativo;
 
+    @Column(name = "em_manutencao", nullable = false)
+    private boolean emManutencao;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -69,6 +72,7 @@ public class Equipamento {
         this.descricao = descricao;
         this.localizacao = localizacao;
         this.ativo = true;
+        this.emManutencao = false;
     }
 
     @PrePersist
@@ -100,6 +104,8 @@ public class Equipamento {
     public void setLocalizacao(String localizacao) { this.localizacao = localizacao; }
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public boolean isEmManutencao() { return emManutencao; }
+    public void setEmManutencao(boolean emManutencao) { this.emManutencao = emManutencao; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

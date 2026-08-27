@@ -1,0 +1,7 @@
+package br.com.inframonitor.auth;
+import br.com.inframonitor.auth.dto.*; import br.com.inframonitor.security.JwtService; import br.com.inframonitor.usuario.entity.Usuario; import br.com.inframonitor.usuario.repository.UsuarioRepository; import br.com.inframonitor.usuario.service.UsuarioService; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional; import java.util.Locale;
+@Service public class AuthService { private final UsuarioRepository users; private final UsuarioService usuarioService; private final PasswordEncoder encoder; private final JwtService jwt;
+ public AuthService(UsuarioRepository users,UsuarioService usuarioService,PasswordEncoder encoder,JwtService jwt){this.users=users;this.usuarioService=usuarioService;this.encoder=encoder;this.jwt=jwt;}
+ @Transactional public LoginResponse login(LoginRequest r){ Usuario u=users.findByEmailIgnoreCase(r.email().trim().toLowerCase(Locale.ROOT)).orElseThrow(AuthenticationFailedException::new); if(!u.isAtivo())throw new AccountDisabledException(); if(!encoder.matches(r.senha(),u.getSenhaHash()))throw new AuthenticationFailedException(); usuarioService.registrarLogin(u); return new LoginResponse(jwt.gerar(u),jwt.expiresIn(),usuarioService.resposta(u)); }
+ public br.com.inframonitor.usuario.dto.UsuarioResponse me(Long id){ Usuario u=usuarioService.obter(id); if(!u.isAtivo())throw new AccountDisabledException(); return usuarioService.resposta(u); }
+}

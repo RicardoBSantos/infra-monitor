@@ -53,6 +53,14 @@ class TratadorGlobalDeErrosTest {
                 .andExpect(jsonPath("$.fields").doesNotExist());
     }
 
+    @Test
+    void erroInternoNaoExponheMensagemTecnica() throws Exception {
+        mockMvc.perform(get("/apoio/erro-interno"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.message").value("Erro interno do servidor"));
+    }
+
     @RestController
     static class ControllerDeApoio {
 
@@ -63,6 +71,11 @@ class TratadorGlobalDeErrosTest {
         @GetMapping("/apoio/ausente")
         void ausente() {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recurso nao encontrado");
+        }
+
+        @GetMapping("/apoio/erro-interno")
+        void erroInterno() {
+            throw new IllegalStateException("Other specification must not be null");
         }
 
         record Requisicao(@NotBlank String nome) {
