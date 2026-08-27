@@ -1,0 +1,9 @@
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { EquipmentOperationalStatus, IncidentStatus, MeasurementStatus, MonitorOperationalStatus, NotificationStatus, UnitOperationalStatus } from '../../core/models/api-enums';
+
+type DisplayStatus = MonitorOperationalStatus | EquipmentOperationalStatus | UnitOperationalStatus | MeasurementStatus | IncidentStatus | NotificationStatus;
+const LABELS: Record<DisplayStatus, string> = { DISPONIVEL: 'Disponível', DEGRADADO: 'Degradado', INDISPONIVEL: 'Indisponível', SEM_DADOS: 'Sem dados', DESABILITADO: 'Desabilitado', SEM_MONITORAMENTO: 'Sem monitoramento', EM_MANUTENCAO: 'Em manutenção', DEGRADADA: 'Degradada', SEM_EQUIPAMENTOS: 'Sem equipamentos', SUCESSO: 'Sucesso', FALHA: 'Falha', ABERTO: 'Aberto', FECHADO: 'Fechado', PENDENTE: 'Aguardando', ENVIANDO: 'Em envio', ENVIADA: 'Enviada' };
+const TONES: Record<DisplayStatus, string> = { DISPONIVEL: 'success', DEGRADADO: 'warning', INDISPONIVEL: 'danger', SEM_DADOS: 'muted', DESABILITADO: 'muted', SEM_MONITORAMENTO: 'muted', EM_MANUTENCAO: 'info', DEGRADADA: 'warning', SEM_EQUIPAMENTOS: 'muted', SUCESSO: 'success', FALHA: 'danger', ABERTO: 'danger', FECHADO: 'success', PENDENTE: 'muted', ENVIANDO: 'info', ENVIADA: 'success' };
+
+@Component({ selector: 'app-status-badge', changeDetection: ChangeDetectionStrategy.OnPush, template: `<span class="badge" [class]="'badge badge--' + tone()"><span aria-hidden="true"></span>{{ label() }}</span>`, styleUrl: './status-badge.component.scss' })
+export class StatusBadgeComponent { readonly status = input.required<DisplayStatus>(); protected readonly label = computed(() => LABELS[this.status()]); protected readonly tone = computed(() => TONES[this.status()]); }

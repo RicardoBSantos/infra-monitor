@@ -1,0 +1,67 @@
+<section class="unidade-detalhe" aria-labelledby="unidade-titulo">
+  @if (estado() === 'not-found') {
+    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Unidade não encontrada.</strong><p>O identificador informado não corresponde a nenhuma unidade ativa.</p></div><a class="botao" routerLink="/dashboard">Voltar ao painel</a></div>
+  } @else if (estado() === 'error') {
+    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar a unidade.</strong><p>{{ erro() }}</p></div><button class="botao" type="button" (click)="carregar()">Tentar novamente</button></div>
+  } @else if (estado() === 'loading') {
+    <div class="kpis" aria-label="Carregando unidade">@for (card of [1,2,3,4,5]; track card) { <div class="kpi kpi--carregando"><span></span><strong></strong><small></small></div> }</div>
+  } @else if (unidade(); as dados) {
+    <header class="unidade-detalhe__header">
+      <div class="unidade-detalhe__identidade">
+        <span class="marca" [class]="'marca marca--' + severidade()" aria-hidden="true">
+          @switch (severidade()) {
+            @case ('down') { <app-icon name="close" /> }
+            @case ('warn') { <app-icon name="incident" /> }
+            @default { <app-icon name="circle" /> }
+          }
+        </span>
+        <div>
+          <h1 id="unidade-titulo">{{ dados.nome }}</h1>
+          <p class="unidade-detalhe__meta">{{ identidade()?.sigla ?? '—' }}@if (identidade()?.municipio) { · {{ identidade()?.municipio }} }@if (dados.codigoIbge) { · IBGE {{ dados.codigoIbge }} }</p>
+        </div>
+        <app-status-badge [status]="dados.status" />
+      </div>
+      <a class="botao" routerLink="/dashboard">Voltar ao painel</a>
+    </header>
+
+    <div class="kpis">
+      <article class="kpi"><span>EQUIPAMENTOS</span><strong>{{ dados.equipamentos.total }}</strong><small>{{ dados.equipamentos.total - dados.equipamentos.semMonitoramento }} monitorados</small></article>
+      <article class="kpi kpi--ok"><span>ONLINE</span><strong>{{ dados.equipamentos.disponiveis }}</strong><small>de {{ dados.equipamentos.ativos }} ativos</small></article>
+      <article class="kpi kpi--warn"><span>DEGRADADOS</span><strong>{{ dados.equipamentos.degradados }}</strong><small>{{ dados.equipamentos.emManutencao }} em manutenção</small></article>
+      <article class="kpi kpi--down"><span>OFFLINE</span><strong>{{ dados.equipamentos.indisponiveis }}</strong><small>{{ dados.incidentesAbertos }} incidentes abertos</small></article>
+      <article class="kpi"><span>DISPONIBILIDADE</span><strong [class.kpi__vazio]="disponibilidadeTexto() === '—'">{{ disponibilidadeTexto() }}</strong><small>janela de 30 dias</small></article>
+      <article class="kpi"><span>LATÊNCIA MÉDIA</span><strong [class.kpi__vazio]="latenciaTexto() === '—'">{{ latenciaTexto() }}</strong><small>ICMP · todos os monitores</small></article>
+    </div>
+
+    <div class="faixa" [attr.aria-label]="dados.equipamentos.disponiveis + ' online, ' + dados.equipamentos.degradados + ' degradados, ' + dados.equipamentos.emManutencao + ' em manutenção, ' + dados.equipamentos.indisponiveis + ' offline'">
+      <i class="faixa__ok" [style.width]="larguraFaixa(dados.equipamentos.disponiveis, dados.equipamentos.total)"></i>
+      <i class="faixa__warn" [style.width]="larguraFaixa(dados.equipamentos.degradados + dados.equipamentos.emManutencao, dados.equipamentos.total)"></i>
+      <i class="faixa__down" [style.width]="larguraFaixa(dados.equipamentos.indisponiveis, dados.equipamentos.total)"></i>
+    </div>
+
+    @if (equipamentosEstado() === 'loading') {
+      <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+    } @else if (equipamentosEstado() === 'error') {
+      <p class="contagem">não foi possível carregar os equipamentos desta unidade.</p>
+    } @else if (equipamentos().length === 0) {
+      <p class="contagem">esta unidade não possui equipamentos.</p>
+    } @else {
+      <table class="equipamentos">
+        <thead><tr><th>NOME</th><th>TIPO</th><th>HOSTNAME</th><th>ENDEREÇO IP</th><th>STATUS</th><th class="numerico">LATÊNCIA</th><th class="numerico">DISPONIBILIDADE</th></tr></thead>
+        <tbody>
+          @for (equipamento of equipamentos(); track trackEquipamento($index, equipamento)) {
+            <tr>
+              <td class="mono forte"><i class="ponto" [class]="'ponto ponto--' + severidadeDoEquipamento(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}</td>
+              <td>{{ equipamento.tipoEquipamento.nome }}</td>
+              <td class="mono apagado">{{ equipamento.hostname ?? '—' }}</td>
+              <td class="mono">{{ equipamento.ip ?? '—' }}</td>
+              <td><app-status-badge [status]="equipamento.status" /></td>
+              <td class="numerico mono">{{ latencia(equipamento) }}</td>
+              <td class="numerico mono">{{ disponibilidadeDoEquipamento(equipamento.id) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</section>

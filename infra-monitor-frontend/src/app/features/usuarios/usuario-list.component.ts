@@ -1,0 +1,36 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { take } from 'rxjs';
+import { PapelUsuario } from '../../core/models/auth';
+import { isApiError } from '../../core/models/api-error';
+import { UsuarioResponse } from '../../core/models/usuario';
+import { AuthStateService } from '../../core/services/auth-state.service';
+import { UsuarioApiService } from '../../core/services/usuario-api.service';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+
+type State = 'loading' | 'success' | 'empty' | 'error';
+@Component({ selector: 'app-usuario-list', imports: [ReactiveFormsModule, ConfirmDialogComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './usuario-list.component.html', styleUrl: '../unidades/admin-list.component.scss' })
+export class UsuarioListComponent {
+  private readonly api = inject(UsuarioApiService); private readonly fb = inject(FormBuilder); protected readonly authState = inject(AuthStateService);
+  protected readonly items = signal<UsuarioResponse[]>([]); protected readonly state = signal<State>('loading'); protected readonly error = signal<string | null>(null); protected readonly notice = signal<string | null>(null);
+  protected readonly editing = signal<UsuarioResponse | null | undefined>(undefined); protected readonly resetting = signal<UsuarioResponse | null>(null); protected readonly changingStatus = signal<UsuarioResponse | null>(null); protected readonly saving = signal(false); protected readonly actionId = signal<number | null>(null);
+  protected readonly roles: readonly PapelUsuario[] = ['ADMIN', 'OPERADOR', 'VISUALIZADOR'];
+  protected readonly form = this.fb.nonNullable.group({ nome: ['', [Validators.required, Validators.maxLength(150)]], email: ['', [Validators.required, Validators.email, Validators.maxLength(254)]], papel: ['OPERADOR' as PapelUsuario, Validators.required], senhaInicial: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(128)]] });
+  protected readonly passwordForm = this.fb.nonNullable.group({ novaSenha: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(128)]], confirmacaoNovaSenha: ['', [Validators.required]] });
+  constructor() { this.load(); }
+  protected load(): void { this.state.set('loading'); this.error.set(null); this.api.list().pipe(take(1)).subscribe({ next: items => { this.items.set(items); this.state.set(items.length ? 'success' : 'empty'); }, error: error => { this.error.set(messageFrom(error, 'Não foi possível carregar os usuários.')); this.state.set('error'); } }); }
+  protected openCreate(): void { this.notice.set(null); this.editing.set(null); this.form.reset({ nome: '', email: '', papel: 'OPERADOR', senhaInicial: '' }); this.form.controls.senhaInicial.enable(); }
+  protected openEdit(item: UsuarioResponse): void { this.notice.set(null); this.editing.set(item); this.form.reset({ nome: item.nome, email: item.email, papel: item.papel, senhaInicial: '' }); this.form.controls.senhaInicial.disable(); }
+  protected closeForm(): void { if (!this.saving()) this.editing.set(undefined); }
+  protected submit(): void { const current = this.editing(); if (this.saving()) return; if (this.form.invalid) { this.form.markAllAsTouched(); return; } this.saving.set(true); const raw = this.form.getRawValue(); const request = current ? this.api.update(current.id, { nome: raw.nome.trim(), email: raw.email.trim(), papel: raw.papel }) : this.api.create({ nome: raw.nome.trim(), email: raw.email.trim(), papel: raw.papel, senhaInicial: raw.senhaInicial }); request.pipe(take(1)).subscribe({ next: user => { this.saving.set(false); this.editing.set(undefined); this.items.update(items => current ? items.map(item => item.id === user.id ? user : item) : [...items, user].sort((a, b) => a.nome.localeCompare(b.nome))); this.state.set('success'); this.notice.set(current ? 'Usuário atualizado com sucesso.' : 'Usuário criado com sucesso.'); }, error: error => { this.saving.set(false); this.applyFormError(error); } }); }
+  protected openReset(item: UsuarioResponse): void { this.notice.set(null); this.resetting.set(item); this.passwordForm.reset({ novaSenha: '', confirmacaoNovaSenha: '' }); }
+  protected resetPassword(): void { const user = this.resetting(); if (!user || this.saving()) return; if (this.passwordForm.invalid || this.passwordForm.controls.novaSenha.value !== this.passwordForm.controls.confirmacaoNovaSenha.value) { if (this.passwordForm.controls.novaSenha.value !== this.passwordForm.controls.confirmacaoNovaSenha.value) this.passwordForm.controls.confirmacaoNovaSenha.setErrors({ mismatch: true }); this.passwordForm.markAllAsTouched(); return; } this.saving.set(true); this.api.resetSenha(user.id, { novaSenha: this.passwordForm.controls.novaSenha.value }).pipe(take(1)).subscribe({ next: updated => { this.saving.set(false); this.resetting.set(null); this.items.update(items => items.map(item => item.id === updated.id ? updated : item)); this.notice.set('Senha temporária redefinida. O usuário deverá trocá-la no próximo acesso.'); }, error: error => { this.saving.set(false); this.error.set(businessMessage(error, 'Não foi possível redefinir a senha.')); } }); }
+  protected requestStatusChange(item: UsuarioResponse): void { if (!item.ativo && this.actionId() === null) { this.changeStatus(item); return; } this.changingStatus.set(item); }
+  protected changeStatus(item = this.changingStatus()): void { if (!item || this.actionId() !== null) return; this.actionId.set(item.id); (item.ativo ? this.api.desativar(item.id) : this.api.ativar(item.id)).pipe(take(1)).subscribe({ next: updated => { this.actionId.set(null); this.changingStatus.set(null); this.items.update(items => items.map(value => value.id === updated.id ? updated : value)); this.notice.set(`Usuário ${updated.ativo ? 'ativado' : 'desativado'} com sucesso.`); }, error: error => { this.actionId.set(null); this.changingStatus.set(null); this.error.set(businessMessage(error, 'Não foi possível alterar o status do usuário.')); } }); }
+  protected isCurrentUser(item: UsuarioResponse): boolean { return this.authState.usuario()?.id === item.id; }
+  protected roleLabel(role: PapelUsuario): string { return role === 'ADMIN' ? 'Administrador' : role === 'OPERADOR' ? 'Operador' : 'Visualizador'; }
+  private applyFormError(error: unknown): void { const apiError = error instanceof HttpErrorResponse && isApiError(error.error) ? error.error : null; if (apiError?.fields) for (const [field, message] of Object.entries(apiError.fields)) { const control = this.form.get(field); if (control) { control.setErrors({ backend: message }); control.markAsTouched(); } } this.error.set(businessMessage(error, 'Não foi possível salvar o usuário.')); }
+}
+function messageFrom(error: unknown, fallback: string): string { return error instanceof HttpErrorResponse && isApiError(error.error) ? error.error.message : fallback; }
+function businessMessage(error: unknown, fallback: string): string { return error instanceof HttpErrorResponse && isApiError(error.error) && error.error.code === 'BUSINESS_CONFLICT' ? error.error.message : messageFrom(error, fallback); }

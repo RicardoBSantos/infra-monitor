@@ -1,0 +1,66 @@
+/* Painel — grade densa de leitura operacional. Números sempre em mono.
+   Primitivas (.kpi .botao .pill .aba .ponto .faixa .marca .aviso e utilitários)
+   vivem em styles/_ui.scss, compartilhadas com o detalhe de unidade. */
+:host { --pn-colunas: minmax(220px, 1.4fr) 116px minmax(110px, 1fr) 150px 128px 110px 96px 26px; display: block; }
+
+.painel { display: grid; gap: 14px; padding: 18px 20px 28px; }
+.painel__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.painel__header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.painel__meta { margin: 6px 0 0; color: var(--im-text-secondary); font: 11.5px var(--im-mono); }
+.painel__acoes { display: flex; gap: 8px; }
+
+.alerta { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid rgba(229, 83, 75, .25); border-left: 3px solid var(--im-danger); border-radius: var(--im-radius-lg); background: rgba(229, 83, 75, .08); }
+.alerta__marca { display: grid; flex: none; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(229, 83, 75, .16); color: var(--im-danger); }
+.alerta__marca app-icon { width: 13px; height: 13px; }
+.alerta__texto { flex: 1; min-width: 0; }
+.alerta__linha { margin: 0; color: var(--im-text-soft); font-size: 12.5px; font-weight: 600; }
+.alerta__detalhe { margin: 3px 0 0; color: var(--im-text-secondary); font-size: 11.5px; }
+
+.filtros { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filtros__busca { display: flex; width: 280px; height: 30px; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-dim); }
+.filtros__busca input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--im-text); font-size: 12px; }
+
+.tabela { display: grid; gap: 8px; }
+.tabela__cabecalho, .detalhe__cabecalho, .equipamentos th { color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
+.tabela__cabecalho { display: grid; grid-template-columns: var(--pn-colunas); gap: 12px; padding: 0 14px; letter-spacing: .12em; }
+
+.unidade { border: 1px solid var(--im-border); border-left: 3px solid var(--im-border-muted); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); overflow: hidden; }
+.unidade--critica { border-left-color: var(--im-danger); }
+.unidade--atencao { border-left-color: var(--im-warning); }
+
+.linha { display: grid; width: 100%; grid-template-columns: var(--pn-colunas); align-items: center; gap: 12px; padding: 12px 14px; border: 0; background: transparent; color: var(--im-text); text-align: left; cursor: pointer; }
+.linha:hover { background: var(--im-surface-hover); }
+.linha__identidade { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.linha__nome { display: grid; gap: 2px; min-width: 0; }
+.linha__nome strong { font-size: 13px; font-weight: 600; }
+.linha__nome small { color: var(--im-text-dim); font: 10.5px var(--im-mono); }
+.linha__estado { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.linha__seta { display: grid; place-items: center; color: var(--im-text-dim); transition: transform .16s ease-out; }
+.linha__seta--aberta { transform: rotate(180deg); }
+.linha--carregando { display: block; height: 54px; border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+
+.detalhe { border-top: 1px solid var(--im-border); background: var(--im-surface); }
+.detalhe__cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
+.detalhe__estado { margin: 0; padding: 0 14px 14px; color: var(--im-text-secondary); font-size: 12px; }
+.detalhe__estado--erro { color: var(--im-danger); }
+
+.equipamentos { width: 100%; border-collapse: collapse; }
+.equipamentos th { padding: 0 14px 8px; text-align: left; }
+.equipamentos td { padding: 8px 14px; border-top: 1px solid var(--im-border); font-size: 12px; }
+.equipamentos th.numerico, .equipamentos td.numerico { text-align: right; }
+.equipamentos tbody tr:hover { background: var(--im-surface-hover); }
+.equipamentos .ponto { margin-right: 6px; }
+
+.rodape-nota { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
+
+@media (max-width: 1240px) {
+  :host { --pn-colunas: minmax(180px, 1.4fr) 110px 150px 128px 96px 26px; }
+  .col-composicao, .col-latencia { display: none; }
+}
+@media (max-width: 860px) {
+  :host { --pn-colunas: 1fr 104px 56px 26px; }
+  .painel { padding: 14px 12px 24px; }
+  .tabela__cabecalho { display: none; }
+  .col-dispositivos, .col-disponibilidade, .pills { display: none; }
+  .equipamentos { display: block; overflow-x: auto; }
+}

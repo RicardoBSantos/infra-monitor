@@ -1,0 +1,6 @@
+/* Página de estado sem formulário (403). .eyebrow e .field-error vivem em styles/_ui.scss. */
+.status-page{min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--im-bg);color:var(--im-text)}
+.status-page section{max-width:520px}
+.status-page h1{margin:12px 0;font-size:clamp(28px,4vw,48px);line-height:1.08}
+.status-page p{color:var(--im-text-secondary);line-height:1.6}
+.status-page a{display:inline-block;margin-top:12px;color:var(--im-link)}

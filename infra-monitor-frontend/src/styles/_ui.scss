@@ -1,0 +1,70 @@
+/* Primitivas de leitura operacional compartilhadas entre painel, detalhe de unidade
+   e páginas de autenticação. Globais de propósito: são as mesmas em toda a aplicação e
+   assim não pesam no budget de SCSS de cada componente. Nomes já eram únicos por classe. */
+
+.eyebrow { display: block; color: var(--im-link); font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: .12em; }
+.field-error { display: block; margin-top: 5px; color: var(--im-danger-text); }
+
+.botao { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-soft); font-size: 12px; text-decoration: none; cursor: pointer; }
+.botao:hover { border-color: var(--im-border-muted); color: var(--im-text); }
+.botao--perigo { border-color: rgba(229, 83, 75, .38); color: var(--im-danger); background: rgba(229, 83, 75, .10); }
+.botao--discreto { height: 26px; font-size: 11px; }
+
+.kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kpi { display: grid; align-content: start; gap: 4px; padding: 14px; border: 1px solid var(--im-border); border-top: 2px solid var(--im-border-muted); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.kpi span { color: var(--im-text-dim); font-size: 10px; font-weight: 600; letter-spacing: .12em; }
+.kpi strong { color: var(--im-text); font: 600 30px/1 var(--im-mono); letter-spacing: -.02em; }
+.kpi small { color: var(--im-text-secondary); font-size: 11px; }
+.kpi__vazio { color: var(--im-text-dim); }
+.kpi__unidade { margin-left: 4px; color: var(--im-text-dim); font: 600 14px/1 var(--im-mono); }
+.kpi--ok { border-top-color: var(--im-success); } .kpi--ok strong { color: var(--im-success); }
+.kpi--warn { border-top-color: var(--im-warning); } .kpi--warn strong { color: var(--im-warning); }
+.kpi--down { border-top-color: var(--im-danger); } .kpi--down strong { color: var(--im-danger); }
+.kpi--carregando span, .kpi--carregando strong, .kpi--carregando small { border-radius: 3px; background: var(--im-surface-hover); color: transparent; }
+.kpi--carregando span, .kpi--carregando small { height: 10px; } .kpi--carregando strong { height: 26px; }
+
+.abas { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface); flex-wrap: wrap; }
+.pills { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.aba, .pill { display: inline-flex; height: 26px; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--im-radius-pill); background: transparent; color: var(--im-text-secondary); font-size: 11.5px; cursor: pointer; }
+.aba { height: 24px; border-radius: calc(var(--im-radius-lg) - 2px); }
+.aba:hover, .pill:hover { color: var(--im-text); background: var(--im-surface-hover); }
+.aba--ativa, .pill--ativa { border-color: var(--im-border-strong); background: var(--im-surface-raised); color: var(--im-text); }
+
+.ponto { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--im-text-dim); }
+.ponto--ok { background: var(--im-success); }
+.ponto--warn { background: var(--im-warning); }
+.ponto--down { background: var(--im-danger); }
+.ponto--info { background: var(--im-info-soft); }
+
+.marca { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: var(--im-radius); }
+.marca app-icon { width: 13px; height: 13px; }
+.marca--ok { background: rgba(52, 199, 123, .12); color: var(--im-success); }
+.marca--warn { background: rgba(232, 163, 61, .14); color: var(--im-warning); }
+.marca--down { background: rgba(229, 72, 77, .14); color: var(--im-danger); }
+
+.faixa { display: flex; height: 6px; overflow: hidden; border-radius: 3px; background: var(--im-surface-active); }
+.faixa i { display: block; height: 100%; }
+.faixa__ok { background: var(--im-success); } .faixa__warn { background: var(--im-warning); } .faixa__down { background: var(--im-danger); }
+
+/* Manutenção parcial: a unidade não está EM_MANUTENCAO, mas tem equipamentos fora da leitura ICMP. */
+.chip-manutencao { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-pill); background: var(--im-surface); color: var(--im-info-soft); font: 10px var(--im-mono); }
+.chip-manutencao app-icon { width: 9px; height: 9px; }
+
+.aviso { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.aviso p { margin: 3px 0 0; color: var(--im-text-secondary); font-size: 12px; }
+.aviso app-icon { width: 16px; height: 16px; color: var(--im-text-dim); }
+.aviso--erro { border-color: rgba(229, 83, 75, .32); }
+.aviso--erro app-icon { color: var(--im-danger); }
+.aviso div { flex: 1; }
+
+.esqueleto { display: grid; gap: 6px; padding: 0 14px 14px; }
+.esqueleto span { display: block; height: 26px; border-radius: 4px; background: var(--im-surface-hover); }
+
+.numerico { text-align: right; justify-self: end; }
+.mono { font: 12px var(--im-mono); }
+.apagado { color: var(--im-text-dim); }
+.forte { font-weight: 600; }
+.contagem { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
+.contagens { display: inline-flex; gap: 7px; align-items: baseline; font: 12px var(--im-mono); }
+.contagens b { font-weight: 600; } .contagens em { color: var(--im-text-dim); font-style: normal; }
+.ok { color: var(--im-success); } .warn { color: var(--im-warning); } .down { color: var(--im-danger); }

@@ -1,0 +1,145 @@
+/* Tema escuro é o padrão. O tema claro sobrescreve apenas as cores,
+   nunca as medidas — raio, espaçamento e larguras são iguais nos dois. */
+:root {
+  --im-bg: #090C14;
+  --im-surface: #0a1017;
+  --im-surface-header: #0b1119;
+  --im-surface-raised: #10151F;
+  --im-surface-hover: #141e28;
+  --im-surface-active: #16202b;
+  --im-surface-deep: #080d13;
+  --im-border: rgba(255, 255, 255, .08);
+  --im-border-strong: #1f2a36;
+  --im-border-muted: #24313f;
+  --im-text: #E8EDF5;
+  --im-text-strong: #dce9f8;
+  --im-text-soft: #c6d5e4;
+  --im-text-secondary: #7A8699;
+  --im-text-muted: #63768a;
+  --im-text-faint: #7889a0;
+  --im-text-dim: #4e5f72;
+  --im-text-on-accent: #ffffff;
+  --im-primary: #3B6EFF;
+  --im-primary-soft: rgba(76, 141, 255, .12);
+  --im-link: #9cc1ff;
+  --im-success: #3FB950;
+  --im-success-soft: #9be0bc;
+  --im-warning: #D29922;
+  --im-warning-soft: #f0bc6a;
+  --im-warning-strong: #d88932;
+  --im-danger: #E5534B;
+  --im-danger-soft: #f2999c;
+  --im-danger-strong: #e05252;
+  --im-danger-border: #7c3742;
+  --im-danger-bg: #2a141a;
+  --im-danger-text: #ffb4bd;
+  --im-on-primary: #07111e;
+  --im-info-soft: #7fadff;
+  --im-map-glow: #0e1924;
+  --im-map-water: #0c1722;
+  --im-map-land: #263744;
+  --im-map-land-alt: #435464;
+  --im-map-stroke: #294056;
+  --im-map-active: #38536b;
+  --im-map-select: #254e6b;
+  --im-selection: rgba(76, 141, 255, .35);
+  --im-radius: 4px;
+  --im-radius-lg: 8px;
+  --im-mono: ui-monospace, 'JetBrains Mono', 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
+  --im-radius-pill: 999px;
+  --im-space-1: 4px;
+  --im-space-2: 8px;
+  --im-space-3: 12px;
+  --im-space-4: 16px;
+  --im-space-5: 22px;
+  --im-shadow-raised: 0 18px 40px rgba(0, 0, 0, .55);
+  --im-sidebar-width: 224px;
+  --im-topbar-height: 56px;
+  --im-focus-ring: 0 0 0 3px rgba(76, 141, 255, .28);
+}
+
+:root[data-theme='light'] {
+  --im-bg: #f4f6f9;
+  --im-surface: #ffffff;
+  --im-surface-header: #ffffff;
+  --im-surface-raised: #ffffff;
+  --im-surface-hover: #eef2f6;
+  --im-surface-active: #e6ecf3;
+  --im-surface-deep: #eef1f6;
+  --im-border: #e4e8ee;
+  --im-border-strong: #d0d5dd;
+  --im-border-muted: #c3cad5;
+  --im-text: #101828;
+  --im-text-strong: #0b1220;
+  --im-text-soft: #1f2a37;
+  --im-text-secondary: #475467;
+  --im-text-muted: #667085;
+  --im-text-faint: #667085;
+  --im-text-dim: #98a2b3;
+  --im-text-on-accent: #ffffff;
+  --im-primary: #1a56db;
+  --im-primary-soft: rgba(26, 86, 219, .10);
+  --im-link: #1a56db;
+  --im-success: #067647;
+  --im-success-soft: #067647;
+  --im-warning: #b54708;
+  --im-warning-soft: #b54708;
+  --im-warning-strong: #dc6803;
+  --im-danger: #d92d20;
+  --im-danger-soft: #b42318;
+  --im-danger-strong: #d92d20;
+  --im-danger-border: #f3b1ab;
+  --im-danger-bg: #fef3f2;
+  --im-danger-text: #b42318;
+  --im-on-primary: #ffffff;
+  --im-info-soft: #175cd3;
+  --im-map-glow: #f2f6fa;
+  --im-map-water: #e7edf3;
+  --im-map-land: #cfd9e4;
+  --im-map-land-alt: #b7c4d2;
+  --im-map-stroke: #a9b7c6;
+  --im-map-active: #8fa4ba;
+  --im-map-select: #1a56db;
+  --im-selection: rgba(26, 86, 219, .22);
+  --im-shadow-raised: 0 18px 40px rgba(16, 24, 40, .10);
+  --im-focus-ring: 0 0 0 3px rgba(26, 86, 219, .22);
+}
+
+/* Tokens da tela de login. Ficam globais para não pesarem no budget de SCSS do
+   componente; as regras de layout continuam em features/auth/login.component.scss. */
+.login-page {
+  --lg-bg: #090C12; --lg-card: #0F151D; --lg-card-line: #1E2733; --lg-input: #0A0F17;
+  --lg-input-line: #1B2430; --lg-text: #E8EDF5; --lg-muted: #7A8699; --lg-accent: #3B6EFF;
+  --lg-btn: #1C2743; --lg-btn-line: #2A3A66; --lg-ok: #3FB950; --lg-warn: #D29922; --lg-down: #E5534B;
+  --lg-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --lg-heading: #fff; --lg-icon: #B9C4D4; --lg-btn-text: var(--lg-text); --lg-btn-hover: #222E4E;
+  --lg-placeholder: #4E5A6B; --lg-focus: rgba(42, 58, 102, .45);
+  --lg-panel-a: #0D1526; --lg-panel-b: #0A0F1A; --lg-grid: rgba(255, 255, 255, .028);
+  --lg-glow-a: rgba(59, 110, 255, .10); --lg-glow-b: rgba(34, 197, 94, .055);
+  --lg-line: rgba(108, 134, 204, .30); --lg-pulse: rgba(146, 176, 255, .55);
+  --lg-ring: rgba(96, 126, 214, .22); --lg-ring-ping: rgba(96, 126, 214, .30);
+  --lg-node-glow: rgba(120, 150, 220, .28); --lg-core-glow: rgba(59, 110, 255, .55);
+  --lg-chip-ok-line: rgba(63, 185, 80, .28); --lg-chip-ok-bg: rgba(63, 185, 80, .07);
+  --lg-chip-warn-line: rgba(210, 153, 34, .28); --lg-chip-warn-bg: rgba(210, 153, 34, .07);
+  --lg-chip-down-line: rgba(229, 83, 75, .28); --lg-chip-down-bg: rgba(229, 83, 75, .07);
+  --lg-error-line: rgba(229, 83, 75, .35); --lg-error-bg: rgba(229, 83, 75, .10);
+  --lg-node-opacity: 1;
+}
+
+:root[data-theme='light'] .login-page {
+  --lg-bg: #f4f6f9; --lg-card: #ffffff; --lg-card-line: #e0e5ec; --lg-input: #f8fafc;
+  --lg-input-line: #d0d5dd; --lg-text: #101828; --lg-muted: #667085; --lg-accent: #1a56db;
+  --lg-btn: #1a56db; --lg-btn-line: #1a56db; --lg-ok: #067647; --lg-warn: #b54708; --lg-down: #b42318;
+  --lg-heading: #101828; --lg-icon: #475467; --lg-btn-text: #ffffff; --lg-btn-hover: #1748b8;
+  --lg-placeholder: #98a2b3; --lg-focus: rgba(26, 86, 219, .22);
+  --lg-panel-a: #eaf0f8; --lg-panel-b: #dfe7f1; --lg-grid: rgba(16, 24, 40, .045);
+  --lg-glow-a: rgba(26, 86, 219, .10); --lg-glow-b: rgba(6, 118, 71, .07);
+  --lg-line: rgba(52, 82, 140, .28); --lg-pulse: rgba(26, 86, 219, .55);
+  --lg-ring: rgba(52, 82, 140, .22); --lg-ring-ping: rgba(52, 82, 140, .30);
+  --lg-node-glow: rgba(52, 82, 140, .20); --lg-core-glow: rgba(26, 86, 219, .35);
+  --lg-chip-ok-line: rgba(6, 118, 71, .30); --lg-chip-ok-bg: rgba(6, 118, 71, .08);
+  --lg-chip-warn-line: rgba(181, 71, 8, .30); --lg-chip-warn-bg: rgba(181, 71, 8, .08);
+  --lg-chip-down-line: rgba(180, 35, 24, .30); --lg-chip-down-bg: rgba(180, 35, 24, .08);
+  --lg-error-line: rgba(180, 35, 24, .30); --lg-error-bg: rgba(180, 35, 24, .07);
+  --lg-node-opacity: .9;
+}

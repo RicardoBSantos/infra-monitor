@@ -1,0 +1,15 @@
+/* Grafo animado do painel de marca do login. Global porque é puramente decorativo e
+   não cabe no budget de SCSS do componente; as cores saem dos tokens --lg-*. */
+.login-graph{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.login-graph__drift{animation:lg-drift 46s ease-in-out infinite}
+.login-graph__lines line{stroke:var(--lg-line);stroke-width:1}
+.login-graph__pulses line{stroke:var(--lg-pulse);stroke-width:1.2;stroke-linecap:round;stroke-dasharray:3 97;animation:lg-fluxo var(--duracao,18s) linear var(--atraso,0s) infinite}
+.login-graph__nodes circle{transform-box:fill-box;transform-origin:center;opacity:var(--lg-node-opacity);animation:lg-respira 6.5s ease-in-out var(--atraso,0s) infinite;filter:drop-shadow(0 0 5px var(--lg-node-glow))}
+.login-graph__ring{stroke:var(--lg-ring);stroke-width:1;fill:none}
+.login-graph__ping{stroke:var(--lg-ring-ping);stroke-width:1;fill:none;transform-box:fill-box;transform-origin:center;animation:lg-ping 4.6s ease-out infinite}
+.login-graph__core{filter:drop-shadow(0 0 14px var(--lg-core-glow))}
+@keyframes lg-drift{0%,100%{transform:translate(0,0)}33%{transform:translate(-7px,5px)}66%{transform:translate(6px,-6px)}}
+@keyframes lg-fluxo{0%{stroke-dashoffset:100;opacity:0}8%{opacity:1}92%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes lg-respira{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.16);opacity:1}}
+@keyframes lg-ping{0%{transform:scale(.55);opacity:.55}70%{transform:scale(1.35);opacity:0}100%{transform:scale(1.35);opacity:0}}
+@media(prefers-reduced-motion:reduce){.login-graph__drift,.login-graph__pulses line,.login-graph__nodes circle,.login-graph__ping{animation:none}.login-graph__pulses{display:none}}

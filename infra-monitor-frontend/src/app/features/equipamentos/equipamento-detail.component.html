@@ -1,0 +1,13 @@
+<section class="detail" aria-labelledby="detail-title">
+  <a routerLink="/equipamentos" class="back">← Voltar ao inventário</a>
+  @if(state()==='loading'){<div class="skeleton" aria-label="Carregando equipamento"></div>}
+  @else if(state()==='not-found'){<div class="feedback" role="alert"><strong>Equipamento não encontrado.</strong><span>Ele pode ter sido removido ou o endereço está incorreto.</span><a routerLink="/equipamentos">Voltar ao inventário</a></div>}
+  @else if(state()==='error'){<div class="feedback" role="alert"><strong>Não foi possível carregar o equipamento.</strong><span>{{error()}}</span><button type="button" (click)="load()">Tentar novamente</button></div>}
+  @else if(item();as equipment){
+    <header><div><p>INVENTÁRIO · EQUIPAMENTO #{{equipment.id}}</p><h1 id="detail-title">{{equipment.nome}}</h1><span class="badge" [class.inactive]="!equipment.ativo">{{equipment.ativo?'Ativo':'Inativo'}}</span></div>@if (authState.canManageInventory()) { <div class="actions"><button type="button" (click)="toggle()" [disabled]="acting()">{{acting()?'Salvando…':equipment.ativo?'Desativar':'Ativar'}}</button><button type="button" class="danger" (click)="confirm.set(true)">Excluir</button></div> }</header>
+    @if(error()){<div class="feedback feedback--error" role="alert">{{error()}}</div>}
+    <div class="grid"><article><h2>Dados cadastrais</h2><dl><dt>Unidade</dt><dd>{{equipment.unidade.nome}}</dd><dt>Tipo de equipamento</dt><dd>{{equipment.tipoEquipamento.nome}}</dd><dt>IP</dt><dd class="mono">{{equipment.ip||'—'}}</dd><dt>Hostname</dt><dd class="mono">{{equipment.hostname||'—'}}</dd><dt>Localização</dt><dd>{{equipment.localizacao||'—'}}</dd><dt>Descrição</dt><dd>{{equipment.descricao||'—'}}</dd></dl></article><article><h2>Registro administrativo</h2><dl><dt>Status</dt><dd>{{equipment.ativo?'Ativo':'Inativo'}}</dd><dt>Criado em</dt><dd>{{equipment.createdAt|date:'dd/MM/yyyy HH:mm'}}</dd><dt>Atualizado em</dt><dd>{{equipment.updatedAt|date:'dd/MM/yyyy HH:mm'}}</dd></dl></article></div>
+    <app-monitor-management [equipamentoContextId]="equipment.id" />
+    <app-confirm-dialog [open]="confirm()" [title]="'Excluir '+equipment.nome+'?'" message="Esta ação não pode ser desfeita." [busy]="deleting()" (cancel)="confirm.set(false)" (confirm)="delete()" />
+  }
+</section>
