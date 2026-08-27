@@ -90,7 +90,7 @@ class RelatorioExportPostgresIntegrationTest {
 
     @BeforeEach void setup(){
         jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
-        unidadeId=unidades.criar(new CreateUnidadeRequest("Unidade São José", "SJ", null, null)).id();
+        unidadeId=unidades.criar(new CreateUnidadeRequest("Unidade São José", "SJ", null, null, null, null, null, null, null)).id();
         tipoId=tipos.criar(new CreateTipoEquipamentoRequest("Roteador",null)).id();
         equipamentoId=equipamentosService.criar(new CreateEquipamentoRequest(unidadeId,tipoId,"Equipamento, Principal",null,null,null,null)).id();
         Equipamento equipamento=equipamentos.findById(equipamentoId).orElseThrow();

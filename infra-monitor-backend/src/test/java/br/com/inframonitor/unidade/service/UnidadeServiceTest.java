@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +41,7 @@ class UnidadeServiceTest {
     void criaUnidadeAtivaComNomeNormalizado() {
         when(unidadeRepository.save(any(Unidade.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var resposta = unidadeService.criar(new CreateUnidadeRequest("  Matriz  ", "  MTZ  ", "Unidade principal", " 2800308 "));
+        var resposta = unidadeService.criar(new CreateUnidadeRequest("  Matriz  ", "  MTZ  ", "Unidade principal", " 2800308 ", null, null, null, null, null));
 
         ArgumentCaptor<Unidade> captor = ArgumentCaptor.forClass(Unidade.class);
         verify(unidadeRepository).save(captor.capture());
@@ -53,10 +54,84 @@ class UnidadeServiceTest {
     }
 
     @Test
+    void persisteCamposDeLocalizacaoNormalizados() {
+        when(unidadeRepository.save(any(Unidade.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var resposta = unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null,
+                "  Av. Central, 100  ", "  Aracaju  ", " se ",
+                new BigDecimal("-10.947200"), new BigDecimal("-37.073500")));
+
+        ArgumentCaptor<Unidade> captor = ArgumentCaptor.forClass(Unidade.class);
+        verify(unidadeRepository).save(captor.capture());
+        assertThat(captor.getValue().getEndereco()).isEqualTo("Av. Central, 100");
+        assertThat(captor.getValue().getCidade()).isEqualTo("Aracaju");
+        assertThat(captor.getValue().getUf()).isEqualTo("SE");
+        assertThat(captor.getValue().getLatitude()).isEqualByComparingTo("-10.947200");
+        assertThat(resposta.uf()).isEqualTo("SE");
+        assertThat(resposta.longitude()).isEqualByComparingTo("-37.073500");
+    }
+
+    @Test
+    void trataTextoEmBrancoDeLocalizacaoComoAusente() {
+        when(unidadeRepository.save(any(Unidade.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null,
+                "   ", "", "  ", null, null));
+
+        ArgumentCaptor<Unidade> captor = ArgumentCaptor.forClass(Unidade.class);
+        verify(unidadeRepository).save(captor.capture());
+        assertThat(captor.getValue().getEndereco()).isNull();
+        assertThat(captor.getValue().getCidade()).isNull();
+        assertThat(captor.getValue().getUf()).isNull();
+    }
+
+    @Test
+    void atualizacaoSemCamposDeLocalizacaoPreservaOsValoresSalvos() {
+        Unidade existente = new Unidade("Matriz", "MTZ", null);
+        existente.setEndereco("Av. Central, 100");
+        existente.setCidade("Aracaju");
+        existente.setUf("SE");
+        existente.setLatitude(new BigDecimal("-10.947200"));
+        existente.setLongitude(new BigDecimal("-37.073500"));
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(existente));
+
+        var resposta = unidadeService.atualizar(1L,
+                new UpdateUnidadeRequest("Matriz", "MTZ", "Nova", null, null, null, null, null, null));
+
+        assertThat(resposta.endereco()).isEqualTo("Av. Central, 100");
+        assertThat(resposta.cidade()).isEqualTo("Aracaju");
+        assertThat(resposta.uf()).isEqualTo("SE");
+        assertThat(resposta.latitude()).isEqualByComparingTo("-10.947200");
+        assertThat(resposta.longitude()).isEqualByComparingTo("-37.073500");
+    }
+
+    @Test
+    void atualizacaoComTextoVazioLimpaOCampoDeLocalizacao() {
+        Unidade existente = new Unidade("Matriz", "MTZ", null);
+        existente.setEndereco("Av. Central, 100");
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(existente));
+
+        var resposta = unidadeService.atualizar(1L,
+                new UpdateUnidadeRequest("Matriz", "MTZ", null, null, "   ", null, null, null, null));
+
+        assertThat(resposta.endereco()).isNull();
+    }
+
+    @Test
+    void atualizacaoRejeitaCoordenadaQueFicariaPelaMetadeAposMesclagem() {
+        Unidade existente = new Unidade("Matriz", "MTZ", null);
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(existente));
+
+        assertThatThrownBy(() -> unidadeService.atualizar(1L,
+                new UpdateUnidadeRequest("Matriz", "MTZ", null, null, null, null, null, new BigDecimal("-10.9472"), null)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void impedeCriacaoComNomeDuplicado() {
         when(unidadeRepository.existsByNomeIgnoreCase("Matriz")).thenReturn(true);
 
-        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null)))
+        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null, null, null, null, null, null)))
                 .isInstanceOf(ConflitoException.class);
 
         verify(unidadeRepository, never()).save(any());
@@ -66,7 +141,7 @@ class UnidadeServiceTest {
     void impedeCriacaoComSiglaDuplicada() {
         when(unidadeRepository.existsBySiglaIgnoreCase("MTZ")).thenReturn(true);
 
-        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null)))
+        assertThatThrownBy(() -> unidadeService.criar(new CreateUnidadeRequest("Matriz", "MTZ", null, null, null, null, null, null, null)))
                 .isInstanceOf(ConflitoException.class)
                 .hasMessage("Ja existe uma unidade com esta sigla");
 
@@ -90,7 +165,7 @@ class UnidadeServiceTest {
         Unidade unidade = new Unidade("Matriz", "MTZ", "Anterior");
         when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
 
-        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz Central", "MTZ", "Nova descricao", "2800308"));
+        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz Central", "MTZ", "Nova descricao", "2800308", null, null, null, null, null));
 
         assertThat(unidade.getNome()).isEqualTo("Matriz Central");
         assertThat(unidade.getDescricao()).isEqualTo("Nova descricao");
@@ -98,7 +173,7 @@ class UnidadeServiceTest {
         verify(unidadeRepository).existsByNomeIgnoreCase("Matriz Central");
 
         when(unidadeRepository.existsByNomeIgnoreCase("Filial")).thenReturn(true);
-        assertThatThrownBy(() -> unidadeService.atualizar(1L, new UpdateUnidadeRequest("Filial", "FIL", null, "2800209")))
+        assertThatThrownBy(() -> unidadeService.atualizar(1L, new UpdateUnidadeRequest("Filial", "FIL", null, "2800209", null, null, null, null, null)))
                 .isInstanceOf(ConflitoException.class);
     }
 
@@ -108,10 +183,10 @@ class UnidadeServiceTest {
         unidade.setCodigoIbge("2800308");
         when(unidadeRepository.findById(1L)).thenReturn(Optional.of(unidade));
 
-        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz", "MTZ", null, "2800209"));
+        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz", "MTZ", null, "2800209", null, null, null, null, null));
         assertThat(unidade.getCodigoIbge()).isEqualTo("2800209");
 
-        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz", "MTZ", null, null));
+        unidadeService.atualizar(1L, new UpdateUnidadeRequest("Matriz", "MTZ", null, null, null, null, null, null, null));
         assertThat(unidade.getCodigoIbge()).isNull();
     }
 

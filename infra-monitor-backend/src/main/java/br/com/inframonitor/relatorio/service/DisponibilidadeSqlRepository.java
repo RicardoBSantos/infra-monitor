@@ -2,8 +2,10 @@ package br.com.inframonitor.relatorio.service;
 
 import br.com.inframonitor.common.api.PaginaResposta;
 import br.com.inframonitor.relatorio.dto.DisponibilidadeEquipamentoResponse;
+import br.com.inframonitor.relatorio.dto.DisponibilidadeDiariaUnidadeResponse;
 import br.com.inframonitor.relatorio.dto.DisponibilidadeUnidadeResponse;
 import br.com.inframonitor.relatorio.temporal.EstadoAnalitico;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -13,14 +15,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 
 /** PostgreSQL implementation of the already-homologated temporal availability formula. */
 @Repository
 public class DisponibilidadeSqlRepository {
     private final NamedParameterJdbcTemplate jdbc;
-    public DisponibilidadeSqlRepository(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
+    /* Persistencia continua em UTC; o fuso abaixo so define a fronteira dos baldes diarios. */
+    private final String timezone;
+    public DisponibilidadeSqlRepository(NamedParameterJdbcTemplate jdbc,
+            @Value("${app.reports.timezone:America/Sao_Paulo}") String timezone) { this.jdbc = jdbc; this.timezone = timezone; }
 
     /* The range_agg/unnest pairs are the SQL equivalent of IntervaloTemporal.unir(). */
     public static final String BASE = """
@@ -95,6 +102,51 @@ public class DisponibilidadeSqlRepository {
       case when sum(tempo_monitorado) filter(where estado='CALCULADO') is null then null else round(sum(tempo_disponivel) filter(where estado='CALCULADO')*100.0/sum(tempo_monitorado) filter(where estado='CALCULADO'),2) end disponibilidade,
       sum(incidentes)::bigint incidentes from linhas group by unidade_id
       """;
+
+    /* Baldes diarios sobre as MESMAS faixas de janelas_unidas/quedas_unidas do BASE.
+       A fronteira do dia usa o fuso local (:tz) porque o grafico e lido como calendario;
+       em UTC os eventos entre 21:00 e 00:00 locais cairiam no dia seguinte. */
+    public static final String DIARIA = """
+      , dias as (
+        select generate_series(date_trunc('day', :inicio at time zone :tz),
+                               date_trunc('day', :fim    at time zone :tz),
+                               interval '1 day') dia_local
+      ), dia_faixa as (
+        select dia_local::date dia,
+               tstzrange(timezone(:tz, dia_local),
+                         timezone(:tz, dia_local + interval '1 day'), '[)') faixa_dia
+          from dias
+      ), monitorado_dia as (
+        select x.unidade_id, d.dia,
+               sum(extract(epoch from (upper(faixa * d.faixa_dia) - lower(faixa * d.faixa_dia))))::bigint tempo_monitorado
+          from janelas_unidas j
+          join universo x on x.monitor_id = j.monitor_id
+          cross join lateral unnest(j.faixas) faixa
+          join dia_faixa d on faixa && d.faixa_dia
+         group by x.unidade_id, d.dia
+      ), indisponivel_dia as (
+        select x.unidade_id, d.dia,
+               sum(extract(epoch from (upper(faixa * d.faixa_dia) - lower(faixa * d.faixa_dia))))::bigint tempo_indisponivel
+          from quedas_unidas q
+          join universo x on x.monitor_id = q.monitor_id
+          cross join lateral unnest(q.faixas) faixa
+          join dia_faixa d on faixa && d.faixa_dia
+         group by x.unidade_id, d.dia
+      )
+      select m.dia data, m.tempo_monitorado,
+             round(((m.tempo_monitorado - coalesce(i.tempo_indisponivel,0)) * 100.0) / m.tempo_monitorado, 2) disponibilidade
+        from monitorado_dia m
+        left join indisponivel_dia i on i.unidade_id = m.unidade_id and i.dia = m.dia
+       where m.tempo_monitorado > 0
+       order by m.dia
+      """;
+
+    /** Serie diaria de uma unidade. Dias sem monitoramento sao omitidos, nao zerados. */
+    public List<DisponibilidadeDiariaUnidadeResponse> diariaPorUnidade(Instant inicio, Instant fim, Long unidadeId) {
+        var p = params(inicio, fim, unidadeId, null, null, null).addValue("tz", timezone);
+        return jdbc.query(BASE + DIARIA, p, (r, n) -> new DisponibilidadeDiariaUnidadeResponse(
+                r.getObject("data", LocalDate.class), r.getBigDecimal("disponibilidade"), lng(r, "tempo_monitorado")));
+    }
 
     public PaginaResposta<DisponibilidadeEquipamentoResponse> equipamentos(Instant inicio, Instant fim, Long unidadeId, Long equipamentoId, Long monitorId, Long tipoId, int page, int size, String order) {
         var p=params(inicio,fim,unidadeId,equipamentoId,monitorId,tipoId).addValue("limit",size).addValue("offset",page*size);

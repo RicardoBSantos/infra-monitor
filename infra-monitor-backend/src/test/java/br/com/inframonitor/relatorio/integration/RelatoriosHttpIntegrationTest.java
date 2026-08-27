@@ -83,8 +83,8 @@ class RelatoriosHttpIntegrationTest {
 
     @BeforeEach void preparar() {
         jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
-        unidadeA = unidades.criar(new CreateUnidadeRequest("Unidade HTTP A", "HA", null, null)).id();
-        unidadeB = unidades.criar(new CreateUnidadeRequest("Unidade HTTP B", "HB", null, null)).id();
+        unidadeA = unidades.criar(new CreateUnidadeRequest("Unidade HTTP A", "HA", null, null, null, null, null, null, null)).id();
+        unidadeB = unidades.criar(new CreateUnidadeRequest("Unidade HTTP B", "HB", null, null, null, null, null, null, null)).id();
         tipoA = tipos.criar(new CreateTipoEquipamentoRequest("Tipo HTTP A", null)).id();
         Long tipoB = tipos.criar(new CreateTipoEquipamentoRequest("Tipo HTTP B", null)).id();
         equipamentoA = equipamentoService.criar(new CreateEquipamentoRequest(unidadeA, tipoA, "Equipamento HTTP A", null, null, null, null)).id();

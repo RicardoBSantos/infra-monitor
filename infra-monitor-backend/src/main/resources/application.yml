@@ -37,6 +37,9 @@ server:
 
 app:
   reports:
+    # Fuso usado apenas para definir a fronteira dos baldes diarios dos relatorios
+    # (o grafico e lido como dias do calendario local). Persistencia segue em UTC.
+    timezone: ${REPORT_TIMEZONE:America/Sao_Paulo}
     pdf:
       timeout-seconds: ${REPORT_PDF_TIMEOUT_SECONDS:60}
     export:

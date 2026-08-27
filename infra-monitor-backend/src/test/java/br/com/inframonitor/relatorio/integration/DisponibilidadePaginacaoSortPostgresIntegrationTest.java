@@ -136,7 +136,7 @@ class DisponibilidadePaginacaoSortPostgresIntegrationTest {
     private List<br.com.inframonitor.relatorio.dto.DisponibilidadeUnidadeResponse> unidades(Instant inicio, Instant fim, String sort) { return relatorios.unidades(inicio, fim, null, 0, 100, sort).content(); }
     private Instant at(int h) { return BASE.plusSeconds(h * 3600L); } private Instant at(int h, int m) { return at(h).plusSeconds(m * 60L); }
     private Equipamento equipamento(String unidade, String nome) { return criarEquipamento(criarUnidade(unidade), nome); }
-    private long criarUnidade(String nome) { return unidades.criar(new CreateUnidadeRequest("U" + nome, nome, null, null)).id(); }
+    private long criarUnidade(String nome) { return unidades.criar(new CreateUnidadeRequest("U" + nome, nome, null, null, null, null, null, null, null)).id(); }
     private Equipamento criarEquipamento(long unidade, String nome) { long tipo = tipos.criar(new CreateTipoEquipamentoRequest("T" + nome + System.nanoTime(), null)).id(); return equipamentos.findById(equipamentoService.criar(new CreateEquipamentoRequest(unidade, tipo, nome, null, null, null, null)).id()).orElseThrow(); }
     private Monitor monitor(Equipamento e, String nome, Instant inicio, Instant fim) { Monitor m = monitores.saveAndFlush(new Monitor(e, TipoMonitor.ICMP, nome, 60, 1000)); janela(m, inicio, fim); return m; }
     private void janela(Monitor m, Instant inicio, Instant fim) { JanelaMonitoramento j = new JanelaMonitoramento(m, inicio, OrigemJanelaMonitoramento.PRECISA); j.fechar(fim); janelas.saveAndFlush(j); }
