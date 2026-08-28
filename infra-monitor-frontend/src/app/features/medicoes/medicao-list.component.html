@@ -1,11 +1,11 @@
 <section class="operational-page" aria-labelledby="measurements-title">
   <header><div><p>MONITORAMENTO · HISTÓRICO</p><h1 id="measurements-title">Medições</h1><small>Execuções individuais dos monitores. Falhas não representam, por si só, incidentes.</small></div></header>
   <div class="filters" aria-label="Filtros de medições">
-    <label>MONITOR<select [value]="monitorId() ?? ''" (change)="setMonitor($any($event.target).value)"><option value="">Todos os monitores</option>@for (monitor of monitors(); track monitor.id) {<option [value]="monitor.id">{{monitor.nome}}</option>}</select></label>
-    <label>STATUS<select [value]="status() ?? ''" (change)="setStatus($any($event.target).value)"><option value="">Todos</option><option value="SUCESSO">Sucesso</option><option value="FALHA">Falha</option></select></label>
+    <label>MONITOR<span class="campo-select"><select [value]="monitorId() ?? ''" (change)="setMonitor($any($event.target).value)"><option value="">Todos os monitores</option>@for (monitor of monitors(); track monitor.id) {<option [value]="monitor.id">{{monitor.nome}}</option>}</select></span></label>
+    <label>STATUS<span class="campo-select"><select [value]="status() ?? ''" (change)="setStatus($any($event.target).value)"><option value="">Todos</option><option value="SUCESSO">Sucesso</option><option value="FALHA">Falha</option></select></span></label>
     <label>INÍCIO<input type="datetime-local" [value]="inicio()" (change)="setInicio($any($event.target).value)"></label>
     <label>FIM<input type="datetime-local" [value]="fim()" (change)="setFim($any($event.target).value)"></label>
-    <label>ORDENAR<select [value]="sort()" (change)="setSort($any($event.target).value)"><option value="executadoEm,desc">Mais recentes</option><option value="executadoEm,asc">Mais antigas</option><option value="latenciaMs,desc">Maior latência</option><option value="latenciaMs,asc">Menor latência</option><option value="status,asc">Status</option></select></label>
+    <label>ORDENAR<span class="campo-select"><select [value]="sort()" (change)="setSort($any($event.target).value)"><option value="executadoEm,desc">Mais recentes</option><option value="executadoEm,asc">Mais antigas</option><option value="latenciaMs,desc">Maior latência</option><option value="latenciaMs,asc">Menor latência</option><option value="status,asc">Status</option></select></span></label>
   </div>
   @if (lookupError()) {<div class="feedback feedback--error" role="alert">{{lookupError()}} A lista de opções pode estar incompleta.</div>}
   @if (state()==='loading') {<div class="skeleton" aria-label="Carregando medições">@for (item of [1,2,3,4]; track item) {<span></span>}</div>}

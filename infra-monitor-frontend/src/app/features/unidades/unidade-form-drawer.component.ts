@@ -93,7 +93,17 @@ export class UnidadeFormDrawerComponent {
 
   private readonly codigoIbgeSelecionado = signal('');
 
-  /** Sem município no cadastro, a UF é digitável; com município, ela é derivada do código IBGE. */
+  /**
+   * Sem município no cadastro, a UF é digitável; com município, ela é derivada do código IBGE.
+   *
+   * TODO: DÍVIDA -- `cidade` e `codigoIbge` continuam independentes. `cidade` é texto
+   * livre digitado aqui; `codigoIbge` é referência ao município do GeoJSON e alimenta o
+   * mapa. Nada impede cidade "Aracaju" com o município Itabaiana selecionado, e a coluna
+   * CIDADE da lista mostra o texto livre enquanto o mapa usa o código. A UF já foi
+   * unificada por `ufDoCodigoIbge`; o mesmo caminho serve para `cidade` (usar
+   * `Municipio.nome`). O que falta decidir é o destino das unidades cujo texto livre já
+   * diverge do município — é decisão de produto com migração de dados, não refactor.
+   */
   protected readonly ufDerivada = computed(() => ufDoCodigoIbge(this.codigoIbgeSelecionado()));
 
   protected readonly municipioInvalido = computed(() => {
