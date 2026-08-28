@@ -198,3 +198,15 @@ export interface HistoricoNotificacaoResponse {
   erro: string | null;
   createdAt: string;
 }
+
+/**
+ * Disponibilidade diária de uma unidade, últimos 30 dias de calendário local.
+ * Diferente dos demais relatórios, o endpoint devolve um array puro, sem envelope
+ * de paginação. Dias sem monitoramento não aparecem: ausência não é zero.
+ * `data` vem como "AAAA-MM-DD", sem hora e sem fuso.
+ */
+export interface DisponibilidadeDiariaUnidadeResponse {
+  data: string;
+  disponibilidadePercentual: number | null;
+  tempoMonitoradoSegundos: number | null;
+}

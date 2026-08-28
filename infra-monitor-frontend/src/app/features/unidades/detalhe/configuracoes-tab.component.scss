@@ -1,0 +1,21 @@
+/* Duas colunas: cadastro em leitura à esquerda, ações destrutivas à direita.
+   Cartão, botões e utilitários mono vêm de styles/_ui.scss. */
+:host { display: block; }
+
+.configuracoes { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; align-items: start; }
+
+.cadastro { margin: 0; padding: 0 14px 14px; }
+.cadastro__linha { display: grid; grid-template-columns: 132px 1fr; gap: 12px; padding: 9px 0; border-top: 1px solid var(--im-border); }
+.cadastro__linha:first-child { border-top: 0; }
+.cadastro dt { color: var(--im-text-secondary); font-size: 12px; }
+.cadastro dd { margin: 0; color: var(--im-text); overflow-wrap: anywhere; }
+
+.zona-risco { border-color: rgba(229, 83, 75, .28); }
+.zona-risco__corpo { display: grid; gap: 12px; justify-items: start; padding: 0 14px 14px; }
+.zona-risco__corpo p { margin: 0; color: var(--im-text-secondary); font-size: 12px; line-height: 1.5; }
+.zona-risco__divisor { width: 100%; height: 0; margin: 2px 0; border: 0; border-top: 1px solid var(--im-border); }
+.zona-risco__aviso { color: var(--im-text); font-size: 12px; }
+
+@media (max-width: 1100px) {
+  .configuracoes { grid-template-columns: 1fr; }
+}

@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PageResponse } from '../models/page-response';
 import {
+  DisponibilidadeDiariaUnidadeResponse,
   DisponibilidadeEquipamentoResponse,
   DisponibilidadeEquipamentosExportQuery,
   DisponibilidadeEquipamentosQuery,
@@ -51,6 +52,11 @@ export class RelatorioApiService {
 
   getDisponibilidadeUnidades(query: DisponibilidadeUnidadesQuery): Observable<PageResponse<DisponibilidadeUnidadeResponse>> {
     return this.http.get<PageResponse<DisponibilidadeUnidadeResponse>>(`${this.endpoint}/disponibilidade/unidades`, { params: buildReportHttpParams([...this.periodAndPage(query), { key: 'unidadeId', value: query.unidadeId }]) });
+  }
+
+  /** Array puro, sem envelope de paginação: range fixo de 30 dias definido no backend. */
+  getDisponibilidadeDiariaUnidade(unidadeId: number): Observable<DisponibilidadeDiariaUnidadeResponse[]> {
+    return this.http.get<DisponibilidadeDiariaUnidadeResponse[]>(`${this.endpoint}/disponibilidade/unidades/${unidadeId}/diaria`);
   }
 
   getIncidentes(query: HistoricoIncidentesQuery): Observable<PageResponse<HistoricoIncidenteResponse>> {

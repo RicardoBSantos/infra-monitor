@@ -99,6 +99,9 @@ export class UnidadeDetalheStore {
 
   recarregarEquipamentos(): void { this.carregarEquipamentos(this.id()); }
 
+  /** Após ativar/desativar, o cabeçalho, os KPIs e a zona de risco têm de refletir o novo estado. */
+  recarregar(): void { this.carregar(this.id()); }
+
   /** Cadastro traz cidade, UF, endereço e coordenadas — o dashboard não os expõe. */
   private carregarCadastro(id: number): void {
     this.unidadesApi.getById(id).pipe(take(1)).subscribe({
