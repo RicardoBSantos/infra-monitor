@@ -1,33 +1,257 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
-import { ApiError, ApiErrorCode, isApiError } from '../../core/models/api-error';
+
+import { isApiError } from '../../core/models/api-error';
+import { DashboardUnidade } from '../../core/models/dashboard';
 import { UnidadeResponse } from '../../core/models/unidade';
-import { GeoMunicipioService, Municipio, normalizeCodigoIbge } from '../../core/services/geo-municipio.service';
 import { AuthStateService } from '../../core/services/auth-state.service';
+import { DashboardApiService } from '../../core/services/dashboard-api.service';
+import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { JANELA_DIAS, formatarPercentual } from './detalhe/unidade-detalhe.store';
+import { UnidadeFormDrawerComponent } from './unidade-form-drawer.component';
 
-type State = 'loading' | 'success' | 'empty' | 'error'; type Filter = 'all' | 'active' | 'inactive';
-@Component({ selector: 'app-unidade-list', imports: [ReactiveFormsModule, ConfirmDialogComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './unidade-list.component.html', styleUrl: './admin-list.component.scss' })
-export class UnidadeListComponent {
-  private readonly api = inject(UnidadeApiService); private readonly geoMunicipio = inject(GeoMunicipioService); private readonly fb = inject(FormBuilder); protected readonly authState = inject(AuthStateService);
-  protected readonly items = signal<UnidadeResponse[]>([]); protected readonly state = signal<State>('loading'); protected readonly filter = signal<Filter>('all'); protected readonly error = signal<string | null>(null); protected readonly notice = signal<string | null>(null); protected readonly editing = signal<UnidadeResponse | null | undefined>(undefined); protected readonly saving = signal(false); protected readonly deleting = signal<UnidadeResponse | null>(null); protected readonly deleteBusy = signal(false); protected readonly actingId = signal<number | null>(null);
-  protected readonly municipios = signal<Municipio[]>([]); protected readonly municipiosLoading = signal(true); protected readonly municipiosError = signal<string | null>(null);
-  protected readonly form = this.fb.nonNullable.group({ nome: ['', [Validators.required, Validators.maxLength(150)]], sigla: ['', [Validators.required, Validators.maxLength(30)]], descricao: [''], codigoIbge: [''] });
-  constructor() { this.load(); this.loadMunicipios(); }
-  private loadMunicipios(): void { this.municipiosLoading.set(true); this.municipiosError.set(null); this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { this.municipios.set(municipios); this.municipiosLoading.set(false); }, error: () => { this.municipiosError.set('Não foi possível carregar os municípios.'); this.municipiosLoading.set(false); } }); }
-  protected load(): void { this.state.set('loading'); this.error.set(null); this.api.list(this.filter() === 'all' ? undefined : this.filter() === 'active').pipe(take(1)).subscribe({ next: items => { this.items.set(items); this.state.set(items.length ? 'success' : 'empty'); }, error: e => { this.error.set(messageFrom(e, 'Não foi possível carregar as unidades.')); this.state.set('error'); } }); }
-  protected setFilter(filter: Filter): void { if (this.filter() !== filter) { this.filter.set(filter); this.load(); } }
-  protected openCreate(): void { this.notice.set(null); this.editing.set(null); this.form.reset({ nome: '', sigla: '', descricao: '', codigoIbge: '' }); }
-  protected openEdit(item: UnidadeResponse): void { this.notice.set(null); this.editing.set(item); this.form.reset({ nome: item.nome, sigla: item.sigla, descricao: item.descricao ?? '', codigoIbge: item.codigoIbge ?? '' }); }
-  protected codigoIbgeInvalido(): boolean { const codigo = this.form.controls.codigoIbge.value; return !!codigo && !this.municipios().some(municipio => municipio.codigoIbge === normalizeCodigoIbge(codigo)); }
-  protected closeForm(): void { if (!this.saving()) this.editing.set(undefined); }
-  protected submit(): void { if (this.saving()) return; if (this.form.invalid) { this.form.markAllAsTouched(); return; } this.saving.set(true); this.error.set(null); const value = this.form.getRawValue(); const body = { ...value, descricao: value.descricao.trim() || null, codigoIbge: normalizeCodigoIbge(value.codigoIbge) || null }; const current = this.editing(); const request = current ? this.api.update(current.id, body) : this.api.create(body); request.pipe(take(1)).subscribe({ next: () => { this.saving.set(false); this.editing.set(undefined); this.notice.set(current ? 'Unidade atualizada com sucesso.' : 'Unidade criada com sucesso.'); this.load(); }, error: e => { this.saving.set(false); this.applyFormError(e); } }); }
-  protected toggle(item: UnidadeResponse): void { if (this.actingId() !== null) return; this.actingId.set(item.id); this.error.set(null); (item.ativo ? this.api.deactivate(item.id) : this.api.activate(item.id)).pipe(take(1)).subscribe({ next: updated => { this.actingId.set(null); this.items.update(items => items.map(x => x.id === updated.id ? updated : x)); this.notice.set(`Unidade ${updated.ativo ? 'ativada' : 'desativada'} com sucesso.`); }, error: e => { this.actingId.set(null); this.error.set(messageFrom(e, 'Não foi possível alterar a unidade.')); } }); }
-  protected confirmDelete(item: UnidadeResponse): void { this.deleting.set(item); }
-  protected delete(): void { const item = this.deleting(); if (!item || this.deleteBusy()) return; this.deleteBusy.set(true); this.api.delete(item.id).pipe(take(1)).subscribe({ next: () => { this.deleteBusy.set(false); this.deleting.set(null); this.notice.set('Unidade excluída com sucesso.'); this.load(); }, error: e => { this.deleteBusy.set(false); this.deleting.set(null); this.error.set(messageFrom(e, 'Não foi possível excluir a unidade.')); } }); }
-  private applyFormError(error: HttpErrorResponse): void { const apiError = isApiError(error.error) ? error.error : null; if (apiError?.fields) for (const [field, message] of Object.entries(apiError.fields)) { const control = this.form.get(field); if (control) control.setErrors({ backend: message }); } this.error.set(apiError?.message ?? messageFrom(error, 'Não foi possível salvar a unidade.')); }
+type Estado = 'loading' | 'success' | 'empty' | 'error';
+type Acao = 'excluir' | 'desativar';
+
+const POR_PAGINA = 20;
+
+interface Linha {
+  cadastro: UnidadeResponse;
+  operacional: DashboardUnidade | null;
+  disponibilidade: string;
+  incidentes: number | null;
+  equipamentos: number | null;
 }
-function messageFrom(error: unknown, fallback: string): string { return error instanceof HttpErrorResponse && isApiError(error.error) ? error.error.message : fallback; }
+
+/**
+ * Lista administrativa de unidades.
+ *
+ * Compõe três origens: o cadastro (`/unidades`), os agregados operacionais
+ * (`/dashboard/unidades`) e a disponibilidade da mesma janela do painel e do
+ * detalhe. Percentual divergente entre telas vira chamado de suporte.
+ * A disponibilidade falha sozinha: a coluna exibe "—" e a tela segue de pé.
+ */
+@Component({
+  selector: 'app-unidade-list',
+  imports: [RouterLink, ConfirmDialogComponent, StatusBadgeComponent, UnidadeFormDrawerComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './unidade-list.component.html',
+  styleUrl: './unidade-list.component.scss',
+})
+export class UnidadeListComponent {
+  private readonly api = inject(UnidadeApiService);
+  private readonly dashboard = inject(DashboardApiService);
+  private readonly relatorios = inject(RelatorioApiService);
+  protected readonly authState = inject(AuthStateService);
+
+  protected readonly janelaDias = JANELA_DIAS;
+
+  protected readonly estado = signal<Estado>('loading');
+  protected readonly erro = signal<string | null>(null);
+  protected readonly aviso = signal<string | null>(null);
+  protected readonly busca = signal('');
+  protected readonly pagina = signal(1);
+
+  private readonly cadastros = signal<UnidadeResponse[]>([]);
+  private readonly operacionais = signal<Map<number, DashboardUnidade>>(new Map());
+  private readonly disponibilidades = signal<Map<number, number | null>>(new Map());
+
+  protected readonly drawerAberto = signal(false);
+  protected readonly emEdicao = signal<UnidadeResponse | null>(null);
+
+  protected readonly acao = signal<Acao | null>(null);
+  protected readonly alvo = signal<UnidadeResponse | null>(null);
+  protected readonly processando = signal(false);
+  protected readonly erroAcao = signal<string | null>(null);
+  protected readonly alternandoId = signal<number | null>(null);
+
+  protected readonly linhas = computed<Linha[]>(() => {
+    const operacionais = this.operacionais();
+    const disponibilidades = this.disponibilidades();
+    return this.cadastros().map((cadastro) => {
+      const operacional = operacionais.get(cadastro.id) ?? null;
+      return {
+        cadastro,
+        operacional,
+        disponibilidade: formatarPercentual(disponibilidades.get(cadastro.id) ?? null),
+        incidentes: operacional?.incidentesAbertos ?? null,
+        equipamentos: operacional?.equipamentosTotal ?? null,
+      };
+    });
+  });
+
+  protected readonly filtradas = computed(() => {
+    const termo = this.busca().trim().toLowerCase();
+    if (!termo) return this.linhas();
+    return this.linhas().filter(({ cadastro }) =>
+      cadastro.nome.toLowerCase().includes(termo)
+      || cadastro.sigla.toLowerCase().includes(termo)
+      || (cadastro.cidade ?? '').toLowerCase().includes(termo));
+  });
+
+  protected readonly total = computed(() => this.linhas().length);
+  protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.filtradas().length / POR_PAGINA)));
+  protected readonly paginaAtual = computed(() => Math.min(this.pagina(), this.totalPaginas()));
+  protected readonly visiveis = computed(() => {
+    const inicio = (this.paginaAtual() - 1) * POR_PAGINA;
+    return this.filtradas().slice(inicio, inicio + POR_PAGINA);
+  });
+  protected readonly paginas = computed(() => Array.from({ length: this.totalPaginas() }, (_, indice) => indice + 1));
+
+  protected readonly tituloConfirmacao = computed(() => {
+    const nome = this.alvo()?.nome ?? '';
+    return this.acao() === 'excluir' ? `Excluir ${nome}?` : `Desativar ${nome}?`;
+  });
+
+  protected readonly mensagemConfirmacao = computed(() => {
+    const alvo = this.alvo();
+    if (!alvo) return '';
+    const equipamentos = this.operacionais().get(alvo.id)?.equipamentosTotal ?? 0;
+    if (this.acao() === 'excluir') {
+      return `${alvo.nome} tem ${equipamentos} equipamento(s) vinculado(s). A exclusão é definitiva e não pode ser desfeita.`;
+    }
+    return `Desativar interrompe o monitoramento ICMP dos ${equipamentos} dispositivo(s) desta unidade e suprime os alertas do Telegram. O histórico de medições e incidentes é preservado.`;
+  });
+
+  constructor() { this.carregar(); }
+
+  protected carregar(): void {
+    this.estado.set('loading');
+    this.erro.set(null);
+    this.api.list().pipe(take(1)).subscribe({
+      next: (cadastros) => {
+        this.cadastros.set(cadastros);
+        this.estado.set(cadastros.length ? 'success' : 'empty');
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.erro.set(mensagemDe(erro, 'Não foi possível carregar as unidades.'));
+        this.estado.set('error');
+      },
+    });
+    this.carregarOperacionais();
+    this.carregarDisponibilidade();
+  }
+
+  /** Agregados do painel: status operacional, equipamentos e incidentes abertos. */
+  private carregarOperacionais(): void {
+    this.dashboard.getUnidades().pipe(take(1)).subscribe({
+      next: (unidades) => this.operacionais.set(new Map(unidades.map((unidade) => [unidade.id, unidade]))),
+      error: () => this.operacionais.set(new Map()),
+    });
+  }
+
+  /** Mesma janela do painel e do detalhe. Falha aqui não derruba a lista. */
+  private carregarDisponibilidade(): void {
+    const fim = new Date();
+    const inicio = new Date(fim.getTime() - JANELA_DIAS * 24 * 60 * 60 * 1000);
+    this.relatorios.getDisponibilidadeUnidades({ inicio: inicio.toISOString(), fim: fim.toISOString(), size: 500 })
+      .pipe(take(1))
+      .subscribe({
+        next: (pagina) => this.disponibilidades.set(new Map(pagina.content.map((linha) => [linha.unidadeId, linha.disponibilidadePercentual]))),
+        error: () => this.disponibilidades.set(new Map()),
+      });
+  }
+
+  protected aoBuscar(termo: string): void { this.busca.set(termo); this.pagina.set(1); }
+  protected limparBusca(): void { this.aoBuscar(''); }
+  protected irPara(pagina: number): void { this.pagina.set(Math.min(Math.max(1, pagina), this.totalPaginas())); }
+
+  protected abrirCriacao(): void { this.aviso.set(null); this.emEdicao.set(null); this.drawerAberto.set(true); }
+
+  protected aoSalvar(unidade: UnidadeResponse): void {
+    this.aviso.set(this.emEdicao() ? 'Unidade atualizada com sucesso.' : 'Unidade criada com sucesso.');
+    this.cadastros.update((itens) => itens.some((item) => item.id === unidade.id)
+      ? itens.map((item) => item.id === unidade.id ? unidade : item)
+      : [...itens, unidade]);
+    this.estado.set('success');
+    this.carregarOperacionais();
+  }
+
+  /** Reativar não pede confirmação: a ação é reversível e não interrompe nada. */
+  protected ativar(unidade: UnidadeResponse): void {
+    if (this.alternandoId() !== null) return;
+    this.alternandoId.set(unidade.id);
+    this.erro.set(null);
+    this.api.activate(unidade.id).pipe(take(1)).subscribe({
+      next: (atualizada) => {
+        this.alternandoId.set(null);
+        this.substituir(atualizada);
+        this.aviso.set('Unidade ativada com sucesso.');
+        this.carregarOperacionais();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.alternandoId.set(null);
+        this.erro.set(mensagemDe(erro, 'Não foi possível ativar a unidade.'));
+      },
+    });
+  }
+
+  protected confirmar(acao: Acao, unidade: UnidadeResponse): void {
+    this.erroAcao.set(null);
+    this.acao.set(acao);
+    this.alvo.set(unidade);
+  }
+
+  protected fecharConfirmacao(): void {
+    if (this.processando()) return;
+    this.acao.set(null);
+    this.alvo.set(null);
+    this.erroAcao.set(null);
+  }
+
+  /** Recusa do backend fica dentro do modal: fechar esconderia o motivo real. */
+  protected executar(): void {
+    const alvo = this.alvo();
+    const acao = this.acao();
+    if (!alvo || !acao || this.processando()) return;
+    this.processando.set(true);
+    this.erroAcao.set(null);
+
+    if (acao === 'desativar') {
+      this.api.deactivate(alvo.id).pipe(take(1)).subscribe({
+        next: (atualizada) => {
+          this.processando.set(false);
+          this.substituir(atualizada);
+          this.aviso.set('Unidade desativada com sucesso.');
+          this.acao.set(null);
+          this.alvo.set(null);
+          this.carregarOperacionais();
+        },
+        error: (erro: HttpErrorResponse) => {
+          this.processando.set(false);
+          this.erroAcao.set(mensagemDe(erro, 'Não foi possível desativar a unidade.'));
+        },
+      });
+      return;
+    }
+
+    this.api.delete(alvo.id).pipe(take(1)).subscribe({
+      next: () => {
+        this.processando.set(false);
+        this.cadastros.update((itens) => itens.filter((item) => item.id !== alvo.id));
+        if (!this.cadastros().length) this.estado.set('empty');
+        this.aviso.set('Unidade excluída com sucesso.');
+        this.acao.set(null);
+        this.alvo.set(null);
+        this.carregarOperacionais();
+      },
+      error: (erro: HttpErrorResponse) => {
+        this.processando.set(false);
+        this.erroAcao.set(mensagemDe(erro, 'Não foi possível excluir a unidade.'));
+      },
+    });
+  }
+
+  private substituir(unidade: UnidadeResponse): void {
+    this.cadastros.update((itens) => itens.map((item) => item.id === unidade.id ? unidade : item));
+  }
+}
+
+function mensagemDe(erro: unknown, alternativa: string): string {
+  return erro instanceof HttpErrorResponse && isApiError(erro.error) ? erro.error.message : alternativa;
+}

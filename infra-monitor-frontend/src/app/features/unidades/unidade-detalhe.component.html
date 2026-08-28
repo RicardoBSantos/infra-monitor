@@ -42,7 +42,7 @@
         <a class="botao botao--primario" routerLink="/equipamentos">+ Novo equipamento</a>
         <!-- TODO: feature de janelas de manutenção -->
         <button class="botao" type="button" disabled title="Em breve">Agendar manutenção</button>
-        <a class="botao" routerLink="/unidades">Editar unidade</a>
+        <button class="botao" type="button" (click)="abrirEdicao()" [disabled]="!store.cadastro()">Editar unidade</button>
       </div>
     </header>
 
@@ -100,5 +100,12 @@
     </nav>
 
     <router-outlet />
+
+    <app-unidade-form-drawer
+      [aberto]="gavetaAberta()"
+      [unidade]="store.cadastro()"
+      (fechado)="gavetaAberta.set(false)"
+      (salvo)="aoSalvarCadastro()"
+    />
   }
 </section>

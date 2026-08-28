@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, signal, viewChildren } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
@@ -6,6 +6,7 @@ import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
 import { BreadcrumbLabelService } from '../../shared/breadcrumbs/breadcrumb-label.service';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { JANELA_DIAS, UnidadeDetalheStore } from './detalhe/unidade-detalhe.store';
+import { UnidadeFormDrawerComponent } from './unidade-form-drawer.component';
 
 interface Aba { caminho: string; rotulo: string; }
 
@@ -25,7 +26,7 @@ const ABAS: Aba[] = [
  */
 @Component({
   selector: 'app-unidade-detalhe',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, AppIconComponent, StatusBadgeComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, AppIconComponent, StatusBadgeComponent, UnidadeFormDrawerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unidade-detalhe.component.html',
   styleUrl: './unidade-detalhe.component.scss',
@@ -36,6 +37,7 @@ export class UnidadeDetalheComponent {
   protected readonly store = inject(UnidadeDetalheStore);
   protected readonly abas = ABAS;
   protected readonly janelaDias = JANELA_DIAS;
+  protected readonly gavetaAberta = signal(false);
 
   private readonly gatilhosDeAba = viewChildren<ElementRef<HTMLAnchorElement>>('gatilhoAba');
 
@@ -58,6 +60,11 @@ export class UnidadeDetalheComponent {
   }
 
   protected recarregar(): void { this.store.carregar(this.store.id()); }
+
+  protected abrirEdicao(): void { this.gavetaAberta.set(true); }
+
+  /** O cadastro salvo alimenta o cabeçalho e a aba de configurações; recarrega para refletir. */
+  protected aoSalvarCadastro(): void { this.gavetaAberta.set(false); this.recarregar(); }
 
   /** Setas navegam entre abas, conforme o padrão de tablist. */
   protected navegarPorTeclado(evento: KeyboardEvent, indice: number): void {
