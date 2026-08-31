@@ -51,13 +51,18 @@ describe('UnidadeListComponent', () => {
 
   afterEach(() => http.verify());
 
-  interface Respostas { cadastros?: UnidadeResponse[]; operacionais?: unknown[]; disponibilidade?: unknown[] | 'erro'; }
+  interface Respostas { cadastros?: UnidadeResponse[]; operacionais?: unknown[] | 'erro'; disponibilidade?: unknown[] | 'erro'; }
 
   function criar(respostas: Respostas = {}): ComponentFixture<UnidadeListComponent> {
     const fixture = TestBed.createComponent(UnidadeListComponent);
     fixture.detectChanges();
     http.expectOne(UNIDADES_URL).flush(respostas.cadastros ?? [unidade(1)]);
-    http.expectOne(DASHBOARD_URL).flush(respostas.operacionais ?? [operacional(1)]);
+    const dashboard = http.expectOne(DASHBOARD_URL);
+    if (respostas.operacionais === 'erro') {
+      dashboard.flush({ mensagem: 'falhou' }, { status: 500, statusText: 'Server Error' });
+    } else {
+      dashboard.flush(respostas.operacionais ?? [operacional(1)]);
+    }
 
     const disponibilidade = http.expectOne((requisicao) => requisicao.url.endsWith('/relatorios/disponibilidade/unidades'));
     if (respostas.disponibilidade === 'erro') {
@@ -192,6 +197,57 @@ describe('UnidadeListComponent', () => {
     expect(dialogo).not.toBeNull();
     expect(dialogo.textContent).toContain('Unidade possui equipamentos vinculados.');
     expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(1);
+  });
+
+  // O backend recusa a exclusão com equipamentos vinculados: o modal não pode
+  // oferecer a ação como se fosse suceder.
+  it('avisa que a exclusão será recusada quando há equipamentos vinculados', () => {
+    const fixture = criar({ operacionais: [operacional(1, { equipamentosTotal: 24 })] });
+
+    (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[2] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
+    expect(dialogo.textContent).toContain('24 equipamento(s) vinculado(s)');
+    expect(dialogo.textContent).toContain('será recusada');
+    expect(dialogo.textContent).toContain('Mova ou desvincule');
+    expect(dialogo.textContent).not.toContain('definitiva');
+  });
+
+  it('promete exclusão definitiva só com zero equipamentos confirmado', () => {
+    const fixture = criar({ operacionais: [operacional(1, { equipamentosTotal: 0 })] });
+
+    (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[2] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
+    expect(dialogo.textContent).toContain('não tem equipamentos vinculados');
+    expect(dialogo.textContent).toContain('definitiva');
+  });
+
+  // Agregado do painel fora do ar: quantidade desconhecida nunca vira "0".
+  it('distingue contagem desconhecida de zero equipamentos', () => {
+    const fixture = criar({ operacionais: 'erro' });
+
+    (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[2] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
+    expect(dialogo.textContent).toContain('Não foi possível confirmar quantos equipamentos');
+    expect(dialogo.textContent).toContain('a exclusão será recusada');
+    expect(dialogo.textContent).not.toContain('0 equipamento');
+    expect(dialogo.textContent).not.toContain('definitiva');
+  });
+
+  it('não anuncia quantidade de dispositivos na desativação quando o painel falhou', () => {
+    const fixture = criar({ operacionais: 'erro' });
+
+    (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
+    expect(dialogo.textContent).toContain('quantidade não confirmada');
+    expect(dialogo.textContent).not.toContain('0 dispositivo(s)');
   });
 
   it('ativa sem confirmação', () => {

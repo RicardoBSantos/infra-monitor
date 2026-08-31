@@ -108,14 +108,38 @@ export class UnidadeListComponent {
     return this.acao() === 'excluir' ? `Excluir ${nome}?` : `Desativar ${nome}?`;
   });
 
+  /**
+   * Equipamentos da unidade em foco. `null` quando os agregados do painel não
+   * chegaram: a quantidade é desconhecida, nunca zero. Anunciar "0 equipamentos"
+   * a partir de uma chamada que falhou faria a exclusão parecer segura sem que
+   * ninguém tenha confirmado isso.
+   */
+  private readonly equipamentosDoAlvo = computed<number | null>(() => {
+    const alvo = this.alvo();
+    return alvo ? this.operacionais().get(alvo.id)?.equipamentosTotal ?? null : null;
+  });
+
   protected readonly mensagemConfirmacao = computed(() => {
     const alvo = this.alvo();
     if (!alvo) return '';
-    const equipamentos = this.operacionais().get(alvo.id)?.equipamentosTotal ?? 0;
+    const equipamentos = this.equipamentosDoAlvo();
     if (this.acao() === 'excluir') {
-      return `${alvo.nome} tem ${equipamentos} equipamento(s) vinculado(s). A exclusão é definitiva e não pode ser desfeita.`;
+      // O backend recusa a exclusão enquanto houver equipamento vinculado
+      // (409 BUSINESS_CONFLICT, espelhado pelo FK ON DELETE RESTRICT). Prometer
+      // "exclusão definitiva" quando já se sabe que ela será recusada empurra o
+      // usuário para um erro evitável.
+      if (equipamentos === null) {
+        return `Não foi possível confirmar quantos equipamentos estão vinculados a ${alvo.nome}. Se houver algum, a exclusão será recusada: mova ou desvincule os equipamentos antes de tentar.`;
+      }
+      if (equipamentos > 0) {
+        return `${alvo.nome} tem ${equipamentos} equipamento(s) vinculado(s) e a exclusão será recusada enquanto existirem. Mova ou desvincule os equipamentos primeiro.`;
+      }
+      return `${alvo.nome} não tem equipamentos vinculados. A exclusão é definitiva e não pode ser desfeita.`;
     }
-    return `Desativar interrompe o monitoramento ICMP dos ${equipamentos} dispositivo(s) desta unidade e suprime os alertas do Telegram. O histórico de medições e incidentes é preservado.`;
+    const dispositivos = equipamentos === null
+      ? 'dos dispositivos desta unidade (quantidade não confirmada)'
+      : `dos ${equipamentos} dispositivo(s) desta unidade`;
+    return `Desativar interrompe o monitoramento ICMP ${dispositivos} e suprime os alertas do Telegram. O histórico de medições e incidentes é preservado.`;
   });
 
   constructor() { this.carregar(); }
