@@ -1,0 +1,7 @@
+// .botao, .botao--discreto e .contagem vêm de _ui.scss.
+.paginacao { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--im-border); }
+.paginacao div { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+@media (max-width: 768px) {
+  .paginacao { flex-wrap: wrap; div { margin-left: 0; } }
+}

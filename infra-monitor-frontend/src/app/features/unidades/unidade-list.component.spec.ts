@@ -142,18 +142,18 @@ describe('UnidadeListComponent', () => {
     const fixture = criar({ cadastros, operacionais: cadastros.map((item) => operacional(item.id)) });
 
     expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(20);
-    const paginacao = fixture.nativeElement.querySelector('.unidades__paginacao') as HTMLElement;
+    const paginacao = fixture.nativeElement.querySelector('.paginacao') as HTMLElement;
     expect(paginacao).not.toBeNull();
+    expect(paginacao.textContent).toContain('Página 1 de 2');
 
-    const paginas = paginacao.querySelectorAll('div .botao');
-    (paginas[2] as HTMLButtonElement).click();
+    paginacao.querySelector<HTMLButtonElement>('button:last-of-type')!.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(5);
   });
 
   it('esconde a paginação com uma única página', () => {
     const fixture = criar();
-    expect(fixture.nativeElement.querySelector('.unidades__paginacao')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.paginacao')).toBeNull();
   });
 
   it('confirma a desativação informando o impacto no ICMP e no Telegram', () => {

@@ -20,9 +20,6 @@
 
 .unidades__acoes { display: flex; justify-content: flex-end; gap: 6px; white-space: nowrap; }
 
-.unidades__paginacao { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--im-border); }
-.unidades__paginacao div { display: flex; gap: 4px; }
-.unidades__pagina--ativa { border-color: var(--im-info-soft); color: var(--im-text); background: rgba(64, 132, 233, .14); }
 
 @media (max-width: 860px) {
   .unidades { padding: 14px 12px 24px; }

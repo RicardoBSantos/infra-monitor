@@ -113,16 +113,12 @@
       </div>
 
       @if (totalPaginas() > 1) {
-        <nav class="unidades__paginacao" aria-label="Paginação de unidades">
-          <p class="contagem">{{ visiveis().length }} de {{ filtradas().length }} unidades</p>
-          <div>
-            <button class="botao botao--discreto" type="button" (click)="irPara(paginaAtual() - 1)" [disabled]="paginaAtual() === 1" aria-label="Página anterior">‹</button>
-            @for (numero of paginas(); track numero) {
-              <button class="botao botao--discreto" type="button" [class.unidades__pagina--ativa]="numero === paginaAtual()" [attr.aria-current]="numero === paginaAtual() ? 'page' : null" (click)="irPara(numero)">{{ numero }}</button>
-            }
-            <button class="botao botao--discreto" type="button" (click)="irPara(paginaAtual() + 1)" [disabled]="paginaAtual() === totalPaginas()" aria-label="Próxima página">›</button>
-          </div>
-        </nav>
+        <app-paginacao
+          [paginaAtual]="paginaAtual()"
+          [totalPaginas]="totalPaginas()"
+          [contagem]="visiveis().length + ' de ' + filtradas().length + ' unidades'"
+          rotulo="Paginação de unidades"
+          (mudarPagina)="irPara($event)" />
       }
     }
   </div>

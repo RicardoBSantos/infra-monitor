@@ -11,6 +11,7 @@ import { DashboardApiService } from '../../core/services/dashboard-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { JANELA_DIAS, formatarPercentual } from './detalhe/unidade-detalhe.store';
 import { UnidadeFormDrawerComponent } from './unidade-form-drawer.component';
@@ -38,7 +39,7 @@ interface Linha {
  */
 @Component({
   selector: 'app-unidade-list',
-  imports: [RouterLink, ConfirmDialogComponent, StatusBadgeComponent, UnidadeFormDrawerComponent],
+  imports: [RouterLink, ConfirmDialogComponent, PaginacaoComponent, StatusBadgeComponent, UnidadeFormDrawerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unidade-list.component.html',
   styleUrl: './unidade-list.component.scss',
@@ -101,7 +102,6 @@ export class UnidadeListComponent {
     const inicio = (this.paginaAtual() - 1) * POR_PAGINA;
     return this.filtradas().slice(inicio, inicio + POR_PAGINA);
   });
-  protected readonly paginas = computed(() => Array.from({ length: this.totalPaginas() }, (_, indice) => indice + 1));
 
   protected readonly tituloConfirmacao = computed(() => {
     const nome = this.alvo()?.nome ?? '';
