@@ -48,6 +48,27 @@ public class RestTelegramClient implements TelegramClient {
         }
     }
 
+    @Override
+    public TelegramBotInfo getMe() {
+        if (!properties.possuiBotToken()) {
+            return TelegramBotInfo.indisponivel();
+        }
+        try {
+            String body = restClient.get().uri("/bot{token}/getMe", properties.getBotToken())
+                    .retrieve().body(String.class);
+            JsonNode response = body == null ? null : objectMapper.readTree(body);
+            if (response == null || !response.path("ok").asBoolean(false)) {
+                return TelegramBotInfo.indisponivel();
+            }
+            JsonNode resultado = response.path("result");
+            return new TelegramBotInfo(true, resultado.path("username").asText(null),
+                    resultado.path("id").canConvertToLong() ? resultado.path("id").asLong() : null);
+        } catch (Exception ex) {
+            // Token invalido, HTTP de erro e API fora do ar sao a mesma coisa para a tela.
+            return TelegramBotInfo.indisponivel();
+        }
+    }
+
     private SendResult failure(JsonNode response, String fallback) {
         String description = response == null ? fallback : response.path("description").asText(fallback);
         Duration retryAfter = null;

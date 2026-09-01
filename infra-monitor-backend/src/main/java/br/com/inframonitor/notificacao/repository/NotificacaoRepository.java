@@ -21,17 +21,22 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
     boolean existsByIncidenteIdAndCanalAndTipoEvento(Long incidenteId, CanalNotificacao canal,
                                                      TipoEventoNotificacao tipoEvento);
 
+    boolean existsByEpisodioLatenciaIdAndCanalAndTipoEvento(Long episodioLatenciaId, CanalNotificacao canal,
+                                                            TipoEventoNotificacao tipoEvento);
+
     @EntityGraph(attributePaths = "incidente")
     List<Notificacao> findByIncidenteId(Long incidenteId);
 
     @Override
     @EntityGraph(attributePaths = {"incidente", "incidente.monitor", "incidente.monitor.equipamento",
-            "incidente.monitor.equipamento.unidade"})
+            "incidente.monitor.equipamento.unidade", "episodioLatencia", "episodioLatencia.monitor",
+            "episodioLatencia.monitor.equipamento", "episodioLatencia.monitor.equipamento.unidade"})
     Optional<Notificacao> findById(Long id);
 
     @Override
     @EntityGraph(attributePaths = {"incidente", "incidente.monitor", "incidente.monitor.equipamento",
-            "incidente.monitor.equipamento.unidade"})
+            "incidente.monitor.equipamento.unidade", "episodioLatencia", "episodioLatencia.monitor",
+            "episodioLatencia.monitor.equipamento", "episodioLatencia.monitor.equipamento.unidade"})
     Page<Notificacao> findAll(Specification<Notificacao> specification, Pageable pageable);
 
     @Query("select n.id from Notificacao n where n.canal = :canal and n.status = :status "

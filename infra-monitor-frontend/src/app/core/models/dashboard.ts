@@ -9,3 +9,25 @@ export interface DashboardUnidade { id: number; nome: string; codigoIbge: string
 export interface DashboardUnidadeDetalhe { id: number; nome: string; codigoIbge: string | null; ativo: boolean; status: UnitOperationalStatus; equipamentos: DashboardResumoEquipamentos; monitores: Pick<DashboardResumoMonitores, 'ativos' | 'indisponiveis'>; incidentesAbertos: number; }
 export interface DashboardEquipamento { id: number; nome: string; ip: string | null; hostname: string | null; localizacao: string | null; ativo: boolean; status: EquipmentOperationalStatus; tipoEquipamento: { id: number; nome: string }; emManutencao: boolean; monitoresAtivos: number; incidentesAbertos: number; ultimaMedicao: { status: 'SUCESSO' | 'FALHA'; latenciaMs: number | null; executadoEm: string } | null; }
 export interface DashboardEquipamentosQuery { page?: number; size?: number; sort?: 'id' | 'nome' | 'ip' | 'localizacao' | 'ativo'; tipoEquipamentoId?: number; ativo?: boolean; }
+
+/**
+ * Linha do inventário completo (`GET /dashboard/equipamentos`).
+ *
+ * `localizacao` e `numeroSerie` vêm aqui porque a busca da tela filtra por eles em
+ * memória. `descricao` fica de fora — texto longo que só o formulário de edição usa, e
+ * que chega sob demanda por `GET /equipamentos/{id}`.
+ */
+export interface DashboardEquipamentoLista {
+  id: number;
+  nome: string;
+  tipoNome: string;
+  unidadeId: number;
+  unidadeNome: string;
+  hostname: string | null;
+  ip: string | null;
+  status: EquipmentOperationalStatus;
+  latenciaMs: number | null;
+  ativo: boolean;
+  localizacao: string | null;
+  numeroSerie: string | null;
+}

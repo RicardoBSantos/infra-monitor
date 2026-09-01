@@ -87,8 +87,8 @@ class RelatoriosHttpIntegrationTest {
         unidadeB = unidades.criar(new CreateUnidadeRequest("Unidade HTTP B", "HB", null, null, null, null, null, null, null)).id();
         tipoA = tipos.criar(new CreateTipoEquipamentoRequest("Tipo HTTP A", null)).id();
         Long tipoB = tipos.criar(new CreateTipoEquipamentoRequest("Tipo HTTP B", null)).id();
-        equipamentoA = equipamentoService.criar(new CreateEquipamentoRequest(unidadeA, tipoA, "Equipamento HTTP A", null, null, null, null)).id();
-        equipamentoB = equipamentoService.criar(new CreateEquipamentoRequest(unidadeB, tipoB, "Equipamento HTTP B", null, null, null, null)).id();
+        equipamentoA = equipamentoService.criar(new CreateEquipamentoRequest(unidadeA, tipoA, "Equipamento HTTP A", null, null, null, null, null)).id();
+        equipamentoB = equipamentoService.criar(new CreateEquipamentoRequest(unidadeB, tipoB, "Equipamento HTTP B", null, null, null, null, null)).id();
         Monitor a = monitor(equipamentoA, "Monitor HTTP A"); Monitor b = monitor(equipamentoB, "Monitor HTTP B");
         monitorA = a.getId();
         medicao(a, INICIO.plusSeconds(60), 10); medicao(a, INICIO.plusSeconds(120), 30); medicao(b, INICIO.plusSeconds(60), 80);

@@ -19,6 +19,14 @@ export enum NotificationChannel {
 export enum NotificationEventType {
   IncidentOpened = 'INCIDENTE_ABERTO',
   IncidentClosed = 'INCIDENTE_FECHADO',
+  HighLatency = 'LATENCIA_ALTA',
+  LatencyNormalized = 'LATENCIA_NORMALIZADA',
+}
+
+/** Verificacao da identidade do bot via getMe, mantida em cache no backend. */
+export enum BotVerificationStatus {
+  Verified = 'VERIFICADO',
+  Unverified = 'NAO_VERIFICADO',
 }
 
 export enum NotificationStatus {

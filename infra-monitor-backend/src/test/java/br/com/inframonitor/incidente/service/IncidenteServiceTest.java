@@ -165,7 +165,7 @@ class IncidenteServiceTest {
     private Monitor monitor() {
         Unidade unidade = new Unidade("Matriz", "MTZ", null);
         definirId(unidade, 3L);
-        Equipamento equipamento = new Equipamento(unidade, new TipoEquipamento("Switch", null), "SW-01", null, null, null, null);
+        Equipamento equipamento = new Equipamento(unidade, new TipoEquipamento("Switch", null), "SW-01", null, null, null, null, null);
         definirId(equipamento, 2L);
         Monitor monitor = new Monitor(equipamento, TipoMonitor.ICMP, "ICMP principal", 60, 2000);
         definirId(monitor, 1L);

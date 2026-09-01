@@ -29,7 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class NotificacaoControllerTest {
     private static final NotificacaoResponse NOTIFICACAO = new NotificacaoResponse(100L, CanalNotificacao.TELEGRAM,
             TipoEventoNotificacao.INCIDENTE_ABERTO, StatusNotificacao.PENDENTE, 0, "snapshot", null, null,
-            new IncidenteNotificacaoResponse(10L, StatusIncidente.ABERTO), Instant.parse("2026-08-19T12:00:00Z"),
+            new IncidenteNotificacaoResponse(10L, StatusIncidente.ABERTO), null,
+            "ping", "SW-CORE", "Sesc Centro", Instant.parse("2026-08-19T12:00:00Z"),
             Instant.parse("2026-08-19T12:00:00Z"));
 
     @Autowired private MockMvc mockMvc;

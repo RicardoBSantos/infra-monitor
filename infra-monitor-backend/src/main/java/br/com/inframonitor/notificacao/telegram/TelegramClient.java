@@ -4,4 +4,7 @@ import br.com.inframonitor.notificacao.sender.SendResult;
 
 public interface TelegramClient {
     SendResult sendMessage(String message);
+
+    /** Nunca lanca: falha vira {@link TelegramBotInfo#indisponivel()}. */
+    TelegramBotInfo getMe();
 }

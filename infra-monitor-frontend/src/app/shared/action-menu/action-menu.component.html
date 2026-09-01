@@ -1,0 +1,40 @@
+<div class="menu-acoes">
+  <button
+    #gatilho
+    type="button"
+    class="menu-acoes__gatilho"
+    [attr.aria-label]="rotuloGatilho()"
+    [attr.aria-expanded]="aberto()"
+    aria-haspopup="menu"
+    [disabled]="desabilitado()"
+    (click)="alternar()"
+    (keydown)="teclaNoGatilho($event)"
+  >…</button>
+
+  @if (aberto()) {
+    <div
+      #lista
+      class="menu-acoes__lista"
+      [class.menu-acoes__lista--acima]="paraCima()"
+      [style.top.px]="posicao().top"
+      [style.left.px]="posicao().left"
+      [style.max-height.px]="posicao().alturaMaxima"
+      role="menu"
+      [attr.aria-label]="rotuloGatilho()"
+      (keydown)="teclaNoMenu($event)"
+    >
+      @for (item of itens(); track item.id) {
+        @if (item.divisorAntes) { <hr class="menu-acoes__divisor" aria-hidden="true" /> }
+        <button
+          type="button"
+          role="menuitem"
+          class="menu-acoes__item"
+          [class.menu-acoes__item--perigo]="item.destrutivo"
+          [disabled]="item.desabilitado"
+          tabindex="-1"
+          (click)="escolher(item)"
+        >{{ item.rotulo }}</button>
+      }
+    </div>
+  }
+</div>

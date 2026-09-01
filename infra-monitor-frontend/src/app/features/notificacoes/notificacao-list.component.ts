@@ -9,6 +9,12 @@ import { NotificacaoListQuery, NotificacaoResponse } from '../../core/models/not
 import { NotificacaoApiService } from '../../core/services/notificacao-api.service';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 
+const ROTULOS_EVENTO: Record<NotificationEventType, string> = {
+  [NotificationEventType.IncidentOpened]: 'Incidente aberto',
+  [NotificationEventType.IncidentClosed]: 'Incidente fechado',
+  [NotificationEventType.HighLatency]: 'Latência alta',
+  [NotificationEventType.LatencyNormalized]: 'Latência normalizada',
+};
 type State = 'loading' | 'success' | 'empty' | 'error'; type Sort = 'createdAt,desc' | 'createdAt,asc' | 'enviadoEm,desc' | 'status,asc' | 'tentativas,desc' | 'id,desc';
 @Component({ selector: 'app-notificacao-list', imports: [DatePipe, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './notificacao-list.component.html', styleUrl: './notificacao-list.component.scss' })
 export class NotificacaoListComponent {
@@ -18,7 +24,8 @@ export class NotificacaoListComponent {
   constructor() { this.load(); }
   protected load(): void { const query = this.query(); if (!query) return; this.state.set('loading'); this.error.set(null); this.api.list(query).pipe(take(1)).subscribe({ next: response => { this.page.set(response.content); this.pageNumber.set(response.page); this.pageSize.set(response.size); this.totalElements.set(response.totalElements); this.totalPages.set(response.totalPages); this.state.set(response.content.length ? 'success' : 'empty'); }, error: error => { this.error.set(messageFrom(error, 'Não foi possível carregar as notificações.')); this.state.set('error'); } }); }
   protected setIncidente(value: string): void { this.incidenteId.set(numberOrUndefined(value)); this.changeFilters(); } protected setStatus(value: string): void { this.status.set(isStatus(value) ? value : undefined); this.changeFilters(); } protected setCanal(value: string): void { this.canal.set(value === NotificationChannel.Telegram ? value : undefined); this.changeFilters(); } protected setTipoEvento(value: string): void { this.tipoEvento.set(isEvent(value) ? value : undefined); this.changeFilters(); } protected setInicio(value: string): void { this.inicio.set(value); this.changeFilters(); } protected setFim(value: string): void { this.fim.set(value); this.changeFilters(); } protected setSort(value: string): void { this.sort.set(value as Sort); this.changeFilters(); }
-  protected changeFilters(): void { this.pageNumber.set(0); this.load(); } protected goToPage(page: number): void { if (page >= 0 && page < this.totalPages() && page !== this.pageNumber()) { this.pageNumber.set(page); this.load(); } } protected open(item: NotificacaoResponse): void { this.router.navigate(['/notificacoes', item.id]); }
+  protected rotuloEvento(tipo: NotificationEventType): string { return ROTULOS_EVENTO[tipo] ?? tipo; }
+  protected changeFilters(): void { this.pageNumber.set(0); this.load(); } protected goToPage(page: number): void { if (page >= 0 && page < this.totalPages() && page !== this.pageNumber()) { this.pageNumber.set(page); this.load(); } } protected open(item: NotificacaoResponse): void { this.router.navigate(['/notificacoes', 'detalhe', item.id]); }
   private query(): NotificacaoListQuery | null { const inicio = toUtc(this.inicio()), fim = toUtc(this.fim()); if ((this.inicio() && !inicio) || (this.fim() && !fim)) return this.invalidPeriod('Informe datas e horários válidos.'); if (inicio && fim && inicio > fim) return this.invalidPeriod('O início do período deve ser anterior ou igual ao fim.'); return { page: this.pageNumber(), size: this.pageSize(), sort: this.sort(), incidenteId: this.incidenteId(), status: this.status(), canal: this.canal(), tipoEvento: this.tipoEvento(), inicio, fim }; }
   private invalidPeriod(message: string): null { this.error.set(message); this.state.set('error'); return null; }
 }

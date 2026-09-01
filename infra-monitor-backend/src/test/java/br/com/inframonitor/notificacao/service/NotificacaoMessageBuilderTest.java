@@ -33,7 +33,7 @@ class NotificacaoMessageBuilderTest {
 
     private Incidente incidente() {
         Unidade unidade = new Unidade("Matriz", "MTZ", null);
-        Equipamento equipamento = new Equipamento(unidade, new TipoEquipamento("Switch", null), "SW-01", null, null, null, null);
+        Equipamento equipamento = new Equipamento(unidade, new TipoEquipamento("Switch", null), "SW-01", null, null, null, null, null);
         Monitor monitor = new Monitor(equipamento, TipoMonitor.ICMP, "ICMP principal", 60, 2_000);
         return new Incidente(monitor, Instant.parse("2026-08-19T12:00:00Z"), "indisponibilidade", null);
     }

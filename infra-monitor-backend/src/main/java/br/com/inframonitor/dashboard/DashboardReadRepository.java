@@ -14,7 +14,7 @@ public class DashboardReadRepository {
 
     private static final String ESTADOS = """
             with ultima_medicao as (
-                select distinct on (monitor_id) monitor_id, id, latencia_ms from medicao
+                select distinct on (monitor_id) monitor_id, id, latencia_ms, executado_em from medicao
                 order by monitor_id, executado_em desc, id desc
             ), monitor_estado as (
                 select m.id, m.equipamento_id, m.ativo,
@@ -23,7 +23,8 @@ public class DashboardReadRepository {
                          when um.id is null then 'SEM_DADOS'
                          when um.latencia_ms is not null and um.latencia_ms > ?1 then 'DEGRADADO'
                          else 'DISPONIVEL' end as status,
-                    case when i.id is null then 0 else 1 end as incidente_aberto
+                    case when i.id is null then 0 else 1 end as incidente_aberto,
+                    um.latencia_ms, um.executado_em, um.id as medicao_id
                 from monitor m
                 left join ultima_medicao um on um.monitor_id = m.id
                 left join incidente i on i.monitor_id = m.id and i.status = 'ABERTO'
@@ -99,7 +100,48 @@ public class DashboardReadRepository {
                 longValue(r[11]), longValue(r[12]), longValue(r[13]), longValue(r[14]));
     }
 
+    /**
+     * Inventario completo com status operacional e latencia, sem paginacao: a tela de Equipamentos
+     * filtra e pagina em memoria. Reaproveita a CTE ESTADOS, que ja classifica o equipamento — a
+     * formula nao e reescrita aqui.
+     *
+     * <p>A latencia e a da ultima medicao entre os monitores ATIVOS do equipamento, com o mesmo
+     * desempate do caminho Java (executado_em desc, id da medicao desc). Latencia nula com status
+     * INDISPONIVEL e o caso de timeout.
+     */
+    public List<EquipamentoRow> equipamentos(int limiarLatenciaDegradadaMs) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(ESTADOS + """
+                , equipamento_latencia as (
+                    select distinct on (me.equipamento_id) me.equipamento_id, me.latencia_ms
+                    from monitor_estado me
+                    where me.ativo and me.executado_em is not null
+                    order by me.equipamento_id, me.executado_em desc, me.medicao_id desc
+                )
+                select e.id, e.nome, t.nome, u.id, u.nome, e.hostname, e.ip_address,
+                    ee.status, el.latencia_ms, e.ativo, e.localizacao, e.numero_serie
+                from equipamento e
+                join equipamento_estado ee on ee.id = e.id
+                join unidade u on u.id = e.unidade_id
+                join tipo_equipamento t on t.id = e.tipo_equipamento_id
+                left join equipamento_latencia el on el.equipamento_id = e.id
+                order by e.nome asc, e.id asc
+                """).setParameter(1, limiarLatenciaDegradadaMs).getResultList();
+        return rows.stream().map(this::equipamento).toList();
+    }
+
+    private EquipamentoRow equipamento(Object[] r) {
+        return new EquipamentoRow(longValue(r[0]), (String) r[1], (String) r[2], longValue(r[3]), (String) r[4],
+                (String) r[5], (String) r[6], StatusOperacionalEquipamento.valueOf((String) r[7]),
+                r[8] == null ? null : ((Number) r[8]).intValue(), (Boolean) r[9],
+                (String) r[10], (String) r[11]);
+    }
+
     private long longValue(Object value) { return ((Number) value).longValue(); }
+
+    public record EquipamentoRow(Long id, String nome, String tipoNome, Long unidadeId, String unidadeNome,
+                                 String hostname, String ip, StatusOperacionalEquipamento status,
+                                 Integer latenciaMs, boolean ativo, String localizacao, String numeroSerie) { }
 
     public record DashboardCounts(long unidadesTotal, long equipamentosTotal, long equipamentosAtivos,
                                   long equipamentosDisponiveis, long equipamentosDegradados, long equipamentosIndisponiveis,

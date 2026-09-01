@@ -1,6 +1,7 @@
 package br.com.inframonitor.dashboard;
 
 import br.com.inframonitor.dashboard.dto.DashboardEquipamentoResponse;
+import br.com.inframonitor.dashboard.dto.DashboardEquipamentoListaResponse;
 import br.com.inframonitor.dashboard.dto.DashboardResumoResponse;
 import br.com.inframonitor.dashboard.dto.DashboardUnidadeDetalheResponse;
 import br.com.inframonitor.dashboard.dto.DashboardUnidadeResponse;
@@ -26,6 +27,7 @@ public class DashboardController {
 
     @GetMapping("/resumo") public DashboardResumoResponse resumo() { return service.resumo(); }
     @GetMapping("/unidades") public List<DashboardUnidadeResponse> unidades() { return service.unidades(); }
+    @GetMapping("/equipamentos") public List<DashboardEquipamentoListaResponse> inventario() { return service.equipamentos(); }
     @GetMapping("/unidades/{id}") public DashboardUnidadeDetalheResponse unidade(@PathVariable Long id) { return service.unidade(id); }
 
     @GetMapping("/unidades/{id}/equipamentos")

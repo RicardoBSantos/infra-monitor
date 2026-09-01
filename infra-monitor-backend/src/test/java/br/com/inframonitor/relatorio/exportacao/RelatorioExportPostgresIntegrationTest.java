@@ -92,7 +92,7 @@ class RelatorioExportPostgresIntegrationTest {
         jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
         unidadeId=unidades.criar(new CreateUnidadeRequest("Unidade São José", "SJ", null, null, null, null, null, null, null)).id();
         tipoId=tipos.criar(new CreateTipoEquipamentoRequest("Roteador",null)).id();
-        equipamentoId=equipamentosService.criar(new CreateEquipamentoRequest(unidadeId,tipoId,"Equipamento, Principal",null,null,null,null)).id();
+        equipamentoId=equipamentosService.criar(new CreateEquipamentoRequest(unidadeId,tipoId,"Equipamento, Principal",null,null,null,null, null)).id();
         Equipamento equipamento=equipamentos.findById(equipamentoId).orElseThrow();
         Monitor monitor=monitores.saveAndFlush(new Monitor(equipamento,TipoMonitor.ICMP,"Monitor \"ICMP\"",60,1000));monitorId=monitor.getId();
         JanelaMonitoramento janela=new JanelaMonitoramento(monitor,INICIO,OrigemJanelaMonitoramento.PRECISA);janela.fechar(FIM);janelas.saveAndFlush(janela);

@@ -9,6 +9,7 @@ public record EquipamentoResponse(
         String hostname,
         String descricao,
         String localizacao,
+        String numeroSerie,
         boolean ativo,
         boolean emManutencao,
         ReferenciaResponse unidade,

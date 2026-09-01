@@ -69,10 +69,11 @@
               <td class="numerico mono">{{ disponibilidade(equipamento.id) }}</td>
               <td class="numerico mono apagado">{{ ultimaVerificacao(equipamento) }}</td>
               <td class="numerico">
-                <!-- TODO: DÍVIDA -- ação única por decisão: um botão "Ver" solto lê melhor
-                     que um menu com um item só. Ao surgir a segunda ação por linha, isto
-                     vira menu "…", não um segundo botão — três linhas de botões na tabela
-                     competem com o dado. -->
+                <!-- Ação única por decisão: um botão "Ver" solto lê melhor que um menu com
+                     um item só. O componente que faltava agora existe
+                     (shared/action-menu, usado na tela de Equipamentos): ao surgir a
+                     segunda ação por linha, troque este link por <app-action-menu>, não
+                     por um segundo botão — três botões na linha competem com o dado. -->
                 <a class="botao botao--discreto" [routerLink]="['/equipamentos', equipamento.id]">Ver</a>
               </td>
             </tr>

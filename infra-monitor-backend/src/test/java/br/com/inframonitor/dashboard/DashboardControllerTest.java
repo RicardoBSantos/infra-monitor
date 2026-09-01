@@ -2,6 +2,7 @@ package br.com.inframonitor.dashboard;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.dashboard.dto.DashboardEquipamentoResponse;
+import br.com.inframonitor.dashboard.dto.DashboardEquipamentoListaResponse;
 import br.com.inframonitor.dashboard.dto.DashboardResumoResponse;
 import br.com.inframonitor.dashboard.dto.DashboardUnidadeDetalheResponse;
 import br.com.inframonitor.dashboard.dto.DashboardUnidadeResponse;
@@ -49,6 +50,36 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$.content[0].ip").value("10.0.0.1"))
                 .andExpect(jsonPath("$.content[0].emManutencao").value(false))
                 .andExpect(jsonPath("$.content[0].monitoresAtivos").value(1));
+    }
+
+    @Test void expoeInventarioCompletoSemPaginacao() throws Exception {
+        when(dashboardService.equipamentos()).thenReturn(List.of(
+                new DashboardEquipamentoListaResponse(10L, "SW-CORE", "Switch", 1L, "Matriz", "sw-core.rede.local",
+                        "10.0.0.1", StatusOperacionalEquipamento.DISPONIVEL, 13, true, "Rack 03", "SN-0001"),
+                new DashboardEquipamentoListaResponse(11L, "SW-BORDA", "Switch", 2L, "Filial", null, null,
+                        StatusOperacionalEquipamento.INDISPONIVEL, null, false, null, null)));
+
+        mockMvc.perform(get("/api/v1/dashboard/equipamentos")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].nome").value("SW-CORE"))
+                .andExpect(jsonPath("$[0].tipoNome").value("Switch"))
+                .andExpect(jsonPath("$[0].unidadeId").value(1))
+                .andExpect(jsonPath("$[0].unidadeNome").value("Matriz"))
+                .andExpect(jsonPath("$[0].hostname").value("sw-core.rede.local"))
+                .andExpect(jsonPath("$[0].ip").value("10.0.0.1"))
+                .andExpect(jsonPath("$[0].status").value("DISPONIVEL"))
+                .andExpect(jsonPath("$[0].latenciaMs").value(13))
+                .andExpect(jsonPath("$[0].ativo").value(true))
+                // Offline: sem latencia. A tela renderiza "timeout" a partir desta combinacao.
+                .andExpect(jsonPath("$[1].latenciaMs").doesNotExist())
+                .andExpect(jsonPath("$[1].status").value("INDISPONIVEL"))
+                .andExpect(jsonPath("$[1].ativo").value(false))
+                // Localizacao e numero de serie entram no read-model porque a busca da tela
+                // filtra por eles em memoria.
+                .andExpect(jsonPath("$[0].localizacao").value("Rack 03"))
+                .andExpect(jsonPath("$[0].numeroSerie").value("SN-0001"))
+                // Descricao continua fora: texto longo que so o formulario de edicao usa.
+                .andExpect(jsonPath("$[0].descricao").doesNotExist());
     }
 
     @Test void unidadeInexistenteRetorna404() throws Exception {

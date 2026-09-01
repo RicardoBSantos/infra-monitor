@@ -21,3 +21,6 @@ dist/
 
 # Evidencias de homologacao geradas localmente.
 r0332-evidence/
+
+# Artefatos transitorios de smoke test e execucao local.
+tmp/

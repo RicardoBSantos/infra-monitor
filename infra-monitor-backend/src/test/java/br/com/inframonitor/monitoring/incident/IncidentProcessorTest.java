@@ -152,7 +152,7 @@ class IncidentProcessorTest {
         when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO)).thenReturn(Optional.empty());
     }
     private Monitor monitor(int falhas, int sucessos) {
-        Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null), new TipoEquipamento("Switch", null), "SW", null, null, null, null);
+        Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null), new TipoEquipamento("Switch", null), "SW", null, null, null, null, null);
         Monitor monitor = new Monitor(equipamento, TipoMonitor.ICMP, "ICMP", 60, 2000, falhas, sucessos);
         ReflectionTestUtils.setField(monitor, "id", 1L);
         return monitor;

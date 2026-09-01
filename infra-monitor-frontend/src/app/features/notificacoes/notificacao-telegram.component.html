@@ -1,0 +1,26 @@
+<section class="telegram" aria-labelledby="telegram-titulo">
+  <header class="telegram__header">
+    <div>
+      <p class="telegram__secao">ADMINISTRAÇÃO · CANAL TELEGRAM</p>
+      <h1 id="telegram-titulo">Notificação via Telegram</h1>
+      <small>Envio de alertas para mudanças de estado e eventos de latência.</small>
+    </div>
+  </header>
+
+  <nav class="abas" role="tablist" aria-label="Seções do Telegram">
+    @for (aba of abas; track aba.caminho; let i = $index) {
+      <a
+        #gatilhoAba
+        class="aba"
+        role="tab"
+        routerLinkActive="aba--ativa"
+        #ativa="routerLinkActive"
+        [routerLink]="[aba.caminho]"
+        [attr.aria-selected]="ativa.isActive"
+        (keydown)="navegarPorTeclado($event, i)"
+      >{{ aba.rotulo }}</a>
+    }
+  </nav>
+
+  <router-outlet />
+</section>

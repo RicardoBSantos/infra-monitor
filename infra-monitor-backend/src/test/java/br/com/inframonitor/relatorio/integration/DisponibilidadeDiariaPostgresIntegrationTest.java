@@ -149,7 +149,7 @@ class DisponibilidadeDiariaPostgresIntegrationTest {
     private Equipamento criarEquipamento(String nome) {
         long unidade = unidades.criar(new CreateUnidadeRequest("Unidade " + nome, "U" + nome, null, null, null, null, null, null, null)).id();
         long tipo = tipos.criar(new CreateTipoEquipamentoRequest("Tipo " + nome, null)).id();
-        long id = equipamentos.criar(new CreateEquipamentoRequest(unidade, tipo, "Equipamento " + nome, null, null, null, null)).id();
+        long id = equipamentos.criar(new CreateEquipamentoRequest(unidade, tipo, "Equipamento " + nome, null, null, null, null, null)).id();
         return equipamentoRepository.findById(id).orElseThrow();
     }
 

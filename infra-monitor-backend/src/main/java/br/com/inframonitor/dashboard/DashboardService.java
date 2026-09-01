@@ -2,6 +2,7 @@ package br.com.inframonitor.dashboard;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.dashboard.dto.DashboardEquipamentoResponse;
+import br.com.inframonitor.dashboard.dto.DashboardEquipamentoListaResponse;
 import br.com.inframonitor.dashboard.dto.DashboardResumoResponse;
 import br.com.inframonitor.dashboard.dto.DashboardUnidadeDetalheResponse;
 import br.com.inframonitor.dashboard.dto.DashboardUnidadeResponse;
@@ -72,6 +73,14 @@ public class DashboardService {
     }
 
     public List<DashboardUnidadeResponse> unidades() { return readRepository.unidades(true, limiarLatenciaDegradadaMs).stream().map(this::unidadeResponse).toList(); }
+
+    public List<DashboardEquipamentoListaResponse> equipamentos() {
+        return readRepository.equipamentos(limiarLatenciaDegradadaMs).stream()
+                .map(r -> new DashboardEquipamentoListaResponse(r.id(), r.nome(), r.tipoNome(), r.unidadeId(),
+                        r.unidadeNome(), r.hostname(), r.ip(), r.status(), r.latenciaMs(), r.ativo(),
+                        r.localizacao(), r.numeroSerie()))
+                .toList();
+    }
 
     public DashboardUnidadeDetalheResponse unidade(Long id) {
         var c = readRepository.unidade(id, limiarLatenciaDegradadaMs);

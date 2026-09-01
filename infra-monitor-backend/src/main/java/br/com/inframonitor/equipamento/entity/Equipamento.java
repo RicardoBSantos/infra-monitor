@@ -47,6 +47,9 @@ public class Equipamento {
     @Column(length = 255)
     private String localizacao;
 
+    @Column(name = "numero_serie", length = 150)
+    private String numeroSerie;
+
     @Column(nullable = false)
     private boolean ativo;
 
@@ -63,7 +66,7 @@ public class Equipamento {
     }
 
     public Equipamento(Unidade unidade, TipoEquipamento tipoEquipamento, String nome, String ip,
-                       String hostname, String descricao, String localizacao) {
+                       String hostname, String descricao, String localizacao, String numeroSerie) {
         this.unidade = unidade;
         this.tipoEquipamento = tipoEquipamento;
         this.nome = nome;
@@ -71,6 +74,7 @@ public class Equipamento {
         this.hostname = hostname;
         this.descricao = descricao;
         this.localizacao = localizacao;
+        this.numeroSerie = numeroSerie;
         this.ativo = true;
         this.emManutencao = false;
     }
@@ -102,6 +106,8 @@ public class Equipamento {
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public String getLocalizacao() { return localizacao; }
     public void setLocalizacao(String localizacao) { this.localizacao = localizacao; }
+    public String getNumeroSerie() { return numeroSerie; }
+    public void setNumeroSerie(String numeroSerie) { this.numeroSerie = numeroSerie; }
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public boolean isEmManutencao() { return emManutencao; }

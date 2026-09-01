@@ -76,6 +76,8 @@ management:
 monitoring:
   # Acima deste tempo de resposta ICMP a leitura operacional vira DEGRADADO.
   latencia-degradada-ms: ${MONITORING_LATENCIA_DEGRADADA_MS:250}
+  # Ciclos consecutivos acima (ou abaixo) do limiar para abrir e fechar um episodio de latencia.
+  latencia-ciclos: ${MONITORING_LATENCIA_CICLOS:2}
   engine:
     # Enable explicitly on the single backend instance responsible for monitoring.
     enabled: ${MONITORING_ENGINE_ENABLED:false}
@@ -91,6 +93,10 @@ notification:
     api-base-url: ${TELEGRAM_API_BASE_URL:https://api.telegram.org}
     connect-timeout-ms: ${NOTIFICATION_TELEGRAM_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${NOTIFICATION_TELEGRAM_READ_TIMEOUT_MS:5000}
+    # Intervalo de revalidacao da identidade do bot (getMe) exibida na tela de configuracao.
+    identity-refresh-ms: ${NOTIFICATION_TELEGRAM_IDENTITY_REFRESH_MS:300000}
+    # Intervalo minimo entre dois envios de teste manual, para nao spammar o grupo real.
+    teste-cooldown-segundos: ${NOTIFICATION_TELEGRAM_TESTE_COOLDOWN_SEGUNDOS:60}
   dispatcher:
     enabled: ${NOTIFICATION_DISPATCHER_ENABLED:false}
     poll-delay-ms: ${NOTIFICATION_DISPATCHER_POLL_DELAY_MS:1000}

@@ -29,8 +29,17 @@ const businessRoutes: Routes = [
   { path: 'medicoes', loadComponent: () => import('./features/medicoes/medicao-list.component').then(m => m.MedicaoListComponent), data: { breadcrumb: 'Medições', title: 'Medições', section: 'Gerenciamento' } },
   { path: 'incidentes', loadComponent: () => import('./features/incidentes/incidente-list.component').then(m => m.IncidenteListComponent), data: { breadcrumb: 'Incidentes', title: 'Incidentes', section: 'Operações' } },
   { path: 'incidentes/:id', loadComponent: () => import('./features/incidentes/incidente-detail.component').then(m => m.IncidenteDetailComponent), data: { breadcrumb: 'Detalhe do incidente', title: 'Incidente', section: 'Operações' } },
-  { path: 'notificacoes', loadComponent: () => import('./features/notificacoes/notificacao-list.component').then(m => m.NotificacaoListComponent), data: { breadcrumb: 'Telegram', title: 'Notificações', section: 'Gerenciamento' } },
-  { path: 'notificacoes/:id', loadComponent: () => import('./features/notificacoes/notificacao-detail.component').then(m => m.NotificacaoDetailComponent), data: { breadcrumb: 'Detalhe da notificação', title: 'Notificação', section: 'Gerenciamento' } },
+  {
+    path: 'notificacoes',
+    loadComponent: () => import('./features/notificacoes/notificacao-telegram.component').then(m => m.NotificacaoTelegramComponent),
+    data: { breadcrumb: 'Notificação via Telegram', title: 'Notificação via Telegram', section: 'Administração' },
+    children: [
+      { path: '', redirectTo: 'historico', pathMatch: 'full' },
+      { path: 'configuracao', loadComponent: () => import('./features/notificacoes/configuracao-tab.component').then(m => m.ConfiguracaoTabComponent), data: { title: 'Telegram · Configuração' } },
+      { path: 'historico', loadComponent: () => import('./features/notificacoes/notificacao-list.component').then(m => m.NotificacaoListComponent), data: { title: 'Telegram · Histórico' } },
+    ],
+  },
+  { path: 'notificacoes/detalhe/:id', loadComponent: () => import('./features/notificacoes/notificacao-detail.component').then(m => m.NotificacaoDetailComponent), data: { breadcrumb: 'Detalhe da notificação', title: 'Notificação', section: 'Administração' } },
   { path: 'relatorios', canActivate: [roleGuard], loadComponent: () => import('./features/relatorios/relatorios.component').then(m => m.RelatoriosComponent), data: { roles: ['ADMIN', 'OPERADOR', 'VISUALIZADOR'], breadcrumb: 'Relatórios', title: 'Relatórios', section: 'Operações' } },
   { path: 'usuarios', canActivate: [roleGuard], loadComponent: () => import('./features/usuarios/usuario-list.component').then(m => m.UsuarioListComponent), data: { roles: ['ADMIN'], breadcrumb: 'Usuários', title: 'Usuários', section: 'Administração' } },
 ];

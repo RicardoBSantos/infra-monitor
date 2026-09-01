@@ -1,0 +1,94 @@
+.menu-acoes {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-acoes__gatilho {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--im-radius);
+  background: none;
+  color: var(--im-text-secondary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--im-border-strong);
+    background: var(--im-surface-hover);
+    color: var(--im-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--im-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    color: var(--im-text-dim);
+    cursor: not-allowed;
+  }
+}
+
+// `fixed`, não `absolute`: o wrapper da tabela tem overflow e recortava o menu.
+// `top`/`left` vêm calculados do componente — não há ancoragem por CSS aqui.
+.menu-acoes__lista {
+  position: fixed;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--im-border-strong);
+  border-radius: var(--im-radius);
+  background: var(--im-surface-raised);
+  box-shadow: var(--im-shadow-raised);
+}
+
+.menu-acoes__item {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: calc(var(--im-radius) - 2px);
+  background: none;
+  color: var(--im-text-soft);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--im-surface-hover);
+    color: var(--im-text);
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--im-primary);
+  }
+
+  &:disabled {
+    color: var(--im-text-dim);
+    cursor: not-allowed;
+  }
+}
+
+.menu-acoes__item--perigo {
+  color: var(--im-danger);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgba(229, 83, 75, .12);
+    color: var(--im-danger-soft);
+  }
+}
+
+.menu-acoes__divisor {
+  margin: 4px 2px;
+  border: 0;
+  border-top: 1px solid var(--im-border);
+}

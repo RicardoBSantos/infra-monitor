@@ -10,6 +10,7 @@ import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitoring.incident.IncidentProcessor;
+import br.com.inframonitor.monitoring.latency.LatencyEpisodeProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -29,12 +30,14 @@ public class MedicaoService {
     private final MedicaoRepository medicaoRepository;
     private final MonitorRepository monitorRepository;
     private final IncidentProcessor incidentProcessor;
+    private final LatencyEpisodeProcessor latencyEpisodeProcessor;
 
     public MedicaoService(MedicaoRepository medicaoRepository, MonitorRepository monitorRepository,
-                          IncidentProcessor incidentProcessor) {
+                          IncidentProcessor incidentProcessor, LatencyEpisodeProcessor latencyEpisodeProcessor) {
         this.medicaoRepository = medicaoRepository;
         this.monitorRepository = monitorRepository;
         this.incidentProcessor = incidentProcessor;
+        this.latencyEpisodeProcessor = latencyEpisodeProcessor;
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -50,6 +53,11 @@ public class MedicaoService {
         } catch (RuntimeException exception) {
             // A medicao e o dado primario: uma falha de interpretacao nao a invalida.
             log.error("Incident processing failed after persisting measurement {}", persistida.getId(), exception);
+        }
+        try {
+            latencyEpisodeProcessor.process(persistida);
+        } catch (RuntimeException exception) {
+            log.error("Latency processing failed after persisting measurement {}", persistida.getId(), exception);
         }
         return paraResposta(persistida);
     }

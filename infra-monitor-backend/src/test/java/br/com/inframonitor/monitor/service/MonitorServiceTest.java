@@ -159,7 +159,7 @@ class MonitorServiceTest {
 
     private CreateMonitorRequest criacao(Long equipamentoId, int intervalo, int timeout) { return new CreateMonitorRequest(equipamentoId, TipoMonitor.ICMP, "  ICMP principal  ", intervalo, timeout, null, null); }
     private Equipamento equipamento(boolean ativo, Long id) {
-        Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null), new TipoEquipamento("Switch", null), "SW-01", "10.0.0.1", null, null, null);
+        Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null), new TipoEquipamento("Switch", null), "SW-01", "10.0.0.1", null, null, null, null);
         equipamento.setAtivo(ativo); definirId(equipamento, id); return equipamento;
     }
     private void definirId(Object entidade, Long id) { ReflectionTestUtils.setField(entidade, "id", id); }

@@ -10,6 +10,7 @@ import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitoring.incident.IncidentProcessor;
+import br.com.inframonitor.monitoring.latency.LatencyEpisodeProcessor;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class MedicaoServiceTest {
     @Mock private MedicaoRepository medicaoRepository;
     @Mock private MonitorRepository monitorRepository;
     @Mock private IncidentProcessor incidentProcessor;
+    @Mock private LatencyEpisodeProcessor latencyEpisodeProcessor;
     @InjectMocks private MedicaoService medicaoService;
 
     @Test
@@ -137,7 +139,7 @@ class MedicaoServiceTest {
 
     private Monitor monitor() {
         Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null),
-                new TipoEquipamento("Switch", null), "SW-01", null, null, null, null);
+                new TipoEquipamento("Switch", null), "SW-01", null, null, null, null, null);
         definirId(equipamento, 10L);
         Monitor monitor = new Monitor(equipamento, TipoMonitor.ICMP, "ICMP principal", 60, 2000);
         definirId(monitor, 1L);
