@@ -8,14 +8,19 @@
    unidade-form-drawer — as duas gavetas do sistema abrem do mesmo jeito. Sob
    prefers-reduced-motion resta só o fade do fundo, sem deslocamento. */
 .gaveta__fundo {
-  position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .38);
+  position: fixed; inset: 0; z-index: var(--im-z-gaveta-fundo); background: rgba(0, 0, 0, .38);
   animation: gaveta-fundo 220ms ease-out;
 }
 
 .gaveta {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; display: flex; flex-direction: column;
-  width: min(660px, 100%); border-left: 1px solid var(--im-border); background: var(--im-surface);
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--im-z-gaveta); display: flex; flex-direction: column;
+  width: min(660px, 100%); max-width: 100vw; border-left: 1px solid var(--im-border);
+  background: var(--im-surface);
   animation: gaveta-painel 220ms cubic-bezier(.32, .72, 0, 1);
+  /* Teto duro de largura: nenhum conteudo interno (a tabela de monitores tem min-width
+     propria) pode alargar a gaveta nem gerar rolagem horizontal aqui. O que for largo
+     demais rola dentro do proprio bloco. */
+  overflow-x: hidden;
 }
 
 @keyframes gaveta-fundo { from { opacity: 0; } to { opacity: 1; } }
@@ -44,7 +49,13 @@
 }
 .gaveta__fechar:hover { color: var(--im-text); background: var(--im-surface-hover); }
 
-.gaveta__corpo { display: grid; gap: 12px; align-content: start; overflow-y: auto; padding: 14px 18px 18px; }
+.gaveta__corpo {
+  display: grid; gap: 12px; align-content: start; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 18px 18px;
+  /* minmax(0, 1fr) e nao 1fr: com 1fr o minimo da trilha e o min-content do conteudo,
+     e a tabela de monitores (min-width: 940px) esticaria a coluna para fora da gaveta. */
+  grid-template-columns: minmax(0, 1fr);
+}
 
 .gaveta__erro {
   margin: 0 14px 12px; padding: 9px 11px; border: 1px solid rgba(229, 83, 75, .32);
@@ -80,6 +91,11 @@
 /* O valor colorido de _ui.scss mira `strong`; o card de Status usa `span` por causa
    do badge, e o badge tem cor própria. */
 .kpi--ok .kpi__valor { color: var(--im-success); }
+/* Azul fixo da latencia. Nao existe .kpi--info na primitiva porque so este drawer
+   pinta um KPI sem relacao com severidade; reusa --im-primary, o mesmo azul do
+   login e do painel. */
+.kpi--info { border-top-color: var(--im-primary); }
+.kpi--info .kpi__valor { color: var(--im-primary); }
 .kpi--warn .kpi__valor { color: var(--im-warning); }
 .kpi--down .kpi__valor { color: var(--im-danger); }
 .kpi .kpi__falha { color: var(--im-text-dim); }
@@ -103,17 +119,28 @@
 .esqueleto--grafico span { height: 132px; }
 
 /* Cartões de dados ---------------------------------------------------------- */
-.colunas { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-items: start; }
+/* minmax(0, ...) nas duas trilhas pelo mesmo motivo do corpo: sem isso a coluna de
+   Monitoramento cresce ate o min-content da tabela embutida e empurra Inventario para o
+   seu proprio min-content — que e de um caractere, porque `dd` usa overflow-wrap:
+   anywhere. Era dai a quebra vertical letra a letra dos valores. */
+.colunas { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.colunas > .cartao { min-width: 0; }
 
-.dados { display: grid; gap: 7px 12px; margin: 0; padding: 0 14px 14px; grid-template-columns: auto 1fr; }
-.dados dt { color: var(--im-text-secondary); font-size: 11.5px; }
-.dados dd { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
+/* Com os monitores abertos a tabela precisa dos 660px inteiros, nao de metade. */
+.colunas--empilhada { grid-template-columns: minmax(0, 1fr); }
+
+.dados { display: grid; gap: 7px 12px; margin: 0; padding: 0 14px 14px; grid-template-columns: auto minmax(0, 1fr); }
+.dados dt { min-width: 0; color: var(--im-text-secondary); font-size: 11.5px; }
+.dados dd { margin: 0; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
 
 .estado-monitoramento { display: flex; align-items: center; gap: 9px; margin: 0; padding: 0 14px 14px; color: var(--im-text-secondary); font-size: 12px; }
+.estado-monitoramento > span:last-child { min-width: 0; }
 
-.monitores-todos { display: grid; gap: 10px; padding: 0 14px 14px; justify-items: start; }
-.monitores-todos > button { display: inline-flex; align-items: center; gap: 6px; }
-.monitores-todos app-monitor-management { display: block; width: 100%; }
+/* justify-items: start dimensionava os filhos pelo max-content — com a tabela dentro,
+   isso e a largura da tabela. O botao continua encolhido via justify-self. */
+.monitores-todos { display: grid; gap: 10px; padding: 0 14px 14px; grid-template-columns: minmax(0, 1fr); }
+.monitores-todos > button { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.monitores-todos app-monitor-management { display: block; width: 100%; min-width: 0; max-width: 100%; }
 
 .incidentes-recentes { display: grid; gap: 10px; margin: 0; padding: 0 14px 14px; list-style: none; }
 .incidentes-recentes li { display: flex; align-items: center; gap: 12px; }
@@ -124,5 +151,5 @@
 @media (max-width: 860px) {
   .gaveta { width: 100%; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .colunas { grid-template-columns: 1fr; }
+  .colunas { grid-template-columns: minmax(0, 1fr); }
 }

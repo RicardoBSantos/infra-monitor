@@ -6,12 +6,12 @@
    drawer de detalhe de equipamento — as duas gavetas do sistema abrem do mesmo jeito.
    Sob prefers-reduced-motion resta só o fade do fundo, sem deslocamento. */
 .gaveta__fundo {
-  position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .38);
+  position: fixed; inset: 0; z-index: var(--im-z-gaveta-fundo); background: rgba(0, 0, 0, .38);
   animation: gaveta-fundo 220ms ease-out;
 }
 
 .gaveta {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; display: flex; flex-direction: column;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--im-z-gaveta); display: flex; flex-direction: column;
   width: min(420px, 100%); border-left: 1px solid var(--im-border); background: var(--im-surface-raised);
   animation: gaveta-painel 220ms cubic-bezier(.32, .72, 0, 1);
 }

@@ -277,7 +277,8 @@ export class EquipamentoDetalheDrawerComponent {
 
   /**
    * Modificadores da primitiva `.kpi` de `_ui.scss`, os mesmos do Painel e do detalhe
-   * de unidade. Aqui são condicionais ao valor, não fixos por posição.
+   * de unidade. Status e Disponibilidade seguem condicionais ao valor; Latencia, Perda
+   * e Incidentes tem cor fixa por metrica (decisao de produto).
    */
   protected readonly severidadeStatus = computed(() => {
     switch (this.statusAtual()) {
@@ -289,12 +290,16 @@ export class EquipamentoDetalheDrawerComponent {
     }
   });
 
-  protected readonly severidadeLatencia = computed(() => {
-    const ultima = this.ultimaMedicao();
-    if (!ultima) return '';
-    if (ultima.status === MeasurementStatus.Failure) return 'kpi--down';
-    const limiar = this.limiarLatenciaMs();
-    return limiar !== null && (ultima.latenciaMs ?? 0) > limiar ? 'kpi--warn' : 'kpi--ok';
+  /**
+   * Latencia — atual e media — tem cor fixa azul, por decisao de produto: e leitura de
+   * referencia, nao alarme. Vale inclusive para timeout. So a ausencia de dado fica
+   * neutra: pintar o "—" seria dar cor a informacao que nao existe.
+   */
+  protected readonly corLatencia = computed(() => (this.ultimaMedicao() ? 'kpi--info' : ''));
+
+  protected readonly corLatenciaMedia = computed(() => {
+    const media = this.latencia()?.avgLatenciaMs;
+    return media === null || media === undefined ? '' : 'kpi--info';
   });
 
   protected readonly severidadeDisponibilidade = computed(() => {
@@ -303,14 +308,20 @@ export class EquipamentoDetalheDrawerComponent {
     return valor >= 99 ? 'kpi--ok' : valor >= 95 ? 'kpi--warn' : 'kpi--down';
   });
 
-  protected readonly severidadePerda = computed(() => {
-    const valor = this.perdaDePacotes();
-    if (valor === null) return '';
-    return valor === 0 ? 'kpi--ok' : valor < 50 ? 'kpi--warn' : 'kpi--down';
-  });
+  /** Perda e sempre ambar, qualquer que seja o percentual; sem dado, neutro. */
+  protected readonly corPerda = computed(() => (this.perdaDePacotes() === null ? '' : 'kpi--warn'));
 
-  protected readonly severidadeIncidentes = computed(() =>
-    (this.disponibilidade()?.incidentes ?? 0) > 0 ? 'kpi--down' : '');
+  /**
+   * Incidentes e sempre vermelho para qualquer contagem, inclusive zero — a cor
+   * identifica a metrica, nao o estado dela. Nao "corrigir" para neutro quando o valor
+   * for 0: e o comportamento pedido, coberto por teste. So o "—" fica neutro, porque ai
+   * nao ha contagem alguma: e request que falhou ou ainda nao voltou, nao ausencia de
+   * incidentes.
+   */
+  protected readonly corIncidentes = computed(() => {
+    const contagem = this.disponibilidade()?.incidentes;
+    return contagem === null || contagem === undefined ? '' : 'kpi--down';
+  });
 
   /**
    * Âmbar um passo antes do limite, vermelho ao atingi-lo. Com
@@ -324,6 +335,9 @@ export class EquipamentoDetalheDrawerComponent {
     if (falhas >= monitor.falhasParaIncidente) return 'valor--critico';
     return falhas > 0 && falhas >= monitor.falhasParaIncidente - 1 ? 'valor--alerta' : '';
   });
+
+  /** Devolve o foco ao painel quando um modal aberto por cima da gaveta se fecha. */
+  focarPainel(): void { this.painel()?.nativeElement.focus(); }
 
   protected alternarTodosMonitores(): void { this.todosMonitores.update((aberto) => !aberto); }
 

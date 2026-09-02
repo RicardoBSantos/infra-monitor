@@ -31,14 +31,14 @@
           @if (statusAtual(); as status) { <app-status-badge [status]="status" /> } @else { <span class="mono">—</span> }
         </span>
       </li>
-      <li [class]="'kpi ' + severidadeLatencia()">
+      <li [class]="'kpi ' + corLatencia()">
         <span class="kpi__rotulo">Latência</span>
         <strong class="kpi__valor mono">
           @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
           @else { {{ latenciaAtual() ?? '—' }} }
         </strong>
       </li>
-      <li class="kpi">
+      <li [class]="'kpi ' + corLatenciaMedia()">
         <span class="kpi__rotulo">Latência média · {{ janelaDias }}D</span>
         <strong class="kpi__valor mono">
           @if (latenciaEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
@@ -52,14 +52,14 @@
           @else { {{ percentual(disponibilidade()?.disponibilidadePercentual) }} }
         </strong>
       </li>
-      <li [class]="'kpi ' + severidadePerda()">
+      <li [class]="'kpi ' + corPerda()">
         <span class="kpi__rotulo">Perda · {{ janelaGraficoMinutos }}min</span>
         <strong class="kpi__valor mono">
           @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
           @else { {{ percentual(perdaDePacotes()) }} }
         </strong>
       </li>
-      <li [class]="'kpi ' + severidadeIncidentes()">
+      <li [class]="'kpi ' + corIncidentes()">
         <span class="kpi__rotulo">Incidentes · {{ janelaDias }}D</span>
         <strong class="kpi__valor mono">
           @if (disponibilidadeEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
@@ -130,7 +130,7 @@
       }
     </section>
 
-    <div class="colunas">
+    <div class="colunas" [class.colunas--empilhada]="todosMonitores()">
       <!-- Inventário ------------------------------------------------------- -->
       <section class="cartao" aria-labelledby="titulo-inventario">
         <h3 class="cartao__titulo" id="titulo-inventario">Inventário</h3>

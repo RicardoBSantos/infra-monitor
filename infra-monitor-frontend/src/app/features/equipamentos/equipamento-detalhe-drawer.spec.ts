@@ -76,6 +76,8 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     falhas: string[] = [],
     monitores = [monitor({ id: 10 })],
     medicoes = MEDICOES_PADRAO,
+    disponibilidade: object[] = [{ equipamentoId: 1, disponibilidadePercentual: 97.17, incidentes: 1 }],
+    latencia: object[] = [{ equipamentoId: 1, avgLatenciaMs: 4 }],
   ) {
     const responderOu = (url: string, corpo: object) => {
       const requisicao = http.expectOne((request) => request.url.includes(url));
@@ -86,8 +88,8 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     http.match((request) => request.url.includes('/dashboard/resumo'))
       .forEach((request) => request.flush({ limiarLatenciaDegradadaMs: 250 }));
     responderOu('/api/v1/equipamentos/1', CADASTRO);
-    responderOu('/relatorios/disponibilidade/equipamentos', pagina([{ equipamentoId: 1, disponibilidadePercentual: 97.17, incidentes: 1 }]));
-    responderOu('/relatorios/latencia', pagina([{ equipamentoId: 1, avgLatenciaMs: 4 }]));
+    responderOu('/relatorios/disponibilidade/equipamentos', pagina(disponibilidade));
+    responderOu('/relatorios/latencia', pagina(latencia));
     responderOu('/relatorios/medicoes', pagina(medicoes));
     responderOu('/monitores', pagina(monitores));
     responderOu('/incidentes', pagina([{ id: 192, status: 'ABERTO', iniciadoEm: '2026-08-31T08:44:00Z', motivo: 'Equipamento offline', encerradoEm: null, observacao: null, monitor: { id: 10, nome: 'ICMP 10', tipo: 'ICMP', equipamentoId: 1, equipamentoNome: 'SW-CORE', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde' }, createdAt: '', updatedAt: '' }]));
@@ -183,18 +185,59 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     expect(fixture.componentInstance['severidadeFalhas']()).toBe('valor--alerta');
   });
 
-  it('aplica a severidade da primitiva .kpi conforme o valor de cada indicador', () => {
+  it('aplica a severidade da primitiva .kpi apenas onde a cor depende do valor', () => {
     const fixture = montar();
     responder(fixture);
     const componente = fixture.componentInstance;
 
-    // 97,17% de disponibilidade fica na faixa intermediária; 50% de perda é crítico.
+    // 97,17% de disponibilidade fica na faixa intermediária: essa continua condicional.
     expect(componente['severidadeDisponibilidade']()).toBe('kpi--warn');
-    expect(componente['severidadePerda']()).toBe('kpi--down');
-    expect(componente['severidadeIncidentes']()).toBe('kpi--down');
-    // Última medição é FALHA: o KPI de latência acompanha.
-    expect(componente['severidadeLatencia']()).toBe('kpi--down');
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi--down').length).toBeGreaterThanOrEqual(3);
+    // As demais passaram a ter cor fixa por métrica: 50% de perda continua âmbar,
+    // e a última medição é FALHA sem que a latência vire vermelha.
+    expect(componente['corPerda']()).toBe('kpi--warn');
+    expect(componente['corLatencia']()).toBe('kpi--info');
+    expect(componente['corLatenciaMedia']()).toBe('kpi--info');
+    expect(componente['corIncidentes']()).toBe('kpi--down');
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi--info').length).toBe(2);
+  });
+
+  it('mantém Incidentes em vermelho mesmo com zero incidentes', () => {
+    const fixture = montar();
+    responder(fixture, [], [monitor({ id: 10 })], MEDICOES_PADRAO, [
+      { equipamentoId: 1, disponibilidadePercentual: 100, incidentes: 0 },
+    ]);
+    const elemento = fixture.nativeElement as HTMLElement;
+    const cartaoIncidentes = [...elemento.querySelectorAll('.kpi')]
+      .find((cartao) => cartao.textContent?.includes('Incidentes'))!;
+
+    // A cor identifica a métrica, não o estado: zero incidente segue vermelho.
+    expect(cartaoIncidentes.className).toContain('kpi--down');
+    expect(cartaoIncidentes.textContent).toContain('0');
+  });
+
+  it('deixa Incidentes neutro quando a contagem não chegou', () => {
+    const fixture = montar();
+    // Disponibilidade falha: o cartão mostra "indisponível", sem contagem alguma.
+    responder(fixture, ['/relatorios/disponibilidade/equipamentos']);
+    const elemento = fixture.nativeElement as HTMLElement;
+    const cartaoIncidentes = [...elemento.querySelectorAll('.kpi')]
+      .find((cartao) => cartao.textContent?.includes('Incidentes'))!;
+
+    // Ausência de informação não carrega alarme — diferente de zero incidentes.
+    expect(fixture.componentInstance['corIncidentes']()).toBe('');
+    expect(cartaoIncidentes.className).not.toContain('kpi--down');
+  });
+
+  it('não pinta latência nem perda quando não há dado na janela', () => {
+    const fixture = montar();
+    responder(fixture, [], [monitor({ id: 10 })], [], [
+      { equipamentoId: 1, disponibilidadePercentual: 100, incidentes: 0 },
+    ], []);
+    const componente = fixture.componentInstance;
+
+    expect(componente['corLatencia']()).toBe('');
+    expect(componente['corPerda']()).toBe('');
+    expect(componente['corLatenciaMedia']()).toBe('');
   });
 
   it('fecha no Escape e devolve o foco ao elemento que abriu a gaveta', () => {

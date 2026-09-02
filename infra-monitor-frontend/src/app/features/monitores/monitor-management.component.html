@@ -83,12 +83,12 @@
         <p>Altere os filtros ou configure o primeiro monitor.</p>
       </div>
     } @else if (state() === 'success') {
-      <div class="monitor-page__rolagem">
+      <div class="monitor-page__rolagem" [class.barra-fina]="equipamentoContextId()">
         <table class="tabela">
           <thead>
             <tr>
               <th>MONITOR</th>
-              <th>EQUIPAMENTO</th>
+              @if (!equipamentoContextId()) { <th>EQUIPAMENTO</th> }
               <th>TIPO</th>
               <th>INTERVALO / TIMEOUT</th>
               <th>THRESHOLDS</th>
@@ -100,7 +100,7 @@
             @for (item of page(); track item.id) {
               <tr>
                 <td><span class="mono forte">{{ item.nome }}</span></td>
-                <td>{{ item.equipamento.nome }}</td>
+                @if (!equipamentoContextId()) { <td>{{ item.equipamento.nome }}</td> }
                 <td><span class="chip-tipo">{{ item.tipo }}</span></td>
                 <td class="mono">{{ item.intervaloSegundos }} s <span class="apagado">/ {{ item.timeoutMs }} ms</span></td>
                 <td class="mono">{{ item.falhasParaIncidente }} falhas <span class="apagado">/ {{ item.sucessosParaRecovery }} sucessos</span></td>

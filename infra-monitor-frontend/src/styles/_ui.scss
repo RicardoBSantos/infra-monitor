@@ -135,3 +135,45 @@
 /* Severidade em valores soltos de listas de definição, onde a primitiva .kpi não cabe. */
 .valor--alerta { color: var(--im-warning); }
 .valor--critico { color: var(--im-danger); }
+
+/* Barra de rolagem ------------------------------------------------------------
+   Global de proposito: vale para o corpo da pagina (.shell__main), a navegacao da
+   sidebar, o corpo das duas gavetas, os wrappers de tabela, os modais longos e a
+   lista do menu de acoes. Nao muda nenhuma regra de overflow existente — so a
+   aparencia da barra em cima do que ja esta la.
+
+   Firefox aceita apenas `scrollbar-width` e `scrollbar-color`: nao ha raio, nem
+   estado :hover, nem trilho transparente de verdade (ele pinta a cor informada).
+   Isso e limitacao do proprio motor e nao tem contorno — no Firefox a barra fica
+   fina e na cor certa, sem cantos arredondados. Nao tentar emular com JS.
+
+   O trilho fica transparente e mostra o fundo do cartao que contem o scroll, em
+   vez de um cinza generico que brigaria com --im-surface / --im-surface-raised. */
+/* Isolado no @supports por um detalhe do Blink: com scrollbar-width ou
+   scrollbar-color definidos, o Chromium usa as propriedades padrao e IGNORA todo
+   o bloco ::-webkit-scrollbar — some o raio e o :hover. Assim a regra padrao so
+   alcanca quem nao entende os pseudo-elementos, ou seja, o Firefox. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--im-scrollbar-thumb) var(--im-scrollbar-track);
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--im-scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  border-radius: var(--im-radius-pill);
+  background: var(--im-scrollbar-thumb);
+  /* A borda transparente com background-clip afina o polegar sem estreitar a area
+     de arraste — o alvo do mouse continua com os 10px. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--im-scrollbar-thumb-hover); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Utilitaria opcional, em cima do global: blocos estreitos como a tabela de
+   monitores embutida na gaveta, onde 10px de barra horizontal comem altura util. */
+.barra-fina::-webkit-scrollbar { width: 6px; height: 6px; }
+.barra-fina::-webkit-scrollbar-thumb { border-width: 1px; }

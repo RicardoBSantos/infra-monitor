@@ -76,6 +76,13 @@
   .tabela { min-width: 940px; }
 }
 
+// Embutida no drawer (660px) a tabela nao tem a coluna EQUIPAMENTO — todas as linhas sao
+// do mesmo equipamento — e o piso cai para caber com rolagem curta, contida neste bloco.
+.monitor-page--embedded {
+  .monitor-page__rolagem { max-width: 100%; }
+  .monitor-page__rolagem .tabela { min-width: 620px; }
+}
+
 // Três ações por linha: agrupadas para não herdarem o text-align da célula numérica.
 .monitor-page__acoes {
   display: flex;
@@ -126,7 +133,7 @@
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: var(--im-z-modal);
   display: grid;
   place-items: center;
   padding: 16px;

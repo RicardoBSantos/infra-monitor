@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -117,6 +117,7 @@ export class EquipamentoListComponent {
   protected readonly ordenacao = signal<Ordenacao>('nome,asc');
 
   protected readonly formAberto = signal(false);
+  private readonly gaveta = viewChild(EquipamentoDetalheDrawerComponent);
   protected readonly emEdicao = signal<DashboardEquipamentoLista | null>(null);
   protected readonly carregandoEdicao = signal(false);
   protected readonly salvando = signal(false);
@@ -370,6 +371,7 @@ export class EquipamentoListComponent {
     this.acao.set(null);
     this.alvo.set(null);
     this.erroAcao.set(null);
+    this.devolverFocoAGaveta();
   }
 
   protected confirmarAcao(): void {
@@ -388,6 +390,7 @@ export class EquipamentoListComponent {
         this.processando.set(false);
         this.acao.set(null);
         this.alvo.set(null);
+        this.devolverFocoAGaveta();
         this.aviso.set(acao === 'excluir' ? `${alvo.nome} foi excluído.`
           : acao === 'desativar' ? `Monitoramento de ${alvo.nome} desativado.`
             : `Monitoramento de ${alvo.nome} ativado.`);
@@ -477,6 +480,14 @@ export class EquipamentoListComponent {
     this.formAberto.set(false);
     this.emEdicao.set(null);
     this.carregandoEdicao.set(false);
+    // O modal abriu por cima da gaveta e a gaveta estava inert: sem isso o foco
+    // ficaria no <body> ao cancelar, e o Tab recomecaria do topo da pagina.
+    this.devolverFocoAGaveta();
+  }
+
+  private devolverFocoAGaveta(): void {
+    if (this.detalheId() === null) return;
+    setTimeout(() => this.gaveta()?.focarPainel());
   }
 
   protected avaliarIp(valor: string): void {
@@ -499,6 +510,7 @@ export class EquipamentoListComponent {
         this.emEdicao.set(null);
         this.aviso.set(edicao ? 'Equipamento atualizado.' : `Equipamento ${equipamento.nome} criado.`);
         this.carregar();
+        this.devolverFocoAGaveta();
       },
       error: (erro: unknown) => {
         this.salvando.set(false);

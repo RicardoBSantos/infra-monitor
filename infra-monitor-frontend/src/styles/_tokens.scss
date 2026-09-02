@@ -53,6 +53,24 @@
   --im-space-4: 16px;
   --im-space-5: 22px;
   --im-shadow-raised: 0 18px 40px rgba(0, 0, 0, .55);
+  /* Escala de empilhamento. Ate agora cada tela escolhia o proprio z-index e o
+     modal de equipamento (20) ficava embaixo da gaveta de detalhe (40/41): o
+     backdrop da gaveta interceptava os cliques do formulario. Overlay que abre
+     por cima de outro tem de estar acima dele — a ordem vive aqui, nao no
+     componente. */
+  --im-z-menu: 15;
+  --im-z-sidebar: 20;
+  --im-z-topbar-menu: 30;
+  --im-z-gaveta-fundo: 40;
+  --im-z-gaveta: 41;
+  --im-z-modal: 60;
+
+  /* Barra de rolagem: mesma familia das bordas do sistema (rgba branco baixo),
+     nunca o azul de acento — rolagem e passiva, nao interativa primaria. */
+  --im-scrollbar-track: transparent;
+  --im-scrollbar-thumb: rgba(255, 255, 255, .14);
+  --im-scrollbar-thumb-hover: rgba(255, 255, 255, .24);
+
   --im-sidebar-width: 224px;
   --im-topbar-height: 56px;
   --im-focus-ring: 0 0 0 3px rgba(76, 141, 255, .28);
@@ -101,6 +119,10 @@
   --im-map-active: #8fa4ba;
   --im-map-select: #1a56db;
   --im-selection: rgba(26, 86, 219, .22);
+  /* No claro o mesmo contraste pede tinta escura sobre fundo claro; as proporcoes
+     (.14 / .24) sao as do escuro, so invertida a base. */
+  --im-scrollbar-thumb: rgba(16, 24, 40, .18);
+  --im-scrollbar-thumb-hover: rgba(16, 24, 40, .30);
   --im-shadow-raised: 0 18px 40px rgba(16, 24, 40, .10);
   --im-focus-ring: 0 0 0 3px rgba(26, 86, 219, .22);
 }

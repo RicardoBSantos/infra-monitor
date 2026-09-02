@@ -280,7 +280,11 @@
   }
 
   @if (detalheId(); as id) {
+    <!-- Com o modal de edicao (ou a confirmacao) aberto por cima, a gaveta continua
+         visivel mas fora de alcance: inert tira foco, Tab e clique do que esta atras
+         do backdrop, e o effect de foco do painel deixa de disputar com o formulario. -->
     <app-equipamento-detalhe-drawer
+      [attr.inert]="formAberto() || acao() !== null ? '' : null"
       [equipamentoId]="id"
       [linha]="detalheLinha()"
       (fechar)="fecharDetalhe()"
