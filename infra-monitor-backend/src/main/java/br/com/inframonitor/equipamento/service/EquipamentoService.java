@@ -52,6 +52,8 @@ public class EquipamentoService {
         Equipamento equipamento = new Equipamento(unidade, tipo, normalizarObrigatorio(requisicao.nome()),
                 normalizarIp(requisicao.ip()), normalizarOpcional(requisicao.hostname()), requisicao.descricao(),
                 normalizarOpcional(requisicao.localizacao()), normalizarOpcional(requisicao.numeroSerie()));
+        equipamento.setFabricante(normalizarOpcional(requisicao.fabricante()));
+        equipamento.setModelo(normalizarOpcional(requisicao.modelo()));
         return paraResposta(equipamentoRepository.save(equipamento));
     }
 
@@ -88,6 +90,8 @@ public class EquipamentoService {
         equipamento.setDescricao(requisicao.descricao());
         equipamento.setLocalizacao(normalizarOpcional(requisicao.localizacao()));
         equipamento.setNumeroSerie(normalizarOpcional(requisicao.numeroSerie()));
+        equipamento.setFabricante(normalizarOpcional(requisicao.fabricante()));
+        equipamento.setModelo(normalizarOpcional(requisicao.modelo()));
         return paraResposta(equipamento);
     }
 
@@ -185,7 +189,7 @@ public class EquipamentoService {
 
     private EquipamentoResponse paraResposta(Equipamento equipamento) {
         return new EquipamentoResponse(equipamento.getId(), equipamento.getNome(), equipamento.getIp(),
-                equipamento.getHostname(), equipamento.getDescricao(),                 equipamento.getLocalizacao(), equipamento.getNumeroSerie(), equipamento.isAtivo(), equipamento.isEmManutencao(),
+                equipamento.getHostname(), equipamento.getDescricao(),                 equipamento.getLocalizacao(), equipamento.getNumeroSerie(), equipamento.getFabricante(), equipamento.getModelo(), equipamento.isAtivo(), equipamento.isEmManutencao(),
                 new ReferenciaResponse(equipamento.getUnidade().getId(), equipamento.getUnidade().getNome()),
                 new ReferenciaResponse(equipamento.getTipoEquipamento().getId(), equipamento.getTipoEquipamento().getNome()),
                 equipamento.getCreatedAt(), equipamento.getUpdatedAt());

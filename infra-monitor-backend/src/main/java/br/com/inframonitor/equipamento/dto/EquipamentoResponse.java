@@ -10,6 +10,8 @@ public record EquipamentoResponse(
         String descricao,
         String localizacao,
         String numeroSerie,
+        String fabricante,
+        String modelo,
         boolean ativo,
         boolean emManutencao,
         ReferenciaResponse unidade,

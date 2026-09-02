@@ -1,0 +1,259 @@
+<div class="gaveta__fundo" (click)="pedirFechamento()" aria-hidden="true"></div>
+
+<aside #painel class="gaveta" role="dialog" aria-modal="false" aria-labelledby="drawer-equipamento-titulo"
+       tabindex="-1" (keydown)="aoTeclar($event)">
+  <header class="gaveta__topo">
+    <div class="gaveta__identidade">
+      <div class="gaveta__nome">
+        <h2 id="drawer-equipamento-titulo" class="mono">{{ linha()?.nome ?? cadastro()?.nome ?? 'Equipamento' }}</h2>
+        @if (statusAtual(); as status) { <app-status-badge [status]="status" /> }
+      </div>
+      <p class="gaveta__contexto">
+        {{ linha()?.tipoNome ?? cadastro()?.tipoEquipamento?.nome ?? '—' }}
+        ·
+        @if (cadastro(); as equipamento) {
+          <a [routerLink]="['/unidades', equipamento.unidade.id]">{{ equipamento.unidade.nome }}</a>
+        } @else {
+          <span>{{ linha()?.unidadeNome ?? '—' }}</span>
+        }
+        @if (cadastro()?.localizacao; as local) { <span> · {{ local }}</span> }
+      </p>
+    </div>
+    <button class="gaveta__fechar" type="button" (click)="pedirFechamento()" aria-label="Fechar detalhe do equipamento">×</button>
+  </header>
+
+  <div class="gaveta__corpo">
+    <!-- KPIs --------------------------------------------------------------- -->
+    <ul class="kpis">
+      <li [class]="'kpi ' + severidadeStatus()">
+        <span class="kpi__rotulo">Status</span>
+        <span class="kpi__valor">
+          @if (statusAtual(); as status) { <app-status-badge [status]="status" /> } @else { <span class="mono">—</span> }
+        </span>
+      </li>
+      <li [class]="'kpi ' + severidadeLatencia()">
+        <span class="kpi__rotulo">Latência</span>
+        <strong class="kpi__valor mono">
+          @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+          @else { {{ latenciaAtual() ?? '—' }} }
+        </strong>
+      </li>
+      <li class="kpi">
+        <span class="kpi__rotulo">Latência média · {{ janelaDias }}D</span>
+        <strong class="kpi__valor mono">
+          @if (latenciaEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+          @else { {{ milissegundos(latencia()?.avgLatenciaMs) }} }
+        </strong>
+      </li>
+      <li [class]="'kpi ' + severidadeDisponibilidade()">
+        <span class="kpi__rotulo">Disponibilidade · {{ janelaDias }}D</span>
+        <strong class="kpi__valor mono">
+          @if (disponibilidadeEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+          @else { {{ percentual(disponibilidade()?.disponibilidadePercentual) }} }
+        </strong>
+      </li>
+      <li [class]="'kpi ' + severidadePerda()">
+        <span class="kpi__rotulo">Perda · {{ janelaGraficoMinutos }}min</span>
+        <strong class="kpi__valor mono">
+          @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+          @else { {{ percentual(perdaDePacotes()) }} }
+        </strong>
+      </li>
+      <li [class]="'kpi ' + severidadeIncidentes()">
+        <span class="kpi__rotulo">Incidentes · {{ janelaDias }}D</span>
+        <strong class="kpi__valor mono">
+          @if (disponibilidadeEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+          @else { {{ disponibilidade()?.incidentes ?? '—' }} }
+        </strong>
+      </li>
+      <li class="kpi">
+        <span class="kpi__rotulo">Intervalo</span>
+        <strong class="kpi__valor mono">
+          {{ monitorPrimario() ? monitorPrimario()!.intervaloSegundos + ' s' : '—' }}
+        </strong>
+      </li>
+      <li class="kpi">
+        <span class="kpi__rotulo">Última verificação</span>
+        <strong class="kpi__valor mono">{{ relativo(ultimoHorario()) }}</strong>
+      </li>
+    </ul>
+
+    <!-- Gráfico ------------------------------------------------------------ -->
+    <section class="cartao grafico" aria-labelledby="titulo-grafico-latencia">
+      <div class="grafico__topo">
+        <h3 class="cartao__titulo" id="titulo-grafico-latencia">
+          Latência ICMP · últimos {{ janelaGraficoMinutos }} minutos
+        </h3>
+        <p class="grafico__legenda">
+          <span class="grafico__chave grafico__chave--linha">latência</span>
+          <span class="grafico__chave grafico__chave--media">média móvel</span>
+          <span class="mono">pico {{ milissegundos(picoLatencia()) }}</span>
+          <span class="mono">{{ timeoutsNaJanela() }} timeouts</span>
+        </p>
+      </div>
+
+      @if (medicoesEstado() === 'loading') {
+        <div class="esqueleto esqueleto--grafico" aria-label="Carregando medições"><span></span></div>
+      } @else if (medicoesEstado() === 'error') {
+        <div class="vazio" role="alert">
+          <strong>Não foi possível carregar as medições.</strong>
+          <button class="botao" type="button" (click)="carregarMedicoes()">Tentar novamente</button>
+        </div>
+      } @else if (graficoVazio()) {
+        <div class="vazio">
+          <strong>Sem medições nos últimos {{ janelaGraficoMinutos }} minutos.</strong>
+          <p>O gráfico aparece quando o monitor registrar novas verificações.</p>
+        </div>
+      } @else {
+        <svg class="grafico__svg" viewBox="0 0 100 100" preserveAspectRatio="none" role="img"
+             [attr.aria-label]="'Latência ICMP dos últimos ' + janelaGraficoMinutos + ' minutos'">
+          <defs>
+            <linearGradient id="grafico-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" class="grafico__area-topo" />
+              <stop offset="100%" class="grafico__area-base" />
+            </linearGradient>
+          </defs>
+          @for (area of areasLatencia(); track $index) {
+            <path class="grafico__area" [attr.d]="area" />
+          }
+          @for (segmento of segmentosLatencia(); track $index) {
+            <polyline class="grafico__linha" [attr.points]="segmento" />
+          }
+          @for (segmento of segmentosMedia(); track $index) {
+            <polyline class="grafico__media" [attr.points]="segmento" />
+          }
+        </svg>
+        <div class="grafico__eixo mono">
+          <span>{{ primeiroHorario() | date:'HH:mm' }}</span>
+          <span>{{ ultimoHorario() | date:'HH:mm' }}</span>
+        </div>
+      }
+    </section>
+
+    <div class="colunas">
+      <!-- Inventário ------------------------------------------------------- -->
+      <section class="cartao" aria-labelledby="titulo-inventario">
+        <h3 class="cartao__titulo" id="titulo-inventario">Inventário</h3>
+        @if (cadastroEstado() === 'loading') {
+          <div class="esqueleto" aria-label="Carregando cadastro">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+        } @else if (cadastroEstado() === 'error') {
+          <div class="vazio" role="alert">
+            <strong>Não foi possível carregar o cadastro.</strong>
+            <button class="botao" type="button" (click)="carregarCadastro()">Tentar novamente</button>
+          </div>
+        } @else if (cadastro(); as equipamento) {
+          <dl class="dados">
+            <dt>Unidade</dt><dd>{{ equipamento.unidade.nome }}</dd>
+            <dt>Tipo de equipamento</dt><dd>{{ equipamento.tipoEquipamento.nome }}</dd>
+            <dt>Hostname</dt><dd class="mono">{{ equipamento.hostname ?? '—' }}</dd>
+            <dt>Endereço IP</dt><dd class="mono">{{ equipamento.ip ?? '—' }}</dd>
+            <dt>Fabricante</dt><dd>{{ equipamento.fabricante ?? '—' }}</dd>
+            <dt>Modelo</dt><dd>{{ equipamento.modelo ?? '—' }}</dd>
+            <dt>Número de série</dt><dd class="mono">{{ equipamento.numeroSerie ?? '—' }}</dd>
+            <dt>Descrição</dt><dd>{{ equipamento.descricao ?? '—' }}</dd>
+          </dl>
+        }
+      </section>
+
+      <!-- Monitoramento ---------------------------------------------------- -->
+      <section class="cartao" aria-labelledby="titulo-monitoramento">
+        <h3 class="cartao__titulo" id="titulo-monitoramento">Monitoramento</h3>
+        @if (monitoresEstado() === 'loading') {
+          <div class="esqueleto" aria-label="Carregando monitores">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+        } @else if (monitoresEstado() === 'error') {
+          <div class="vazio" role="alert">
+            <strong>Não foi possível carregar os monitores.</strong>
+            <button class="botao" type="button" (click)="carregarMonitores()">Tentar novamente</button>
+          </div>
+        } @else if (monitorPrimario(); as monitor) {
+          <dl class="dados">
+            <dt>Tipo de monitor</dt><dd class="mono">{{ monitor.tipo }}</dd>
+            <!-- Estado operacional lido pelo motor, não a flag de configuração: essa
+                 aparece logo abaixo, no chip de monitoramento. -->
+            <dt>Estado atual</dt>
+            <dd>@if (statusAtual(); as status) { <app-status-badge [status]="status" /> } @else { <span class="mono">—</span> }</dd>
+            <dt>Falhas consecutivas</dt>
+            <dd [class]="'mono ' + severidadeFalhas()">{{ falhasConsecutivas() }} / {{ monitor.falhasParaIncidente }}</dd>
+            <dt>Último sucesso</dt><dd class="mono">{{ ultimoSucesso() ? (ultimoSucesso() | date:'dd/MM/yyyy HH:mm:ss') : '—' }}</dd>
+            <dt>Última falha</dt>
+            <dd class="mono" [class.valor--alerta]="ultimaFalha() !== null">{{ ultimaFalha() ? (ultimaFalha() | date:'dd/MM/yyyy HH:mm:ss') : '—' }}</dd>
+            <dt>Timeout do monitor</dt><dd class="mono">{{ monitor.timeoutMs }} ms</dd>
+            <!-- Limiar global do motor (MONITORING_LATENCIA_DEGRADADA_MS), não uma
+                 configuração deste monitor: o rótulo precisa dizer isso. -->
+            <dt>Limite global de latência</dt>
+            <dd class="mono">{{ limiarLatenciaMs() !== null ? limiarLatenciaMs() + ' ms' : '—' }}</dd>
+          </dl>
+
+          <!-- Somente leitura: ativar e desativar é uma ação com efeito no ICMP e vive
+               no botão do rodapé, que confirma antes e trata a recusa da API. -->
+          <p class="estado-monitoramento">
+            <span class="chip-monitoramento" [class.chip-monitoramento--off]="!monitor.ativo">
+              {{ monitor.ativo ? 'Ativado' : 'Desativado' }}
+            </span>
+            <span>Monitoramento {{ monitor.tipo }}</span>
+          </p>
+        } @else {
+          <div class="vazio">
+            <strong>Nenhum monitor configurado.</strong>
+            <p>Sem monitor não há medição, incidente nem alerta para este equipamento.</p>
+          </div>
+        }
+
+        @if (monitoresEstado() === 'success') {
+          <div class="monitores-todos">
+            <button class="botao botao--discreto" type="button" (click)="alternarTodosMonitores()"
+                    [attr.aria-expanded]="todosMonitores()">
+              {{ todosMonitores() ? 'Ocultar monitores' : 'Ver todos os monitores' }}
+              @if (monitoresAdicionais() > 0) { <span class="mono">+{{ monitoresAdicionais() }}</span> }
+            </button>
+            @if (todosMonitores()) {
+              <app-monitor-management [equipamentoContextId]="equipamentoId()" />
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <!-- Incidentes recentes ------------------------------------------------ -->
+    <section class="cartao" aria-labelledby="titulo-incidentes-equipamento">
+      <h3 class="cartao__titulo" id="titulo-incidentes-equipamento">Incidentes recentes</h3>
+      @if (incidentesEstado() === 'loading') {
+        <div class="esqueleto" aria-label="Carregando incidentes">@for (linha of [1,2]; track linha) { <span></span> }</div>
+      } @else if (incidentesEstado() === 'error') {
+        <div class="vazio" role="alert">
+          <strong>Não foi possível carregar os incidentes.</strong>
+          <button class="botao" type="button" (click)="carregarIncidentes()">Tentar novamente</button>
+        </div>
+      } @else if (incidentes().length === 0) {
+        <div class="vazio">
+          <strong>Nenhum incidente registrado para este equipamento.</strong>
+          <p>Incidentes aparecem aqui quando o monitoramento consolida uma indisponibilidade.</p>
+        </div>
+      } @else {
+        <ul class="incidentes-recentes">
+          @for (incidente of incidentes(); track incidente.id) {
+            <li>
+              <a class="mono" [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a>
+              <span class="incidentes-recentes__evento">{{ incidente.motivo ?? 'Indisponibilidade consolidada' }}</span>
+              <app-status-badge [status]="incidente.status" />
+              <span class="mono apagado">{{ relativo(incidente.iniciadoEm) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+
+  <footer class="gaveta__acoes">
+    @if (authState.canManageInventory()) {
+      <button class="botao botao--primario" type="button" (click)="editar.emit()">Editar equipamento</button>
+    }
+    <a class="botao" [routerLink]="['/relatorios']"
+       [queryParams]="{ aba: 'medicoes', equipamentoId: equipamentoId() }">Abrir histórico</a>
+    @if (authState.canManageInventory()) {
+      <button class="botao botao--perigo" type="button" (click)="alternarEquipamento.emit()">
+        {{ linha()?.ativo === false ? 'Ativar monitoramento' : 'Desativar monitoramento' }}
+      </button>
+    }
+  </footer>
+</aside>

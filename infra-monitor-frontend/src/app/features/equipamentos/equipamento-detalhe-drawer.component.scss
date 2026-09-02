@@ -1,0 +1,128 @@
+/* Gaveta de detalhe do equipamento. Mesma mecânica do unidade-form-drawer (fundo
+   escurecido + painel preso à direita), porém mais larga: aqui há gráfico, KPIs e
+   dois cartões lado a lado, não um formulário de uma coluna.
+   Cartões, botões, esqueletos e estados vazios vêm de styles/_ui.scss. */
+:host { display: contents; }
+
+/* Entrada da gaveta: painel deslizando da direita e fundo em fade. Mesmos valores do
+   unidade-form-drawer — as duas gavetas do sistema abrem do mesmo jeito. Sob
+   prefers-reduced-motion resta só o fade do fundo, sem deslocamento. */
+.gaveta__fundo {
+  position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .38);
+  animation: gaveta-fundo 220ms ease-out;
+}
+
+.gaveta {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; display: flex; flex-direction: column;
+  width: min(660px, 100%); border-left: 1px solid var(--im-border); background: var(--im-surface);
+  animation: gaveta-painel 220ms cubic-bezier(.32, .72, 0, 1);
+}
+
+@keyframes gaveta-fundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gaveta-painel { from { transform: translateX(100%); } to { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gaveta { animation: gaveta-fundo 120ms ease-out; }
+  .gaveta__fundo { animation-duration: 120ms; }
+}
+
+.gaveta__topo {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--im-border);
+}
+.gaveta__identidade { display: grid; gap: 5px; min-width: 0; }
+.gaveta__nome { display: flex; align-items: center; gap: 10px; }
+.gaveta__nome h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.gaveta__contexto { margin: 0; color: var(--im-text-secondary); font-size: 12px; }
+.gaveta__contexto a { color: var(--im-info-soft); text-decoration: none; }
+.gaveta__contexto a:hover { text-decoration: underline; }
+
+.gaveta__fechar {
+  flex: none; width: 26px; height: 26px; padding: 0; border: 1px solid var(--im-border-strong);
+  border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-secondary);
+  font-size: 15px; line-height: 1; cursor: pointer;
+}
+.gaveta__fechar:hover { color: var(--im-text); background: var(--im-surface-hover); }
+
+.gaveta__corpo { display: grid; gap: 12px; align-content: start; overflow-y: auto; padding: 14px 18px 18px; }
+
+.gaveta__erro {
+  margin: 0 14px 12px; padding: 9px 11px; border: 1px solid rgba(229, 83, 75, .32);
+  border-radius: var(--im-radius-lg); background: rgba(229, 83, 75, .08);
+  color: var(--im-danger-text); font-size: 12px;
+}
+
+.gaveta__acoes {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
+  padding: 12px 18px; border-top: 1px solid var(--im-border); background: var(--im-surface-raised);
+}
+
+/* KPIs ----------------------------------------------------------------------
+   Variante compacta da primitiva `.kpi` de _ui.scss: oito cards em quatro colunas
+   dentro de 660px não comportam o valor de 30px do Painel. Os modificadores de
+   severidade (--ok/--warn/--down) continuam vindo de lá e não são redefinidos aqui;
+   só a métrica muda. */
+.kpis {
+  display: grid; gap: 8px; margin: 0; padding: 0; list-style: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.kpi {
+  gap: 6px; padding: 10px 11px; border-top-width: 2px;
+}
+/* Duas linhas reservadas: os rótulos têm larguras bem diferentes e sem isso os
+   valores de cada linha de cards deixam de compartilhar a mesma base. */
+.kpi__rotulo {
+  min-height: 2em; color: var(--im-text-dim); font-size: 9px; font-weight: 600;
+  letter-spacing: .1em; line-height: 1.1; text-transform: uppercase;
+}
+.kpi__valor { display: flex; align-items: center; font: 600 15px/1.2 var(--im-mono); letter-spacing: -.01em; }
+.kpi__falha { color: var(--im-text-dim); font-size: 12px; font-weight: 500; }
+/* O valor colorido de _ui.scss mira `strong`; o card de Status usa `span` por causa
+   do badge, e o badge tem cor própria. */
+.kpi--ok .kpi__valor { color: var(--im-success); }
+.kpi--warn .kpi__valor { color: var(--im-warning); }
+.kpi--down .kpi__valor { color: var(--im-danger); }
+.kpi .kpi__falha { color: var(--im-text-dim); }
+
+/* Gráfico ------------------------------------------------------------------- */
+.grafico__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-right: 14px; }
+.grafico__legenda { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--im-text-dim); font-size: 10.5px; }
+.grafico__chave { display: inline-flex; align-items: center; gap: 5px; }
+.grafico__chave::before { content: ''; width: 10px; height: 2px; border-radius: 2px; }
+.grafico__chave--linha::before { background: var(--im-success); }
+.grafico__chave--media::before { background: var(--im-info-soft); }
+
+.grafico__svg { display: block; width: 100%; height: 132px; padding: 0 14px; overflow: visible; }
+.grafico__linha { fill: none; stroke: var(--im-success); stroke-width: 1.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.grafico__media { fill: none; stroke: var(--im-info-soft); stroke-width: 1.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.grafico__area { fill: url(#grafico-area); stroke: none; }
+.grafico__area-topo { stop-color: var(--im-success); stop-opacity: .28; }
+.grafico__area-base { stop-color: var(--im-success); stop-opacity: 0; }
+
+.grafico__eixo { display: flex; justify-content: space-between; padding: 6px 14px 14px; color: var(--im-text-dim); font-size: 10.5px; }
+.esqueleto--grafico span { height: 132px; }
+
+/* Cartões de dados ---------------------------------------------------------- */
+.colunas { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-items: start; }
+
+.dados { display: grid; gap: 7px 12px; margin: 0; padding: 0 14px 14px; grid-template-columns: auto 1fr; }
+.dados dt { color: var(--im-text-secondary); font-size: 11.5px; }
+.dados dd { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
+
+.estado-monitoramento { display: flex; align-items: center; gap: 9px; margin: 0; padding: 0 14px 14px; color: var(--im-text-secondary); font-size: 12px; }
+
+.monitores-todos { display: grid; gap: 10px; padding: 0 14px 14px; justify-items: start; }
+.monitores-todos > button { display: inline-flex; align-items: center; gap: 6px; }
+.monitores-todos app-monitor-management { display: block; width: 100%; }
+
+.incidentes-recentes { display: grid; gap: 10px; margin: 0; padding: 0 14px 14px; list-style: none; }
+.incidentes-recentes li { display: flex; align-items: center; gap: 12px; }
+.incidentes-recentes a { color: var(--im-info-soft); text-decoration: none; }
+.incidentes-recentes a:hover { text-decoration: underline; }
+.incidentes-recentes__evento { flex: 1; min-width: 0; font-size: 11.5px; }
+
+@media (max-width: 860px) {
+  .gaveta { width: 100%; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .colunas { grid-template-columns: 1fr; }
+}

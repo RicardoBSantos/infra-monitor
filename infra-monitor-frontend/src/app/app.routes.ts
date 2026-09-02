@@ -23,7 +23,10 @@ const businessRoutes: Routes = [
     ],
   },
   { path: 'equipamentos', loadComponent: () => import('./features/equipamentos/equipamento-list.component').then(m => m.EquipamentoListComponent), data: { breadcrumb: 'Equipamentos', title: 'Equipamentos', section: 'Gerenciamento' } },
-  { path: 'equipamentos/:id', loadComponent: () => import('./features/equipamentos/equipamento-detail.component').then(m => m.EquipamentoDetailComponent), data: { breadcrumb: 'Detalhe do equipamento', title: 'Equipamento', section: 'Gerenciamento' } },
+  // Mesmo componente da lista: o `:id` abre o drawer de detalhe já montado. Não há
+  // página cheia de equipamento — o path continua existindo para preservar deep-link,
+  // botão voltar e os links de Relatórios e da aba Equipamentos da unidade.
+  { path: 'equipamentos/:id', loadComponent: () => import('./features/equipamentos/equipamento-list.component').then(m => m.EquipamentoListComponent), data: { breadcrumb: 'Detalhe do equipamento', title: 'Equipamento', section: 'Gerenciamento' } },
   { path: 'tipos-equipamento', loadComponent: () => import('./features/tipos-equipamento/tipo-equipamento-list.component').then(m => m.TipoEquipamentoListComponent), data: { breadcrumb: 'Tipos de equipamento', title: 'Tipos de equipamento', section: 'Gerenciamento' } },
   { path: 'monitores', loadComponent: () => import('./features/monitores/monitor-list.component').then(m => m.MonitorListComponent), data: { breadcrumb: 'Monitoramento', title: 'Monitoramento', section: 'Gerenciamento' } },
   { path: 'medicoes', loadComponent: () => import('./features/medicoes/medicao-list.component').then(m => m.MedicaoListComponent), data: { breadcrumb: 'Medições', title: 'Medições', section: 'Gerenciamento' } },

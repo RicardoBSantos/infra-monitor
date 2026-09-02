@@ -104,7 +104,7 @@ class InventarioDashboardPostgresIntegrationTest {
                 long id = equipamentos.criar(new CreateEquipamentoRequest(unidadeId, tipo,
                         "EQ-%02d-%02d".formatted(u, e), "10.%d.0.%d".formatted(u, e + 1),
                         "eq-%02d-%02d.local".formatted(u, e), null, "Rack %02d".formatted(e),
-                        "SN-%02d%02d".formatted(u, e))).id();
+                        "SN-%02d%02d".formatted(u, e), null, null)).id();
                 aplicarPerfilOperacional(id, e % 7);
             }
         }

@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EquipamentoControllerTest {
 
     private static final EquipamentoResponse EQUIPAMENTO = new EquipamentoResponse(
-            1L, "SW-CORE-01", "10.0.0.10", "sw-core", "Switch core", "Rack 01", "SN-0001", true, false,
+            1L, "SW-CORE-01", "10.0.0.10", "sw-core", "Switch core", "Rack 01", "SN-0001", "Cisco", "Catalyst 9200-24T", true, false,
             new ReferenciaResponse(1L, "Matriz"), new ReferenciaResponse(2L, "Switch"),
             Instant.parse("2026-08-18T10:00:00Z"), Instant.parse("2026-08-18T10:00:00Z"));
 

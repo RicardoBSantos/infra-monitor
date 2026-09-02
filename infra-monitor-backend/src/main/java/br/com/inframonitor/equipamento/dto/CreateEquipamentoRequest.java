@@ -12,5 +12,7 @@ public record CreateEquipamentoRequest(
         @Size(max = 255) String hostname,
         @Size(max = 1000) String descricao,
         @Size(max = 255) String localizacao,
-        @Size(max = 150) String numeroSerie) {
+        @Size(max = 150) String numeroSerie,
+        @Size(max = 100) String fabricante,
+        @Size(max = 150) String modelo) {
 }

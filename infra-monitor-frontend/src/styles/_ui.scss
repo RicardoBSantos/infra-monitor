@@ -120,3 +120,18 @@
 .campo-busca:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
 
 .visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Chip de monitoramento (Ativado/Desativado). Somente leitura em toda parte: diz o
+   estado da flag `ativo`, nunca é o controle que a altera. Vive aqui porque a coluna
+   MONITORAMENTO da lista de equipamentos e o card do drawer de detalhe precisam do
+   mesmo tom — se um dos dois divergir, o mesmo dado passa a ter duas aparências. */
+.chip-monitoramento {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 8px;
+  border: 1px solid rgba(63, 185, 80, .4); border-radius: var(--im-radius-pill);
+  color: var(--im-success); font: 10px var(--im-mono);
+}
+.chip-monitoramento--off { border-color: var(--im-border-strong); color: var(--im-text-muted); }
+
+/* Severidade em valores soltos de listas de definição, onde a primitiva .kpi não cabe. */
+.valor--alerta { color: var(--im-warning); }
+.valor--critico { color: var(--im-danger); }

@@ -1,6 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 
 import { EquipmentOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
@@ -32,6 +34,8 @@ const CADASTRO_COMPLETO: EquipamentoResponse = {
   descricao: 'Switch de núcleo',
   localizacao: 'Rack 03',
   numeroSerie: 'SN-0001',
+  fabricante: 'Cisco',
+  modelo: 'Catalyst 9200-24T',
   ativo: true,
   emManutencao: false,
   unidade: { id: 1, nome: 'Matriz' },
@@ -46,7 +50,10 @@ describe('EquipamentoListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [EquipamentoListComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter([
+        { path: 'equipamentos', component: EquipamentoListComponent },
+        { path: 'equipamentos/:id', component: EquipamentoListComponent },
+      ]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
   });
@@ -173,6 +180,8 @@ describe('EquipamentoListComponent', () => {
       descricao: 'Switch de núcleo',
       localizacao: 'Rack 03',
       numeroSerie: 'SN-0001',
+      fabricante: 'Cisco',
+      modelo: 'Catalyst 9200-24T',
     });
     put.flush(CADASTRO_COMPLETO);
     http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1 })]);
@@ -236,5 +245,59 @@ describe('EquipamentoListComponent', () => {
     fixture.detectChanges();
 
     expect(texto(fixture)).toContain('EQ-1');
+  });
+
+  // ---- Rota /equipamentos/:id -------------------------------------------------
+
+  /** Responde às três chamadas que a própria lista faz ao montar. */
+  function responderLista(harness: RouterTestingHarness): void {
+    harness.detectChanges();
+    http.match((requisicao) => requisicao.url.endsWith('/unidades')).forEach((r) => r.flush([]));
+    http.match((requisicao) => requisicao.url.endsWith('/tipos-equipamento')).forEach((r) => r.flush([]));
+    http.match((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).forEach((r) => r.flush([linha({ id: 7 })]));
+    harness.detectChanges();
+  }
+
+  /** Lista + as chamadas de composição do drawer, sem afirmar conteúdo. */
+  function responderTudo(harness: RouterTestingHarness): void {
+    responderLista(harness);
+    http.match(() => true).forEach((requisicao) => requisicao.flush(
+      requisicao.request.url.includes('/api/v1/equipamentos/') ? CADASTRO_COMPLETO
+        : { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0, first: true, last: true }));
+    harness.detectChanges();
+  }
+
+  it('abre o drawer direto no deep-link /equipamentos/:id, sem clique', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/equipamentos/7');
+    responderTudo(harness);
+
+    // O componente montado é a lista; o :id só decide se o drawer abre junto.
+    expect(harness.routeNativeElement!.querySelector('app-equipamento-detalhe-drawer')).not.toBeNull();
+    expect(harness.routeNativeElement!.textContent).toContain('EQ-7');
+  });
+
+  it('fechar o drawer navega de volta para /equipamentos limpo', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/equipamentos/7');
+    responderTudo(harness);
+
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('.gaveta__fechar')!.click();
+    await harness.fixture.whenStable();
+    // A lista é remontada pela rota sem `:id` e refaz a própria carga.
+    responderLista(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/equipamentos');
+    expect(harness.routeNativeElement!.querySelector('app-equipamento-detalhe-drawer')).toBeNull();
+  });
+
+  it('o link cross-page para /equipamentos/:id continua valendo sem edição na origem', async () => {
+    const harness = await RouterTestingHarness.create();
+    // Mesmo href emitido por Relatórios e pela aba Equipamentos do detalhe de unidade.
+    await harness.navigateByUrl('/equipamentos/7');
+    responderTudo(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/equipamentos/7');
+    expect(harness.routeNativeElement!.querySelector('app-equipamento-detalhe-drawer')).not.toBeNull();
   });
 });

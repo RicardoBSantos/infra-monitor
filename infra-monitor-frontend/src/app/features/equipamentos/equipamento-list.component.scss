@@ -103,22 +103,6 @@
   &:focus-visible { outline: 2px solid var(--im-primary); outline-offset: 2px; }
 }
 
-.chip-monitoramento {
-  display: inline-flex;
-  align-items: center;
-  height: 18px;
-  padding: 0 8px;
-  border: 1px solid rgba(63, 185, 80, .4);
-  border-radius: var(--im-radius-pill);
-  color: var(--im-success);
-  font: 10px var(--im-mono);
-}
-
-.chip-monitoramento--off {
-  border-color: var(--im-border-strong);
-  color: var(--im-text-muted);
-}
-
 // ---- Modal de cadastro/edição ----------------------------------------------
 // Centralizado com backdrop por decisão do mockup: formulário curto, ação única.
 // Não é o drawer usado em Unidades — a diferença é intencional.

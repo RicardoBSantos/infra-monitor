@@ -90,7 +90,7 @@ class BackendEndToEndIntegrationTest {
         Long unidadeId = unidadeService.criar(new CreateUnidadeRequest("Matriz E2E", "E2E", null, "2800308", null, null, null, null, null)).id();
         Long tipoId = tipoEquipamentoService.criar(new CreateTipoEquipamentoRequest("Switch E2E", null)).id();
         Long equipamentoId = equipamentoService.criar(new CreateEquipamentoRequest(
-                unidadeId, tipoId, "SW-CORE-E2E", "10.0.0.1", null, null, null, null)).id();
+                unidadeId, tipoId, "SW-CORE-E2E", "10.0.0.1", null, null, null, null, null, null)).id();
         Long monitorId = monitorService.criar(new CreateMonitorRequest(
                 equipamentoId, TipoMonitor.ICMP, "ICMP principal", 60, 2_000, 3, 2)).id();
 

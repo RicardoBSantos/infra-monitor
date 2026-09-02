@@ -124,7 +124,7 @@ class EquipamentoServiceTest {
         tipo.setAtivo(false);
         when(equipamentoRepository.findById(1L)).thenReturn(Optional.of(equipamento));
 
-        equipamentoService.atualizar(1L, new UpdateEquipamentoRequest(1L, 2L, "SW-01", null, null, "Nova", null, null));
+        equipamentoService.atualizar(1L, new UpdateEquipamentoRequest(1L, 2L, "SW-01", null, null, "Nova", null, null, null, null));
 
         assertThat(equipamento.getDescricao()).isEqualTo("Nova");
         assertThatThrownBy(() -> equipamentoService.buscarPorId(99L)).isInstanceOf(RecursoNaoEncontradoException.class);
@@ -141,7 +141,7 @@ class EquipamentoServiceTest {
         when(unidadeRepository.findById(3L)).thenReturn(Optional.of(novaUnidade));
         when(tipoEquipamentoRepository.findById(4L)).thenReturn(Optional.of(novoTipo));
 
-        equipamentoService.atualizar(1L, new UpdateEquipamentoRequest(3L, 4L, "RTR-01", null, null, null, null, null));
+        equipamentoService.atualizar(1L, new UpdateEquipamentoRequest(3L, 4L, "RTR-01", null, null, null, null, null, null, null));
 
         assertThat(equipamento.getUnidade()).isSameAs(novaUnidade);
         assertThat(equipamento.getTipoEquipamento()).isSameAs(novoTipo);
@@ -194,9 +194,11 @@ class EquipamentoServiceTest {
 
         // Reenvio integral do que a tela carregou: nenhum campo pode se perder no caminho.
         EquipamentoResponse resposta = equipamentoService.atualizar(1L, new UpdateEquipamentoRequest(
-                1L, 2L, "SW-01", "10.0.0.10", "sw-core", "Switch core", "Rack 01", "SN-0001"));
+                1L, 2L, "SW-01", "10.0.0.10", "sw-core", "Switch core", "Rack 01", "SN-0001", "Cisco", "Catalyst 9200-24T"));
 
         assertThat(resposta.numeroSerie()).isEqualTo("SN-0001");
+        assertThat(resposta.fabricante()).isEqualTo("Cisco");
+        assertThat(resposta.modelo()).isEqualTo("Catalyst 9200-24T");
         assertThat(resposta.localizacao()).isEqualTo("Rack 01");
         assertThat(resposta.descricao()).isEqualTo("Switch core");
         assertThat(resposta.hostname()).isEqualTo("sw-core");
@@ -204,7 +206,7 @@ class EquipamentoServiceTest {
     }
 
     @Test
-    void numeroSerieEOpcionalEVazioViraNulo() {
+    void numeroSerieFabricanteEModeloSaoOpcionaisEVazioViraNulo() {
         Unidade unidade = new Unidade("Matriz", "MTZ", null);
         TipoEquipamento tipo = new TipoEquipamento("Switch", null);
         definirId(unidade, 1L);
@@ -213,13 +215,15 @@ class EquipamentoServiceTest {
         when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
 
         EquipamentoResponse semNumero = equipamentoService.criar(new CreateEquipamentoRequest(
-                1L, 2L, "SW-02", null, null, null, null, "   "));
+                1L, 2L, "SW-02", null, null, null, null, "   ", "   ", null));
 
         assertThat(semNumero.numeroSerie()).isNull();
+        assertThat(semNumero.fabricante()).isNull();
+        assertThat(semNumero.modelo()).isNull();
     }
 
     private CreateEquipamentoRequest criacao(String nome, String ip) {
-        return new CreateEquipamentoRequest(1L, 2L, nome, ip, "sw-core", "Switch core", "Rack 01", null);
+        return new CreateEquipamentoRequest(1L, 2L, nome, ip, "sw-core", "Switch core", "Rack 01", null, null, null);
     }
 
     private void relacionamentosAtivos(Unidade unidade, TipoEquipamento tipo) {

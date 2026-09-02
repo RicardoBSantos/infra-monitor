@@ -238,6 +238,15 @@
             </label>
           </div>
 
+          <div class="equipamento-modal__linha">
+            <label>FABRICANTE
+              <input formControlName="fabricante" maxlength="100" autocomplete="off">
+            </label>
+            <label>MODELO
+              <input formControlName="modelo" maxlength="150" autocomplete="off">
+            </label>
+          </div>
+
           <label>NÚMERO DE SÉRIE
             <input formControlName="numeroSerie" maxlength="150" autocomplete="off">
           </label>
@@ -250,7 +259,7 @@
             <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
           </label>
 
-          @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','ip','numeroSerie','localizacao','descricao']; track campo) {
+          @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','ip','fabricante','modelo','numeroSerie','localizacao','descricao']; track campo) {
             @if (form.get(campo)?.touched && form.get(campo)?.errors) {
               <small class="campo-erro">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
             }
@@ -268,6 +277,16 @@
         </form>
       </section>
     </div>
+  }
+
+  @if (detalheId(); as id) {
+    <app-equipamento-detalhe-drawer
+      [equipamentoId]="id"
+      [linha]="detalheLinha()"
+      (fechar)="fecharDetalhe()"
+      (editar)="editarDoDetalhe()"
+      (alternarEquipamento)="alternarDoDetalhe()"
+    />
   }
 
   <app-confirm-dialog

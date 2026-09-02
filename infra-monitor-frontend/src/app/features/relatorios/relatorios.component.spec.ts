@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { RelatoriosComponent } from './relatorios.component';
 
 const page = (content: unknown[] = []) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0, first: true, last: true });
@@ -396,5 +396,37 @@ describe('RelatoriosComponent', () => {
     http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/equipamentos')).flush(page()); fixture.detectChanges();
     expect((Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).some(button => button.textContent?.includes('Exportar PDF'))).toBe(false);
     expect((Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]).filter(button => button.textContent?.includes('Exportar CSV')).length).toBe(1);
+  });
+
+  // O botão "Abrir histórico" do drawer de equipamento entra por aqui:
+  // /relatorios?aba=medicoes&equipamentoId=2 tem de abrir a aba já filtrada.
+  it('abre a aba e o filtro de equipamento vindos da query string', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [RelatoriosComponent],
+      providers: [
+        provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: new Map([['aba', 'medicoes'], ['equipamentoId', '2']]) } } },
+      ],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+
+    const fixture = TestBed.createComponent(RelatoriosComponent); fixture.detectChanges();
+    http.expectOne(r => r.url.endsWith('/unidades') && r.params.get('ativo') === 'true').flush([{ id: 1, nome: 'Unidade A' }]);
+    http.expectOne(r => r.url.endsWith('/tipos-equipamento') && r.params.get('ativo') === 'true').flush([{ id: 7, nome: 'Roteador' }]);
+
+    // A unidade sai do próprio cadastro do equipamento: o filtro de equipamento pende dela.
+    http.expectOne(r => r.url.endsWith('/api/v1/equipamentos/2'))
+      .flush({ id: 2, nome: 'Router A', unidade: { id: 1, nome: 'Unidade A' }, tipoEquipamento: { id: 7, nome: 'Roteador' } });
+    http.expectOne(r => r.url.endsWith('/equipamentos') && r.params.get('unidadeId') === '1').flush(page([{ id: 2, nome: 'Router A' }]));
+
+    const consulta = http.expectOne(r => r.url.endsWith('/relatorios/medicoes'));
+    expect(consulta.request.params.get('equipamentoId')).toBe('2');
+    expect(consulta.request.params.get('unidadeId')).toBe('1');
+    consulta.flush(page([measurement()])); fixture.detectChanges();
+
+    // Sem busca inicial duplicada: a aba padrão não chega a consultar.
+    http.expectNone(r => r.url.includes('/relatorios/disponibilidade/equipamentos'));
+    expect(fixture.nativeElement.textContent).toContain('Router A');
   });
 });

@@ -1,8 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { Observable, forkJoin, take } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Observable, forkJoin, map, take } from 'rxjs';
 
 import { EquipmentOperationalStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
@@ -19,6 +20,7 @@ import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu/ac
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.component';
 import { classificarIp } from './ip-helper';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
@@ -61,10 +63,16 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
  *
  * A edição busca o cadastro completo em `GET /equipamentos/{id}` ao abrir, porque a
  * listagem não traz `descricao`.
+ *
+ * A rota `/equipamentos/:id` aponta para este mesmo componente e abre o drawer de
+ * detalhe já montado. Não existe mais página cheia de equipamento: manter o path
+ * preserva deep-link, compartilhamento de URL, o botão voltar do navegador e os
+ * links vindos de Relatórios e da aba Equipamentos do detalhe de unidade.
  */
 @Component({
   selector: 'app-equipamento-list',
-  imports: [ReactiveFormsModule, ConfirmDialogComponent, PaginacaoComponent, StatusBadgeComponent, ActionMenuComponent],
+  imports: [ReactiveFormsModule, ConfirmDialogComponent, PaginacaoComponent, StatusBadgeComponent, ActionMenuComponent,
+    EquipamentoDetalheDrawerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipamento-list.component.html',
   styleUrl: './equipamento-list.component.scss',
@@ -76,7 +84,21 @@ export class EquipamentoListComponent {
   private readonly tiposApi = inject(TipoEquipamentoApiService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   protected readonly authState = inject(AuthStateService);
+
+  /**
+   * `:id` da rota. Reativo de propósito: navegar de `/equipamentos/1` para
+   * `/equipamentos/2` reaproveita a instância do componente e só o parâmetro muda.
+   */
+  protected readonly detalheId = toSignal(
+    this.route.paramMap.pipe(map((parametros) => {
+      const bruto = parametros.get('id');
+      const id = Number(bruto);
+      return bruto !== null && Number.isInteger(id) && id > 0 ? id : null;
+    })),
+    { initialValue: null },
+  );
 
   protected readonly estado = signal<Estado>('loading');
   protected readonly erro = signal<string | null>(null);
@@ -110,6 +132,8 @@ export class EquipamentoListComponent {
     unidadeId: [0, [Validators.min(1)]],
     hostname: ['', [Validators.maxLength(255)]],
     ip: ['', [Validators.required, Validators.maxLength(45)]],
+    fabricante: ['', [Validators.maxLength(100)]],
+    modelo: ['', [Validators.maxLength(150)]],
     numeroSerie: ['', [Validators.maxLength(150)]],
     localizacao: ['', [Validators.maxLength(255)]],
     descricao: ['', [Validators.maxLength(1000)]],
@@ -312,6 +336,30 @@ export class EquipamentoListComponent {
     this.router.navigate(['/equipamentos', linha.id]);
   }
 
+  // ---- Drawer de detalhe -------------------------------------------------------
+
+  /** Linha correspondente ao `:id` aberto; nula em deep-link enquanto o inventário carrega. */
+  protected readonly detalheLinha = computed(() => {
+    const id = this.detalheId();
+    return id === null ? null : this.inventario().find((linha) => linha.id === id) ?? null;
+  });
+
+  /** Fechar o drawer é voltar para a lista limpa: o histórico do navegador acompanha. */
+  protected fecharDetalhe(): void {
+    this.router.navigate(['/equipamentos']);
+  }
+
+  protected editarDoDetalhe(): void {
+    const linha = this.detalheLinha();
+    if (linha) this.abrirEdicao(linha);
+  }
+
+  protected alternarDoDetalhe(): void {
+    const linha = this.detalheLinha();
+    if (!linha) return;
+    this.executarAcao(linha, linha.ativo ? 'desativar' : 'ativar');
+  }
+
   /** O read-model já traz `unidadeId`; nenhuma chamada extra para tornar a coluna navegável. */
   protected abrirUnidade(linha: DashboardEquipamentoLista): void {
     this.router.navigate(['/unidades', linha.unidadeId]);
@@ -360,7 +408,7 @@ export class EquipamentoListComponent {
     this.emEdicao.set(null);
     this.carregandoEdicao.set(false);
     this.dicaIp.set(null);
-    this.form.reset({ nome: '', tipoEquipamentoId: 0, unidadeId: 0, hostname: '', ip: '', numeroSerie: '', localizacao: '', descricao: '' });
+    this.form.reset({ nome: '', tipoEquipamentoId: 0, unidadeId: 0, hostname: '', ip: '', fabricante: '', modelo: '', numeroSerie: '', localizacao: '', descricao: '' });
     this.form.enable();
     this.formAberto.set(true);
   }
@@ -387,6 +435,8 @@ export class EquipamentoListComponent {
           unidadeId: equipamento.unidade.id,
           hostname: equipamento.hostname ?? '',
           ip: equipamento.ip ?? '',
+          fabricante: equipamento.fabricante ?? '',
+          modelo: equipamento.modelo ?? '',
           numeroSerie: equipamento.numeroSerie ?? '',
           localizacao: equipamento.localizacao ?? '',
           descricao: equipamento.descricao ?? '',
@@ -468,6 +518,8 @@ export class EquipamentoListComponent {
       descricao: nuloSeVazio(valores.descricao),
       localizacao: nuloSeVazio(valores.localizacao),
       numeroSerie: nuloSeVazio(valores.numeroSerie),
+      fabricante: nuloSeVazio(valores.fabricante),
+      modelo: nuloSeVazio(valores.modelo),
     };
   }
 

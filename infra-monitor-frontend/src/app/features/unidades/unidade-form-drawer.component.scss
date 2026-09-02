@@ -2,11 +2,26 @@
    atrás enquanto preenche os nove campos. Botões, selects e erros vêm de _ui.scss. */
 :host { display: contents; }
 
-.gaveta__fundo { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .38); }
+/* Entrada da gaveta: painel deslizando da direita e fundo em fade. Mesmos valores do
+   drawer de detalhe de equipamento — as duas gavetas do sistema abrem do mesmo jeito.
+   Sob prefers-reduced-motion resta só o fade do fundo, sem deslocamento. */
+.gaveta__fundo {
+  position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .38);
+  animation: gaveta-fundo 220ms ease-out;
+}
 
 .gaveta {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; display: flex; flex-direction: column;
   width: min(420px, 100%); border-left: 1px solid var(--im-border); background: var(--im-surface-raised);
+  animation: gaveta-painel 220ms cubic-bezier(.32, .72, 0, 1);
+}
+
+@keyframes gaveta-fundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gaveta-painel { from { transform: translateX(100%); } to { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gaveta { animation: gaveta-fundo 120ms ease-out; }
+  .gaveta__fundo { animation-duration: 120ms; }
 }
 
 .gaveta__topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--im-border); }

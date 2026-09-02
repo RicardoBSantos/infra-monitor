@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, Observable, take } from 'rxjs';
 
 import { ApiError, ApiErrorCode, isApiError } from '../../core/models/api-error';
@@ -28,7 +28,8 @@ import { formatDurationSeconds } from './report-formatters';
 import { apiErrorFromBlob, csvFilename, downloadCsvBlob, fallbackCsvFilename } from './report-csv-download';
 import { downloadPdfBlob, fallbackPdfFilename, isPdfContentType, pdfFilename } from './report-pdf-download';
 
-type Tab = 'overview' | 'equipamentos' | 'unidades' | 'incidentes' | 'medicoes' | 'latencia' | 'notificacoes';
+const TABS = ['overview', 'equipamentos', 'unidades', 'incidentes', 'medicoes', 'latencia', 'notificacoes'] as const;
+type Tab = typeof TABS[number];
 type ExportTab = Exclude<Tab, 'overview'>;
 type HierarchyKind = 'availability' | 'incident' | 'measurement' | 'latency';
 type LoadTarget = 'equipment' | 'unit' | 'incident' | 'measurement' | 'latency' | 'notification';
@@ -59,6 +60,7 @@ export class RelatoriosComponent {
   private readonly equipamentosApi = inject(EquipamentoApiService);
   private readonly monitoresApi = inject(MonitorApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly activeTab = signal<Tab>('equipamentos');
   protected readonly overviewForm = this.fb.nonNullable.group({ inicio: localDateTime(-24), fim: localDateTime(0) });
@@ -146,7 +148,45 @@ export class RelatoriosComponent {
   protected readonly NotificationEventType = NotificationEventType;
   protected readonly formatDuration = formatDurationSeconds;
 
-  constructor() { this.loadBaseLookups(); this.search(); }
+  constructor() { this.loadBaseLookups(); if (!this.applyQueryParams()) this.search(); }
+
+  /**
+   * Entrada por link: `/relatorios?aba=medicoes&equipamentoId=12` abre a aba pedida já
+   * filtrada pelo equipamento — é o que o botão "Abrir histórico" do drawer de
+   * equipamento promete. O filtro de equipamento pende do de unidade, então a unidade
+   * é resolvida a partir do próprio cadastro antes de aplicar a seleção.
+   *
+   * Retorna `true` quando a busca inicial fica por conta da resolução assíncrona.
+   */
+  private applyQueryParams(): boolean {
+    const params = this.route.snapshot.queryParamMap;
+    const aba = params.get('aba');
+    if (aba && TABS.includes(aba as Tab)) this.activeTab.set(aba as Tab);
+
+    const equipamentoId = optionalId(params.get('equipamentoId') ?? '');
+    const kind = this.kind();
+    if (!equipamentoId || kind === 'notification') return false;
+
+    const form = this.formFor(kind);
+    this.equipamentosApi.getById(equipamentoId).pipe(take(1)).subscribe({
+      next: equipamento => {
+        form.patchValue({ unidadeId: String(equipamento.unidade.id) });
+        form.controls.equipamentoId.enable({ emitEvent: false });
+        this.equipamentosApi.list({ unidadeId: equipamento.unidade.id, ativo: true, size: 100 }).pipe(take(1)).subscribe({
+          next: response => this.setEquipamentos(kind, response.content),
+          error: error => this.lookupError.set(errorMessage(error, 'Não foi possível carregar os equipamentos da unidade.')),
+        });
+        form.patchValue({ equipamentoId: String(equipamentoId) });
+        this.search();
+      },
+      // Link com equipamento inexistente não deve deixar a tela vazia: cai no relatório sem filtro.
+      error: error => {
+        this.lookupError.set(errorMessage(error, 'Não foi possível carregar o equipamento indicado no link.'));
+        this.search();
+      },
+    });
+    return true;
+  }
 
   protected selectTab(tab: Tab) { this.activeTab.set(tab); this.search(); }
   protected onUnidadeChange(kind: HierarchyKind) {
