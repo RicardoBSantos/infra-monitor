@@ -69,8 +69,8 @@ public class LatencyEpisodeProcessor {
         // Indisponibilidade ganha de degradacao: com incidente aberto o episodio nao teria
         // como fechar sozinho (medicoes em FALHA nao tem latencia). Encerra em silencio,
         // sem LATENCIA_NORMALIZADA — nao normalizou, piorou.
-        if (incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(
-                monitorId, StatusIncidente.ABERTO).isPresent()) {
+        if (incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
+                monitorId, StatusIncidente.EM_ABERTO).isPresent()) {
             episodioAberto.ifPresent(episodio -> {
                 episodio.encerrar(medicaoPersistida.getExecutadoEm());
                 log.info("Latency episode {} closed by incident for monitor {}", episodio.getId(), monitorId);

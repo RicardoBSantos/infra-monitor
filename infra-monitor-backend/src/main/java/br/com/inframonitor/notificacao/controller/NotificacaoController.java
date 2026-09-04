@@ -37,6 +37,7 @@ public class NotificacaoController {
 
     @GetMapping
     public PaginaResposta<NotificacaoResponse> listar(@RequestParam(required = false) Long incidenteId,
+                                             @RequestParam(required = false) Long episodioLatenciaId,
                                              @RequestParam(required = false) StatusNotificacao status,
                                              @RequestParam(required = false) CanalNotificacao canal,
                                              @RequestParam(required = false) TipoEventoNotificacao tipoEvento,
@@ -44,7 +45,7 @@ public class NotificacaoController {
                                              @RequestParam(required = false) Instant fim,
                                              @PageableDefault(size = 20, sort = {"createdAt", "id"}, direction = Sort.Direction.DESC)
                                              Pageable pageable) {
-        return PaginaResposta.de(notificacaoService.listar(incidenteId, status, canal, tipoEvento, inicio, fim,
+        return PaginaResposta.de(notificacaoService.listar(incidenteId, episodioLatenciaId, status, canal, tipoEvento, inicio, fim,
                 Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
     }
 }

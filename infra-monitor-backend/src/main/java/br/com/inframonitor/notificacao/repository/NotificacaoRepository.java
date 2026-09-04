@@ -2,7 +2,6 @@ package br.com.inframonitor.notificacao.repository;
 
 import br.com.inframonitor.notificacao.entity.CanalNotificacao;
 import br.com.inframonitor.notificacao.entity.Notificacao;
-import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -18,11 +17,40 @@ import java.util.List;
 
 public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>, JpaSpecificationExecutor<Notificacao> {
 
-    boolean existsByIncidenteIdAndCanalAndTipoEvento(Long incidenteId, CanalNotificacao canal,
-                                                     TipoEventoNotificacao tipoEvento);
-
-    boolean existsByEpisodioLatenciaIdAndCanalAndTipoEvento(Long episodioLatenciaId, CanalNotificacao canal,
-                                                            TipoEventoNotificacao tipoEvento);
+    /**
+     * Insercao idempotente da notificacao pendente. O ON CONFLICT DO NOTHING deixa a
+     * unicidade inteiramente para o banco: nao ha SELECT previo, nao ha excecao a
+     * absorver, e duas transacoes concorrentes convergem para uma unica linha.
+     *
+     * <p>Sem alvo de conflito, de proposito. As duas constraints unicas
+     * (uq_notificacao_incidente_canal_evento e uq_notificacao_episodio_canal_evento) sao
+     * mutuamente exclusivas por linha, entao nomear uma obrigaria a bifurcar o SQL por
+     * ancora. CHECK e FK continuam estourando normalmente: DO NOTHING so ignora conflito
+     * de indice unico, e o unico outro indice unico e a PK, inalcancavel com id IDENTITY.
+     *
+     * <p>Os CAST existem porque uma das duas ancoras e sempre nula e o driver nao infere
+     * o tipo de um parametro nulo em query nativa.
+     *
+     * <p>created_at/updated_at vem da aplicacao, e nao do DEFAULT CURRENT_TIMESTAMP, para
+     * manter o relogio onde o @PrePersist da entidade o tinha: CURRENT_TIMESTAMP e o
+     * instante de inicio da transacao, nao o da insercao.
+     *
+     * @return 1 quando inseriu, 0 quando a notificacao ja existia.
+     */
+    @Modifying
+    @Query(value = """
+            INSERT INTO notificacao (incidente_id, episodio_latencia_id, canal, tipo_evento, status,
+                                     tentativas, mensagem, created_at, updated_at)
+            VALUES (CAST(:incidenteId AS BIGINT), CAST(:episodioLatenciaId AS BIGINT), :canal, :tipoEvento,
+                    'PENDENTE', 0, :mensagem, :agora, :agora)
+            ON CONFLICT DO NOTHING
+            """, nativeQuery = true)
+    int inserirPendenteSeAusente(@Param("incidenteId") Long incidenteId,
+                                 @Param("episodioLatenciaId") Long episodioLatenciaId,
+                                 @Param("canal") String canal,
+                                 @Param("tipoEvento") String tipoEvento,
+                                 @Param("mensagem") String mensagem,
+                                 @Param("agora") java.time.Instant agora);
 
     @EntityGraph(attributePaths = "incidente")
     List<Notificacao> findByIncidenteId(Long incidenteId);

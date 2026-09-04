@@ -49,7 +49,7 @@ class PagedListingsWithoutFiltersControllerTest {
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 50), 0));
         when(incidenteService.listar(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
-        when(notificacaoService.listar(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+        when(notificacaoService.listar(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         for (String endpoint : List.of("/api/v1/equipamentos", "/api/v1/monitores", "/api/v1/medicoes",

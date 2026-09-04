@@ -7,6 +7,10 @@ import java.util.Optional;
 
 public interface MonitorEpisodioLatenciaRepository extends JpaRepository<MonitorEpisodioLatencia, Long> {
 
+    @Override
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
+    Optional<MonitorEpisodioLatencia> findById(Long id);
+
     @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
     Optional<MonitorEpisodioLatencia> findFirstByMonitorIdAndEncerradoEmIsNull(Long monitorId);
 }

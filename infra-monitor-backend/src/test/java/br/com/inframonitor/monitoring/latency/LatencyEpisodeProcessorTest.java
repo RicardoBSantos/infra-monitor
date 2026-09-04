@@ -115,7 +115,7 @@ class LatencyEpisodeProcessorTest {
         Medicao atual = medicao(monitor, 5L, StatusMedicao.FALHA, null, T0.plusSeconds(240));
         when(medicaoRepository.findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(1L)).thenReturn(Optional.of(atual));
         when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L)).thenReturn(Optional.of(episodio));
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO))
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.of(incidente(monitor)));
 
         processor().process(atual);
@@ -140,7 +140,7 @@ class LatencyEpisodeProcessorTest {
 
     private void prepararAtual(Medicao atual) {
         when(medicaoRepository.findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(1L)).thenReturn(Optional.of(atual));
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO))
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.empty());
     }
 
