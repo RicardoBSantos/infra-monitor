@@ -92,7 +92,7 @@ class RelatoriosHttpIntegrationTest {
         Monitor a = monitor(equipamentoA, "Monitor HTTP A"); Monitor b = monitor(equipamentoB, "Monitor HTTP B");
         monitorA = a.getId();
         medicao(a, INICIO.plusSeconds(60), 10); medicao(a, INICIO.plusSeconds(120), 30); medicao(b, INICIO.plusSeconds(60), 80);
-        Incidente i = new Incidente(a, INICIO.plusSeconds(180), "incidente http", null); i.fechar(INICIO.plusSeconds(300), null); incidenteA = incidentes.saveAndFlush(i).getId();
+        Incidente i = new Incidente(a, INICIO.plusSeconds(180), "incidente http", null); i.fechar(INICIO.plusSeconds(300), null, null); incidenteA = incidentes.saveAndFlush(i).getId();
         Notificacao notificacao = notificacoes.saveAndFlush(new Notificacao(incidentes.findById(incidenteA).orElseThrow(), CanalNotificacao.TELEGRAM, TipoEventoNotificacao.INCIDENTE_ABERTO, "teste"));
         jdbc.update("update notificacao set created_at=? where id=?", java.sql.Timestamp.from(INICIO.plusSeconds(240)), notificacao.getId());
         usuario("admin@http.test", Papel.ADMIN, false); usuario("operador@http.test", Papel.OPERADOR, false);

@@ -167,7 +167,7 @@ class DisponibilidadeDiariaPostgresIntegrationTest {
 
     private void incidente(Monitor monitor, String inicio, String fim) {
         Incidente incidente = new Incidente(monitor, Instant.parse(inicio), "teste", null);
-        incidente.fechar(Instant.parse(fim), null);
+        incidente.fechar(Instant.parse(fim), null, null);
         incidentes.saveAndFlush(incidente);
     }
 }

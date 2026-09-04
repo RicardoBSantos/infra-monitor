@@ -7,6 +7,7 @@ import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.common.api.PaginaResposta;
 import br.com.inframonitor.common.api.Paginacao;
+import br.com.inframonitor.security.UsuarioPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -66,15 +67,24 @@ public class IncidenteController {
                 Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
     }
 
-    /** Sem corpo: reconhecer e "eu vi". Quem e quando saem do servidor, nunca do cliente. */
+    /**
+     * Sem corpo: reconhecer e "eu vi". Quem e quando saem do servidor, nunca do cliente.
+     *
+     * <p>O tipo do parametro e {@link UsuarioPrincipal} porque e isso que o
+     * JwtAuthenticationFilter poe no contexto. Pedir a entidade {@code Usuario} aqui nao
+     * da erro: o resolvedor injeta null em silencio, e o autor nulo so estoura la no
+     * banco, contra ck_incidente_reconhecimento_par.
+     */
     @PatchMapping("/{id}/reconhecer")
     public IncidenteResponse reconhecer(@PathVariable Long id,
-                                       @AuthenticationPrincipal br.com.inframonitor.usuario.entity.Usuario usuario) {
-        return incidenteService.reconhecer(id, usuario);
+                                       @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return incidenteService.reconhecer(id, principal.id());
     }
 
+    /** Fechamento humano: o autor vai para fechado_por. O do motor nao passa por aqui. */
     @PatchMapping("/{id}/fechar")
-    public IncidenteResponse fechar(@PathVariable Long id, @Valid @RequestBody CloseIncidenteRequest requisicao) {
-        return incidenteService.fechar(id, requisicao);
+    public IncidenteResponse fechar(@PathVariable Long id, @Valid @RequestBody CloseIncidenteRequest requisicao,
+                                    @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return incidenteService.fechar(id, requisicao, principal.id());
     }
 }

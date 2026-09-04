@@ -28,14 +28,14 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     boolean existsByMonitorIdAndStatusIn(Long monitorId, Collection<StatusIncidente> status);
 
     @Override
-    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor"})
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor", "fechadoPor"})
     Optional<Incidente> findById(Long id);
 
     @Override
-    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor"})
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor", "fechadoPor"})
     Page<Incidente> findAll(Specification<Incidente> specification, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor"})
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor", "fechadoPor"})
     Optional<Incidente> findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(Long monitorId,
             Collection<StatusIncidente> status);
 

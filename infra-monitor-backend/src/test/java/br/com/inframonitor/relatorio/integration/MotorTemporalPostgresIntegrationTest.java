@@ -213,7 +213,7 @@ class MotorTemporalPostgresIntegrationTest {
         janela.fechar(Instant.parse(fim)); janelas.saveAndFlush(janela); return monitor;
     }
     private void medicao(Monitor monitor, String em) { medicoes.saveAndFlush(new Medicao(monitor, StatusMedicao.SUCESSO, 1, null, Instant.parse(em))); }
-    private void incidente(Monitor monitor, String inicio, String fim) { Incidente incidente = new Incidente(monitor, Instant.parse(inicio), "teste", null); incidente.fechar(Instant.parse(fim), null); incidentes.saveAndFlush(incidente); }
+    private void incidente(Monitor monitor, String inicio, String fim) { Incidente incidente = new Incidente(monitor, Instant.parse(inicio), "teste", null); incidente.fechar(Instant.parse(fim), null, null); incidentes.saveAndFlush(incidente); }
 
     @TestConfiguration(proxyBeanMethods = false)
     static class MutableClockConfiguration { @Bean("monitoringClock") Clock monitoringClock() { return CLOCK; } }

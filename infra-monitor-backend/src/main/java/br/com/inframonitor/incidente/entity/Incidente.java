@@ -53,6 +53,14 @@ public class Incidente {
     @JoinColumn(name = "reconhecido_por")
     private Usuario reconhecidoPor;
 
+    /**
+     * Nulo e "fechamento automatico", nunca "dado faltando": o motor de incidentes
+     * fecha sem autor humano. Ver ck_incidente_fechamento_coerente, na V17.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fechado_por")
+    private Usuario fechadoPor;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -82,10 +90,14 @@ public class Incidente {
         this.reconhecidoPor = reconhecidoPor;
     }
 
-    /** Fecha a partir de ABERTO ou de RECONHECIDO: os dois sao estados em aberto. */
-    public void fechar(Instant encerradoEm, String observacao) {
+    /**
+     * Fecha a partir de ABERTO ou de RECONHECIDO: os dois sao estados em aberto.
+     * {@code fechadoPor} nulo e o fechamento do motor; preenchido, o do operador.
+     */
+    public void fechar(Instant encerradoEm, String observacao, Usuario fechadoPor) {
         this.status = StatusIncidente.FECHADO;
         this.encerradoEm = encerradoEm;
+        this.fechadoPor = fechadoPor;
         if (observacao != null) {
             this.observacao = observacao;
         }
@@ -112,6 +124,7 @@ public class Incidente {
     public String getObservacao() { return observacao; }
     public Instant getReconhecidoEm() { return reconhecidoEm; }
     public Usuario getReconhecidoPor() { return reconhecidoPor; }
+    public Usuario getFechadoPor() { return fechadoPor; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

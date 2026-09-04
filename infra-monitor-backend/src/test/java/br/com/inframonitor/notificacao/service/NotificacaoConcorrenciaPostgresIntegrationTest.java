@@ -65,6 +65,7 @@ class NotificacaoConcorrenciaPostgresIntegrationTest {
     @Autowired private PlatformTransactionManager transactionManager;
 
     private long incidenteAberto;
+    private long operadorId;
     private long monitorId;
 
     @DynamicPropertySource
@@ -87,6 +88,8 @@ class NotificacaoConcorrenciaPostgresIntegrationTest {
         monitorId = insert("insert into monitor (equipamento_id, tipo, nome, intervalo_segundos, timeout_ms, ativo, "
                 + "falhas_para_incidente, sucessos_para_recovery) "
                 + "values (?, 'ICMP', 'ICMP CORE', 60, 2000, true, 3, 2) returning id", equipamento);
+        operadorId = insert("insert into usuarios (nome, email, senha_hash, papel, ativo, troca_senha_obrigatoria) "
+                + "values ('Operador', 'operador@concorrencia.test', 'hash-irrelevante', 'OPERADOR', true, false) returning id");
         incidenteAberto = insert("insert into incidente (monitor_id, status, iniciado_em, motivo) "
                 + "values (?, 'ABERTO', ?, 'Indisponibilidade') returning id", monitorId, Timestamp.from(T0));
     }
@@ -166,7 +169,7 @@ class NotificacaoConcorrenciaPostgresIntegrationTest {
         Runnable fechar = () -> {
             try {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
-                incidenteService.fechar(incidenteAberto, requisicao);
+                incidenteService.fechar(incidenteAberto, requisicao, operadorId);
             } catch (Throwable erro) {
                 falhas.add(erro);
             }

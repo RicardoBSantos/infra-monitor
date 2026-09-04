@@ -16,6 +16,7 @@ import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
 import br.com.inframonitor.usuario.entity.Papel;
 import br.com.inframonitor.usuario.entity.Usuario;
+import br.com.inframonitor.usuario.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -49,6 +50,7 @@ class IncidenteServiceTest {
     @Mock private IncidenteRepository incidenteRepository;
     @Mock private MonitorRepository monitorRepository;
     @Mock private NotificacaoService notificacaoService;
+    @Mock private UsuarioRepository usuarioRepository;
     @InjectMocks private IncidenteService incidenteService;
 
     @Test
@@ -89,11 +91,15 @@ class IncidenteServiceTest {
     @Test
     void permiteNovoIncidenteAposFechamentoEBuscaExistente() {
         Incidente fechado = incidente(StatusIncidente.ABERTO);
+        Usuario operador = operador();
         when(incidenteRepository.findById(10L)).thenReturn(Optional.of(fechado));
         when(incidenteRepository.saveAndFlush(fechado)).thenReturn(fechado);
-        incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.plusSeconds(60), null));
+        when(usuarioRepository.findById(7L)).thenReturn(Optional.of(operador));
+        incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.plusSeconds(60), null), 7L);
 
         assertThat(fechado.getStatus()).isEqualTo(StatusIncidente.FECHADO);
+        // Fechamento humano tem autor; o do motor e o unico que deixa fechado_por nulo.
+        assertThat(fechado.getFechadoPor()).isSameAs(operador);
         verify(notificacaoService).criarParaIncidenteFechado(fechado);
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -105,13 +111,13 @@ class IncidenteServiceTest {
     void fechaValidaDataEPermaneceIdempotente() {
         Incidente aberto = incidente(StatusIncidente.ABERTO);
         when(incidenteRepository.findById(10L)).thenReturn(Optional.of(aberto));
-        assertThatThrownBy(() -> incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.minusSeconds(1), null)))
+        assertThatThrownBy(() -> incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.minusSeconds(1), null), 7L))
                 .isInstanceOf(IllegalArgumentException.class);
 
         Incidente fechado = incidente(StatusIncidente.ABERTO);
-        fechado.fechar(INICIO.plusSeconds(60), "original");
+        fechado.fechar(INICIO.plusSeconds(60), "original", null);
         when(incidenteRepository.findById(11L)).thenReturn(Optional.of(fechado));
-        var resposta = incidenteService.fechar(11L, new CloseIncidenteRequest(INICIO.plusSeconds(120), "nova"));
+        var resposta = incidenteService.fechar(11L, new CloseIncidenteRequest(INICIO.plusSeconds(120), "nova"), 7L);
         assertThat(resposta.encerradoEm()).isEqualTo(INICIO.plusSeconds(60));
         assertThat(resposta.observacao()).isEqualTo("original");
     }
@@ -160,9 +166,10 @@ class IncidenteServiceTest {
         Incidente aberto = incidente(StatusIncidente.ABERTO);
         Usuario operador = operador();
         when(incidenteRepository.findById(10L)).thenReturn(Optional.of(aberto));
+        when(usuarioRepository.findById(7L)).thenReturn(Optional.of(operador));
         when(incidenteRepository.reconhecerSeAberto(eq(10L), eq(operador), any(Instant.class))).thenReturn(1);
 
-        var resposta = incidenteService.reconhecer(10L, operador);
+        var resposta = incidenteService.reconhecer(10L, 7L);
 
         assertThat(resposta.id()).isEqualTo(10L);
         verify(incidenteRepository).reconhecerSeAberto(eq(10L), eq(operador), any(Instant.class));
@@ -173,16 +180,17 @@ class IncidenteServiceTest {
     @Test
     void recusaReconhecerDuasVezesEIncidenteJaFechado() {
         Usuario operador = operador();
+        when(usuarioRepository.findById(7L)).thenReturn(Optional.of(operador));
         // Zero linha afetada = o UPDATE condicional nao casou com status = ABERTO.
         when(incidenteRepository.reconhecerSeAberto(eq(10L), eq(operador), any(Instant.class))).thenReturn(0);
 
         when(incidenteRepository.findById(10L)).thenReturn(Optional.of(incidente(StatusIncidente.RECONHECIDO)));
-        assertThatThrownBy(() -> incidenteService.reconhecer(10L, operador))
+        assertThatThrownBy(() -> incidenteService.reconhecer(10L, 7L))
                 .isInstanceOf(ConflitoException.class).hasMessageContaining("ja foi reconhecido");
 
         // Corrida real: o motor fechou entre o SELECT e o UPDATE do operador.
         when(incidenteRepository.findById(10L)).thenReturn(Optional.of(incidente(StatusIncidente.FECHADO)));
-        assertThatThrownBy(() -> incidenteService.reconhecer(10L, operador))
+        assertThatThrownBy(() -> incidenteService.reconhecer(10L, 7L))
                 .isInstanceOf(ConflitoException.class).hasMessageContaining("ja foi fechado");
     }
 
@@ -197,6 +205,8 @@ class IncidenteServiceTest {
         assertThat(fechado.getEncerradoEm()).isEqualTo(INICIO.plusSeconds(120));
         // A trilha de quem assumiu sobrevive ao fechamento.
         assertThat(fechado.getReconhecidoPor()).isNotNull();
+        // Fechamento do motor nao tem autor: fechado_por nulo e a semantica da V17.
+        assertThat(fechado.getFechadoPor()).isNull();
         verify(notificacaoService).criarParaIncidenteFechado(fechado);
     }
 
@@ -213,7 +223,7 @@ class IncidenteServiceTest {
     private Incidente incidente(StatusIncidente status) {
         Incidente incidente = new Incidente(monitor(), INICIO, "motivo", "observacao");
         if (status == StatusIncidente.RECONHECIDO) incidente.reconhecer(INICIO.plusSeconds(30), operador());
-        if (status == StatusIncidente.FECHADO) incidente.fechar(INICIO.plusSeconds(60), null);
+        if (status == StatusIncidente.FECHADO) incidente.fechar(INICIO.plusSeconds(60), null, null);
         definirId(incidente, 10L);
         return incidente;
     }

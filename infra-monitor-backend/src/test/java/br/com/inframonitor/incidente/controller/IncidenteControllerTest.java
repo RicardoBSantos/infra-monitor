@@ -9,11 +9,17 @@ import br.com.inframonitor.incidente.dto.MonitorIncidenteResponse;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import br.com.inframonitor.security.UsuarioPrincipal;
+import br.com.inframonitor.usuario.entity.Papel;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -27,6 +33,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -41,10 +48,9 @@ class IncidenteControllerTest {
 
     /**
      * @WebMvcTest nao carrega SecurityConfiguration, e sem ela o resolver de
-     * @AuthenticationPrincipal nao existe: o Usuario do metodo seria tratado como
-     * @ModelAttribute e a requisicao morreria em 400 antes de chegar ao controller.
-     * Sem autenticacao no contexto o principal resolve para null, que e o suficiente
-     * aqui — quem valida a permissao e o matcher de SecurityConfiguration.
+     * @AuthenticationPrincipal nao existe: o UsuarioPrincipal do metodo seria tratado
+     * como @ModelAttribute e a requisicao morreria em 400 antes de chegar ao controller.
+     * Quem valida a permissao continua sendo o matcher de SecurityConfiguration.
      */
     @TestConfiguration
     static class ResolverDePrincipal implements WebMvcConfigurer {
@@ -55,12 +61,28 @@ class IncidenteControllerTest {
     }
 
     private static final IncidenteResponse INCIDENTE = new IncidenteResponse(1L, StatusIncidente.ABERTO,
-            Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null, null, null,
+            Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null, null, null, null,
             new MonitorIncidenteResponse(10L, "ICMP principal", TipoMonitor.ICMP, 20L, "SW-01", 30L, "Matriz"),
             Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:00:00Z"));
 
     @Autowired private MockMvc mockMvc;
     @MockitoBean private IncidenteService incidenteService;
+
+    /**
+     * O resolver le o principal do SecurityContextHolder, entao o teste precisa
+     * autenticar alguem. Sem isso o controller receberia null e as acoes com autor
+     * quebrariam so em producao — foi assim que reconhecer chegou ao banco sem autor.
+     */
+    @BeforeEach
+    void autenticar() {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                new UsuarioPrincipal(7L, Papel.OPERADOR), null, List.of()));
+    }
+
+    @AfterEach
+    void limparContexto() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void criaConsultaEFiltra() throws Exception {
@@ -81,9 +103,9 @@ class IncidenteControllerTest {
     void retornaErrosDeDominioEDeEntrada() throws Exception {
         when(incidenteService.criar(any(CreateIncidenteRequest.class))).thenThrow(new ConflitoException("Ja existe incidente aberto"));
         when(incidenteService.buscarPorId(99L)).thenThrow(new RecursoNaoEncontradoException("Incidente nao encontrado"));
-        when(incidenteService.fechar(eq(1L), any(CloseIncidenteRequest.class)))
+        when(incidenteService.fechar(eq(1L), any(CloseIncidenteRequest.class), eq(7L)))
                 .thenThrow(new IllegalArgumentException("encerradoEm deve ser maior ou igual a iniciadoEm"));
-        when(incidenteService.fechar(eq(99L), any(CloseIncidenteRequest.class)))
+        when(incidenteService.fechar(eq(99L), any(CloseIncidenteRequest.class), eq(7L)))
                 .thenThrow(new RecursoNaoEncontradoException("Incidente nao encontrado"));
 
         mockMvc.perform(post("/api/v1/incidentes").contentType(MediaType.APPLICATION_JSON).content(criacaoJson()))
@@ -102,7 +124,7 @@ class IncidenteControllerTest {
     void reconheceERecusaTransicaoInvalida() throws Exception {
         IncidenteResponse reconhecido = new IncidenteResponse(1L, StatusIncidente.RECONHECIDO,
                 Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null,
-                Instant.parse("2026-08-19T12:05:00Z"), "Operador",
+                Instant.parse("2026-08-19T12:05:00Z"), "Operador", null,
                 new MonitorIncidenteResponse(10L, "ICMP principal", TipoMonitor.ICMP, 20L, "SW-01", 30L, "Matriz"),
                 Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:05:00Z"));
         when(incidenteService.reconhecer(eq(1L), any())).thenReturn(reconhecido);
@@ -117,6 +139,8 @@ class IncidenteControllerTest {
                 .andExpect(jsonPath("$.reconhecidoPorNome").value("Operador"));
         mockMvc.perform(patch("/api/v1/incidentes/2/reconhecer")).andExpect(status().isConflict());
         mockMvc.perform(patch("/api/v1/incidentes/99/reconhecer")).andExpect(status().isNotFound());
+        // O id do autor vem do principal autenticado, nunca do corpo ou da URL.
+        verify(incidenteService).reconhecer(1L, 7L);
     }
 
     private String criacaoJson() {

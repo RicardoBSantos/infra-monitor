@@ -62,7 +62,7 @@ class RelatoriosAnaliticosPostgresIntegrationTest {
  private Equipamento eq(String unidade,String nome){long u=unidadesPorSigla.computeIfAbsent(unidade,s->unidades.criar(new CreateUnidadeRequest("Unidade "+s,s,null,null,null,null,null,null,null)).id());long t=tipos.criar(new CreateTipoEquipamentoRequest("Tipo "+unidade+nome,null)).id();long id=equipamentoService.criar(new CreateEquipamentoRequest(u,t,nome,null,null,null,null, null, null, null)).id();return equipamentos.findById(id).orElseThrow();}
  private Monitor monitor(Equipamento e,String nome,Instant inicio,Instant fim){Monitor m=monitores.saveAndFlush(new Monitor(e,TipoMonitor.ICMP,nome,60,1000));JanelaMonitoramento j=new JanelaMonitoramento(m,inicio,OrigemJanelaMonitoramento.PRECISA);j.fechar(fim);janelas.saveAndFlush(j);return m;}
  private void medicao(Monitor m,Instant em,Integer lat){medicoes.saveAndFlush(new Medicao(m,StatusMedicao.SUCESSO,lat,null,em));}
- private Incidente incidente(Monitor m,Instant inicio,Instant fim,String motivo){Incidente i=new Incidente(m,inicio,motivo,null);if(fim!=null)i.fechar(fim,null);return incidentes.saveAndFlush(i);}
+ private Incidente incidente(Monitor m,Instant inicio,Instant fim,String motivo){Incidente i=new Incidente(m,inicio,motivo,null);if(fim!=null)i.fechar(fim,null,null);return incidentes.saveAndFlush(i);}
  /** Agregado por unidade: a media e ponderada pelas medicoes, nao a media das medias dos monitores. */
  @Test void latenciaPorUnidadeAgregaMonitoresPonderadoPelasMedicoes(){
   Equipamento a=eq("LU","A"); Monitor ma=monitor(a,"A",INICIO,FIM), mb=monitor(a,"B",INICIO,FIM);

@@ -26,7 +26,7 @@ class NotificacaoMessageBuilderTest {
     @Test
     void montaMensagemDeFechamentoComDuracaoDosTimestamps() {
         Incidente incidente = incidente();
-        incidente.fechar(Instant.parse("2026-08-19T13:02:03Z"), null);
+        incidente.fechar(Instant.parse("2026-08-19T13:02:03Z"), null, null);
         String message = builder.construir(incidente, TipoEventoNotificacao.INCIDENTE_FECHADO);
         assertThat(message).contains("INCIDENTE ENCERRADO", "Fim: 2026-08-19T13:02:03Z", "Duracao: 1h 2m 3s");
     }
