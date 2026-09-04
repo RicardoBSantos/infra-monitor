@@ -106,7 +106,7 @@ public class DashboardService {
                 : medicaoRepository.findLatestByMonitorIds(monitorIds).stream()
                 .collect(Collectors.toMap(m -> m.getMonitor().getId(), Function.identity()));
         var incidentes = monitorIds.isEmpty() ? Map.<Long, br.com.inframonitor.incidente.entity.Incidente>of()
-                : incidenteRepository.findByMonitorIdInAndStatus(monitorIds, StatusIncidente.ABERTO).stream()
+                : incidenteRepository.findByMonitorIdInAndStatusIn(monitorIds, StatusIncidente.EM_ABERTO).stream()
                 .collect(Collectors.toMap(i -> i.getMonitor().getId(), Function.identity()));
         return pagina.map(e -> operacional(e, porEquipamento.getOrDefault(e.getId(), List.of()), ultimas, incidentes));
     }

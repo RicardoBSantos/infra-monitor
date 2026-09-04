@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DashboardControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean DashboardService dashboardService;
+    @MockitoBean DashboardIncidenteService dashboardIncidenteService;
 
     @Test void expoeResumoUnidadesDetalheEPaginaDeEquipamentos() throws Exception {
         when(dashboardService.resumo()).thenReturn(new DashboardResumoResponse(

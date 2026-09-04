@@ -27,7 +27,7 @@ public class DashboardReadRepository {
                     um.latencia_ms, um.executado_em, um.id as medicao_id
                 from monitor m
                 left join ultima_medicao um on um.monitor_id = m.id
-                left join incidente i on i.monitor_id = m.id and i.status = 'ABERTO'
+                left join incidente i on i.monitor_id = m.id and i.status in ('ABERTO', 'RECONHECIDO')
             ), equipamento_estado as (
                 select e.id, e.unidade_id, e.ativo,
                     case when not e.ativo then 'DESABILITADO'
@@ -59,7 +59,7 @@ public class DashboardReadRepository {
                     (select count(*) from monitor_estado where status = 'DEGRADADO'),
                     (select count(*) from monitor_estado where status = 'INDISPONIVEL'),
                     (select count(*) from monitor_estado where status = 'SEM_DADOS'),
-                    (select count(*) from incidente where status = 'ABERTO')
+                    (select count(*) from incidente where status in ('ABERTO', 'RECONHECIDO'))
                 from equipamento_estado ee
                 """).setParameter(1, limiarLatenciaDegradadaMs).getSingleResult();
         return new DashboardCounts(longValue(r[0]), longValue(r[1]), longValue(r[2]), longValue(r[3]),

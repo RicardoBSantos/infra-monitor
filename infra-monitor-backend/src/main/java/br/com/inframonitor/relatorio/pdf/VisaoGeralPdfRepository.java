@@ -19,7 +19,7 @@ import java.util.List;
 public class VisaoGeralPdfRepository {
     static final String KPIS = """
         select
-          (select count(*) from incidente i where i.status='ABERTO' and i.iniciado_em<:fim
+          (select count(*) from incidente i where i.status in ('ABERTO','RECONHECIDO') and i.iniciado_em<:fim
              and (i.encerrado_em is null or i.encerrado_em>=:inicio)) incidentes_abertos,
           (select count(*) from medicao md where md.status='FALHA'
              and md.executado_em>=:inicio and md.executado_em<=:fim) medicoes_falha,
