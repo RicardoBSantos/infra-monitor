@@ -90,6 +90,13 @@ export class EquipamentoListComponent {
   /**
    * `:id` da rota. Reativo de propósito: navegar de `/equipamentos/1` para
    * `/equipamentos/2` reaproveita a instância do componente e só o parâmetro muda.
+   *
+   * TODO: DÍVIDA -- `equipamentos` e `equipamentos/:id` são configurações de rota IRMÃS,
+   * então navegar da lista para o detalhe troca de configuração e o Router destrói e
+   * recria este componente: a busca, os filtros e a página voltam ao padrão a cada
+   * abertura do drawer. `/incidentes` já foi corrigido — lá as rotas de detalhe são
+   * FILHAS, sem componente próprio, e o pai sobrevive à navegação (ver `app.routes.ts`).
+   * Fazer o mesmo aqui. Não foi feito junto por ser fora do escopo daquela rodada.
    */
   protected readonly detalheId = toSignal(
     this.route.paramMap.pipe(map((parametros) => {
