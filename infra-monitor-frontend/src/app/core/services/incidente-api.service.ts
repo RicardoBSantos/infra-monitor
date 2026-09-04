@@ -11,4 +11,6 @@ export class IncidenteApiService {
   list(query: IncidenteListQuery = {}): Observable<PageResponse<IncidenteResponse>> { let params = new HttpParams(); for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== null) params = params.set(key, String(value)); return this.http.get<PageResponse<IncidenteResponse>>(this.endpoint, { params }); }
   getById(id: number): Observable<IncidenteResponse> { return this.http.get<IncidenteResponse>(`${this.endpoint}/${id}`); }
   close(id: number, request: CloseIncidenteRequest): Observable<IncidenteResponse> { return this.http.patch<IncidenteResponse>(`${this.endpoint}/${id}/fechar`, request); }
+  /** Sem corpo por contrato: quem reconheceu e quando saem do servidor, nunca do cliente. */
+  acknowledge(id: number): Observable<IncidenteResponse> { return this.http.patch<IncidenteResponse>(`${this.endpoint}/${id}/reconhecer`, null); }
 }

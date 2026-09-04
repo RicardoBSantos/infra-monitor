@@ -1,0 +1,228 @@
+<div class="gaveta__fundo" (click)="pedirFechamento()" aria-hidden="true"></div>
+
+<aside #painel class="gaveta" role="dialog" aria-modal="false" aria-labelledby="drawer-ocorrencia-titulo"
+       tabindex="-1" (keydown)="aoTeclar($event)">
+  <header class="gaveta__topo">
+    <div class="gaveta__identidade">
+      <div class="gaveta__nome">
+        <h2 id="drawer-ocorrencia-titulo" class="mono">{{ codigo() }}</h2>
+        @if (statusExibido(); as status) { <app-status-badge [status]="status" /> }
+      </div>
+      <p class="gaveta__contexto">
+        {{ titulo() }}
+        ·
+        <span>{{ ocorrencia()?.equipamentoNome ?? linha()?.equipamentoNome ?? '—' }}</span>
+        @if (ocorrencia(); as item) {
+          · <a [routerLink]="['/unidades', item.unidadeId]">{{ item.unidadeNome }}</a>
+        } @else if (linha(); as atalho) {
+          · <span>{{ atalho.unidadeNome }}</span>
+        }
+      </p>
+    </div>
+    <button class="gaveta__fechar" type="button" (click)="pedirFechamento()" aria-label="Fechar detalhe da ocorrência">×</button>
+  </header>
+
+  @if (erro()) { <div class="gaveta__erro" role="alert">{{ erro() }}</div> }
+
+  @if (estado() === 'not-found') {
+    <div class="gaveta__corpo">
+      <div class="vazio">
+        <strong>Ocorrência não encontrada.</strong>
+        <p>Ela pode ter sido removida, ou o endereço aponta para um identificador que não existe nesta origem.</p>
+        <button class="botao" type="button" (click)="pedirFechamento()">Voltar à lista</button>
+      </div>
+    </div>
+  } @else if (estado() === 'error') {
+    <div class="gaveta__corpo">
+      <div class="vazio">
+        <strong>Não foi possível carregar a ocorrência.</strong>
+        <button class="botao" type="button" (click)="recarregar()">Tentar novamente</button>
+      </div>
+    </div>
+  } @else if (estado() === 'loading' && !ocorrencia()) {
+    <div class="gaveta__corpo">
+      <div class="esqueleto" aria-label="Carregando ocorrência">@for (linha of [1, 2, 3, 4]; track linha) { <span></span> }</div>
+    </div>
+  } @else if (ocorrencia(); as item) {
+    <div class="gaveta__corpo">
+      <!-- KPIs --------------------------------------------------------------- -->
+      <ul class="kpis">
+        <li [class]="'kpi ' + severidadeStatus()">
+          <span class="kpi__rotulo">Status</span>
+          <span class="kpi__valor"><app-status-badge [status]="item.status" /></span>
+        </li>
+        <li class="kpi">
+          <span class="kpi__rotulo">Duração</span>
+          <strong [class]="'kpi__valor mono ' + corDuracao()">{{ duracao() }}</strong>
+        </li>
+        @if (item.tipo === IncidentKind.Latency) {
+          <li [class]="'kpi ' + corLimiar()">
+            <span class="kpi__rotulo">Limiar</span>
+            <strong class="kpi__valor mono">{{ item.limiarMs ?? '—' }}@if (item.limiarMs !== null) { <span class="kpi__unidade">ms</span> }</strong>
+          </li>
+          <li [class]="'kpi ' + corPico()">
+            <span class="kpi__rotulo">Pico</span>
+            <strong class="kpi__valor mono">
+              @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+              @else { {{ latenciaPico() ?? '—' }}@if (latenciaPico() !== null) { <span class="kpi__unidade">ms</span> } }
+            </strong>
+          </li>
+          <li [class]="'kpi ' + corLatenciaMedia()">
+            <span class="kpi__rotulo">Latência média</span>
+            <strong class="kpi__valor mono">
+              @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+              @else { {{ latenciaMedia() ?? '—' }}@if (latenciaMedia() !== null) { <span class="kpi__unidade">ms</span> } }
+            </strong>
+          </li>
+          <li [class]="'kpi ' + corAcimaDoLimiar()">
+            <span class="kpi__rotulo">Acima do limiar</span>
+            <strong class="kpi__valor mono">
+              @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+              @else if (!medicoesProntas()) { — }
+              @else { {{ medicoesAcimaDoLimiar() ?? '—' }} }
+            </strong>
+          </li>
+        } @else {
+          <li [class]="'kpi ' + corFalhas()">
+            <span class="kpi__rotulo">Falhas na janela</span>
+            <strong class="kpi__valor mono">
+              @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+              @else if (!medicoesProntas()) { — }
+              @else { {{ falhasNaJanela() }} }
+            </strong>
+          </li>
+          <li [class]="'kpi ' + corLatenciaMedia()">
+            <span class="kpi__rotulo">Latência média</span>
+            <strong class="kpi__valor mono">
+              @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+              @else { {{ latenciaMedia() ?? '—' }}@if (latenciaMedia() !== null) { <span class="kpi__unidade">ms</span> } }
+            </strong>
+          </li>
+        }
+        <li class="kpi">
+          <span class="kpi__rotulo">Amostras</span>
+          <strong class="kpi__valor mono">
+            @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+            @else if (!medicoesProntas()) { — }
+            @else { {{ amostras() }} }
+          </strong>
+        </li>
+      </ul>
+
+      <!-- Gráfico ------------------------------------------------------------ -->
+      <section class="cartao" aria-label="Latência na janela da ocorrência">
+        <app-ocorrencia-grafico
+          [medicoes]="medicoes()" [estado]="medicoesEstado()" [limiarMs]="item.limiarMs"
+          [folgaMinutos]="folgaMinutos"
+          [titulo]="item.tipo === IncidentKind.Latency ? 'Latência no episódio' : 'Latência na janela do incidente'"
+          (recarregar)="carregarMedicoes()" />
+      </section>
+
+      <!-- Timeline ----------------------------------------------------------- -->
+      <section class="cartao" aria-labelledby="titulo-timeline">
+        <h3 class="cartao__titulo" id="titulo-timeline">Linha do tempo</h3>
+        @if (medicoesEstado() === 'loading' || notificacoesEstado() === 'loading') {
+          <div class="esqueleto" aria-label="Carregando linha do tempo">@for (linha of [1, 2, 3]; track linha) { <span></span> }</div>
+        } @else {
+          @if (medicoesEstado() === 'error') {
+            <p class="aviso-bloco" role="alert">As medições não puderam ser carregadas: os eventos de ping estão de fora desta linha do tempo.</p>
+          }
+          @if (notificacoesEstado() === 'error') {
+            <p class="aviso-bloco" role="alert">As notificações não puderam ser carregadas: os envios estão de fora desta linha do tempo.</p>
+          }
+          <app-incidente-timeline [eventos]="eventos()" />
+        }
+      </section>
+
+      <!-- Contexto e janela -------------------------------------------------- -->
+      <div class="colunas">
+        <section class="cartao">
+          <h3 class="cartao__titulo">Contexto operacional</h3>
+          <dl class="dados">
+            <dt>Monitor</dt><dd>{{ item.monitorNome }} <span class="mono apagado">#{{ item.monitorId }}</span></dd>
+            <dt>Equipamento</dt><dd><a [routerLink]="['/equipamentos', item.equipamentoId]">{{ item.equipamentoNome }}</a></dd>
+            <dt>Unidade</dt><dd><a [routerLink]="['/unidades', item.unidadeId]">{{ item.unidadeNome }}</a></dd>
+            @if (item.tipo === IncidentKind.Latency) {
+              <dt>Limiar vigente</dt><dd class="mono">{{ item.limiarMs }} ms</dd>
+            } @else {
+              <dt>Motivo</dt><dd>{{ item.motivo ?? '—' }}</dd>
+              <dt>Observação</dt><dd>{{ item.observacao ?? '—' }}</dd>
+            }
+          </dl>
+        </section>
+
+        <section class="cartao">
+          <h3 class="cartao__titulo">Janela da ocorrência</h3>
+          <dl class="dados">
+            <dt>Iniciado em</dt><dd class="mono">{{ item.iniciadoEm | date:'dd/MM/yyyy HH:mm:ss' }}</dd>
+            <dt>Encerrado em</dt>
+            <dd class="mono">
+              @if (item.encerradoEm) { {{ item.encerradoEm | date:'dd/MM/yyyy HH:mm:ss' }} }
+              @else { <span class="em-curso">Em curso</span> }
+            </dd>
+            @if (item.tipo === IncidentKind.Incident) {
+              <dt>Reconhecido em</dt><dd class="mono">{{ item.reconhecidoEm ? (item.reconhecidoEm | date:'dd/MM/yyyy HH:mm:ss') : '—' }}</dd>
+              <dt>Reconhecido por</dt><dd>{{ item.reconhecidoPorNome ?? '—' }}</dd>
+            }
+            <dt>Amostras na janela</dt>
+            <dd class="mono">
+              @if (medicoesEstado() === 'error') { <span class="kpi__falha">indisponível</span> }
+              @else if (!medicoesProntas()) { — }
+              @else { {{ amostras() }} }
+            </dd>
+          </dl>
+        </section>
+      </div>
+
+      <!-- Notificações ------------------------------------------------------- -->
+      <section class="cartao" aria-labelledby="titulo-notificacoes">
+        <h3 class="cartao__titulo" id="titulo-notificacoes">Notificações relacionadas</h3>
+        @if (notificacoesEstado() === 'loading') {
+          <div class="esqueleto" aria-label="Carregando notificações">@for (linha of [1, 2]; track linha) { <span></span> }</div>
+        } @else if (notificacoesEstado() === 'error') {
+          <div class="vazio">
+            <strong>Não foi possível carregar as notificações.</strong>
+            <button class="botao" type="button" (click)="carregarNotificacoes()">Tentar novamente</button>
+          </div>
+        } @else if (notificacoes().length === 0) {
+          <div class="vazio">
+            <strong>Nenhuma notificação enviada para esta ocorrência.</strong>
+          </div>
+        } @else {
+          <ul class="notificacoes">
+            @for (notificacao of notificacoes(); track notificacao.id) {
+              <li>
+                <a class="mono" [routerLink]="['/notificacoes', 'detalhe', notificacao.id]">#{{ notificacao.id }}</a>
+                <span class="notificacoes__evento">{{ notificacao.canal }}</span>
+                <app-status-badge [status]="notificacao.status" />
+                <span class="mono apagado">{{ notificacao.enviadoEm ? (notificacao.enviadoEm | date:'dd/MM HH:mm') : '—' }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+
+    <footer class="gaveta__acoes">
+      @if (podeReconhecer()) {
+        <button class="botao" type="button" (click)="reconhecer()" [disabled]="reconhecendo()">
+          {{ reconhecendo() ? 'Reconhecendo…' : 'Reconhecer' }}
+        </button>
+      }
+      @if (podeResolver()) {
+        <button class="botao botao--primario" type="button" (click)="confirmarResolucao.set(true)" [disabled]="resolvendo()">
+          Marcar como resolvido
+        </button>
+      }
+      <a class="botao" [routerLink]="['/equipamentos', item.equipamentoId]">Abrir equipamento</a>
+    </footer>
+
+    @if (podeResolver()) {
+      <app-confirm-dialog [open]="confirmarResolucao()"
+        [title]="'Marcar ' + codigo() + ' como resolvido?'"
+        message="O fechamento será enviado ao backend. O estado só será atualizado com a resposta confirmada."
+        confirmLabel="Marcar como resolvido" busyLabel="Resolvendo…" [busy]="resolvendo()"
+        (cancel)="confirmarResolucao.set(false)" (confirm)="resolver()" />
+    }
+  }
+</aside>

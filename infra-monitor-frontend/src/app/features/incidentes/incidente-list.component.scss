@@ -1,2 +1,0 @@
-@use '../medicoes/medicao-list.component.scss';
-.filters{grid-template-columns:repeat(7,minmax(120px,1fr))}.right,.actions{text-align:right}.link,.actions button{border:0;background:transparent;color:var(--im-link);cursor:pointer;font-size:12px}.link{font-family:'IBM Plex Mono',monospace;font-weight:600}@media(max-width:1150px){.filters{grid-template-columns:repeat(4,1fr)}}@media(max-width:620px){.filters{grid-template-columns:1fr 1fr}}@media(max-width:400px){.filters{grid-template-columns:1fr}}

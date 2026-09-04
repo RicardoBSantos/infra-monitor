@@ -9,7 +9,22 @@ export enum MeasurementStatus {
 
 export enum IncidentStatus {
   Open = 'ABERTO',
+  /** Alguém assumiu o incidente. Continua operacionalmente aberto: não encerra nada. */
+  Acknowledged = 'RECONHECIDO',
   Closed = 'FECHADO',
+}
+
+/**
+ * Espelho de `StatusIncidente.EM_ABERTO` do backend: os estados em que o incidente ainda
+ * está acontecendo. Existe como constante, e não como comparação escrita à mão, porque
+ * reconhecer e fechar aparecem juntos em mais de uma tela — e foi exatamente uma
+ * comparação repetida (`status !== Open`) que deixou o botão Fechar travado para
+ * incidentes RECONHECIDO quando o estado novo entrou.
+ */
+export const INCIDENT_OPEN_STATES: readonly IncidentStatus[] = [IncidentStatus.Open, IncidentStatus.Acknowledged];
+
+export function isIncidentOpen(status: IncidentStatus): boolean {
+  return INCIDENT_OPEN_STATES.includes(status);
 }
 
 export enum NotificationChannel {
