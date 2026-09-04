@@ -153,7 +153,11 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     let pedidos = 0;
     fixture.componentInstance.alternarEquipamento.subscribe(() => (pedidos += 1));
 
-    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.gaveta__acoes .botao--perigo')!.click();
+    // O rodapé é todo secundário desde a padronização de botões: identifica pelo rótulo,
+    // não pela classe, que já não distingue uma ação da outra.
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes .botao'))
+      .find((botao) => /monitoramento/.test(botao.textContent ?? ''))!
+      .click();
     fixture.detectChanges();
 
     expect(pedidos).toBe(1);

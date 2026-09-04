@@ -5,6 +5,14 @@
 .eyebrow { display: block; color: var(--im-link); font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: .12em; }
 .field-error { display: block; margin-top: 5px; color: var(--im-danger-text); }
 
+/* Botões. `.botao` sozinho É o padrão secundário da aplicação — contorno fino, sem
+   preenchimento próprio, texto simples: o estilo do "Ver". Toda ação de navegação,
+   consulta, cancelamento, limpeza de filtro e paginação usa ele (com `--discreto`
+   dentro de linha de tabela). Ação de confirmação/criação recebe um modificador
+   sólido: `--primario`, `--sucesso` ou `--perigo`.
+   Não criar `.button` local de novo: as telas de Relatórios, Medições, Notificações,
+   Mapa e Usuários tinham três definições divergentes desse nome, com aparências
+   diferentes para a mesma ação. Foram consolidadas aqui e o nome não existe mais. */
 .botao { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-soft); font-size: 12px; text-decoration: none; cursor: pointer; }
 .botao:hover { border-color: var(--im-border-muted); color: var(--im-text); }
 .botao--perigo { border-color: rgba(229, 83, 75, .38); color: var(--im-danger); background: rgba(229, 83, 75, .10); }
@@ -123,9 +131,14 @@
 .cartao { border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
 .cartao__titulo { padding: 13px 14px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .12em; }
 
-/* Ação primária: usada no "+ Novo equipamento" do detalhe e no "+ Nova unidade" da lista. */
-.botao--primario { border-color: var(--im-info-soft); background: rgba(64, 132, 233, .14); color: var(--im-text); }
-.botao--primario:hover { border-color: var(--im-info-soft); background: rgba(64, 132, 233, .22); }
+/* Semântica de ação, reutilizável em qualquer tela:
+   --primario  = ação principal (azul, --im-primary)
+   --sucesso   = confirmação positiva, ex.: resolver incidente (verde, --im-success)
+   --perigo    = ação destrutiva (vermelho, --im-danger) */
+.botao--primario { border-color: var(--im-primary-border); background: var(--im-primary-soft); color: var(--im-text); }
+.botao--primario:hover { border-color: var(--im-primary); background: var(--im-primary-hover); }
+.botao--sucesso { border-color: var(--im-success-border); background: var(--im-success-bg); color: var(--im-success); }
+.botao--sucesso:hover { border-color: var(--im-success); background: var(--im-success-hover); color: var(--im-success); }
 .botao:disabled { opacity: .45; cursor: not-allowed; }
 
 .campo-busca { height: 28px; padding: 0 10px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface); color: var(--im-text); font-size: 11.5px; font-family: inherit; }

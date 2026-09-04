@@ -24,7 +24,7 @@
           {{ totalEquipamentos() }} {{ totalEquipamentos() === 1 ? 'dispositivo' : 'dispositivos' }}
           e suprime os alertas do Telegram. O histórico é preservado.
         </p>
-        <button class="botao botao--perigo" type="button" [disabled]="processando()" (click)="abrir('desativar')">
+        <button class="botao" type="button" [disabled]="processando()" (click)="abrir('desativar')">
           Desativar unidade
         </button>
       } @else {

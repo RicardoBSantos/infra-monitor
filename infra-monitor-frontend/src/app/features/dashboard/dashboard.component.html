@@ -40,7 +40,7 @@
           <p class="alerta__linha">{{ data.equipamentos.indisponiveis }} dispositivos offline em {{ unidadesOffline() }} unidades · {{ data.incidentes.abertos }} incidentes abertos</p>
           @if (descricaoIncidentes(); as descricao) { <p class="alerta__detalhe">{{ descricao }}</p> }
         </div>
-        <a class="botao botao--perigo" routerLink="/incidentes">Incidentes abertos</a>
+        <a class="botao" routerLink="/incidentes">Incidentes abertos</a>
       </div>
     }
   }

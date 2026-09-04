@@ -12,9 +12,11 @@
 .filters__rotulo { color: var(--im-text-secondary); font: 600 10px 'IBM Plex Mono', monospace; letter-spacing: .05em; }
 
 .right, .actions { text-align: right; }
-.actions { white-space: nowrap; }
-.link, .actions button { border: 0; background: transparent; color: var(--im-link); cursor: pointer; font-size: 12px; }
-.actions button:disabled { opacity: .55; cursor: not-allowed; }
+.actions { white-space: nowrap; display: flex; gap: 6px; justify-content: flex-end; }
+/* `.actions` não estiliza mais botão nenhum: "Ver" e "Reconhecer" usam `.botao--discreto`,
+   que já traz borda, estado desabilitado e foco. Sobrou só `.link`, que é o código da
+   ocorrência na primeira coluna — texto, não botão. */
+.link { border: 0; background: transparent; color: var(--im-link); cursor: pointer; font-size: 12px; }
 .link { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
 
 // Severidade é barra, não badge: STATUS já é badge com dot na mesma linha, e um segundo
@@ -24,7 +26,9 @@
 .sev { width: 1px; padding-right: 0; }
 .severidade { display: block; width: 3px; height: 20px; border-radius: 2px; background: var(--im-warning); }
 .severidade--alta { background: var(--im-danger); }
-.reconhecido { display: block; margin-top: 2px; color: var(--im-text-muted); font-size: 10px; }
+/* Coluna própria: o reconhecedor deixou de ser subtexto do badge de status para não
+   misturar estado da ocorrência com quem agiu sobre ela. */
+.reconhecido { color: var(--im-text-secondary); white-space: nowrap; }
 
 @media (max-width: 1150px) { .filters { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 620px) { .filters { grid-template-columns: 1fr; } }

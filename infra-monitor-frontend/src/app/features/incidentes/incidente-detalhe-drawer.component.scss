@@ -93,6 +93,12 @@
 .kpi--warn .kpi__valor { color: var(--im-warning); }
 .kpi--down .kpi__valor { color: var(--im-danger); }
 .kpi__unidade { font-size: 11px; }
+/* Nome de pessoa não é métrica: sai do mono e do tamanho de número, e trunca em vez de
+   esticar o card — a fileira de KPIs tem colunas de largura fixa. */
+.kpi__valor--texto {
+  display: block; overflow: hidden; font: 600 13px/1.3 inherit; color: var(--im-text);
+  text-overflow: ellipsis; white-space: nowrap;
+}
 /* O bloco de dado ausente é cinza mesmo dentro de um card colorido: sem esta linha ele
    herdaria o vermelho de `.kpi--down .kpi__valor` e "indisponível" pareceria alarme. */
 .kpi .kpi__falha { color: var(--im-text-dim); }

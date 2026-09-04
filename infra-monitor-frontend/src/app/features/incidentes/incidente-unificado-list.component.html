@@ -16,7 +16,9 @@
     ]; track item.chave) {
       <button type="button" class="aba" [class.aba--ativa]="aba() === item.chave" [attr.aria-current]="aba() === item.chave ? 'page' : null" (click)="mudarAba($any(item.chave))">
         {{ item.rotulo }}
-        @if (contadorDa($any(item.chave)); as total) { <span class="aba__contador">{{ total }}</span> }
+        <!-- `!== null` e não truthiness: zero é um total legítimo e precisa aparecer.
+             Contador ausente (falha na carga) é o único caso que esconde o número. -->
+        @if (contadorDa($any(item.chave)) !== null) { <span class="aba__contador">{{ contadorDa($any(item.chave)) }}</span> }
       </button>
     }
   </nav>
@@ -33,14 +35,14 @@
   @if (estado() === 'loading') {
     <div class="skeleton" aria-label="Carregando ocorrências">@for (x of [1, 2, 3, 4]; track x) { <span></span> }</div>
   } @else if (estado() === 'error') {
-    <div class="feedback feedback--error" role="alert"><strong>Não foi possível carregar as ocorrências.</strong><span>{{ erro() }}</span><button class="button" type="button" (click)="carregarLista()">Tentar novamente</button></div>
+    <div class="feedback feedback--error" role="alert"><strong>Não foi possível carregar as ocorrências.</strong><span>{{ erro() }}</span><button class="botao" type="button" (click)="carregarLista()">Tentar novamente</button></div>
   } @else if (estado() === 'empty') {
     <div class="feedback"><strong>Nenhuma ocorrência corresponde aos filtros.</strong><span>A infraestrutura não registrou indisponibilidade nem latência alta neste escopo.</span></div>
   } @else {
     @if (erro()) { <div class="feedback feedback--error" role="alert">{{ erro() }}</div> }
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th>DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th class="right">AÇÕES</th></tr></thead>
+        <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th>DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="right">AÇÕES</th></tr></thead>
         <tbody>
           @for (linha of linhas(); track chave(linha)) {
             <tr>
@@ -67,13 +69,16 @@
               </td>
               <td>
                 <app-status-badge [status]="linha.status" />
-                @if (linha.reconhecidoPorNome) { <small class="reconhecido">por {{ linha.reconhecidoPorNome }}</small> }
+              </td>
+              <td class="reconhecido">
+                @if (linha.reconhecidoPorNome) { {{ linha.reconhecidoPorNome }} }
+                @else { <span class="apagado">—</span> }
               </td>
               <td class="actions">
                 @if (podeReconhecer(linha)) {
-                  <button type="button" (click)="reconhecer(linha)" [disabled]="reconhecendo() !== null">{{ reconhecendo() === linha.id ? 'Reconhecendo…' : 'Reconhecer' }}</button>
+                  <button class="botao botao--discreto" type="button" (click)="reconhecer(linha)" [disabled]="reconhecendo() !== null">{{ reconhecendo() === linha.id ? 'Reconhecendo…' : 'Reconhecer' }}</button>
                 }
-                <button type="button" (click)="abrir(linha)">Ver</button>
+                <button class="botao botao--discreto" type="button" (click)="abrir(linha)">Ver</button>
               </td>
             </tr>
           }

@@ -80,7 +80,7 @@ describe('RelatoriosComponent', () => {
     requests.units.flush(page()); requests.equipment.flush(page());
     requests.latency.flush({ status: 500, code: 'INTERNAL_ERROR', message: 'segredo' }, { status: 500, statusText: 'Erro' }); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Sem resultados no período'); expect(fixture.nativeElement.textContent).toContain('Serviço temporariamente indisponível'); expect(fixture.nativeElement.textContent).not.toContain('segredo');
-    const retry = (Array.from(fixture.nativeElement.querySelectorAll('.analytic-card .link')) as HTMLButtonElement[]).find(button => button.textContent?.includes('Tentar novamente'))!;
+    const retry = (Array.from(fixture.nativeElement.querySelectorAll('.analytic-card .botao')) as HTMLButtonElement[]).find(button => button.textContent?.includes('Tentar novamente'))!;
     retry.click(); fixture.detectChanges();
     const retried = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(retried.request.params.get('sort')).toBe('avgLatenciaMs,desc'); retried.flush(page([latency()])); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('55.00 ms');
@@ -272,7 +272,7 @@ describe('RelatoriosComponent', () => {
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test'); const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined); const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     const { fixture, request } = create(); request.flush({ ...page([equipment()]), page: 2, first: false }); fixture.detectChanges();
     const component = fixture.componentInstance; component['page'].set(2); component['form'].patchValue({ unidadeId: '1', tipoEquipamentoId: '7' }); component['equipmentSort'].set('incidentes'); component['direction'].set('desc'); fixture.detectChanges();
-    const beforeTable = fixture.nativeElement.querySelector('tbody').textContent; const button = fixture.nativeElement.querySelector('.table-tools__actions .button:last-child'); button.click(); fixture.detectChanges();
+    const beforeTable = fixture.nativeElement.querySelector('tbody').textContent; const button = fixture.nativeElement.querySelector('.table-tools__actions .botao:last-child'); button.click(); fixture.detectChanges();
     const exportRequest = http.expectOne(r => r.url.endsWith('/disponibilidade/equipamentos/export')); expect(exportRequest.request.params.get('sort')).toBe('incidentes,desc');
     expect(component['activeTab']()).toBe('equipamentos'); expect(component['page']()).toBe(2); expect(component['form'].controls.unidadeId.value).toBe('1'); expect(fixture.nativeElement.querySelector('tbody').textContent).toBe(beforeTable); expect(component['equipmentState']()).toBe('success');
     exportRequest.flush(new Blob(['csv']), { headers: { 'Content-Disposition': 'attachment; filename="equipamentos.csv"' } }); fixture.detectChanges();
@@ -288,7 +288,7 @@ describe('RelatoriosComponent', () => {
       [422, 'EXPORT_LIMIT_EXCEEDED', 'Reduza o período ou aplique mais filtros'], [500, 'INTERNAL_ERROR', 'apresentou uma falha'],
     ] as const;
     for (const [status, code, expected] of cases) {
-      const button = fixture.nativeElement.querySelector('.table-tools__actions .button:last-child') as HTMLButtonElement; button.click(); fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('.table-tools__actions .botao:last-child') as HTMLButtonElement; button.click(); fixture.detectChanges();
       const exportRequest = http.expectOne(r => r.url.endsWith('/disponibilidade/equipamentos/export'));
       const payload = { timestamp: '2026-08-25T00:00:00Z', status, error: 'Erro', code, message: 'detalhe interno', path: '/export' };
       exportRequest.flush(new Blob([JSON.stringify(payload)], { type: 'application/json' }), { status, statusText: 'Erro' });

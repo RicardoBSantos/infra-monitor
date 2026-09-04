@@ -212,6 +212,24 @@ describe('IncidenteUnificadoListComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('SW-CORE');
+    // Sem contador não há número em aba nenhuma: é o único caso que esconde o dígito.
+    expect(fixture.nativeElement.querySelectorAll('.aba__contador').length).toBe(0);
+  });
+
+  /**
+   * Zero é resposta, não ausência: a aba vazia precisa dizer "0" em vez de ficar muda,
+   * senão não dá para distinguir "nada nesse estado" de "contador não carregou".
+   */
+  it('mostra o dígito quando o contador da aba é zero', () => {
+    http.expectOne(candidato => candidato.url.endsWith('/dashboard/incidentes')).flush(pagina([linhaIncidente]));
+    http.expectOne(candidato => candidato.url.endsWith('/dashboard/incidentes/contadores'))
+      .flush({ abertos: 1, reconhecidos: 0, resolvidos: 0, todos: 1 });
+    fixture.detectChanges();
+
+    const abas = Array.from(fixture.nativeElement.querySelectorAll('.aba') as NodeListOf<HTMLElement>);
+    const reconhecidos = abas.find(aba => aba.textContent?.includes('Reconhecidos'));
+    expect(reconhecidos?.querySelector('.aba__contador')?.textContent?.trim()).toBe('0');
+    expect(abas.filter(aba => aba.querySelector('.aba__contador')).length).toBe(4);
   });
 });
 

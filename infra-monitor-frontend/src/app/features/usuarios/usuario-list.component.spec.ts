@@ -32,7 +32,7 @@ describe('UsuarioListComponent', () => {
 
   it('validates and creates with the real payload, including validation and conflict feedback', () => {
     const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([]); fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.button--primary') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
     (fixture.componentInstance as any).submit(); fixture.detectChanges();
     expect(http.match('http://localhost:8080/api/v1/usuarios').length).toBe(0);
     const form = (fixture.componentInstance as any).form;

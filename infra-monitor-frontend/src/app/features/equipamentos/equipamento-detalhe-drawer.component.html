@@ -246,12 +246,12 @@
 
   <footer class="gaveta__acoes">
     @if (authState.canManageInventory()) {
-      <button class="botao botao--primario" type="button" (click)="editar.emit()">Editar equipamento</button>
+      <button class="botao" type="button" (click)="editar.emit()">Editar equipamento</button>
     }
     <a class="botao" [routerLink]="['/relatorios']"
        [queryParams]="{ aba: 'medicoes', equipamentoId: equipamentoId() }">Abrir histórico</a>
     @if (authState.canManageInventory()) {
-      <button class="botao botao--perigo" type="button" (click)="alternarEquipamento.emit()">
+      <button class="botao" type="button" (click)="alternarEquipamento.emit()">
         {{ linha()?.ativo === false ? 'Ativar monitoramento' : 'Desativar monitoramento' }}
       </button>
     }

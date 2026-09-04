@@ -51,6 +51,12 @@
           <span class="kpi__rotulo">Status</span>
           <span class="kpi__valor"><app-status-badge [status]="item.status" /></span>
         </li>
+        @if (item.tipo === IncidentKind.Incident) {
+          <li class="kpi">
+            <span class="kpi__rotulo">Reconhecido por</span>
+            <span class="kpi__valor kpi__valor--texto" [title]="item.reconhecidoPorNome ?? ''">{{ item.reconhecidoPorNome ?? '—' }}</span>
+          </li>
+        }
         <li class="kpi">
           <span class="kpi__rotulo">Duração</span>
           <strong [class]="'kpi__valor mono ' + corDuracao()">{{ duracao() }}</strong>
@@ -205,12 +211,12 @@
 
     <footer class="gaveta__acoes">
       @if (podeReconhecer()) {
-        <button class="botao" type="button" (click)="reconhecer()" [disabled]="reconhecendo()">
+        <button class="botao botao--primario" type="button" (click)="reconhecer()" [disabled]="reconhecendo()">
           {{ reconhecendo() ? 'Reconhecendo…' : 'Reconhecer' }}
         </button>
       }
       @if (podeResolver()) {
-        <button class="botao botao--primario" type="button" (click)="confirmarResolucao.set(true)" [disabled]="resolvendo()">
+        <button class="botao botao--sucesso" type="button" (click)="confirmarResolucao.set(true)" [disabled]="resolvendo()">
           Marcar como resolvido
         </button>
       }
