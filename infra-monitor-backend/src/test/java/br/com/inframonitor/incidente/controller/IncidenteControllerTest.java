@@ -11,7 +11,12 @@ import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -31,10 +36,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(IncidenteController.class)
+@Import(IncidenteControllerTest.ResolverDePrincipal.class)
 class IncidenteControllerTest {
 
+    /**
+     * @WebMvcTest nao carrega SecurityConfiguration, e sem ela o resolver de
+     * @AuthenticationPrincipal nao existe: o Usuario do metodo seria tratado como
+     * @ModelAttribute e a requisicao morreria em 400 antes de chegar ao controller.
+     * Sem autenticacao no contexto o principal resolve para null, que e o suficiente
+     * aqui — quem valida a permissao e o matcher de SecurityConfiguration.
+     */
+    @TestConfiguration
+    static class ResolverDePrincipal implements WebMvcConfigurer {
+        @Override
+        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+            resolvers.add(new AuthenticationPrincipalArgumentResolver());
+        }
+    }
+
     private static final IncidenteResponse INCIDENTE = new IncidenteResponse(1L, StatusIncidente.ABERTO,
-            Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null,
+            Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null, null, null,
             new MonitorIncidenteResponse(10L, "ICMP principal", TipoMonitor.ICMP, 20L, "SW-01", 30L, "Matriz"),
             Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:00:00Z"));
 
@@ -75,6 +96,27 @@ class IncidenteControllerTest {
         mockMvc.perform(patch("/api/v1/incidentes/99/fechar").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"encerradoEm\":\"2026-08-19T12:05:00Z\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void reconheceERecusaTransicaoInvalida() throws Exception {
+        IncidenteResponse reconhecido = new IncidenteResponse(1L, StatusIncidente.RECONHECIDO,
+                Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null,
+                Instant.parse("2026-08-19T12:05:00Z"), "Operador",
+                new MonitorIncidenteResponse(10L, "ICMP principal", TipoMonitor.ICMP, 20L, "SW-01", 30L, "Matriz"),
+                Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:05:00Z"));
+        when(incidenteService.reconhecer(eq(1L), any())).thenReturn(reconhecido);
+        when(incidenteService.reconhecer(eq(2L), any()))
+                .thenThrow(new ConflitoException("O incidente ja foi fechado e nao pode mais ser reconhecido"));
+        when(incidenteService.reconhecer(eq(99L), any()))
+                .thenThrow(new RecursoNaoEncontradoException("Incidente nao encontrado"));
+
+        // Sem corpo: quem e quando saem do servidor.
+        mockMvc.perform(patch("/api/v1/incidentes/1/reconhecer")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RECONHECIDO"))
+                .andExpect(jsonPath("$.reconhecidoPorNome").value("Operador"));
+        mockMvc.perform(patch("/api/v1/incidentes/2/reconhecer")).andExpect(status().isConflict());
+        mockMvc.perform(patch("/api/v1/incidentes/99/reconhecer")).andExpect(status().isNotFound());
     }
 
     private String criacaoJson() {

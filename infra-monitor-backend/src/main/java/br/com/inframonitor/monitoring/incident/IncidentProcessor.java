@@ -46,7 +46,7 @@ public class IncidentProcessor {
 
         Monitor monitor = medicaoPersistida.getMonitor();
         Optional<Incidente> incidenteAberto = incidenteRepository
-                .findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.ABERTO);
+                .findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.EM_ABERTO);
         if (incidenteAberto.isPresent()) {
             processarRecovery(monitor, incidenteAberto.get(), medicaoPersistida);
         } else {

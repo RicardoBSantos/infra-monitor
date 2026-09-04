@@ -13,6 +13,7 @@ import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
+import br.com.inframonitor.usuario.entity.Usuario;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,7 +44,7 @@ public class IncidenteService {
     public IncidenteResponse criar(CreateIncidenteRequest requisicao) {
         Monitor monitor = monitorRepository.findById(requisicao.monitorId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Monitor nao encontrado"));
-        if (incidenteRepository.existsByMonitorIdAndStatus(monitor.getId(), StatusIncidente.ABERTO)) {
+        if (incidenteRepository.existsByMonitorIdAndStatusIn(monitor.getId(), StatusIncidente.EM_ABERTO)) {
             throw new ConflitoException(MENSAGEM_INCIDENTE_ABERTO);
         }
         Incidente incidente = new Incidente(monitor, requisicao.iniciadoEm(), normalizar(requisicao.motivo()),
@@ -135,6 +136,26 @@ public class IncidenteService {
         return paraResposta(fechado);
     }
 
+    /**
+     * Reconhecer nao e idempotente, ao contrario de fechar: reconhecer duas vezes e
+     * 409. Fechar tem um caminho automatico concorrente e um 409 ali seria ruido;
+     * reconhecer so tem caminho humano, e o segundo clique significa que o estado
+     * mudou por baixo de quem esta olhando a tela.
+     */
+    @Transactional
+    public IncidenteResponse reconhecer(Long id, Usuario usuario) {
+        Incidente incidente = obterIncidente(id);
+        if (incidenteRepository.reconhecerSeAberto(id, usuario, Instant.now()) == 0) {
+            // Ou ja estava reconhecido, ou o motor fechou entre o SELECT e o UPDATE.
+            Incidente atual = obterIncidente(id);
+            throw new ConflitoException(atual.getStatus() == StatusIncidente.FECHADO
+                    ? "O incidente ja foi fechado e nao pode mais ser reconhecido"
+                    : "O incidente ja foi reconhecido");
+        }
+        // O bulk update nao atualiza a instancia carregada; releitura para responder.
+        return paraResposta(obterIncidente(incidente.getId()));
+    }
+
     private Incidente obterIncidente(Long id) {
         return incidenteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Incidente nao encontrado"));
@@ -157,6 +178,8 @@ public class IncidenteService {
         Equipamento equipamento = monitor.getEquipamento();
         return new IncidenteResponse(incidente.getId(), incidente.getStatus(), incidente.getIniciadoEm(),
                 incidente.getEncerradoEm(), incidente.getMotivo(), incidente.getObservacao(),
+                incidente.getReconhecidoEm(),
+                incidente.getReconhecidoPor() == null ? null : incidente.getReconhecidoPor().getNome(),
                 new MonitorIncidenteResponse(monitor.getId(), monitor.getNome(), monitor.getTipo(),
                         equipamento.getId(), equipamento.getNome(), equipamento.getUnidade().getId(),
                         equipamento.getUnidade().getNome()),

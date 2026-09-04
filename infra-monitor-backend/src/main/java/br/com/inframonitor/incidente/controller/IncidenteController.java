@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -63,6 +64,13 @@ public class IncidenteController {
                                            Pageable pageable) {
         return PaginaResposta.de(incidenteService.listar(monitorId, equipamentoId, unidadeId, status, inicio, fim,
                 Paginacao.limitarESanitizar(pageable, CAMPOS_ORDENAVEIS)));
+    }
+
+    /** Sem corpo: reconhecer e "eu vi". Quem e quando saem do servidor, nunca do cliente. */
+    @PatchMapping("/{id}/reconhecer")
+    public IncidenteResponse reconhecer(@PathVariable Long id,
+                                       @AuthenticationPrincipal br.com.inframonitor.usuario.entity.Usuario usuario) {
+        return incidenteService.reconhecer(id, usuario);
     }
 
     @PatchMapping("/{id}/fechar")

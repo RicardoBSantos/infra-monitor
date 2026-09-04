@@ -38,6 +38,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -99,8 +100,8 @@ class BackendEndToEndIntegrationTest {
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(60));
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(120));
 
-        var incidenteAberto = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(
-                monitorId, StatusIncidente.ABERTO).orElseThrow();
+        var incidenteAberto = incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
+                monitorId, StatusIncidente.EM_ABERTO).orElseThrow();
         assertThat(incidenteAberto.getIniciadoEm()).isEqualTo(inicio);
         var resumoDuranteIncidente = dashboardService.resumo();
         assertThat(resumoDuranteIncidente.equipamentos().indisponiveis()).isEqualTo(1);
@@ -116,8 +117,8 @@ class BackendEndToEndIntegrationTest {
         registrar(monitorId, StatusMedicao.SUCESSO, inicio.plusSeconds(180));
         registrar(monitorId, StatusMedicao.SUCESSO, inicio.plusSeconds(240));
 
-        var incidenteFechado = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(
-                monitorId, StatusIncidente.FECHADO).orElseThrow();
+        var incidenteFechado = incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
+                monitorId, Set.of(StatusIncidente.FECHADO)).orElseThrow();
         assertThat(incidenteFechado.getEncerradoEm()).isEqualTo(inicio.plusSeconds(240));
         Notificacao recovery = notificacao(incidenteFechado.getId(), TipoEventoNotificacao.INCIDENTE_FECHADO);
         assertThat(recovery.getStatus()).isEqualTo(StatusNotificacao.PENDENTE);

@@ -14,6 +14,8 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
+import br.com.inframonitor.usuario.entity.Papel;
+import br.com.inframonitor.usuario.entity.Usuario;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,7 +36,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,7 +73,7 @@ class IncidenteServiceTest {
         assertThatThrownBy(() -> incidenteService.criar(criacao())).isInstanceOf(RecursoNaoEncontradoException.class);
 
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
-        when(incidenteRepository.existsByMonitorIdAndStatus(1L, StatusIncidente.ABERTO)).thenReturn(true);
+        when(incidenteRepository.existsByMonitorIdAndStatusIn(1L, StatusIncidente.EM_ABERTO)).thenReturn(true);
         assertThatThrownBy(() -> incidenteService.criar(criacao())).isInstanceOf(ConflitoException.class);
     }
 
@@ -151,12 +155,64 @@ class IncidenteServiceTest {
         incidenteService.listar(null, null, 3L, StatusIncidente.ABERTO, INICIO, INICIO.plusSeconds(60), pagina);
     }
 
+    @Test
+    void reconheceIncidenteAberto() {
+        Incidente aberto = incidente(StatusIncidente.ABERTO);
+        Usuario operador = operador();
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(aberto));
+        when(incidenteRepository.reconhecerSeAberto(eq(10L), eq(operador), any(Instant.class))).thenReturn(1);
+
+        var resposta = incidenteService.reconhecer(10L, operador);
+
+        assertThat(resposta.id()).isEqualTo(10L);
+        verify(incidenteRepository).reconhecerSeAberto(eq(10L), eq(operador), any(Instant.class));
+        // Reconhecer nao alerta ninguem: nao ha tipo de evento para isso.
+        verifyNoInteractions(notificacaoService);
+    }
+
+    @Test
+    void recusaReconhecerDuasVezesEIncidenteJaFechado() {
+        Usuario operador = operador();
+        // Zero linha afetada = o UPDATE condicional nao casou com status = ABERTO.
+        when(incidenteRepository.reconhecerSeAberto(eq(10L), eq(operador), any(Instant.class))).thenReturn(0);
+
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(incidente(StatusIncidente.RECONHECIDO)));
+        assertThatThrownBy(() -> incidenteService.reconhecer(10L, operador))
+                .isInstanceOf(ConflitoException.class).hasMessageContaining("ja foi reconhecido");
+
+        // Corrida real: o motor fechou entre o SELECT e o UPDATE do operador.
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(incidente(StatusIncidente.FECHADO)));
+        assertThatThrownBy(() -> incidenteService.reconhecer(10L, operador))
+                .isInstanceOf(ConflitoException.class).hasMessageContaining("ja foi fechado");
+    }
+
+    @Test
+    void fechaAutomaticamenteAPartirDeReconhecido() {
+        Incidente reconhecido = incidente(StatusIncidente.RECONHECIDO);
+        when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(i -> i.getArgument(0));
+
+        Incidente fechado = incidenteService.fecharAutomaticamente(reconhecido, INICIO.plusSeconds(120), 2);
+
+        assertThat(fechado.getStatus()).isEqualTo(StatusIncidente.FECHADO);
+        assertThat(fechado.getEncerradoEm()).isEqualTo(INICIO.plusSeconds(120));
+        // A trilha de quem assumiu sobrevive ao fechamento.
+        assertThat(fechado.getReconhecidoPor()).isNotNull();
+        verify(notificacaoService).criarParaIncidenteFechado(fechado);
+    }
+
+    private Usuario operador() {
+        Usuario usuario = new Usuario("Operador", "op@inframonitor", "hash", Papel.OPERADOR, false);
+        definirId(usuario, 7L);
+        return usuario;
+    }
+
     private CreateIncidenteRequest criacao() {
         return new CreateIncidenteRequest(1L, INICIO, " indisponibilidade ", " investigando ");
     }
 
     private Incidente incidente(StatusIncidente status) {
         Incidente incidente = new Incidente(monitor(), INICIO, "motivo", "observacao");
+        if (status == StatusIncidente.RECONHECIDO) incidente.reconhecer(INICIO.plusSeconds(30), operador());
         if (status == StatusIncidente.FECHADO) incidente.fechar(INICIO.plusSeconds(60), null);
         definirId(incidente, 10L);
         return incidente;

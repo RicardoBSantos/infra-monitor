@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -150,15 +151,15 @@ class InfraMonitorApplicationTests {
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(60));
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(120));
 
-        var aberto = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.ABERTO);
+        var aberto = incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.EM_ABERTO);
         assertThat(aberto).isPresent();
         assertThat(aberto.orElseThrow().getIniciadoEm()).isEqualTo(inicio);
 
         registrar(monitorId, StatusMedicao.SUCESSO, inicio.plusSeconds(180));
         registrar(monitorId, StatusMedicao.SUCESSO, inicio.plusSeconds(240));
 
-        assertThat(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.ABERTO)).isEmpty();
-        var fechado = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.FECHADO);
+        assertThat(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(monitorId, StatusIncidente.EM_ABERTO)).isEmpty();
+        var fechado = incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(monitorId, Set.of(StatusIncidente.FECHADO));
         assertThat(fechado).isPresent();
         assertThat(fechado.orElseThrow().getEncerradoEm()).isEqualTo(inicio.plusSeconds(240));
         var notificacoes = notificacaoRepository.findByIncidenteId(fechado.orElseThrow().getId());
