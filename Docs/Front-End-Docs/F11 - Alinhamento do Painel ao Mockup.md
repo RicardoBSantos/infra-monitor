@@ -204,7 +204,7 @@ Dados populados **apenas por INSERT/UPDATE local** (script em scratchpad, não v
 9 unidades, 218 equipamentos, 220 monitores ICMP, janelas de monitoramento abertas há 30 dias,
 ~317 mil medições cobrindo a janela, 73 incidentes fechados e 3 abertos, 4 equipamentos em manutenção.
 
-Credencial de dev: `admin@inframonitor.local` / `Demo@12345` — hash regravado direto no banco local,
+Credencial de dev: `admin@inframonitor.local` / `infrestrutura26` — hash regravado direto no banco local,
 com `troca_senha_obrigatoria = false`. **Vale só para esse container; não replicar em outro ambiente.**
 
 ---
