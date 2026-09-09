@@ -3,10 +3,53 @@
   <div class="map-layout"><section class="map-card" aria-label="Mapa municipal de Sergipe">
     @if (state() === 'loading') { <div class="map-loading" role="status">Carregando cartografia e dados operacionais…</div> }
     @else if (state() === 'error') { <div class="map-feedback map-feedback--error" role="alert"><strong>Mapa indisponível</strong><p>{{ error() }}</p><button class="botao" type="button" (click)="load()">Tentar novamente</button></div> }
-    @else { <svg class="map" viewBox="0 0 760 680" role="img" aria-label="Municípios de Sergipe e respectivas unidades operacionais">@for (municipio of municipios(); track municipio.codigoIbge) { <path tabindex="0" [attr.d]="municipio.path" [attr.aria-label]="municipio.nome + ': ' + (municipio.units.length ? municipio.units.length + ' unidade(s)' : 'nenhuma unidade cadastrada')" [attr.data-codigo-ibge]="municipio.codigoIbge" [class]="'map__municipio map__municipio--' + pathTone(municipio)" (click)="selectMunicipio(municipio)" (keydown)="onMunicipioKeydown($event, municipio)"></path> }</svg> }
-  </section><aside class="map-panel" aria-label="Legenda e detalhes do município"><div><p class="panel-label">LEGENDA DE STATUS</p><ul class="legend"><li><span class="legend__dot legend__dot--success"></span>Disponível</li><li><span class="legend__dot legend__dot--danger"></span>Indisponível</li><li><span class="legend__dot legend__dot--warning"></span>Degradada</li><li><span class="legend__dot legend__dot--info"></span>Em manutenção</li><li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li><li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li><li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li><li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li></ul></div>
+    @else { <div #host class="map" role="img" aria-label="Municípios de Sergipe e respectivas unidades operacionais"></div> }
+  </section><aside class="map-panel" aria-label="Legenda e detalhes do município">
+    @if (statusGeografico().length) {
+      <div class="geo-status"><p class="panel-label">STATUS GEOGRÁFICO · SERGIPE</p>
+        <ul class="geo-status__list">@for (linha of statusGeografico(); track linha.status) { <li><app-status-badge [status]="linha.status" /><span class="geo-status__total">{{ linha.total }}</span></li> }</ul>
+        <p class="geo-status__foot">{{ totalUnidades() }} unidade(s) monitorada(s)</p>
+      </div>
+    }
+    <!-- Municipio com exatamente uma unidade nao aparece aqui: o painel da unidade abaixo ja diz
+         tudo que este bloco diria, e repetir o nome duas vezes so alonga a coluna. -->
+    @if (selected(); as municipio) { @if (municipio.units.length !== 1) { <div class="map-feedback selected-panel"><strong>{{ municipio.nome }}</strong>@if (municipio.units.length === 0) { <p>Nenhuma unidade cadastrada neste município.</p> } @else { <p>{{ municipio.units.length }} unidades neste município. Escolha uma para ver o detalhe.</p><ul class="unit-list">@for (unit of municipio.units; track unit.id) { <li><button class="unit-list__escolha" type="button" [class.unit-list__escolha--ativa]="unidadeSelecionada()?.id === unit.id" [attr.aria-pressed]="unidadeSelecionada()?.id === unit.id" (click)="selectUnidade(unit)"><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /> <span>{{ unit.equipamentosTotal }} equipamentos</span></button></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Gerenciar unidades</button> }</div> } }
+    @if (unidadeSelecionada(); as unidade) {
+      <div class="unit-panel"><p class="panel-label">UNIDADE SELECIONADA</p>
+        <strong class="unit-panel__nome">{{ unidade.nome }}</strong>
+        <app-status-badge [status]="unidade.status" />
+        <dl class="unit-kpis">
+          <div><dt>EQUIPAMENTOS</dt><dd>{{ unidade.equipamentosTotal }}</dd></div>
+          <div><dt>DISPONÍVEIS</dt><dd>{{ unidade.equipamentosDisponiveis }}</dd></div>
+          <div><dt>DEGRADADOS</dt><dd>{{ unidade.equipamentosDegradados }}</dd></div>
+          <div><dt>INDISPONÍVEIS</dt><dd>{{ unidade.equipamentosIndisponiveis }}</dd></div>
+          <div><dt>EM MANUTENÇÃO</dt><dd>{{ unidade.equipamentosEmManutencao }}</dd></div>
+          <div><dt>INCIDENTES ABERTOS</dt><dd>{{ unidade.incidentesAbertos }}</dd></div>
+        </dl>
+        <div class="unit-panel__acoes">
+          <button class="botao botao--primario" type="button" (click)="goToUnidade(unidade)">Ver unidade</button>
+          <button class="botao" type="button" (click)="goToIncidentes(unidade)">Incidentes</button>
+        </div>
+        <p class="panel-label">EQUIPAMENTOS AFETADOS</p>
+        @switch (afetadosState()) {
+          @case ('loading') { <p class="unit-panel__vazio" role="status">Consultando equipamentos…</p> }
+          @case ('error') { <p class="unit-panel__vazio">Não foi possível consultar os equipamentos desta unidade.<button class="botao" type="button" (click)="selectUnidade(unidade)">Tentar novamente</button></p> }
+          @case ('ready') {
+            @if (afetados().length === 0) { <p class="unit-panel__vazio">Nenhum equipamento afetado. Todos os equipamentos sob leitura estão disponíveis.</p> }
+            @else {
+              <ul class="afetados">@for (equipamento of afetados(); track equipamento.id) {
+                <li><button class="afetados__item" type="button" (click)="goToEquipamento(equipamento)">
+                  <span class="afetados__nome">{{ equipamento.nome }}</span>
+                  <app-status-badge [status]="equipamento.status" />
+                  <span class="afetados__meta">{{ equipamento.tipoEquipamento.nome }}@if (equipamento.ip) { · {{ equipamento.ip }} }</span>
+                </button></li> }</ul>
+            }
+          }
+        }
+      </div>
+    }
+    <div><p class="panel-label">LEGENDA DE STATUS</p><ul class="legend"><li><span class="legend__dot legend__dot--success"></span>Disponível</li><li><span class="legend__dot legend__dot--danger"></span>Indisponível</li><li><span class="legend__dot legend__dot--warning"></span>Degradada</li><li><span class="legend__dot legend__dot--info"></span>Em manutenção</li><li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li><li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li><li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li><li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li></ul></div>
     @if (state() === 'empty') { <div class="map-feedback"><strong>Nenhuma unidade retornada</strong><p>A cartografia permanece disponível; não há unidades para associar.</p></div> }
-    @if (selected(); as municipio) { <div class="map-feedback selected-panel"><strong>{{ municipio.nome }}</strong>@if (municipio.units.length === 0) { <p>Nenhuma unidade cadastrada neste município.</p> } @else { <ul class="unit-list">@for (unit of municipio.units; track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /> <span>{{ unit.equipamentosTotal }} equipamentos</span></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Gerenciar unidades</button> }</div> }
     @if (semLocalizacao().length) { <div class="map-feedback"><strong>Unidades sem localização</strong><ul class="unit-list">@for (unit of semLocalizacao(); track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
     @if (semCorrespondencia().length) { <div class="map-feedback map-feedback--warning"><strong>Associação geográfica não encontrada</strong><p>Estas unidades possuem código IBGE sem correspondência na cartografia.</p><ul class="unit-list">@for (unit of semCorrespondencia(); track unit.id) { <li><strong>{{ unit.nome }}</strong><span>{{ unit.codigoIbge }}</span></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
     <dl class="map-source"><dt>BASE CARTOGRÁFICA</dt><dd>Limites municipais de Sergipe</dd><dt>FONTE OPERACIONAL</dt><dd>Dashboard API</dd></dl>
