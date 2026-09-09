@@ -15,6 +15,7 @@ import {
   HistoricoIncidenteResponse, HistoricoIncidenteSortField,
   HistoricoMedicaoResponse, HistoricoMedicaoSortField,
   HistoricoNotificacaoResponse, HistoricoNotificacaoSortField,
+  IndicadoresVisaoGeralResponse,
   LatenciaIcmpResponse, LatenciaIcmpSortField, SortDirection,
 } from '../../core/models/relatorio';
 import { TipoEquipamentoResponse } from '../../core/models/tipo-equipamento';
@@ -24,6 +25,8 @@ import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
+import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
+import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { formatDurationSeconds } from './report-formatters';
 import { apiErrorFromBlob, csvFilename, downloadCsvBlob, fallbackCsvFilename } from './report-csv-download';
 import { downloadPdfBlob, fallbackPdfFilename, isPdfContentType, pdfFilename } from './report-pdf-download';
@@ -34,7 +37,7 @@ type ExportTab = Exclude<Tab, 'overview'>;
 type HierarchyKind = 'availability' | 'incident' | 'measurement' | 'latency';
 type LoadTarget = 'equipment' | 'unit' | 'incident' | 'measurement' | 'latency' | 'notification';
 type LoadState = 'loading' | 'success' | 'empty' | 'error';
-type OverviewTarget = 'openIncidents' | 'failedMeasurements' | 'failedNotifications' | 'units' | 'equipment' | 'latency';
+type OverviewTarget = 'indicators' | 'units' | 'equipment' | 'latency';
 
 interface OverviewWidget<T> {
   state: ReturnType<typeof signal<LoadState>>;
@@ -52,7 +55,7 @@ const measurementSorts = [{ value: 'executadoEm', label: 'Data/hora' }, { value:
 const latencySorts = [{ value: 'unidadeNome', label: 'Unidade' }, { value: 'equipamentoNome', label: 'Equipamento' }, { value: 'monitorNome', label: 'Monitor' }, { value: 'minLatenciaMs', label: 'Mínima' }, { value: 'avgLatenciaMs', label: 'Média' }, { value: 'maxLatenciaMs', label: 'Máxima' }, { value: 'count', label: 'Amostras' }] as const;
 const notificationSorts = [{ value: 'createdAt', label: 'Criada em' }, { value: 'enviadoEm', label: 'Enviada em' }, { value: 'status', label: 'Status' }, { value: 'canal', label: 'Canal' }, { value: 'tipoEvento', label: 'Evento' }, { value: 'tentativas', label: 'Tentativas' }] as const;
 
-@Component({ selector: 'app-relatorios', imports: [ReactiveFormsModule, RouterLink], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './relatorios.component.html', styleUrl: './relatorios.component.scss' })
+@Component({ selector: 'app-relatorios', imports: [PaginacaoComponent, ReactiveFormsModule, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './relatorios.component.html', styleUrl: './relatorios.component.scss' })
 export class RelatoriosComponent {
   private readonly reportsApi = inject(RelatorioApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -101,9 +104,9 @@ export class RelatoriosComponent {
   protected readonly pdfExporting = signal(false);
   protected readonly pdfExportNotice = signal<ExportNotice | null>(null);
   protected readonly overviewWidgets = {
-    openIncidents: overviewWidget<number>(),
-    failedMeasurements: overviewWidget<number>(),
-    failedNotifications: overviewWidget<number>(),
+    // Os três KPIs são um conjunto só, servidos por uma consulta só: carregam, falham e são
+    // repetidos juntos. Os rankings abaixo continuam independentes, cada um com seu estado.
+    indicators: overviewWidget<IndicadoresVisaoGeralResponse>(),
     units: overviewWidget<DisponibilidadeUnidadeResponse[]>(),
     equipment: overviewWidget<DisponibilidadeEquipamentoResponse[]>(),
     latency: overviewWidget<LatenciaIcmpResponse[]>(),
@@ -300,8 +303,8 @@ export class RelatoriosComponent {
     switch (this.activeTab()) { case 'unidades': this.unitSize.set(selected); break; case 'incidentes': this.incidentSize.set(selected); break; case 'medicoes': this.measurementSize.set(selected); break; case 'latencia': this.latencySize.set(selected); break; case 'notificacoes': this.notificationSize.set(selected); break; default: this.size.set(selected); }
     this.resetAndSearch();
   }
-  protected previous() { if (this.currentPageNumber() > 0) { this.changePage(-1); this.search(); } }
-  protected next() { if (!this.currentResult()?.last) { this.changePage(1); this.search(); } }
+  /** `mudarPagina` de <app-paginacao> chega 1-based e já clampado; aqui vira o delta que o estado por aba usa. */
+  protected irParaPagina(pagina: number) { const delta = pagina - 1 - this.currentPageNumber(); if (delta === 0) return; this.changePage(delta); this.search(); }
   protected availability(value: number | null) { return value === null ? '—' : `${value.toFixed(2)}%`; }
   protected availabilityBar(value: number | null) { return value === null || !Number.isFinite(value) ? 0 : Math.max(0, Math.min(100, value)); }
   protected latency(value: number | null | undefined, average = false) { return value === null || value === undefined || !Number.isFinite(value) ? '—' : `${average ? value.toFixed(2) : value} ms`; }
@@ -356,21 +359,19 @@ export class RelatoriosComponent {
   private loadOverviewWidget(target: OverviewTarget, inicio: string, fim: string, generation: number) {
     const widget = this.overviewWidgets[target];
     widget.state.set('loading'); widget.error.set(null);
-    const request = (target === 'openIncidents'
-      ? this.reportsApi.getIncidentes({ inicio, fim, status: IncidentStatus.Open, page: 0, size: 1, sort: { field: 'iniciadoEm', direction: 'desc' } })
-      : target === 'failedMeasurements'
-        ? this.reportsApi.getMedicoes({ inicio, fim, status: MeasurementStatus.Failure, page: 0, size: 1, sort: { field: 'executadoEm', direction: 'desc' } })
-        : target === 'failedNotifications'
-          ? this.reportsApi.getNotificacoes({ inicio, fim, status: NotificationStatus.Failure, page: 0, size: 1, sort: { field: 'createdAt', direction: 'desc' } })
-          : target === 'units'
-            ? this.reportsApi.getDisponibilidadeUnidades({ inicio, fim, page: 0, size: 5, sort: { field: 'disponibilidadePercentual', direction: 'asc' } })
-            : target === 'equipment'
-              ? this.reportsApi.getDisponibilidadeEquipamentos({ inicio, fim, page: 0, size: 5, sort: { field: 'disponibilidadePercentual', direction: 'asc' } })
-              : this.reportsApi.getLatencia({ inicio, fim, page: 0, size: 5, sort: { field: 'avgLatenciaMs', direction: 'desc' } })) as Observable<PageResponse<unknown>>;
+    // Os indicadores vêm prontos do servidor, da mesma query do PDF. Os rankings continuam
+    // lendo `content` da lista paginada.
+    const request = (target === 'indicators'
+      ? this.reportsApi.getIndicadoresVisaoGeral({ inicio, fim })
+      : target === 'units'
+        ? this.reportsApi.getDisponibilidadeUnidades({ inicio, fim, page: 0, size: 5, sort: { field: 'disponibilidadePercentual', direction: 'asc' } })
+        : target === 'equipment'
+          ? this.reportsApi.getDisponibilidadeEquipamentos({ inicio, fim, page: 0, size: 5, sort: { field: 'disponibilidadePercentual', direction: 'asc' } })
+          : this.reportsApi.getLatencia({ inicio, fim, page: 0, size: 5, sort: { field: 'avgLatenciaMs', direction: 'desc' } })) as Observable<PageResponse<unknown> | IndicadoresVisaoGeralResponse>;
     request.pipe(take(1)).subscribe({
       next: response => {
         if (generation !== this.overviewGeneration) return;
-        const value = target === 'openIncidents' || target === 'failedMeasurements' || target === 'failedNotifications' ? response.totalElements : response.content;
+        const value = target === 'indicators' ? response as IndicadoresVisaoGeralResponse : (response as PageResponse<unknown>).content;
         widget.value.set(value as never);
         widget.state.set(Array.isArray(value) && value.length === 0 ? 'empty' : 'success');
       },

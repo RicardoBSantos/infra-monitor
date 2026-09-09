@@ -14,6 +14,17 @@ export interface ReportPeriodQuery {
   fim: string;
 }
 
+/**
+ * Os três indicadores da Visão Geral, prontos do servidor. Vêm da mesma query que o PDF da
+ * tela usa — por isso `incidentesAbertos` conta ABERTO e RECONHECIDO, e não sai do endpoint
+ * paginado de incidentes, onde o status é valor único.
+ */
+export interface IndicadoresVisaoGeralResponse {
+  incidentesAbertos: number;
+  medicoesComFalha: number;
+  notificacoesComFalha: number;
+}
+
 export type SortDirection = 'asc' | 'desc';
 
 export interface ReportSort<Field extends string> {

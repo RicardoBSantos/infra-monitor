@@ -40,6 +40,16 @@ describe('RelatorioApiService', () => {
     expect(request.request.method).toBe('GET'); expect(request.request.params.get('equipamentoId')).toBe('4'); expect(request.request.params.get('size')).toBe('50'); expect(request.request.params.get('status')).toBe('FALHA'); request.flush({ content: [] });
   });
 
+  it('gets the Overview indicators with period only and no pagination envelope', () => {
+    let received: unknown;
+    service.getIndicadoresVisaoGeral(period).subscribe(value => (received = value));
+    const request = http.expectOne(value => value.url.endsWith('/relatorios/visao-geral/indicadores'));
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.keys().sort()).toEqual(['fim', 'inicio']);
+    request.flush({ incidentesAbertos: 1, medicoesComFalha: 2, notificacoesComFalha: 3 });
+    expect(received).toEqual({ incidentesAbertos: 1, medicoesComFalha: 2, notificacoesComFalha: 3 });
+  });
+
   it('gets latency', () => {
     service.getLatencia({ ...period, monitorId: 5, page: 0, size: 20, sort: { field: 'avgLatenciaMs', direction: 'desc' } }).subscribe();
     const request = http.expectOne(value => value.url.endsWith('/relatorios/latencia'));

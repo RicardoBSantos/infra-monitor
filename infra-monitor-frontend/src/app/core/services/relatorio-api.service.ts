@@ -21,11 +21,13 @@ import {
   HistoricoNotificacaoResponse,
   HistoricoNotificacoesExportQuery,
   HistoricoNotificacoesQuery,
+  IndicadoresVisaoGeralResponse,
   LatenciaIcmpQuery,
   LatenciaIcmpExportQuery,
   LatenciaIcmpResponse,
   LatenciaUnidadeResponse,
   LatenciaUnidadesQuery,
+  ReportPeriodQuery,
   ReportSort,
 } from '../models/relatorio';
 
@@ -57,6 +59,15 @@ export class RelatorioApiService {
   /** Array puro, sem envelope de paginação: range fixo de 30 dias definido no backend. */
   getDisponibilidadeDiariaUnidade(unidadeId: number): Observable<DisponibilidadeDiariaUnidadeResponse[]> {
     return this.http.get<DisponibilidadeDiariaUnidadeResponse[]>(`${this.endpoint}/disponibilidade/unidades/${unidadeId}/diaria`);
+  }
+
+  /**
+   * Os três KPIs da Visão Geral numa chamada, sem envelope de paginação. Substitui as três
+   * consultas de lista com `size=1` que liam `totalElements` — o filtro de status daquele
+   * caminho é valor único e escondia incidente RECONHECIDO, que continua em aberto.
+   */
+  getIndicadoresVisaoGeral(query: ReportPeriodQuery): Observable<IndicadoresVisaoGeralResponse> {
+    return this.http.get<IndicadoresVisaoGeralResponse>(`${this.endpoint}/visao-geral/indicadores`, { params: buildReportHttpParams([{ key: 'inicio', value: query.inicio }, { key: 'fim', value: query.fim }]) });
   }
 
   getIncidentes(query: HistoricoIncidentesQuery): Observable<PageResponse<HistoricoIncidenteResponse>> {
