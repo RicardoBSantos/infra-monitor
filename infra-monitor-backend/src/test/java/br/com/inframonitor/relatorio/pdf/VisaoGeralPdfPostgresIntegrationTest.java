@@ -133,6 +133,45 @@ class VisaoGeralPdfPostgresIntegrationTest {
         assertJson(get(periodPath(INICIO, FIM), inactiveToken), 401, "UNAUTHORIZED");
     }
 
+    /**
+     * O caso que o bug passou. A tela contava incidentes chamando o endpoint paginado com
+     * status=ABERTO fixo, e um incidente RECONHECIDO — que continua em aberto — sumia do KPI.
+     * O teste fixa as tres coisas ao mesmo tempo: o indicador conta 25, o PDF do mesmo periodo
+     * imprime 25, e o caminho antigo devolve 24 — a divergencia que nao pode voltar.
+     */
+    @Test
+    void indicadoresContamReconhecidoEBatemComOPdfEnquantoOEndpointPaginadoNao() throws Exception {
+        String token = login("admin@pdf.test");
+        jdbc.update("update incidente set status='RECONHECIDO' where id=(select min(id) from incidente)");
+
+        HttpResponse<byte[]> indicadores = getPath("/api/v1/relatorios/visao-geral/indicadores",
+                periodPath(INICIO, FIM), token);
+        assertThat(indicadores.statusCode()).isEqualTo(200);
+        assertThat(body(indicadores)).contains("\"incidentesAbertos\":25", "\"medicoesComFalha\":25",
+                "\"notificacoesComFalha\":25");
+
+        try (PDDocument document = Loader.loadPDF(get(periodPath(INICIO, FIM), token).body())) {
+            assertThat(new PDFTextStripper().getText(document)).contains("Incidentes abertos", "25");
+        }
+
+        assertThat(body(getPath("/api/v1/relatorios/incidentes",
+                periodPath(INICIO, FIM) + "&status=ABERTO&size=1", token))).contains("\"totalElements\":24");
+        assertThat(body(getPath("/api/v1/relatorios/incidentes",
+                periodPath(INICIO, FIM) + "&status=RECONHECIDO&size=1", token))).contains("\"totalElements\":1");
+    }
+
+    @Test
+    void indicadoresExigemAutenticacaoEValidamOMesmoTetoDe31Dias() throws Exception {
+        String path = "/api/v1/relatorios/visao-geral/indicadores";
+        assertJson(getPath(path, periodPath(INICIO, FIM), null), 401, "UNAUTHORIZED");
+        for (String email : new String[]{"admin@pdf.test", "operador@pdf.test", "visualizador@pdf.test"})
+            assertThat(getPath(path, periodPath(INICIO, FIM), login(email)).statusCode()).isEqualTo(200);
+        String token = login("admin@pdf.test");
+        assertJson(getPath(path, periodPath(FIM, INICIO), token), 400, "INVALID_REQUEST");
+        assertJson(getPath(path, periodPath(INICIO, INICIO.plusSeconds(31L * 86400 + 1)), token), 400,
+                "INVALID_REQUEST");
+    }
+
     @Test
     void validaPeriodoEDevolveErrosJsonSemPdf() throws Exception {
         String token = login("admin@pdf.test");
@@ -189,6 +228,17 @@ class VisaoGeralPdfPostgresIntegrationTest {
                 "/api/v1/relatorios/visao-geral/export/pdf" + query)).GET();
         if (token != null) request.header("Authorization", "Bearer " + token);
         return HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    private HttpResponse<byte[]> getPath(String path, String query, String token) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path + query))
+                .GET();
+        if (token != null) request.header("Authorization", "Bearer " + token);
+        return HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    private static String body(HttpResponse<byte[]> response) {
+        return new String(response.body(), StandardCharsets.UTF_8);
     }
 
     private String login(String email) throws Exception {

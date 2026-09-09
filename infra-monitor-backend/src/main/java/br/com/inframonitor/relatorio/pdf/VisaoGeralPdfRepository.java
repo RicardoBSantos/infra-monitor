@@ -50,6 +50,26 @@ public class VisaoGeralPdfRepository {
         this.timeoutSeconds = Math.min(120, Math.max(1, timeoutSeconds));
     }
 
+    /**
+     * Os tres indicadores globais do periodo, unica fonte para o PDF e para o endpoint JSON
+     * que alimenta os cartoes da Visao Geral. Existe separado de {@link #coletar} justamente
+     * para que a tela nao reimplemente a contagem e volte a divergir do PDF — incidente
+     * RECONHECIDO continua em aberto e conta aqui, ver StatusIncidente.EM_ABERTO.
+     *
+     * <p>Chamado de dentro de {@code coletar} e uma self-invocation: nao abre transacao nova,
+     * roda no REPEATABLE_READ ja aberto, que e o snapshot unico que o PDF exige. Chamado de
+     * fora passa pelo proxy e ganha a propria transacao read-only.
+     */
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public VisaoGeralPdfModel.Kpis coletarKpis(Instant inicio, Instant fim) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("inicio", Timestamp.from(inicio)).addValue("fim", Timestamp.from(fim));
+        aplicarTimeout();
+        return jdbc.queryForObject(KPIS, parameters, (row, number) ->
+                new VisaoGeralPdfModel.Kpis(row.getLong("incidentes_abertos"),
+                        row.getLong("medicoes_falha"), row.getLong("notificacoes_falha")));
+    }
+
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public Coleta coletar(Instant inicio, Instant fim, Instant geradoEm) {
         long started = System.nanoTime();
@@ -57,12 +77,9 @@ public class VisaoGeralPdfRepository {
                 .addValue("inicio", Timestamp.from(inicio)).addValue("fim", Timestamp.from(fim))
                 .addValue("unidadeId", null).addValue("equipamentoId", null)
                 .addValue("monitorId", null).addValue("tipoId", null);
-        jdbc.queryForObject("select set_config('statement_timeout', :timeout, true)",
-                new MapSqlParameterSource("timeout", timeoutSeconds + "s"), String.class);
+        aplicarTimeout();
 
-        VisaoGeralPdfModel.Kpis kpis = jdbc.queryForObject(KPIS, parameters, (row, number) ->
-                new VisaoGeralPdfModel.Kpis(row.getLong("incidentes_abertos"),
-                        row.getLong("medicoes_falha"), row.getLong("notificacoes_falha")));
+        VisaoGeralPdfModel.Kpis kpis = coletarKpis(inicio, fim);
 
         List<VisaoGeralPdfModel.Unidade> unidades = jdbc.query(
                 DisponibilidadeSqlRepository.BASE + " " + DisponibilidadeSqlRepository.UNIDADES + """
@@ -90,6 +107,12 @@ public class VisaoGeralPdfRepository {
         long queryMillis = (System.nanoTime() - started) / 1_000_000;
         return new Coleta(new VisaoGeralPdfModel(inicio, fim, geradoEm, kpis, unidades, equipamentos, latencias),
                 queryMillis);
+    }
+
+    /** `set_config(..., true)` e local a transacao: repetir dentro do mesmo snapshot e inofensivo. */
+    private void aplicarTimeout() {
+        jdbc.queryForObject("select set_config('statement_timeout', :timeout, true)",
+                new MapSqlParameterSource("timeout", timeoutSeconds + "s"), String.class);
     }
 
     private static String estadoUnidade(ResultSet row) throws SQLException {
