@@ -426,7 +426,8 @@ function deIncidente(incidente: IncidenteResponse): OcorrenciaDetalhe {
 }
 
 /**
- * Episódio em curso é "Aberto" no vocabulário unificado da lista; encerrado é "Fechado".
+ * Episódio em curso é "Aberto" no vocabulário unificado da lista; encerrado é FECHADO,
+ * exibido como "Resolvido".
  * Não existe RECONHECIDO aqui — não há o que reconhecer em algo que fecha sozinho.
  */
 function deEpisodio(episodio: EpisodioLatenciaResponse): OcorrenciaDetalhe {

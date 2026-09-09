@@ -11,7 +11,10 @@
 .filters__periodo { display: grid; gap: 5px; justify-items: start; }
 .filters__rotulo { color: var(--im-text-secondary); font: 600 10px 'IBM Plex Mono', monospace; letter-spacing: .05em; }
 
-.right, .actions { text-align: right; }
+// `.numerico` é a utilitária global de _ui.scss. Reafirmada aqui porque o `th` herdado de
+// medicao-list traz `text-align: left` e, com a encapsulação, empata em especificidade com
+// a classe global — sem esta linha o cabeçalho ficaria à esquerda e só o valor à direita.
+.right, .actions, .numerico { text-align: right; }
 .actions { white-space: nowrap; display: flex; gap: 6px; justify-content: flex-end; }
 /* `.actions` não estiliza mais botão nenhum: "Ver" e "Reconhecer" usam `.botao--discreto`,
    que já traz borda, estado desabilitado e foco. Sobrou só `.link`, que é o código da

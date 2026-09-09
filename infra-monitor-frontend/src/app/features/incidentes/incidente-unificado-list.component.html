@@ -42,7 +42,7 @@
     @if (erro()) { <div class="feedback feedback--error" role="alert">{{ erro() }}</div> }
     <div class="table-wrap">
       <table>
-        <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th>DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="right">AÇÕES</th></tr></thead>
+        <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th class="numerico">DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="right">AÇÕES</th></tr></thead>
         <tbody>
           @for (linha of linhas(); track chave(linha)) {
             <tr>
@@ -56,7 +56,7 @@
                 <span>{{ rotuloEvento(linha.tipo) }}</span>
               </td>
               <td class="mono">{{ linha.iniciadoEm | date:'dd/MM/yyyy HH:mm' }}</td>
-              <td class="mono" [class.duracao--em-curso]="linha.encerradoEm === null">{{ duracao(linha) }}</td>
+              <td class="mono numerico" [class.duracao--em-curso]="linha.encerradoEm === null">{{ duracao(linha) }}</td>
               <td>
                 @if (statusNotificacao(linha); as status) {
                   <span class="notificado">
