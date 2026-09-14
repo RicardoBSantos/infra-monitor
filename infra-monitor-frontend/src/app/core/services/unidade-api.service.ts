@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { UnidadeCreateRequest, UnidadeResponse, UnidadeUpdateRequest } from '../models/unidade';
+import { UnidadeConexaoRequest, UnidadeCreateRequest, UnidadeResponse, UnidadeUpdateRequest } from '../models/unidade';
 
 @Injectable({ providedIn: 'root' })
 export class UnidadeApiService {
@@ -14,4 +14,6 @@ export class UnidadeApiService {
   activate(id: number): Observable<UnidadeResponse> { return this.http.patch<UnidadeResponse>(`${this.endpoint}/${id}/ativar`, {}); }
   deactivate(id: number): Observable<UnidadeResponse> { return this.http.patch<UnidadeResponse>(`${this.endpoint}/${id}/desativar`, {}); }
   delete(id: number): Observable<void> { return this.http.delete<void>(`${this.endpoint}/${id}`); }
+  setConexao(id: number, conectaAUnidadeId: number): Observable<UnidadeResponse> { return this.http.put<UnidadeResponse>(`${this.endpoint}/${id}/conexao`, { conectaAUnidadeId } satisfies UnidadeConexaoRequest); }
+  clearConexao(id: number): Observable<UnidadeResponse> { return this.http.delete<UnidadeResponse>(`${this.endpoint}/${id}/conexao`); }
 }

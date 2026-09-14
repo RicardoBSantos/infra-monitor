@@ -471,7 +471,7 @@ export class EquipamentoListComponent {
       this.unidades.update((atuais) => [...atuais, {
         id: equipamento.unidade.id, nome: `${equipamento.unidade.nome} (inativa)`, sigla: '', descricao: null,
         codigoIbge: null, ativo: false, createdAt: '', updatedAt: '', endereco: null, cidade: null, uf: null,
-        latitude: null, longitude: null,
+        latitude: null, longitude: null, conectaAUnidadeId: null,
       }]);
     }
     if (!this.tipos().some((tipo) => tipo.id === equipamento.tipoEquipamento.id)) {

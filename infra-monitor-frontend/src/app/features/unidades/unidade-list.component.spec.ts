@@ -16,7 +16,7 @@ const DASHBOARD_URL = 'http://localhost:8080/api/v1/dashboard/unidades';
 function unidade(id: number, extra: Partial<UnidadeResponse> = {}): UnidadeResponse {
   return {
     id, nome: `Unidade ${id}`, sigla: `U-${id}`, descricao: null, codigoIbge: null, ativo: true,
-    createdAt: '', updatedAt: '', endereco: `Rua ${id}`, cidade: 'Aracaju', uf: 'SE', latitude: null, longitude: null,
+    createdAt: '', updatedAt: '', endereco: `Rua ${id}`, cidade: 'Aracaju', uf: 'SE', latitude: null, longitude: null, conectaAUnidadeId: null,
     ...extra,
   };
 }
@@ -270,6 +270,8 @@ describe('UnidadeListComponent', () => {
     fixture.detectChanges();
     // O GeoJSON de municípios só é baixado quando a gaveta abre.
     http.expectOne('assets/maps/se-municipalities.geo.json').flush(GEO);
+    // E os destinos possiveis de conexao, para o select "Conecta a".
+    http.expectOne('http://localhost:8080/api/v1/unidades').flush([]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.gaveta')).not.toBeNull();

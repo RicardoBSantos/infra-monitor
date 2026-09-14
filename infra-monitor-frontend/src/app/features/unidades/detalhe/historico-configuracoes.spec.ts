@@ -10,7 +10,7 @@ import { UnidadeDetalheStore } from './unidade-detalhe.store';
 
 const cadastro = {
   id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true,
-  createdAt: '', updatedAt: '', endereco: null, cidade: 'Aracaju', uf: 'SE', latitude: null, longitude: null,
+  createdAt: '', updatedAt: '', endereco: null, cidade: 'Aracaju', uf: 'SE', latitude: null, longitude: null, conectaAUnidadeId: null,
 };
 const detalhe = {
   id: 7, nome: 'Centro Operacional', codigoIbge: '2800308', ativo: true, status: UnitOperationalStatus.Degraded,
