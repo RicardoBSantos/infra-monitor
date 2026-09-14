@@ -3,6 +3,7 @@ package br.com.inframonitor.unidade.service;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UpdateUnidadeRequest;
 import br.com.inframonitor.unidade.entity.Unidade;
@@ -223,6 +224,80 @@ class UnidadeServiceTest {
         assertThatThrownBy(() -> unidadeService.excluir(1L))
                 .isInstanceOf(ConflitoException.class)
                 .hasMessageContaining("equipamentos associados");
+        verify(unidadeRepository, never()).delete(any());
+    }
+
+    @Test
+    void conectaUnidadeAoHub() {
+        Unidade filial = new Unidade("Filial", "FIL", null);
+        when(unidadeRepository.findById(2L)).thenReturn(Optional.of(filial));
+        when(unidadeRepository.existsById(1L)).thenReturn(true);
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(new Unidade("Sede", "SED", null)));
+
+        var resposta = unidadeService.definirConexao(2L, new ConexaoUnidadeRequest(1L));
+
+        assertThat(filial.getConectaAUnidadeId()).isEqualTo(1L);
+        assertThat(resposta.conectaAUnidadeId()).isEqualTo(1L);
+    }
+
+    @Test
+    void recusaConexaoDaUnidadeConsigoMesma() {
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(new Unidade("Sede", "SED", null)));
+
+        assertThatThrownBy(() -> unidadeService.definirConexao(1L, new ConexaoUnidadeRequest(1L)))
+                .isInstanceOf(ConflitoException.class)
+                .hasMessageContaining("si mesma");
+    }
+
+    @Test
+    void recusaConexaoParaUnidadeInexistente() {
+        when(unidadeRepository.findById(2L)).thenReturn(Optional.of(new Unidade("Filial", "FIL", null)));
+        when(unidadeRepository.existsById(9L)).thenReturn(false);
+
+        assertThatThrownBy(() -> unidadeService.definirConexao(2L, new ConexaoUnidadeRequest(9L)))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
+    }
+
+    /** A -> B ja existe; conectar B -> A fecharia o ciclo, e nenhuma constraint do banco pega isso. */
+    @Test
+    void recusaConexaoQueFechaCiclo() {
+        Unidade sede = new Unidade("Sede", "SED", null);
+        Unidade filial = new Unidade("Filial", "FIL", null);
+        filial.setConectaAUnidadeId(1L);
+
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(sede));
+        when(unidadeRepository.existsById(2L)).thenReturn(true);
+        when(unidadeRepository.findById(2L)).thenReturn(Optional.of(filial));
+
+        assertThatThrownBy(() -> unidadeService.definirConexao(1L, new ConexaoUnidadeRequest(2L)))
+                .isInstanceOf(ConflitoException.class)
+                .hasMessageContaining("ciclo");
+        assertThat(sede.getConectaAUnidadeId()).isNull();
+    }
+
+    @Test
+    void desconectaUnidadeEEIdempotente() {
+        Unidade filial = new Unidade("Filial", "FIL", null);
+        filial.setConectaAUnidadeId(1L);
+        when(unidadeRepository.findById(2L)).thenReturn(Optional.of(filial));
+
+        unidadeService.removerConexao(2L);
+        var resposta = unidadeService.removerConexao(2L);
+
+        assertThat(filial.getConectaAUnidadeId()).isNull();
+        assertThat(resposta.conectaAUnidadeId()).isNull();
+    }
+
+    @Test
+    void impedeExcluirUnidadeComOutrasConectadasAEla() {
+        Unidade sede = new Unidade("Sede", "SED", null);
+        when(unidadeRepository.findById(1L)).thenReturn(Optional.of(sede));
+        when(equipamentoRepository.existsByUnidadeId(1L)).thenReturn(false);
+        when(unidadeRepository.existsByConectaAUnidadeId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> unidadeService.excluir(1L))
+                .isInstanceOf(ConflitoException.class)
+                .hasMessageContaining("unidades conectadas");
         verify(unidadeRepository, never()).delete(any());
     }
 }
