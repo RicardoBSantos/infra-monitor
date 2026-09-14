@@ -1,3 +1,38 @@
+@use 'sass:meta';
+
+/*
+ * Folha do MapLibre + as sobreposições de tema, dentro do estilo deste componente — ou seja,
+ * dentro do chunk lazy da rota do Mapa. Não vai para `styles[]` do `angular.json`, onde a do
+ * Leaflet estava: `styles[]` é bundle inicial, e são ~8,6 kB gz cobrados de quem nunca abre o
+ * Mapa. Também não funciona como `import` de CSS no .ts: o builder emite o arquivo, mas nada o
+ * carrega em runtime (medido — a folha sai órfã do `dist`).
+ *
+ * `meta.load-css` porque `@use` só existe no topo do arquivo, e este bloco precisa estar
+ * aninhado: canvas, controles e marcadores nascem por script, sem o atributo de escopo do
+ * Angular, e só `::ng-deep` os alcança. Consequência registrada: esta folha passa dos 6 kB do
+ * budget `anyComponentStyle`, cujo erro subiu para 100 kB no `angular.json`.
+ */
+:host ::ng-deep {
+  @include meta.load-css('maplibre-gl/dist/maplibre-gl.css');
+
+  /* Crítico: o maplibre-gl.css pinta o container e cobriria o radial-gradient do .map-card. */
+  .maplibregl-map { background: transparent; font: inherit; }
+  .maplibregl-canvas:focus-visible { outline: 2px solid var(--im-primary); outline-offset: -2px; }
+
+  /* Único controle exibido. Herda as cores do tema, como o zoom do Leaflet herdava. */
+  .maplibregl-ctrl-group { border: 1px solid var(--im-border-strong); border-radius: var(--im-radius); background: var(--im-surface-raised); box-shadow: none; overflow: hidden; }
+  .maplibregl-ctrl-group button + button { border-top: 1px solid var(--im-border); }
+  .maplibregl-ctrl-group button { width: 26px; height: 26px; background-color: var(--im-surface-raised); }
+  .maplibregl-ctrl-group button:hover, .maplibregl-ctrl-group button:focus-visible { background-color: var(--im-surface); }
+  .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(78%); }
+
+  /* Alvo de teclado de cada município: um <button> real que a lib posiciona como Marker. Invisível
+   * em repouso — o município já está desenhado no canvas; o que este elemento entrega é o foco. */
+  .map__alvo { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+  .map__alvo:focus-visible { outline: 2px solid var(--im-primary); outline-offset: 2px; background: rgba(59, 110, 255, .28); }
+  .map__alvo[aria-pressed='true'] { background: rgba(242, 214, 255, .42); }
+}
+
 .map-page { max-width:1500px; margin:0 auto; padding:22px; color:var(--im-text); }.map-page__header { display:flex; align-items:end; justify-content:space-between; gap:var(--im-space-4); margin-bottom:var(--im-space-4); }.map-page__eyebrow,.panel-label,.map-source dt { margin:0 0 4px; color:var(--im-text-muted); font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.12em; }.map-page h1 { margin:0; color:var(--im-text-strong); font-size:20px; font-weight:600; }.map-page__header p:last-child { margin:4px 0 0; color:var(--im-text-muted); font-size:12px; }
 .map-layout { display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:var(--im-space-4); }.map-card,.map-panel { border:1px solid var(--im-border-strong); border-radius:var(--im-radius); background:var(--im-surface); }.map-card { position:relative; min-height:580px; overflow:hidden; background:radial-gradient(circle at 52% 48%,var(--im-map-glow) 0,var(--im-surface) 56%); }.map { display:block; width:100%; height:100%; min-height:580px; /* O SVG antigo tinha viewBox 760x680 e impunha esta proporcao ao cartao; um <div> nao tem proporcao intrinseca, e sem isto o mapa encolheria para os 580px minimos. */ aspect-ratio:760 / 680; }.map-panel { display:flex; flex-direction:column; gap:var(--im-space-4); padding:15px; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:var(--im-text-secondary); }.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:var(--im-text-muted); }.legend__dot--none { background:var(--im-map-water); border:1px solid var(--im-map-stroke); }.legend__dot--multiple { background:var(--im-map-active); border:1px dashed var(--im-info-soft); }.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }.map-source { display:grid; gap:3px; margin:auto 0 0; padding-top:14px; border-top:1px solid var(--im-border); }.map-source dt { margin:0; }.map-source dd { margin:0 0 9px; color:var(--im-text-secondary); font:11px 'IBM Plex Mono',monospace; }.map-loading { display:grid; min-height:580px; place-items:center; color:var(--im-text-muted); font:11px 'IBM Plex Mono',monospace; letter-spacing:.04em; } @media (max-width:900px) { .map-layout { grid-template-columns:1fr; }.map-panel { display:grid; grid-template-columns:1fr 1fr; }.map-source { margin:0; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-page { padding:16px; }.map-page__header { align-items:start; }.map-card,.map,.map-loading { min-height:420px; }.map-panel { grid-template-columns:1fr; }.map-page__header p:last-child { max-width:255px; } }
 
@@ -27,3 +62,10 @@
 .unit-list__escolha:hover,.unit-list__escolha:focus-visible { border-color:var(--im-border-strong); background:var(--im-surface); }
 .unit-list__escolha--ativa { border-color:var(--im-primary); background:var(--im-surface); }
 
+/* --- Legenda 3D e regiao viva (N05) -------------------------------------------------- */
+.legend__nota { display:flex; align-items:flex-start; gap:7px; margin:9px 0 0; color:var(--im-text-muted); font-size:11px; line-height:1.45; }
+.legend__nota strong { color:var(--im-text-secondary); }
+/* Amostra do colar: mesmo lilas e mesma translucidez do que e desenhado no topo da extrusao. */
+.legend__anel { flex:0 0 auto; width:10px; height:10px; margin-top:3px; border:2px solid #f2d6ff; border-radius:50%; background:rgba(242,214,255,.5); }
+/* So para leitor de tela: a selecao acontece no canvas, sem texto visivel novo. */
+.map-sr { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }

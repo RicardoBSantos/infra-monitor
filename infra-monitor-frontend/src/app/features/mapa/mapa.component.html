@@ -4,6 +4,9 @@
     @if (state() === 'loading') { <div class="map-loading" role="status">Carregando cartografia e dados operacionais…</div> }
     @else if (state() === 'error') { <div class="map-feedback map-feedback--error" role="alert"><strong>Mapa indisponível</strong><p>{{ error() }}</p><button class="botao" type="button" (click)="load()">Tentar novamente</button></div> }
     @else { <div #host class="map" role="img" aria-label="Municípios de Sergipe e respectivas unidades operacionais"></div> }
+    <!-- A seleção acontece dentro do canvas WebGL: sem esta região viva, quem usa leitor de tela
+         não recebe nenhum retorno ao acionar um município pelo teclado. -->
+    <p class="map-sr" role="status" aria-live="polite">{{ anuncio() }}</p>
   </section><aside class="map-panel" aria-label="Legenda e detalhes do município">
     @if (statusGeografico().length) {
       <div class="geo-status"><p class="panel-label">STATUS GEOGRÁFICO · SERGIPE</p>
@@ -48,7 +51,9 @@
         }
       </div>
     }
-    <div><p class="panel-label">LEGENDA DE STATUS</p><ul class="legend"><li><span class="legend__dot legend__dot--success"></span>Disponível</li><li><span class="legend__dot legend__dot--danger"></span>Indisponível</li><li><span class="legend__dot legend__dot--warning"></span>Degradada</li><li><span class="legend__dot legend__dot--info"></span>Em manutenção</li><li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li><li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li><li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li><li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li></ul></div>
+    <div><p class="panel-label">LEGENDA DE STATUS</p><ul class="legend"><li><span class="legend__dot legend__dot--success"></span>Disponível</li><li><span class="legend__dot legend__dot--danger"></span>Indisponível</li><li><span class="legend__dot legend__dot--warning"></span>Degradada</li><li><span class="legend__dot legend__dot--info"></span>Em manutenção</li><li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li><li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li><li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li><li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li></ul>
+      <p class="legend__nota"><strong>Altura do bloco</strong> = equipamentos monitorados no município. Município sem equipamento fica rente ao chão.</p>
+      <p class="legend__nota"><span class="legend__anel"></span>Colar translúcido no topo do bloco marca o município selecionado — a cor de status continua visível por baixo.</p></div>
     @if (state() === 'empty') { <div class="map-feedback"><strong>Nenhuma unidade retornada</strong><p>A cartografia permanece disponível; não há unidades para associar.</p></div> }
     @if (semLocalizacao().length) { <div class="map-feedback"><strong>Unidades sem localização</strong><ul class="unit-list">@for (unit of semLocalizacao(); track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
     @if (semCorrespondencia().length) { <div class="map-feedback map-feedback--warning"><strong>Associação geográfica não encontrada</strong><p>Estas unidades possuem código IBGE sem correspondência na cartografia.</p><ul class="unit-list">@for (unit of semCorrespondencia(); track unit.id) { <li><strong>{{ unit.nome }}</strong><span>{{ unit.codigoIbge }}</span></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }

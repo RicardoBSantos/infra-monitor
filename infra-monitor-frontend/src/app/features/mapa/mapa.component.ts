@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
-import * as L from 'leaflet';
+import { LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import { take } from 'rxjs';
+
 
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
@@ -88,6 +89,80 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
     && equipamento.status !== EquipmentOperationalStatus.Disabled);
 }
 
+/** Cor de cada tom, em hex — o canvas WebGL nao le variavel CSS. Mesmos valores do tema escuro. */
+const COR_DO_TOM: Record<string, string> = {
+  'disponivel': '#34c77b', 'indisponivel': '#e5484d', 'degradada': '#e8a33d', 'em-manutencao': '#7fadff',
+  'sem-dados': '#435464', 'sem-equipamentos': '#263744', 'multiple': '#38536b', 'none': '#0c1722',
+};
+
+/**
+ * Colar do município selecionado. Três decisões, cada uma custou uma tentativa:
+ *
+ * 1. Não reaproveita `--im-primary` (#3B6EFF), a cor do anel no mapa plano: em 3D o colar encosta
+ *    no bloco, e azul sobre `em-manutencao` (#7fadff) ficava ambíguo.
+ * 2. Não é magenta saturado (#c05cff). Translúcido, magenta sobre verde vira cinza dessaturado —
+ *    apaga o status E apaga a seleção. Lilás claro clareia sem torcer o matiz de baixo.
+ * 3. É claro, não escuro: o fundo do mapa é escuro, e só um tom claro se separa dele.
+ *
+ * Nenhum status usa esta faixa do espectro, então o colar nunca é lido como estado operacional.
+ */
+const COR_SELECAO = '#f2d6ff';
+
+/**
+ * Altura da extrusão: metros por equipamento monitorado no município (decisão de produto N03).
+ *
+ * 400 e não os 800 do spike porque no banco real a distribuição é desigual — Aracaju soma quatro
+ * unidades e 81 equipamentos, o triplo do segundo colocado. Com 800 aquele bloco virava uma parede
+ * de 65 km que tapava metade do estado. A escala segue linear: a legenda promete altura
+ * proporcional a equipamentos, e achatar o maior por estética quebraria essa promessa.
+ */
+const METROS_POR_EQUIPAMENTO = 400;
+
+/** Espessura do anel em metros. O anel é um colar no topo da extrusão, não um traço no chão. */
+const ESPESSURA_ANEL = 700;
+
+/**
+ * Opacidade do colar. Não é 1 de propósito: o mapa é visto de cima, e colar opaco apagava a face
+ * superior — justamente a mais visível — deixando o município selecionado sem cor de status. Isso
+ * inverteria a prioridade: status é o dado operacional, seleção é só interação. O anel do mapa
+ * plano (M04) era ortogonal ao status, e essa propriedade tinha de sobreviver ao 3D.
+ */
+const OPACIDADE_ANEL = 0.5;
+
+/** Inclinação padrão da experiência — não é toggle: em pitch 0 o mapa é o Leaflet de antes. */
+const PITCH = 45;
+const BEARING = -18;
+
+/**
+ * Offset da câmera, em pixels de tela. Com a inclinação aplicada o estado sobe e sobra faixa morta
+ * na metade de baixo do cartão; este deslocamento recoloca o alvo mais abaixo. Calibrado no cartão
+ * de 580px de altura, que tem proporção fixa `760/680` — então vale em qualquer largura.
+ */
+const OFFSET_CAMERA: [number, number] = [0, 40];
+
+/**
+ * Zoom somado ao enquadramento plano na hora de inclinar. Inclinar encolhe o desenho — a mesma
+ * área passa a caber num trapézio menor — e sem esta compensação o estado fica pequeno no meio do
+ * cartão, com faixa morta em cima E embaixo.
+ */
+const ZOOM_AO_INCLINAR = 0.55;
+
+/** Varre coordenadas de Polygon/MultiPolygon sem alocar array intermediario. */
+export function percorrerCoordenadas(geometria: { coordinates: unknown }, visitar: (ponto: number[]) => void): void {
+  const anda = (no: unknown): void => {
+    if (Array.isArray(no) && typeof no[0] === 'number') { visitar(no as number[]); return; }
+    if (Array.isArray(no)) for (const filho of no) anda(filho);
+  };
+  anda(geometria.coordinates);
+}
+
+/** Centro do envelope do municipio. Nao e o polo de inacessibilidade: em municipio concavo pode cair fora. */
+export function centroideAproximado(geometria: { coordinates: unknown }): [number, number] | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  percorrerCoordenadas(geometria, ([x, y]) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); });
+  return Number.isFinite(minX) ? [(minX + maxX) / 2, (minY + maxY) / 2] : null;
+}
+
 @Component({ selector: 'app-mapa', imports: [StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './mapa.component.html', styleUrl: './mapa.component.scss' })
 export class MapaComponent implements OnDestroy {
   private readonly geoMunicipio = inject(GeoMunicipioService);
@@ -99,6 +174,8 @@ export class MapaComponent implements OnDestroy {
   protected readonly semLocalizacao = signal<DashboardUnidade[]>([]);
   protected readonly semCorrespondencia = signal<DashboardUnidade[]>([]);
   protected readonly error = signal<string | null>(null);
+  /** Região viva: o painel lateral é visual, e sem isto quem navega por teclado não ouve a troca. */
+  protected readonly anuncio = signal('');
 
   /** Unidade em foco no painel. Município com uma única unidade seleciona sozinho; com várias, espera o clique. */
   protected readonly unidadeSelecionada = signal<DashboardUnidade | null>(null);
@@ -111,15 +188,9 @@ export class MapaComponent implements OnDestroy {
   private sourceMunicipios: Municipio[] | null = null;
   private units: DashboardUnidade[] | null = null;
 
-  private map: L.Map | null = null;
-  private camada: L.GeoJSON | null = null;
-  /** Elemento SVG de cada município, para trocar a classe sem reconstruir a camada. */
-  private readonly elementos = new Map<string, SVGPathElement>();
-  /**
-   * Os listeners de teclado são nossos, não do Leaflet: `map.remove()` não sabe deles e não os
-   * desfaz. O AbortController remove todos de uma vez quando a camada é reconstruída ou o
-   * componente morre — sem isso, navegar para fora e voltar acumula handler sobre nó já descartado.
-   */
+  private map: MaplibreMap | null = null;
+  /** Um Marker por municipio: unico no DOM focavel, ja que o poligono vive no canvas WebGL. */
+  private readonly marcadores = new Map<string, Marker>();
   private teclado: AbortController | null = null;
 
   constructor() {
@@ -144,6 +215,7 @@ export class MapaComponent implements OnDestroy {
 
   protected selectMunicipio(municipio: MapMunicipio): void {
     this.selected.set(municipio);
+    this.anuncio.set(`${municipio.nome} selecionado. ${municipio.units.length ? `${municipio.units.length} unidade(s).` : 'Nenhuma unidade cadastrada.'}`);
     // Com uma única unidade, exigir um segundo clique só para ver o detalhe seria atrito sem ganho.
     if (municipio.units.length === 1) { this.selectUnidade(municipio.units[0]); return; }
     this.limparUnidade();
@@ -185,97 +257,132 @@ export class MapaComponent implements OnDestroy {
     this.state.set(this.units.length === 0 ? 'empty' : 'success');
   }
 
+
+
   private montarMapa(elemento: HTMLDivElement, municipios: MapMunicipio[]): void {
     this.destruirMapa();
     /*
-     * Sem camada de tiles por decisão: a base cartográfica é o próprio GeoJSON, e o fundo continua
-     * sendo o gradiente do cartão (ver `.leaflet-container { background: transparent }` no SCSS).
-     * Sem tile também não há atribuição a exibir, daí `attributionControl: false`.
+     * O MapLibre parseia o GeoJSON num Web Worker próprio, que o pacote publica como arquivo ESM
+     * separado (`maplibre-gl-worker.mjs`). O builder do Angular NÃO emite esse arquivo: o
+     * `new Worker(new URL(...))` está dentro de node_modules e passa batido. Sem isto o mapa sobe
+     * inteiro — canvas, controles, marcadores — e nunca desenha nada, porque a fonte fica presa em
+     * "carregando" e `isStyleLoaded()` jamais vira true. Não há erro no console.
      *
-     * `renderer: L.svg()` é obrigatório, não preferência: o renderizador Canvas não cria elemento
-     * DOM por feature, e sem elemento não existe `tabindex` — a navegação por teclado, que o SVG
-     * anterior tinha, seria impossível de recuperar.
+     * Por isso o worker e o módulo que ele importa são copiados como assets (ver `angular.json`) e
+     * apontados aqui. `document.baseURI` em vez de caminho absoluto: a aplicação tem de continuar
+     * funcionando se um dia for servida sob um sub-caminho.
      */
-    const map = L.map(elemento, { renderer: L.svg(), attributionControl: false, zoomControl: true, /* zoomSnap 0 deixa o enquadramento inicial continuo: com o passo padrao o Leaflet arredonda o zoom e o mapa nao ocupa a mesma area que o SVG antigo ocupava. */ zoomSnap: 0, minZoom: 6, maxZoom: 14 });
-    this.map = map;
+    setWorkerUrl(new URL('maplibre/maplibre-gl-worker.mjs', document.baseURI).href);
     this.teclado = new AbortController();
     const signalAbort = this.teclado.signal;
 
-    this.camada = L.geoJSON({ type: 'FeatureCollection', features: municipios.map(municipio => municipio.feature) } as unknown as GeoJSON.GeoJsonObject, {
-      // `fillOpacity`/`opacity` em 1 porque o Leaflet, no padrão, escreve fill-opacity="0.2" como
-      // atributo; ele multiplicaria o alpha das cores rgba() do tema e clarearia todo o mapa.
-      style: () => ({ fillOpacity: 1, opacity: 1, weight: 1.2, className: 'map__municipio' }),
-    }).addTo(map);
+    const colecao = {
+      type: 'FeatureCollection',
+      features: municipios.map(municipio => ({
+        ...municipio.feature,
+        properties: {
+          ...municipio.feature.properties,
+          cor: COR_DO_TOM[toneDoMunicipio(municipio)],
+          // Altura = equipamentos monitorados na unidade (decisao de produto N03).
+          equipamentos: municipio.units.reduce((soma, unidade) => soma + unidade.equipamentosTotal, 0),
+        },
+      })),
+    } as unknown as Record<string, unknown>;
 
+    const map = new MaplibreMap({
+      container: elemento,
+      // Estilo proprio: sem tiles, sprite ou glyphs — nenhuma requisicao de rede externa.
+      style: { version: 8, sources: { municipios: { type: 'geojson', data: colecao } }, layers: [
+        { id: 'fundo', type: 'background', paint: { 'background-color': 'rgba(0,0,0,0)' } },
+        { id: 'municipios-3d', type: 'fill-extrusion', source: 'municipios', paint: {
+            'fill-extrusion-color': ['get', 'cor'],
+            'fill-extrusion-height': ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO],
+            'fill-extrusion-opacity': 0.92 } },
+        { id: 'municipios-contorno', type: 'line', source: 'municipios', paint: { 'line-color': '#294056', 'line-width': 1 } },
+        /*
+         * Anel de seleção como segunda extrusão, e não como `line`: camada de linha desenha no
+         * nível do chão, e em município alto o anel ficava no pé do bloco, longe do topo que o
+         * operador está olhando. Este colar nasce onde a extrusão termina e sobe `ESPESSURA_ANEL`.
+         */
+        { id: 'municipio-selecionado', type: 'fill-extrusion', source: 'municipios', filter: ['==', ['get', 'id'], ''], paint: {
+            'fill-extrusion-color': COR_SELECAO,
+            'fill-extrusion-base': ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO],
+            'fill-extrusion-height': ['+', ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO], ESPESSURA_ANEL],
+            'fill-extrusion-opacity': OPACIDADE_ANEL } },
+      ] },
+      // Nasce plano: o enquadramento é calculado sem inclinação, e o pitch entra depois (ver abaixo).
+      attributionControl: false, minZoom: 6, maxZoom: 14, maxPitch: 60, pitch: 0, bearing: BEARING,
+    });
+    this.map = map;
+    map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
+
+    const limites = new LngLatBounds();
+    for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => limites.extend(ponto as [number, number]));
     /*
-     * O enquadramento vem ANTES da decoração, e a ordem não é estética. `map.addLayer` adia o
-     * trabalho real por `whenReady`: enquanto o mapa não tem view definida, as camadas ficam na
-     * fila, sem `_path` e fora do DOM. Decorar antes disto encontra `getElement()` nulo em todos os
-     * municípios e o `tabindex` simplesmente não é escrito — falha silenciosa, mapa inacessível.
+     * Duas etapas de propósito. `fitBounds` com `pitch` junto encolhe o mapa: a câmera recua para
+     * caber a área inclinada, que é maior que o retângulo. Enquadra-se plano, onde a projeção
+     * cobre o cartão inteiro, e só então aplica-se a inclinação com `OFFSET_CAMERA`.
      */
-    map.fitBounds(this.camada.getBounds(), { padding: [34, 34] });
+    map.fitBounds(limites, { padding: 34, bearing: BEARING, duration: 0 });
+    map.easeTo({ pitch: PITCH, zoom: map.getZoom() + ZOOM_AO_INCLINAR, offset: OFFSET_CAMERA, duration: 0 });
 
-    this.camada.eachLayer(layer => {
-      const propriedades = (layer as L.Layer & { feature?: { properties?: { id?: string } } }).feature?.properties;
-      const codigo = normalizeCodigoIbge(propriedades?.id);
+    map.on('click', 'municipios-3d', evento => {
+      const codigo = normalizeCodigoIbge(evento.features?.[0]?.properties?.['id'] as string);
       const municipio = municipios.find(candidato => candidato.codigoIbge === codigo);
-      if (!municipio) return;
-      layer.on('click', () => { this.selectMunicipio(municipio); });
-      const elementoPath = (layer as L.Path).getElement() as SVGPathElement | null;
-      if (!elementoPath) return;
-      this.elementos.set(codigo, elementoPath);
-      // O Leaflet não torna vetor focável; o SVG manual anterior tinha tabindex e Enter/Espaço.
-      elementoPath.setAttribute('tabindex', '0');
-      elementoPath.setAttribute('role', 'button');
-      elementoPath.setAttribute('aria-label', rotuloDoMunicipio(municipio));
-      elementoPath.setAttribute('data-codigo-ibge', codigo);
-      elementoPath.addEventListener('keydown', (evento: KeyboardEvent) => {
-        if (evento.key !== 'Enter' && evento.key !== ' ') return;
-        evento.preventDefault();
-        this.selectMunicipio(municipio);
-      }, { signal: signalAbort });
+      if (municipio) this.selectMunicipio(municipio);
     });
 
     /*
-     * `untracked` NÃO é detalhe. Este trecho roda dentro do effect de montagem, e `aplicarTons` lê
-     * `selected()` e `municipios()`: sem isolar, o effect passa a depender da seleção e cada clique
-     * destrói a camada e reprojeta a cartografia inteira. O nó do município selecionado saía do DOM
-     * com o foco dentro, e o teclado voltava para o `body` — o município deixava de ser navegável
-     * a partir de onde o operador estava. O effect de tons, logo abaixo, é quem deve seguir a
-     * seleção; aqui a chamada existe só para pintar a camada recém-criada na mesma volta.
+     * Acessibilidade (N02): o canvas WebGL nao cria no por feature, entao o tab-stop de cada
+     * municipio e um Marker — elemento DOM real que a propria lib reposiciona em pan, zoom, pitch
+     * e rotate, sem sincronizacao manual por frame.
      */
+    for (const municipio of municipios) {
+      const centro = centroideAproximado(municipio.feature.geometry);
+      if (!centro) continue;
+      const botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'map__alvo';
+      botao.setAttribute('aria-label', rotuloDoMunicipio(municipio));
+      botao.setAttribute('data-codigo-ibge', municipio.codigoIbge);
+      botao.addEventListener('click', () => this.selectMunicipio(municipio), { signal: signalAbort });
+      // Alvo fora da viewport continua focavel pelo Tab: ao receber foco, traz a camera ate ele.
+      botao.addEventListener('focus', () => { if (!map.getBounds().contains(centro)) map.easeTo({ center: centro, duration: 200 }); }, { signal: signalAbort });
+      /*
+       * Alinhamento em `viewport` (o padrão, explícito para não se perder numa refatoração): com
+       * `map` o alvo e o anel de foco deitam junto com o terreno e o foco fica ilegível.
+       */
+      const marcador = new Marker({ element: botao, pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(centro).addTo(map);
+      this.marcadores.set(municipio.codigoIbge, marcador);
+    }
+
+    // `aplicarTons` depende do estilo pronto, e no primeiro monte ele ainda não está.
+    map.on('load', () => untracked(() => this.aplicarTons(this.selected()?.codigoIbge ?? null)));
     untracked(() => this.aplicarTons(this.selected()?.codigoIbge ?? null));
   }
 
   private aplicarTons(selecionado: string | null): void {
-    let marcadoElemento: SVGPathElement | null = null;
-    for (const municipio of this.municipios()) {
-      const elemento = this.elementos.get(municipio.codigoIbge);
-      if (!elemento) continue;
-      const marcado = municipio.codigoIbge === selecionado;
-      elemento.setAttribute('class', `map__municipio map__municipio--${toneDoMunicipio(municipio)}${marcado ? ' map__municipio--selected' : ''}`);
-      if (marcado) marcadoElemento = elemento;
-    }
+    const map = this.map;
+    if (!map) return;
     /*
-     * O anel da seleção corre sobre a fronteira, que é compartilhada: o vizinho pintado depois
-     * cobre metade dele. Reordenar no DOM é o que o Leaflet chama de `bringToFront`; sem isto o
-     * contorno sai recortado nos municípios do meio do mapa.
-     *
-     * `appendChild` de um nó que já está no documento é remoção seguida de inserção, e o foco não
-     * sobrevive a isso: selecionar pelo teclado devolveria o foco ao `body`. Daí devolver o foco ao
-     * mesmo nó, com `preventScroll` para o mapa não saltar sob quem usa mouse.
+     * O `aria-pressed` vem primeiro, e fora da guarda de estilo. Enquanto os dois estavam depois
+     * do `isStyleLoaded()`, selecionar antes de o estilo terminar de carregar deixava o marcador
+     * sem estado nenhum — o painel abria, o anúncio saía, e o leitor de tela continuava dizendo
+     * que nada estava selecionado. O efeito não roda de novo sozinho: a dependência não mudou.
      */
-    if (!marcadoElemento) return;
-    const tinhaFoco = document.activeElement === marcadoElemento;
-    marcadoElemento.parentNode?.appendChild(marcadoElemento);
-    if (tinhaFoco) marcadoElemento.focus({ preventScroll: true });
+    for (const municipio of this.municipios()) {
+      const marcador = this.marcadores.get(municipio.codigoIbge);
+      marcador?.getElement().setAttribute('aria-pressed', String(municipio.codigoIbge === selecionado));
+    }
+    if (!map.isStyleLoaded()) return;
+    map.setFilter('municipio-selecionado', ['==', ['get', 'id'], selecionado ?? '']);
   }
 
   private destruirMapa(): void {
     this.teclado?.abort();
     this.teclado = null;
-    this.elementos.clear();
-    this.camada = null;
+    for (const marcador of this.marcadores.values()) marcador.remove();
+    this.marcadores.clear();
     this.map?.remove();
     this.map = null;
   }

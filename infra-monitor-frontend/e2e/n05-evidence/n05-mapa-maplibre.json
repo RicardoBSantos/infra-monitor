@@ -1,0 +1,153 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "um alvo focável por município",
+      "ok": true,
+      "detalhe": "75 alvos para 75 municípios na cartografia"
+    },
+    {
+      "caso": 2,
+      "nome": "ordem de Tab alfabética (mesma do painel)",
+      "ok": true,
+      "detalhe": "Amparo de São Francisco: nenhuma unidade cadastrada | Aquidabã: nenhuma unidade cadastrada"
+    },
+    {
+      "caso": 3,
+      "nome": "canvas do mapa é o primeiro stop do cartão (igual ao container do Leaflet)",
+      "ok": true,
+      "detalhe": "{\"tag\":\"CANVAS\",\"rotulo\":\"Map\",\"codigo\":null,\"alvoDeMapa\":false}"
+    },
+    {
+      "caso": 4,
+      "nome": "Tab seguinte chega no primeiro município",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Amparo de São Francisco: nenhuma unidade cadastrada\",\"codigo\":\"2800100\",\"alvoDeMapa\":true}"
+    },
+    {
+      "caso": 5,
+      "nome": "Enter seleciona o município focado",
+      "ok": true,
+      "detalhe": "pressionados: Amparo de São Francisco: nenhuma unidade cadastrada"
+    },
+    {
+      "caso": 6,
+      "nome": "foco permanece no município após selecionar",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Amparo de São Francisco: nenhuma unidade cadastrada\",\"codigo\":\"2800100\",\"alvoDeMapa\":true}"
+    },
+    {
+      "caso": 7,
+      "nome": "mudança é anunciada em aria-live",
+      "ok": true,
+      "detalhe": "\"Amparo de São Francisco selecionado. Nenhuma unidade cadastrada.\""
+    },
+    {
+      "caso": 8,
+      "nome": "Espaço seleciona o município focado",
+      "ok": true,
+      "detalhe": "pressionados: Aquidabã: nenhuma unidade cadastrada"
+    },
+    {
+      "caso": 9,
+      "nome": "apenas um município marcado por vez",
+      "ok": true,
+      "detalhe": "1 marcados"
+    },
+    {
+      "caso": 10,
+      "nome": "foco sobrevive a mudança de câmera",
+      "ok": true,
+      "detalhe": "2800209 -> 2800209"
+    },
+    {
+      "caso": 11,
+      "nome": "alvo reposicionado pela lib ao mover a câmera",
+      "ok": true,
+      "detalhe": "854,490 -> 890,476"
+    },
+    {
+      "caso": 13,
+      "nome": "ordem de Tab permanece alfabética com pitch e rotação aplicados",
+      "ok": true,
+      "detalhe": "75 alvos; primeiro=\"Amparo de São Francisco: nenhuma unidade cadastrada\""
+    },
+    {
+      "caso": 14,
+      "nome": "girar e inclinar preserva o nó do Marker (lib reposiciona, não recria)",
+      "ok": true,
+      "detalhe": "75/75 nós ainda com a marca posta antes da câmera mexer; posições mudaram=true"
+    },
+    {
+      "caso": 12,
+      "nome": "nenhum erro de página durante o roteiro de teclado",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 15,
+      "nome": "município com uma única unidade seleciona a unidade e abre o painel",
+      "ok": true,
+      "detalhe": "UNIDADE SELECIONADAUnidade SocorroDisponívelEQUIPAMENTOS24DISPONÍVEIS24DEGRADADOS0INDISPONÍVEIS0EM MANUTENÇÃO0INCIDENTES ABERTOS0Ver unidade"
+    },
+    {
+      "caso": 16,
+      "nome": "painel lista equipamentos afetados ou diz explicitamente que não há",
+      "ok": true,
+      "detalhe": "itens=0 vazio=1"
+    },
+    {
+      "caso": 17,
+      "nome": "município com mais de uma unidade pede escolha antes do painel",
+      "ok": true,
+      "detalhe": "escolhas=4"
+    },
+    {
+      "caso": 18,
+      "nome": "\"Ver unidade\" leva para a rota da unidade",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4200/unidades/7/visao-geral"
+    },
+    {
+      "caso": 19,
+      "nome": "sem faixa morta: há município desenhado no terço de cima e no de baixo do cartão",
+      "ok": true,
+      "detalhe": "3 alvos acima de 28% e 8 abaixo de 72% da altura (847px)"
+    },
+    {
+      "caso": 20,
+      "nome": "seleção por clique marca o município e rende a captura do anel",
+      "ok": true,
+      "detalhe": "Aracaju: 4 unidade(s)"
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página no roteiro inteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    "2026-09-14T16:48:16.438Z POST /auth/login",
+    "2026-09-14T16:48:16.707Z GET /dashboard/resumo",
+    "2026-09-14T16:48:16.740Z GET /dashboard/unidades",
+    "2026-09-14T16:48:16.741Z GET /unidades?ativo=true",
+    "2026-09-14T16:48:16.741Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-15T16:48:16.716Z&fim=2026-09-14T16:48:16.716Z&size=200",
+    "2026-09-14T16:48:16.742Z GET /relatorios/latencia/unidades?inicio=2026-08-15T16:48:16.717Z&fim=2026-09-14T16:48:16.717Z&size=500",
+    "2026-09-14T16:48:16.742Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-09-14T16:48:16.844Z GET /dashboard/unidades",
+    "2026-09-14T16:48:22.640Z GET /dashboard/unidades",
+    "2026-09-14T16:48:25.709Z GET /dashboard/unidades/9/equipamentos?size=200&sort=nome",
+    "2026-09-14T16:48:25.709Z GET /dashboard/unidades/6/equipamentos?size=200&sort=nome",
+    "2026-09-14T16:48:27.503Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-09-14T16:48:27.803Z GET /dashboard/unidades/7",
+    "2026-09-14T16:48:27.804Z GET /unidades/7",
+    "2026-09-14T16:48:27.804Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-09-14T16:48:27.804Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-15T16:48:27.799Z&fim=2026-09-14T16:48:27.799Z&size=1&unidadeId=7",
+    "2026-09-14T16:48:27.804Z GET /relatorios/latencia/unidades?inicio=2026-08-15T16:48:27.799Z&fim=2026-09-14T16:48:27.799Z&size=1&unidadeId=7",
+    "2026-09-14T16:48:27.805Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-08-15T16:48:27.799Z&fim=2026-09-14T16:48:27.799Z&size=200&unidadeId=7",
+    "2026-09-14T16:48:27.841Z GET /dashboard/unidades"
+  ],
+  "erros": [],
+  "fatal": null
+}
