@@ -1,10 +1,10 @@
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, contarPorStatus, equipamentosAfetados, rotuloDoMunicipio, toneDoMunicipio } from './mapa.component';
+import { agruparUnidades, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, rotuloDaUnidade, rotuloDoMunicipio, toneDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
-const unit: DashboardUnidade={id:1,nome:'Matriz',codigoIbge:'2800308',ativo:true,status:UnitOperationalStatus.Available,equipamentosTotal:1,equipamentosAtivos:1,equipamentosDisponiveis:1,equipamentosDegradados:0,equipamentosIndisponiveis:0,equipamentosSemDados:0,equipamentosSemMonitoramento:0,equipamentosEmManutencao:0,incidentesAbertos:0,latitude:null,longitude:null};
+const unit: DashboardUnidade={id:1,nome:'Matriz',codigoIbge:'2800308',ativo:true,status:UnitOperationalStatus.Available,equipamentosTotal:1,equipamentosAtivos:1,equipamentosDisponiveis:1,equipamentosDegradados:0,equipamentosIndisponiveis:0,equipamentosSemDados:0,equipamentosSemMonitoramento:0,equipamentosEmManutencao:0,incidentesAbertos:0,latitude:null,longitude:null,conectaAUnidadeId:null};
 const municipio=(codigoIbge:string,nome:string):Municipio=>({codigoIbge,nome,uf:'SE',feature:geoJson.features[0] as never});
 
 /*
@@ -69,5 +69,46 @@ describe('painel lateral',()=>{
       equipamento(5,'lento',EquipmentOperationalStatus.Degraded),
     ]);
     expect(r.map(e=>e.nome)).toEqual(['caiu','manutencao','lento']);
+  });
+});
+
+/*
+ * N06 — as linhas hub->unidade. A guarda das duas pontas nao e detalhe: uma unidade tem coordenada
+ * e a outra nao com muito mais frequencia do que as duas terem, porque o cadastro nunca exigiu
+ * coordenada. Meia linha, saindo do nada, seria lida como ligacao para fora do estado.
+ */
+describe('linhas de conexao hub->unidade',()=>{
+  const comCoordenada=(id:number,lat:number,lon:number,pai:number|null):DashboardUnidade=>
+    ({...unit,id,nome:`U${id}`,latitude:lat,longitude:lon,conectaAUnidadeId:pai});
+
+  it('desenha um segmento por unidade conectada, do pai para o filho',()=>{
+    const r=conexoesDesenhaveis([comCoordenada(1,-10.9,-37.0,null),comCoordenada(2,-11.2,-37.4,1)]);
+    expect(r.length).toBe(1);
+    expect(r[0].geometry).toEqual({type:'LineString',coordinates:[[-37.0,-10.9],[-37.4,-11.2]]});
+    expect(r[0].properties).toEqual({de:1,para:2});
+  });
+
+  it('nao desenha quando falta coordenada em qualquer uma das duas pontas',()=>{
+    const paiSemCoordenada=[{...unit,id:1,latitude:null,longitude:null},comCoordenada(2,-11.2,-37.4,1)];
+    const filhoSemCoordenada=[comCoordenada(1,-10.9,-37.0,null),{...unit,id:2,latitude:null,longitude:null,conectaAUnidadeId:1}];
+    expect(conexoesDesenhaveis(paiSemCoordenada)).toEqual([]);
+    expect(conexoesDesenhaveis(filhoSemCoordenada)).toEqual([]);
+  });
+
+  it('ignora raiz e pai ausente da lista sem quebrar',()=>{
+    expect(conexoesDesenhaveis([comCoordenada(1,-10.9,-37.0,null)])).toEqual([]);
+    expect(conexoesDesenhaveis([comCoordenada(2,-11.2,-37.4,99)])).toEqual([]);
+  });
+
+  /* Coordenada 0 e valida (Golfo da Guine). Guarda por veracidade a descartaria em silencio. */
+  it('aceita zero como coordenada valida',()=>{
+    expect(conexoesDesenhaveis([comCoordenada(1,0,0,null),comCoordenada(2,-11.2,-37.4,1)]).length).toBe(1);
+  });
+});
+
+describe('rotulo do marcador de unidade',()=>{
+  it('usa o status por extenso, nao o enum cru',()=>{
+    expect(rotuloDaUnidade({...unit,nome:'Sede',status:UnitOperationalStatus.Maintenance,equipamentosTotal:7}))
+      .toBe('Sede: Em manutenção, 7 equipamento(s)');
   });
 });

@@ -7,12 +7,17 @@ export interface DashboardResumoMonitores { total: number; ativos: number; dispo
 export interface DashboardResumoIncidentes { abertos: number; }
 /**
  * `latitude`/`longitude` são anuláveis e independentes de `codigoIbge`: o município posiciona a
- * unidade no mapa coroplético, a coordenada posiciona o marcador. Hoje nenhuma unidade tem
- * coordenada cadastrada, então quem consome tem de tratar o nulo como caso normal.
+ * unidade no mapa coroplético, a coordenada posiciona o marcador. O banco de dev já tem as 11
+ * preenchidas (`db/dev-seed/01-unidades-coordenadas.sql`), mas o cadastro continua não exigindo
+ * coordenada, então quem consome tem de tratar o nulo como caso normal.
  *
  * Testar sempre com `!= null`, nunca por veracidade — `0` é latitude e longitude válida.
+ *
+ * `conectaAUnidadeId` é o pai na topologia (auto-referência de `unidade`). Nulo é raiz, não
+ * ausência de dado. O mapa desenha a linha hub→unidade a partir daqui, e só quando as DUAS pontas
+ * têm coordenada.
  */
-export interface DashboardUnidade { id: number; nome: string; codigoIbge: string | null; ativo: boolean; status: UnitOperationalStatus; equipamentosTotal: number; equipamentosAtivos: number; equipamentosDisponiveis: number; equipamentosDegradados: number; equipamentosIndisponiveis: number; equipamentosSemDados: number; equipamentosSemMonitoramento: number; equipamentosEmManutencao: number; incidentesAbertos: number; latitude: number | null; longitude: number | null; }
+export interface DashboardUnidade { id: number; nome: string; codigoIbge: string | null; ativo: boolean; status: UnitOperationalStatus; equipamentosTotal: number; equipamentosAtivos: number; equipamentosDisponiveis: number; equipamentosDegradados: number; equipamentosIndisponiveis: number; equipamentosSemDados: number; equipamentosSemMonitoramento: number; equipamentosEmManutencao: number; incidentesAbertos: number; latitude: number | null; longitude: number | null; conectaAUnidadeId: number | null; }
 export interface DashboardUnidadeDetalhe { id: number; nome: string; codigoIbge: string | null; ativo: boolean; status: UnitOperationalStatus; equipamentos: DashboardResumoEquipamentos; monitores: Pick<DashboardResumoMonitores, 'ativos' | 'indisponiveis'>; incidentesAbertos: number; }
 export interface DashboardEquipamento { id: number; nome: string; ip: string | null; hostname: string | null; localizacao: string | null; ativo: boolean; status: EquipmentOperationalStatus; tipoEquipamento: { id: number; nome: string }; emManutencao: boolean; monitoresAtivos: number; incidentesAbertos: number; ultimaMedicao: { status: 'SUCESSO' | 'FALHA'; latenciaMs: number | null; executadoEm: string } | null; }
 export interface DashboardEquipamentosQuery { page?: number; size?: number; sort?: 'id' | 'nome' | 'ip' | 'localizacao' | 'ativo'; tipoEquipamentoId?: number; ativo?: boolean; }

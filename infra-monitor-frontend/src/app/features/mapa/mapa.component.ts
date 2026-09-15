@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
+import type { Feature, FeatureCollection } from 'geojson';
 import { LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import { take } from 'rxjs';
 
@@ -8,7 +9,8 @@ import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/mo
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { GeoMunicipioService, Municipio, normalizeCodigoIbge } from '../../core/services/geo-municipio.service';
 import { DashboardApiService } from '../../core/services/dashboard-api.service';
-import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { LABELS as ROTULO_STATUS, StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { EquipamentoDetalheDrawerComponent, EquipamentoResumo } from '../equipamentos/equipamento-detalhe-drawer.component';
 
 type MapState = 'loading' | 'success' | 'empty' | 'error';
 export interface MapMunicipio extends Municipio { units: DashboardUnidade[]; }
@@ -135,17 +137,77 @@ const BEARING = -18;
 
 /**
  * Offset da câmera, em pixels de tela. Com a inclinação aplicada o estado sobe e sobra faixa morta
- * na metade de baixo do cartão; este deslocamento recoloca o alvo mais abaixo. Calibrado no cartão
- * de 580px de altura, que tem proporção fixa `760/680` — então vale em qualquer largura.
+ * na metade de baixo do cartão; este deslocamento recoloca o alvo mais abaixo.
+ *
+ * Recalibrado de 40 para 82 quando o cartão deixou de ter proporção fixa `760/680` e passou a ter
+ * altura presa à viewport (ver o comentário da altura em mapa.component.scss). Medido, não
+ * estimado: com 40 sobravam 13,9% de folga no topo contra 25,1% na base — faixa morta embaixo, a
+ * mesma que o offset existia para fechar. Com 82, 3,6% contra 8,2%. `e2e/n06-marcadores-e-conexoes`
+ * mede os dois lados a cada execução e falha se voltarem a desequilibrar.
  */
-const OFFSET_CAMERA: [number, number] = [0, 40];
+const OFFSET_CAMERA: [number, number] = [0, 82];
 
 /**
  * Zoom somado ao enquadramento plano na hora de inclinar. Inclinar encolhe o desenho — a mesma
  * área passa a caber num trapézio menor — e sem esta compensação o estado fica pequeno no meio do
  * cartão, com faixa morta em cima E embaixo.
+ *
+ * Recalibrado de 0,55 para 0,75 junto com OFFSET_CAMERA, e pelo mesmo motivo: no cartão mais baixo
+ * a compensação anterior deixava 39% da altura sobrando. Com 0,75, 11,8%.
  */
-const ZOOM_AO_INCLINAR = 0.55;
+const ZOOM_AO_INCLINAR = 0.75;
+
+/**
+ * Cor da linha hub->unidade (N06). Cinza-azulado dessaturado de proposito: a linha e topologia, nao
+ * estado operacional, e qualquer tom da escala de status (verde, ambar, vermelho, azul claro) seria
+ * lido como um. Fica no mesmo registro do contorno dos municipios (#294056), um passo mais claro
+ * para se separar dele.
+ */
+const COR_CONEXAO = '#4a6c8c';
+const LARGURA_CONEXAO = 1.4;
+/**
+ * Linha translucida. Ela cruza o estado inteiro e passa por cima de municipios cuja cor de status e
+ * o dado que importa; opaca, ela recortava o bloco em dois.
+ */
+const OPACIDADE_CONEXAO = 0.65;
+
+/** Coordenada da unidade, quando as duas metades existem. Nunca por veracidade: 0 e valido. */
+export function coordenadaDaUnidade(unidade: DashboardUnidade): [number, number] | null {
+  return unidade.latitude != null && unidade.longitude != null ? [unidade.longitude, unidade.latitude] : null;
+}
+
+/**
+ * Segmentos hub->unidade desenhaveis, como GeoJSON.
+ *
+ * So entra o par em que AMBAS as pontas tem coordenada — a guarda ja prevista em N04. Unidade com
+ * pai cadastrado mas sem coordenada (a sua ou a do pai) simplesmente nao produz linha: meia linha,
+ * saindo do nada ou terminando no nada, seria pior que nenhuma. Pai inexistente na lista (unidade
+ * inativa, que o read-model filtra) cai no mesmo caso.
+ *
+ * Pura: testavel sem DOM e sem MapLibre.
+ */
+export function conexoesDesenhaveis(unidades: DashboardUnidade[]): Feature[] {
+  const porId = new Map(unidades.map(unidade => [unidade.id, unidade]));
+  const linhas: Feature[] = [];
+  for (const unidade of unidades) {
+    if (unidade.conectaAUnidadeId == null) continue;
+    const pai = porId.get(unidade.conectaAUnidadeId);
+    const origem = pai ? coordenadaDaUnidade(pai) : null;
+    const destino = coordenadaDaUnidade(unidade);
+    if (!origem || !destino) continue;
+    linhas.push({
+      type: 'Feature',
+      properties: { de: unidade.conectaAUnidadeId, para: unidade.id },
+      geometry: { type: 'LineString', coordinates: [origem, destino] },
+    });
+  }
+  return linhas;
+}
+
+/** Rotulo do marcador de unidade. Status por extenso: "DEGRADADA" cru nao e texto de leitor de tela. */
+export function rotuloDaUnidade(unidade: DashboardUnidade): string {
+  return `${unidade.nome}: ${ROTULO_STATUS[unidade.status]}, ${unidade.equipamentosTotal} equipamento(s)`;
+}
 
 /** Varre coordenadas de Polygon/MultiPolygon sem alocar array intermediario. */
 export function percorrerCoordenadas(geometria: { coordinates: unknown }, visitar: (ponto: number[]) => void): void {
@@ -163,7 +225,7 @@ export function centroideAproximado(geometria: { coordinates: unknown }): [numbe
   return Number.isFinite(minX) ? [(minX + maxX) / 2, (minY + maxY) / 2] : null;
 }
 
-@Component({ selector: 'app-mapa', imports: [StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './mapa.component.html', styleUrl: './mapa.component.scss' })
+@Component({ selector: 'app-mapa', imports: [StatusBadgeComponent, EquipamentoDetalheDrawerComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './mapa.component.html', styleUrl: './mapa.component.scss' })
 export class MapaComponent implements OnDestroy {
   private readonly geoMunicipio = inject(GeoMunicipioService);
   private readonly dashboardApi = inject(DashboardApiService);
@@ -176,11 +238,20 @@ export class MapaComponent implements OnDestroy {
   protected readonly error = signal<string | null>(null);
   /** Região viva: o painel lateral é visual, e sem isto quem navega por teclado não ouve a troca. */
   protected readonly anuncio = signal('');
+  /** Notas de leitura do mapa, atrás do botão de informação da legenda. Fechadas por padrão. */
+  protected readonly notasVisiveis = signal(false);
 
   /** Unidade em foco no painel. Município com uma única unidade seleciona sozinho; com várias, espera o clique. */
   protected readonly unidadeSelecionada = signal<DashboardUnidade | null>(null);
   protected readonly afetados = signal<DashboardEquipamento[]>([]);
   protected readonly afetadosState = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
+
+  /**
+   * Equipamento aberto na gaveta, por cima do mapa. Estado local, sem rota: `/equipamentos/:id`
+   * já é o endereço compartilhável do equipamento, e navegar para lá destruiria o componente e
+   * remontaria o mapa inteiro — canvas WebGL, cartografia e câmera — só para mostrar um painel.
+   */
+  protected readonly equipamentoSelecionado = signal<DashboardEquipamento | null>(null);
   /** Contagem por status sobre TODAS as unidades, não só as do município selecionado. */
   protected readonly statusGeografico = computed(() => contarPorStatus(this.municipios().flatMap(municipio => municipio.units)));
   protected readonly totalUnidades = computed(() => this.municipios().reduce((soma, municipio) => soma + municipio.units.length, 0));
@@ -191,6 +262,12 @@ export class MapaComponent implements OnDestroy {
   private map: MaplibreMap | null = null;
   /** Um Marker por municipio: unico no DOM focavel, ja que o poligono vive no canvas WebGL. */
   private readonly marcadores = new Map<string, Marker>();
+  /**
+   * Um Marker por unidade COM coordenada. Mesma tecnica dos marcadores de municipio (N02) e pelo
+   * mesmo motivo: a lib reposiciona o elemento em pan, zoom, pitch e rotate sem sincronizacao
+   * manual por frame, e um <button> real entrega Tab, Enter e Espaco de graca.
+   */
+  private readonly marcadoresUnidade = new Map<number, Marker>();
   private teclado: AbortController | null = null;
 
   constructor() {
@@ -203,6 +280,9 @@ export class MapaComponent implements OnDestroy {
       this.montarMapa(elemento, municipios);
     });
     effect(() => this.aplicarTons(this.selected()?.codigoIbge ?? null));
+    // Estado do marcador de unidade acompanha o painel, e nao o municipio: clicar na lista de
+    // "varias unidades" troca a unidade sem trocar o municipio, e o marcador tem de acompanhar.
+    effect(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
   }
 
   ngOnDestroy(): void { this.destruirMapa(); }
@@ -225,6 +305,9 @@ export class MapaComponent implements OnDestroy {
     this.unidadeSelecionada.set(unidade);
     this.afetados.set([]);
     this.afetadosState.set('loading');
+    // Trocar de unidade com a gaveta aberta a deixaria mostrando um equipamento que não pertence
+    // mais à lista atrás dela, e com o nome da unidade errada no cabeçalho.
+    this.fecharEquipamento();
     this.dashboardApi.getEquipamentosDaUnidade(unidade.id, { size: 200, sort: 'nome' }).pipe(take(1)).subscribe({
       next: pagina => {
         // A unidade pode ter mudado enquanto a resposta vinha: descartar resultado fora de ordem.
@@ -243,10 +326,29 @@ export class MapaComponent implements OnDestroy {
   protected goToUnidade(unidade: DashboardUnidade): void { void this.router.navigate(['/unidades', unidade.id]); }
   /** A lista de Incidentes não aceita filtro por link; a aba da unidade já entrega o mesmo recorte. */
   protected goToIncidentes(unidade: DashboardUnidade): void { void this.router.navigate(['/unidades', unidade.id, 'incidentes']); }
-  /** `/equipamentos/:id` é a lista com a gaveta de detalhe montada — não existe página cheia. */
-  protected goToEquipamento(equipamento: DashboardEquipamento): void { void this.router.navigate(['/equipamentos', equipamento.id]); }
 
-  private limparUnidade(): void { this.unidadeSelecionada.set(null); this.afetados.set([]); this.afetadosState.set('idle'); }
+  /** A mesma gaveta de `/equipamentos/:id`, aberta aqui por cima do mapa em vez de navegar. */
+  protected abrirEquipamento(equipamento: DashboardEquipamento): void { this.equipamentoSelecionado.set(equipamento); }
+  protected fecharEquipamento(): void { this.equipamentoSelecionado.set(null); }
+
+  /**
+   * Os cinco campos que a gaveta precisa do pai, montados do que o painel já tem em mãos: o
+   * equipamento afetado traz nome, status, tipo e `ativo`; o nome da unidade vem da unidade
+   * selecionada, que é de onde a lista de afetados saiu. Nenhuma requisição a mais.
+   */
+  protected readonly resumoDoEquipamento = computed<EquipamentoResumo | null>(() => {
+    const equipamento = this.equipamentoSelecionado();
+    if (!equipamento) return null;
+    return {
+      nome: equipamento.nome,
+      tipoNome: equipamento.tipoEquipamento.nome,
+      unidadeNome: this.unidadeSelecionada()?.nome ?? '—',
+      status: equipamento.status,
+      ativo: equipamento.ativo,
+    };
+  });
+
+  private limparUnidade(): void { this.unidadeSelecionada.set(null); this.afetados.set([]); this.afetadosState.set('idle'); this.fecharEquipamento(); }
 
   private resolve(): void {
     if (!this.sourceMunicipios || !this.units || this.state() === 'error') return;
@@ -287,18 +389,32 @@ export class MapaComponent implements OnDestroy {
           equipamentos: municipio.units.reduce((soma, unidade) => soma + unidade.equipamentosTotal, 0),
         },
       })),
-    } as unknown as Record<string, unknown>;
+    } as unknown as FeatureCollection;
+
+    const conexoes = {
+      type: 'FeatureCollection',
+      features: conexoesDesenhaveis(municipios.flatMap(municipio => municipio.units)),
+    } as unknown as FeatureCollection;
 
     const map = new MaplibreMap({
       container: elemento,
       // Estilo proprio: sem tiles, sprite ou glyphs — nenhuma requisicao de rede externa.
-      style: { version: 8, sources: { municipios: { type: 'geojson', data: colecao } }, layers: [
+      style: { version: 8, sources: { municipios: { type: 'geojson', data: colecao }, conexoes: { type: 'geojson', data: conexoes } }, layers: [
         { id: 'fundo', type: 'background', paint: { 'background-color': 'rgba(0,0,0,0)' } },
         { id: 'municipios-3d', type: 'fill-extrusion', source: 'municipios', paint: {
             'fill-extrusion-color': ['get', 'cor'],
             'fill-extrusion-height': ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO],
             'fill-extrusion-opacity': 0.92 } },
         { id: 'municipios-contorno', type: 'line', source: 'municipios', paint: { 'line-color': '#294056', 'line-width': 1 } },
+        /*
+         * Linhas da topologia (N06), depois da extrusao na ordem das camadas: antes dela, o bloco
+         * de Aracaju — o mais alto do estado — cobria o feixe inteiro que sai dele. A linha e
+         * desenhada no chao, entao um bloco alto no caminho ainda a oculta em parte; isso e
+         * correto, e o que se perde e trecho por baixo de um bloco, nao a ligacao.
+         */
+        { id: 'conexoes-linha', type: 'line', source: 'conexoes',
+          layout: { 'line-cap': 'round' },
+          paint: { 'line-color': COR_CONEXAO, 'line-width': LARGURA_CONEXAO, 'line-opacity': OPACIDADE_CONEXAO } },
         /*
          * Anel de seleção como segunda extrusão, e não como `line`: camada de linha desenha no
          * nível do chão, e em município alto o anel ficava no pé do bloco, longe do topo que o
@@ -356,9 +472,56 @@ export class MapaComponent implements OnDestroy {
       this.marcadores.set(municipio.codigoIbge, marcador);
     }
 
+    /*
+     * Marcador de unidade. O marcador de municipio (acima) e invisivel e existe so como tab-stop —
+     * o poligono ja e o desenho. Este e visivel: e a unidade em si, na coordenada cadastrada, e ate
+     * aqui o mapa nao mostrava nenhuma. Municipio com quatro unidades (Aracaju) passa a mostrar as
+     * quatro, que o bloco unico nao conseguia distinguir.
+     *
+     * Ordem de Tab: os marcadores de unidade vem DEPOIS dos de municipio porque sao adicionados
+     * depois, e essa e a leitura util — do geral para o particular.
+     */
+    for (const unidade of municipios.flatMap(municipio => municipio.units)) {
+      const coordenada = coordenadaDaUnidade(unidade);
+      if (!coordenada) continue;
+      const alvo = document.createElement('button');
+      alvo.type = 'button';
+      alvo.className = 'map__unidade';
+      alvo.setAttribute('aria-label', rotuloDaUnidade(unidade));
+      alvo.setAttribute('data-unidade-id', String(unidade.id));
+      // A cor de status vai por variavel CSS, e nao por classe: sao os mesmos hex do canvas, num
+      // unico lugar, e nao ha classe de status para criar e manter em paralelo no SCSS.
+      alvo.style.setProperty('--cor-unidade', COR_DO_TOM[unidade.status.toLowerCase().replace(/_/g, '-')] ?? COR_DO_TOM['sem-dados']);
+      alvo.addEventListener('click', () => this.selecionarPeloMarcador(unidade), { signal: signalAbort });
+      alvo.addEventListener('focus', () => { if (!map.getBounds().contains(coordenada)) map.easeTo({ center: coordenada, duration: 200 }); }, { signal: signalAbort });
+      const marcador = new Marker({ element: alvo, pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(coordenada).addTo(map);
+      this.marcadoresUnidade.set(unidade.id, marcador);
+    }
+
     // `aplicarTons` depende do estilo pronto, e no primeiro monte ele ainda não está.
     map.on('load', () => untracked(() => this.aplicarTons(this.selected()?.codigoIbge ?? null)));
     untracked(() => this.aplicarTons(this.selected()?.codigoIbge ?? null));
+    untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
+  }
+
+  /**
+   * Clique (ou Enter/Espaco) no marcador de unidade. Seleciona o municipio TAMBEM, e nesta ordem:
+   * `selectMunicipio` desenha o colar no bloco e, em municipio de uma unidade so, ja escolhe a
+   * unidade; em municipio de varias ele limpa a escolha, e o `selectUnidade` seguinte repoe
+   * exatamente a que foi clicada. Invertida, a ordem apagaria a unidade recem-escolhida.
+   */
+  private selecionarPeloMarcador(unidade: DashboardUnidade): void {
+    const municipio = this.municipios().find(candidato => candidato.units.some(u => u.id === unidade.id));
+    if (municipio) this.selectMunicipio(municipio);
+    this.selectUnidade(unidade);
+    this.anuncio.set(`${unidade.nome} selecionada. ${ROTULO_STATUS[unidade.status]}.`);
+  }
+
+  /** Estado do marcador de unidade. Fora de `aplicarTons`: nao depende do estilo do mapa. */
+  private marcarUnidade(selecionada: number | null): void {
+    for (const [id, marcador] of this.marcadoresUnidade) {
+      marcador.getElement().setAttribute('aria-pressed', String(id === selecionada));
+    }
   }
 
   private aplicarTons(selecionado: string | null): void {
@@ -383,6 +546,8 @@ export class MapaComponent implements OnDestroy {
     this.teclado = null;
     for (const marcador of this.marcadores.values()) marcador.remove();
     this.marcadores.clear();
+    for (const marcador of this.marcadoresUnidade.values()) marcador.remove();
+    this.marcadoresUnidade.clear();
     this.map?.remove();
     this.map = null;
   }

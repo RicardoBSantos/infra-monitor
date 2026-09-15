@@ -1,4 +1,10 @@
-<section class="map-page" aria-labelledby="map-title">
+<!-- `inert` na página inteira do mapa enquanto a gaveta está aberta, e a gaveta FORA desta seção.
+     Não é o mesmo caso da lista de Equipamentos, onde o inert vai na gaveta porque quem abre por
+     cima dela é um modal. Aqui o que fica atrás é um canvas WebGL, e o MapLibre põe o próprio
+     canvas na ordem de Tab (tabindex=0) além de um Marker focável por município: sem inert, o Tab
+     a partir do último controle da gaveta cai direto no mapa por trás do backdrop. `aria-hidden`
+     sozinho não resolveria — esconde do leitor de tela e deixa o foco passar assim mesmo. -->
+<section class="map-page" aria-labelledby="map-title" [attr.inert]="equipamentoSelecionado() ? '' : null">
   <header class="map-page__header"><div><p class="map-page__eyebrow">OPERAÇÕES · SERGIPE</p><h1 id="map-title">Mapa operacional</h1><p>Visão cartográfica das unidades monitoradas no estado de Sergipe.</p></div><button class="botao" type="button" (click)="load()" [disabled]="state() === 'loading'">Atualizar</button></header>
   <div class="map-layout"><section class="map-card" aria-label="Mapa municipal de Sergipe">
     @if (state() === 'loading') { <div class="map-loading" role="status">Carregando cartografia e dados operacionais…</div> }
@@ -41,7 +47,7 @@
             @if (afetados().length === 0) { <p class="unit-panel__vazio">Nenhum equipamento afetado. Todos os equipamentos sob leitura estão disponíveis.</p> }
             @else {
               <ul class="afetados">@for (equipamento of afetados(); track equipamento.id) {
-                <li><button class="afetados__item" type="button" (click)="goToEquipamento(equipamento)">
+                <li><button class="afetados__item" type="button" (click)="abrirEquipamento(equipamento)">
                   <span class="afetados__nome">{{ equipamento.nome }}</span>
                   <app-status-badge [status]="equipamento.status" />
                   <span class="afetados__meta">{{ equipamento.tipoEquipamento.nome }}@if (equipamento.ip) { · {{ equipamento.ip }} }</span>
@@ -51,12 +57,56 @@
         }
       </div>
     }
-    <div><p class="panel-label">LEGENDA DE STATUS</p><ul class="legend"><li><span class="legend__dot legend__dot--success"></span>Disponível</li><li><span class="legend__dot legend__dot--danger"></span>Indisponível</li><li><span class="legend__dot legend__dot--warning"></span>Degradada</li><li><span class="legend__dot legend__dot--info"></span>Em manutenção</li><li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li><li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li><li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li><li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li></ul>
-      <p class="legend__nota"><strong>Altura do bloco</strong> = equipamentos monitorados no município. Município sem equipamento fica rente ao chão.</p>
-      <p class="legend__nota"><span class="legend__anel"></span>Colar translúcido no topo do bloco marca o município selecionado — a cor de status continua visível por baixo.</p></div>
+    <!-- Oito itens sempre abertos mais dois parágrafos de nota empurravam o resto da coluna para
+         fora da dobra. Visíveis por padrão ficam só os quatro status operacionais reais — os que
+         mudam de um dia para o outro e que o plantão consulta. Os outros quatro descrevem ausência
+         de dado (nunca mudam sozinhos) e vão para o disclosure; as duas notas descrevem a
+         gramática do mapa, que se aprende uma vez, e vão para o botão de informação. -->
+    <div class="legend-bloco">
+      <div class="legend-bloco__topo">
+        <p class="panel-label">LEGENDA DE STATUS</p>
+        <button class="legend-info" type="button" [attr.aria-expanded]="notasVisiveis()" aria-controls="legend-notas"
+                aria-label="Como ler o mapa: altura do bloco e marca de seleção" (click)="notasVisiveis.set(!notasVisiveis())">i</button>
+      </div>
+      <ul class="legend">
+        <li><span class="legend__dot legend__dot--success"></span>Disponível</li>
+        <li><span class="legend__dot legend__dot--danger"></span>Indisponível</li>
+        <li><span class="legend__dot legend__dot--warning"></span>Degradada</li>
+        <li><span class="legend__dot legend__dot--info"></span>Em manutenção</li>
+      </ul>
+      @if (notasVisiveis()) {
+        <div class="legend-notas" id="legend-notas" role="note">
+          <p class="legend__nota"><strong>Altura do bloco</strong> = equipamentos monitorados no município. Município sem equipamento fica rente ao chão.</p>
+          <p class="legend__nota"><span class="legend__anel"></span>Colar translúcido no topo do bloco marca o município selecionado — a cor de status continua visível por baixo.</p>
+          <p class="legend__nota"><span class="legend__linha"></span>Linha discreta liga cada unidade ao hub. Só aparece quando as duas pontas têm coordenada cadastrada.</p>
+        </div>
+      }
+      <!-- <details> nativo: Enter/Espaço, estado exposto ao leitor de tela e nenhuma linha de JS. -->
+      <details class="legend-extra">
+        <summary>Estados sem leitura</summary>
+        <ul class="legend">
+          <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
+          <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
+          <li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li>
+          <li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li>
+        </ul>
+      </details>
+    </div>
     @if (state() === 'empty') { <div class="map-feedback"><strong>Nenhuma unidade retornada</strong><p>A cartografia permanece disponível; não há unidades para associar.</p></div> }
     @if (semLocalizacao().length) { <div class="map-feedback"><strong>Unidades sem localização</strong><ul class="unit-list">@for (unit of semLocalizacao(); track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
     @if (semCorrespondencia().length) { <div class="map-feedback map-feedback--warning"><strong>Associação geográfica não encontrada</strong><p>Estas unidades possuem código IBGE sem correspondência na cartografia.</p><ul class="unit-list">@for (unit of semCorrespondencia(); track unit.id) { <li><strong>{{ unit.nome }}</strong><span>{{ unit.codigoIbge }}</span></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
     <dl class="map-source"><dt>BASE CARTOGRÁFICA</dt><dd>Limites municipais de Sergipe</dd><dt>FONTE OPERACIONAL</dt><dd>Dashboard API</dd></dl>
   </aside></div>
 </section>
+
+<!-- O painel da unidade continua visível atrás do backdrop, como lista e gaveta em todo o resto do
+     sistema: fechar devolve o usuário exatamente ao ponto de onde clicou. `acoesDeGestao` desligado
+     porque editar e alternar monitoramento são fluxos que só a lista de Equipamentos implementa. -->
+@if (equipamentoSelecionado(); as equipamento) {
+  <app-equipamento-detalhe-drawer
+    [equipamentoId]="equipamento.id"
+    [linha]="resumoDoEquipamento()"
+    [acoesDeGestao]="false"
+    (fechar)="fecharEquipamento()"
+  />
+}

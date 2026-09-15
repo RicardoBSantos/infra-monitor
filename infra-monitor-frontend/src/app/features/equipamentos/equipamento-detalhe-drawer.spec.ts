@@ -165,6 +165,26 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     http.expectNone((request) => request.method === 'PATCH');
   });
 
+  /*
+   * Host que não implementa editar nem alternar (o Mapa) desliga os dois pelo input, mesmo com o
+   * usuário sendo ADMIN — são condições diferentes: `acoesDeGestao` é sobre o HOST atender a ação,
+   * `canManageInventory` é sobre o USUÁRIO poder executá-la. "Abrir histórico" fica nos dois, por
+   * ser link de rota e não um `output` que o pai precise atender.
+   */
+  it('esconde as ações de gestão onde o host não as implementa, e mantém o histórico', () => {
+    const fixture = montar();
+    fixture.componentRef.setInput('acoesDeGestao', false);
+    responder(fixture);
+
+    const rodape = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.gaveta__acoes .botao'),
+    ).map((elemento) => (elemento.textContent ?? '').trim());
+
+    expect(rodape).toEqual(['Abrir histórico']);
+    // A sessão do beforeEach é ADMIN: o rodapé encolheu pelo input do host, não por permissão.
+    expect(TestBed.inject(AuthStateService).canManageInventory()).toBe(true);
+  });
+
   it('colore o estado atual pelo status operacional e o contador pela proximidade do limite', () => {
     const fixture = montar();
     // Três falhas na cauda, com falhasParaIncidente = 3: contador no limite.

@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "e2e:n04": "node e2e/n04-conexao-unidade.cjs",
-    "e2e:n05": "node e2e/n05-mapa-maplibre.cjs"
+    "e2e:n05": "node e2e/n05-mapa-maplibre.cjs",
+    "e2e:m06": "node e2e/m06-drawer-no-mapa.cjs",
+    "e2e:n06": "node e2e/n06-marcadores-e-conexoes.cjs"
   },
   "private": true,
   "packageManager": "npm@11.15.0",
