@@ -26,33 +26,39 @@
     },
     {
       "caso": 2,
-      "nome": "onze marcadores de unidade",
+      "nome": "todas as unidades elegíveis viraram marcador (11 no mapa)",
       "ok": true,
-      "detalhe": "11"
+      "detalhe": "11 marcador(es) para 11 unidade(s) com coordenada e código IBGE"
     },
     {
       "caso": 2,
-      "nome": "pulsa exatamente quem está Indisponível ou Degradada",
+      "nome": "todos os marcadores pulsam (D19 reverteu o filtro de N07)",
       "ok": true,
-      "detalhe": "5 pulsando de 11: Degradada, Degradada, Degradada, Degradada, Degradada"
+      "detalhe": "11 pulsando de 11"
     },
     {
       "caso": 2,
-      "nome": "nem todos pulsam — é seletivo, não decorativo",
+      "nome": "nenhum marcador ficou de fora por status",
       "ok": true,
-      "detalhe": "5/11"
+      "detalhe": "nenhum"
     },
     {
       "caso": 2,
       "nome": "animação no ::after, nunca no elemento (DV13)",
       "ok": true,
-      "detalhe": "_ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none"
+      "detalhe": "_ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none"
     },
     {
       "caso": 2,
-      "nome": "quem não pulsa não tem anel de pulso",
+      "nome": "marcador sem aro claro: borda de 0px nos 11",
       "ok": true,
-      "detalhe": ""
+      "detalhe": "0px"
+    },
+    {
+      "caso": 2,
+      "nome": "miolo ocupa os 13px inteiros",
+      "ok": true,
+      "detalhe": "13px"
     },
     {
       "caso": 3,
@@ -142,7 +148,7 @@
       "caso": 6,
       "nome": "anel de pulso NASCE fora do anel de foco, não o atravessa",
       "ok": true,
-      "detalhe": "pulso a 12.5px do centro, foco termina em 11.5px"
+      "detalhe": "pulso a 15.5px do centro, foco termina em 14.5px"
     },
     {
       "caso": 7,
@@ -172,7 +178,7 @@
       "caso": 7,
       "nome": "nenhum ping na coleção de focáveis da página",
       "ok": true,
-      "detalhe": "117 focáveis na página, 0 pings"
+      "detalhe": "118 focáveis na página, 0 pings"
     },
     {
       "caso": 7,
@@ -196,7 +202,7 @@
       "caso": 8,
       "nome": "todo ping percorre a linha — nenhum fica parado",
       "ok": true,
-      "detalhe": "18/18 em movimento · percurso mínimo 12.2px em 2,1s"
+      "detalhe": "18/18 em movimento · percurso mínimo 6.4px em 2,1s"
     },
     {
       "caso": 9,
@@ -208,13 +214,67 @@
       "caso": 9,
       "nome": "anel de pulso vira estático, não some",
       "ok": true,
-      "detalhe": "5 anel(éis), animação none, opacidade 0.55"
+      "detalhe": "11 anel(éis), animação none, opacidade 0.55"
     },
     {
       "caso": 9,
       "nome": "evidência ampliada: marcador que pulsa focado por teclado em 3x",
       "ok": true,
       "detalhe": ""
+    },
+    {
+      "caso": 9,
+      "nome": "marcador selecionado cresce para 19px",
+      "ok": true,
+      "detalhe": "19px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel de seleção não é mais lilás",
+      "ok": true,
+      "detalhe": "color(srgb 0.909804 0.639216 0.239216 / 0.78) 0px 0px 0px 3px, rgba(0, 0, 0, 0.6) 0px 1px 3px 0px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel de seleção herda o matiz de --cor-unidade",
+      "ok": true,
+      "detalhe": "#e8a33d -> color(srgb 0.909804 0.639216 0.239216 / 0.78) 0px 0px 0px 3px, rgba(0, 0, 0, 0.6) 0px 1px 3px 0px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel visível e marcador a 19px no status disponivel",
+      "ok": true,
+      "detalhe": "19px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel visível e marcador a 19px no status indisponivel",
+      "ok": true,
+      "detalhe": "19px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel visível e marcador a 19px no status degradada",
+      "ok": true,
+      "detalhe": "19px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel visível e marcador a 19px no status em-manutencao",
+      "ok": true,
+      "detalhe": "19px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel visível e marcador a 19px no status sem-dados",
+      "ok": true,
+      "detalhe": "19px"
+    },
+    {
+      "caso": 9,
+      "nome": "anel visível e marcador a 19px no status sem-equipamentos",
+      "ok": true,
+      "detalhe": "19px"
     },
     {
       "caso": 0,

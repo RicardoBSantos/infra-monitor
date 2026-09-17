@@ -1,5 +1,5 @@
 /*
- * N07 — município neutro, pulso seletivo, ping colorido na linha neutra e dica de relance.
+ * N07 — município neutro, pulso GERAL (D19), ping colorido e dica de relance.
  *
  *   N07_SENHA=<senha> node e2e/n07-pulso-ping-dica.cjs
  *
@@ -12,9 +12,10 @@
  * 3. Resultados gravados em `finally`, aconteça o que acontecer.
  *
  * O que este roteiro prova, e que captura de tela sozinha não provaria:
- * - o pulso é SELETIVO (só INDISPONIVEL e DEGRADADA) e não decorativo;
+ * - o pulso é GERAL (todos os marcadores, qualquer status) — D19 reverteu o filtro de N07;
  * - o pulso vive no ::after, nunca no elemento — é a regra que DV13 deixou;
- * - o anel de foco continua legível com o pulso rodando por cima;
+ * - o marcador não tem mais aro claro: o contraste sai do miolo (D19);
+ * - o anel de seleção sai de --cor-unidade e o selecionado cresce, nos seis status;
  * - os pings são invisíveis para teclado e leitor de tela (requisito de aceite, não detalhe);
  * - a dica aparece no FOCO e não só no hover, e focar não seleciona;
  * - a conexão é inteiramente da cor do status da unidade conectada (D18).
@@ -36,9 +37,8 @@ const checar = (caso, nome, ok, detalhe) => { resultados.push({ caso, nome, ok: 
 /** Cores do canvas, espelhadas do componente. Divergir daqui é o teste falhar, que é o certo. */
 const COR = {
   disponivel: '#34c77b', indisponivel: '#e5484d', degradada: '#e8a33d',
-  'em-manutencao': '#7fadff', 'sem-dados': '#435464', 'sem-equipamentos': '#263744',
+  'em-manutencao': '#7fadff', 'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b',
 };
-const PULSAM = ['Indisponível', 'Degradada'];
 
 const lerUnidades = (page) => page.evaluate(() => [...document.querySelectorAll('.map__unidade')].map((botao) => {
   const depois = getComputedStyle(botao, '::after');
@@ -69,6 +69,23 @@ const marcadorIsolado = (page) => page.evaluate(() => {
   }
   return melhor;
 });
+
+/**
+ * A `box-shadow` computada vem em rgb/rgba com o `color-mix` já resolvido pelo navegador. Comparar
+ * hex com hex é impossível; o que se pode afirmar é que o primeiro anel da sombra tem o MESMO matiz
+ * dominante que `--cor-unidade`, isto é, o mesmo canal RGB máximo e a mesma ordem entre canais.
+ * É o que distingue "anel saiu da cor do status" de "anel é lilás fixo", que é a asserção que
+ * interessa.
+ */
+const corBateComSombra = (hex, sombra) => {
+  const n = parseInt(hex.trim().slice(1), 16);
+  const alvo = [n >> 16 & 255, n >> 8 & 255, n & 255];
+  const m = sombra.match(/rgba?\(([^)]+)\)/);
+  if (!m) return false;
+  const lido = m[1].split(',').slice(0, 3).map((v) => parseInt(v.trim(), 10));
+  const ordem = (a) => a.map((_, i) => i).sort((i, j) => a[j] - a[i]).join('');
+  return ordem(alvo) === ordem(lido);
+};
 
 const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.map__ping')].map((no) => ({
   oculto: no.getAttribute('aria-hidden'),
@@ -123,19 +140,27 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     checar(1, 'duas notas de gramática do mapa', legenda.notas === 2, `${legenda.notas} nota(s)`);
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '01-municipio-neutro.png') });
 
-    // -------------------------------------------------------- 2. pulso seletivo (item 2)
+    // -------------------------------------------------------- 2. pulso geral (D19, item 2)
     const unidades = await lerUnidades(page);
-    checar(2, 'onze marcadores de unidade', unidades.length === 11, `${unidades.length}`);
+    /*
+     * Sem número fixo: o esperado é o dado real. Vira marcador quem tem coordenada E código IBGE —
+     * o mapa agrupa por município (`municipios.flatMap(m => m.units)` em mapa.component.ts) e unidade
+     * sem código IBGE não entra em município nenhum, mesmo com lat/lon válidos (banco de dev tem a
+     * unidade 24, "Indiaroba", nesse caso: coordenada real, `codigoIbge: null`). Só coordenada não
+     * basta — foi tentado e falhou contra o dado real; ver relato da Task 4.
+     */
+    const elegiveis = unidadesDaApi.filter((u) => u.latitude != null && u.longitude != null && u.codigoIbge != null).length;
+    checar(2, `todas as unidades elegíveis viraram marcador (${unidades.length} no mapa)`,
+      unidades.length === elegiveis && unidades.length > 0,
+      `${unidades.length} marcador(es) para ${elegiveis} unidade(s) com coordenada e código IBGE`);
 
-    const deveriamPulsar = unidades.filter((u) => PULSAM.includes(u.status));
     const pulsando = unidades.filter((u) => u.pulsa);
-    checar(2, 'pulsa exatamente quem está Indisponível ou Degradada',
-      pulsando.length === deveriamPulsar.length
-      && pulsando.every((u) => PULSAM.includes(u.status)),
-      `${pulsando.length} pulsando de ${unidades.length}: ${pulsando.map((u) => u.status).join(', ')}`);
-    checar(2, 'nem todos pulsam — é seletivo, não decorativo',
-      pulsando.length > 0 && pulsando.length < unidades.length,
-      `${pulsando.length}/${unidades.length}`);
+    checar(2, 'todos os marcadores pulsam (D19 reverteu o filtro de N07)',
+      pulsando.length === unidades.length && unidades.length > 0,
+      `${pulsando.length} pulsando de ${unidades.length}`);
+    checar(2, 'nenhum marcador ficou de fora por status',
+      unidades.filter((u) => !u.pulsa).length === 0,
+      unidades.filter((u) => !u.pulsa).map((u) => u.status).join(', ') || 'nenhum');
 
     /*
      * DV13: a animação tem de estar no ::after. No elemento, o inline do MapLibre a anularia.
@@ -146,8 +171,18 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     checar(2, 'animação no ::after, nunca no elemento (DV13)',
       pulsando.every((u) => /(^|_)map-pulsar$/.test(u.animacaoNoAfter) && u.animacaoNoElemento === 'none'),
       pulsando.map((u) => `${u.animacaoNoAfter}/${u.animacaoNoElemento}`).join(' '));
-    checar(2, 'quem não pulsa não tem anel de pulso',
-      unidades.filter((u) => !u.pulsa).every((u) => u.animacaoNoAfter === 'none'));
+
+    // D19 item 1 — o aro claro de 2px saiu. Lido por borda computada, não por captura. Filtra o
+    // marcador selecionado (aria-pressed) porque este mede 19px por desenho, não 13px.
+    const bordas = await page.evaluate(() => [...document.querySelectorAll('.map__unidade:not([aria-pressed="true"])')]
+      .map((b) => getComputedStyle(b).borderTopWidth));
+    checar(2, `marcador sem aro claro: borda de 0px nos ${bordas.length}`,
+      bordas.length > 0 && bordas.every((b) => b === '0px'), [...new Set(bordas)].join(' '));
+
+    const tamanhos = await page.evaluate(() => [...document.querySelectorAll('.map__unidade:not([aria-pressed="true"])')]
+      .map((b) => getComputedStyle(b).width));
+    checar(2, 'miolo ocupa os 13px inteiros',
+      tamanhos.length > 0 && tamanhos.every((t) => t === '13px'), [...new Set(tamanhos)].join(' '));
 
     // ------------------------------------------------- 3. DV13: transform é da lib, não nosso
     /*
@@ -314,10 +349,17 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * `conectaAUnidadeId` nulo — é raiz, como a Sede — então são 9 linhas e não 10, e a primeira
      * execução acusou 18 pings contra 20 esperados. Fixar o número faria o roteiro falhar por
      * mudança de seed, que não é o que ele mede.
+     *
+     * `codigoIbge != null` nos dois lados (achado da Task 4, pré-D19): o mapa desenha marcador,
+     * linha e ping a partir de `municipios.flatMap(municipio => municipio.units)`
+     * (mapa.component.ts) — unidade sem `codigoIbge` nunca entra nesse agrupamento, mesmo com
+     * coordenada válida. O banco de dev tem a unidade "Indiaroba" (id 24, SEM_DADOS) nesse caso:
+     * coordenada real, `codigoIbge: null`, pai com coordenada — sem o filtro, a fórmula contava
+     * uma linha/dois pings que a aplicação nunca desenha.
      */
     const conexoesEsperadas = unidadesDaApi.filter((u) => u.conectaAUnidadeId != null
-      && u.latitude != null && u.longitude != null
-      && unidadesDaApi.some((p) => p.id === u.conectaAUnidadeId && p.latitude != null && p.longitude != null)).length;
+      && u.latitude != null && u.longitude != null && u.codigoIbge != null
+      && unidadesDaApi.some((p) => p.id === u.conectaAUnidadeId && p.latitude != null && p.longitude != null && p.codigoIbge != null)).length;
     checar(7, 'dois pings por linha de conexão desenhável, em fases opostas',
       pings.length === conexoesEsperadas * 2,
       `${pings.length} ping(s) para ${conexoesEsperadas} linha(s)`);
@@ -356,10 +398,14 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * não como `rgb(...)` resolvido. Comparação contra a escala de `COR_DO_STATUS`, e o esperado
      * vem do dado: são as cores dos status das unidades efetivamente conectadas, que no banco de
      * dev são só duas (DISPONIVEL e DEGRADADA).
+     *
+     * `codigoIbge != null` pelo mesmo motivo do caso 7: sem o filtro, a unidade 24 ("Indiaroba",
+     * SEM_DADOS, sem código IBGE) entrava no esperado com a cor `sem-dados`, mas nunca produz ping
+     * de verdade — não tem marcador nem linha, a aplicação nunca a desenha. Pré-D19, achado na Task 4.
      */
     const cores = new Set(pings.map((p) => p.cor.trim()));
     const statusConectados = new Set(unidadesDaApi
-      .filter((u) => u.conectaAUnidadeId != null && u.latitude != null && u.longitude != null)
+      .filter((u) => u.conectaAUnidadeId != null && u.latitude != null && u.longitude != null && u.codigoIbge != null)
       .map((u) => COR[u.status.toLowerCase().replace(/_/g, '-')]));
     checar(8, 'ping herda a cor de status da unidade conectada',
       cores.size === statusConectados.size && [...cores].every((c) => statusConectados.has(c)),
@@ -470,6 +516,78 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
       await ampliado.close();
     }
 
+    // ------------------------------- 9c. anel de seleção na cor do status (D19 item 3)
+    const STATUS_TODOS = [
+      ['disponivel', '#34c77b'], ['indisponivel', '#e5484d'], ['degradada', '#e8a33d'],
+      ['em-manutencao', '#7fadff'], ['sem-dados', '#8797a6'], ['sem-equipamentos', '#667b8b'],
+    ];
+
+    /*
+     * O banco de dev tem só 3 status distintos (DISPONIVEL, DEGRADADA, SEM_DADOS). A prova nos seis
+     * status abaixo não é conveniência: é a única via possível para EM_MANUTENCAO, INDISPONIVEL e
+     * SEM_EQUIPAMENTOS, que não existem no dado hoje. 9c-b força `--cor-unidade` e `aria-pressed`
+     * via DOM e prova a REGRA CSS (ela lê a variável, e é a variável que está sendo posta) — não
+     * que aquele status ocorra no dado. 9c-a, que roda numa unidade real com o status que ela tiver,
+     * é quem prova o caminho de ponta a ponta pela aplicação.
+     */
+
+    // 9c-a. Prova funcional: seleciona uma unidade real e confere que o anel saiu da cor dela.
+    // Reaproveita `isolado` do caso 3 — marcadorIsolado(page) retorna { id, perto }, não só o id.
+    const alvoReal = isolado.id;
+    const seletorAlvo = `.map__unidade[data-unidade-id="${alvoReal}"]`;
+    // Estado real do marcador ANTES de selecionar, para devolver depois sem `page.reload()` — a
+    // sessão só vive em memória (AuthStateService), e um reload cairia em /login como um goto cairia.
+    const estadoOriginalAlvo = await page.evaluate((id) => {
+      const b = document.querySelector(`.map__unidade[data-unidade-id="${id}"]`);
+      return { cor: b.style.getPropertyValue('--cor-unidade'), pressionado: b.getAttribute('aria-pressed') };
+    }, alvoReal);
+    /*
+     * `locator(...).click()` (mouse sintético do Playwright) NÃO seleciona este marcador — medido:
+     * fica em `aria-pressed="false"` mesmo após o clique, mouse ainda sobre o botão. `el.click()`
+     * nativo por `page.evaluate` seleciona de primeira (mesma unidade, mesmo estado). A hipótese mais
+     * provável é o `mousemove` intermediário do Playwright interagindo com o Marker do MapLibre
+     * (mousedown+leve deslocamento+mouseup lido como intenção de arrastar); o caso 5 já prova o
+     * caminho de teclado (Enter seleciona) — isto aqui é o mesmo clique, só que despachado nativo.
+     */
+    await page.evaluate((sel) => document.querySelector(sel).click(), seletorAlvo);
+    await page.waitForTimeout(250);
+    const selecionado = await page.evaluate((id) => {
+      const b = document.querySelector(`.map__unidade[data-unidade-id="${id}"]`);
+      const e = getComputedStyle(b);
+      return { cor: b.style.getPropertyValue('--cor-unidade'), sombra: e.boxShadow, largura: e.width };
+    }, alvoReal);
+    checar(9, 'marcador selecionado cresce para 19px',
+      selecionado.largura === '19px', selecionado.largura);
+    checar(9, 'anel de seleção não é mais lilás',
+      !/242,\s*214,\s*255/.test(selecionado.sombra), selecionado.sombra);
+    checar(9, 'anel de seleção herda o matiz de --cor-unidade',
+      corBateComSombra(selecionado.cor, selecionado.sombra),
+      `${selecionado.cor} -> ${selecionado.sombra}`);
+
+    // 9c-b. Prova visual dos seis: força cor e estado no marcador já selecionado, captura um por status.
+    for (const [chave, hex] of STATUS_TODOS) {
+      await page.evaluate(([id, hex]) => {
+        const b = document.querySelector(`.map__unidade[data-unidade-id="${id}"]`);
+        b.style.setProperty('--cor-unidade', hex);
+        b.setAttribute('aria-pressed', 'true');
+      }, [alvoReal, hex]);
+      await page.waitForTimeout(160);
+      const caixa = await page.locator(seletorAlvo).boundingBox();
+      await page.screenshot({
+        path: path.join(OUT, `d19-anel-${chave}.png`),
+        clip: { x: caixa.x - 46, y: caixa.y - 46, width: 120, height: 120 },
+      });
+      const largura = await page.evaluate((id) => getComputedStyle(document.querySelector(`.map__unidade[data-unidade-id="${id}"]`)).width, alvoReal);
+      checar(9, `anel visível e marcador a 19px no status ${chave}`, largura === '19px', largura);
+    }
+    // Devolve o marcador ao estado real de antes de 9c-a — sem reload, ver comentário acima.
+    await page.evaluate(([id, cor, pressionado]) => {
+      const b = document.querySelector(`.map__unidade[data-unidade-id="${id}"]`);
+      if (cor) b.style.setProperty('--cor-unidade', cor); else b.style.removeProperty('--cor-unidade');
+      if (pressionado === 'true') b.setAttribute('aria-pressed', 'true'); else b.setAttribute('aria-pressed', 'false');
+    }, [alvoReal, estadoOriginalAlvo.cor, estadoOriginalAlvo.pressionado]);
+    await page.waitForTimeout(200);
+
     // -------------------------------------------------- 10. captura combinada pedida na revisão
     /*
      * Tudo junto numa tela só: pulso seletivo, linha neutra com ping colorido em movimento e a dica
@@ -480,6 +598,31 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     await page.waitForTimeout(700);
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-tudo-junto.png') });
     await page.screenshot({ path: path.join(OUT, '03-tela-inteira.png') });
+
+    /*
+     * Captura única exigida por D19: marcador sem halo, pulso em vários status, e anel de seleção em
+     * três marcadores ao mesmo tempo, em três cores de status distintas.
+     *
+     * As TRÊS CORES são forçadas, e por isso: o banco de dev só tem dois status com marcador real
+     * (Disponível e Degradada — a única unidade SEM_DADOS, "Indiaroba", fica fora do mapa por não
+     * ter código IBGE, achado da Task 4). Agrupar por status real, como a primeira versão desta
+     * captura fazia, dá dois anéis, não três. Para mostrar os três ao mesmo tempo força-se
+     * `--cor-unidade` e `aria-pressed` em três marcadores espalhados pela tela (ordenados por x para
+     * não empilhar no aglomerado de Aracaju) — o resto (halo ausente, pulso) continua no estado real,
+     * sem nada forçado. A prova de que a SELEÇÃO em si funciona sem forçar nada é o caso 9a, na
+     * unidade real.
+     */
+    await page.evaluate(() => {
+      const cores = ['#34c77b', '#e5484d', '#e8a33d'];
+      const nos = [...document.querySelectorAll('.map__unidade')]
+        .map((b) => ({ b, x: b.getBoundingClientRect().x }))
+        .sort((a, z) => a.x - z.x);
+      const passo = Math.max(1, Math.floor(nos.length / 3));
+      const escolhidos = [nos[0], nos[passo], nos[Math.min(nos.length - 1, passo * 2)]];
+      escolhidos.forEach(({ b }, i) => { b.style.setProperty('--cor-unidade', cores[i]); b.setAttribute('aria-pressed', 'true'); });
+    });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(OUT, 'd19-tudo-junto.png'), fullPage: false });
 
     checar(0, 'nenhum erro de página no roteiro inteiro', erros.length === 0, erros.join(' | '));
   } catch (erro) {
