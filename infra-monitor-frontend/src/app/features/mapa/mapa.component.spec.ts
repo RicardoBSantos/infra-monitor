@@ -222,9 +222,9 @@ describe('camada de conexao (D18)',()=>{
       'DISPONIVEL', '#34c77b',
       'INDISPONIVEL', '#e5484d',
       'DEGRADADA', '#e8a33d',
-      'SEM_DADOS', '#435464',
-      'SEM_EQUIPAMENTOS', '#263744',
+      'SEM_DADOS', '#8797a6',
+      'SEM_EQUIPAMENTOS', '#667b8b',
       'EM_MANUTENCAO', '#7fadff',
-      '#435464']);
+      '#8797a6']);
   });
 });

@@ -88,10 +88,19 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * com a coloração do polígono removida (N07), os dois tons que só existiam ali — `multiple` e
  * `none`, que não são status de unidade nenhum — saíram junto, e o que restou corresponde
  * exatamente ao enum `UnitOperationalStatus`.
+ *
+ * D19 clareou os dois tons neutros. Enquanto o marcador tinha ARO CLARO de 2px, o miolo podia ser
+ * escuro à vontade: quem separava o marcador do município era o aro, a 13,05:1. Com o aro removido
+ * (D19 item 1) o miolo virou o único portador de contraste, e os valores de N06 não sustentam o
+ * papel: `sem-dados` #435464 dava 1,92:1 contra #16283a e `sem-equipamentos` #263744 dava 1,22:1 —
+ * a 13px, marcador invisível. #8797a6 dá 5,01:1 e #667b8b dá 3,41:1, ambos acima dos 3:1 de
+ * WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os dois tons mais dessaturados da
+ * tabela, que é o que os faz ler como ausência de dado e não como estado; o que mudou foi a
+ * luminância, não o matiz.
  */
 const COR_DO_STATUS: Record<string, string> = {
   'disponivel': '#34c77b', 'indisponivel': '#e5484d', 'degradada': '#e8a33d', 'em-manutencao': '#7fadff',
-  'sem-dados': '#435464', 'sem-equipamentos': '#263744',
+  'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b',
 };
 
 /**
