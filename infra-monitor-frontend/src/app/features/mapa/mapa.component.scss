@@ -147,8 +147,10 @@
    * carrega. O ping continua existindo mesmo assim: ele é o elemento que se MOVE, e é o movimento
    * que lê como "sonda ativa"; a linha estática, ainda que colorida, não carrega essa leitura.
    *
-   * Aro claro pela mesma razão do marcador: sem ele o ping de uma unidade `sem-equipamentos`
-   * (#263744) seria invisível sobre o município. Sem `pointer-events`: o ping cruza os marcadores
+   * Aro claro pela mesma razão que justificava o do marcador antes de D19: sem ele o ping de uma
+   * unidade `sem-equipamentos` (#667b8b, hoje já a 3,41:1 sozinho) seria mais difícil de ver sobre
+   * o município — o argumento ficou mais fraco com o clareamento, mas continua valendo para um
+   * disco de 7px, bem menor que os 13px do marcador. Sem `pointer-events`: o ping cruza os marcadores
    * e não pode roubar o clique de nenhum.
    *
    * Volume por CSS (D18, variação B sobre captura comparativa): o ping é o único elemento do mapa

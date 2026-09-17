@@ -131,7 +131,7 @@ function corDoStatus(status: string): string {
  * passa a ter um portador só, o marcador de unidade.
  *
  * O valor fica entre o `none` antigo (#0c1722, escuro demais — o polígono sumia no gradiente do
- * cartão) e o `sem-equipamentos` (#263744, já encostado na faixa de status): claro o bastante para o
+ * cartão) e o `sem-equipamentos` (#667b8b, já encostado na faixa de status): claro o bastante para o
  * contorno recortar a forma, escuro o bastante para o marcador colorido vencer por contraste.
  */
 const COR_MUNICIPIO = '#16283a';
@@ -146,8 +146,10 @@ const COR_MUNICIPIO = '#16283a';
  *
  * #456a8e dá 2,65:1. Não chega aos 3:1 de WCAG 1.4.11 de propósito: a 75 municípios num zoom de
  * estado, traço com contraste de controle de interface vira grade, e a divisa é contexto — o
- * conteúdo essencial (o estado operacional) está no marcador, que tem aro claro a 13,05:1. 2,65:1
- * é onde a forma se lê sem a malha competir com os marcadores; medido por captura, não estimado.
+ * conteúdo essencial (o estado operacional) está no marcador. Desde D19 o marcador não tem mais
+ * aro: o miolo sozinho carrega o contraste, entre 3,41:1 (`sem-equipamentos`, o pior caso) e
+ * 6,96:1 (`degradada`) contra #16283a — ver o comentário de `COR_DO_STATUS`. 2,65:1 é onde a forma
+ * se lê sem a malha competir com os marcadores; medido por captura, não estimado.
  */
 const COR_CONTORNO_MUNICIPIO = '#456a8e';
 
