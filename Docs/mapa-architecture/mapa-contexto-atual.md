@@ -565,9 +565,9 @@ unitário para isso (`pontos[8] === pontoNoArco(hub, filha, 8/32)`).
 ### Suítes
 
 `ng test` 361/361 · `e2e:n05` 22/22 · `e2e:n06` 24/24 · `e2e:n07` 37/37.
-Ajustes nos roteiros: n05 caso 20 passou a provar a **ausência** do anel (e que o lilás está no
-marcador); n07 caso 8 lê a amostra da legenda como gradiente e a janela de amostragem do movimento
-subiu para 1050 ms, acompanhando o período novo.
+Ajustes nos roteiros: n05 caso 20 passou a provar a **ausência** do anel (e que o lilás estava no
+marcador, até D19 — ver §12); n07 caso 8 lê a amostra da legenda como gradiente e a janela de
+amostragem do movimento subiu para 1050 ms, acompanhando o período novo.
 
 ---
 
