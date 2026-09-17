@@ -712,3 +712,113 @@ mais barato e sem exigir geometria WebGL extra por ponto animado.
 
 `ng test` (363 testes, suíte completa) sem regressão; `npx ng build` sem erro (aviso de budget do
 SCSS do mapa já existia antes desta mudança, arquivo grande por natureza — MapLibre).
+
+## D19 — Marcador sem aro, pulso geral e anel de seleção por status
+
+Três pedidos na mesma rodada, e **dois deles são reversões de decisões de N07**. Vale registrar o
+porquê de cada reversão, porque em ambos os casos a decisão original estava certa para o mapa que
+existia na época e ficou errada quando o mapa mudou debaixo dela.
+
+### Item 1 — O aro claro sai, e o contraste migra para o miolo
+
+`.map__unidade` perde o `border: 2px solid rgba(232, 240, 248, .92)`.
+
+O aro claro (D15) e o halo interno de 1,5px que o precedeu (N06) atacavam o mesmo problema: o miolo
+do marcador se camuflando contra o município. O município era pintado por status — o fundo debaixo
+do marcador mudava de cor de um lugar para outro, e nenhuma cor de miolo dava conta sozinha.
+
+N07 pintou o polígono de neutro e constante (`#16283a`). Isso apagou o problema, e o remendo
+sobreviveu ao problema: 4px dos 13px do marcador gastos num anel branco, com o miolo visível
+reduzido a 9px, competindo com o anel de foco e com o de pulso na mesma vizinhança de pixels.
+
+O que o aro fazia foi transferido para a cor do miolo. Os dois status escuros foram clareados até
+passarem 3:1 contra `#16283a` sozinhos:
+
+| status | antes | contraste | depois | contraste |
+|---|---|---|---|---|
+| `sem-dados` | `#435464` | 1,92:1 | `#8797a6` | **5,01:1** |
+| `sem-equipamentos` | `#263744` | 1,22:1 | `#667b8b` | **3,41:1** |
+
+Os outros quatro não mudam: 6,86:1, 3,84:1, 6,96:1 e 6,67:1. Matiz e dessaturação preservados — os
+dois neutros continuam lendo como ausência de dado; o que mudou foi a luminância.
+
+A `box-shadow` escura de contato fica. Ela nunca foi contraste: é o que separa o marcador da linha
+de conexão quando os dois se cruzam.
+
+Efeito colateral corrigido junto: as amostras neutras da legenda pintavam com token de tema
+(`--im-text-secondary`, `--im-text-muted`) e não com o hex do canvas. Já era divergência; com o
+clareamento viraria divergência visível. Passaram a literal.
+
+### Item 2 — Pulso em todos (reverte o filtro de N07)
+
+`STATUS_QUE_PULSA` deixa de existir; todo marcador recebe `map__unidade--pulsa`.
+
+N07 limitou o pulso a `INDISPONIVEL` e `DEGRADADA` com dois argumentos. O primeiro era de atenção:
+"pulsar os onze seria onze coisas disputando atenção". O segundo era de contraste: os dois status
+escuros gerariam anel de pulso ilegível (1,92:1 e 1,22:1).
+
+O segundo argumento caiu com o item 1 desta mesma rodada — 5,01:1 e 3,41:1. O primeiro é uma
+preferência de leitura, e é o usuário quem a arbitra: o pedido é pulso geral, como sinal de que o
+mapa está vivo e lendo, não como chamado de atenção por unidade. O pulso deixa de ser um indicador
+de estado e passa a ser a assinatura visual da sonda — o que o estado diz é a cor.
+
+Não muda: animação no `::after` e nunca no elemento (DV13 — o `transform` do elemento pertence ao
+MapLibre), `inset: -6px` fazendo o anel nascer fora do anel de foco, e `prefers-reduced-motion`
+deixando o anel **estático e visível**, nunca ausente.
+
+### Item 3 — Anel de seleção na cor do status (reverte o lilás de D17)
+
+`.map__unidade[aria-pressed='true']` troca `#f2d6ff` por
+`color-mix(in srgb, var(--cor-unidade) 78%, transparent)`, e o marcador cresce de 13px para 19px.
+
+O lilás foi escolhido em D17 quando o polígono ainda carregava cor: a seleção precisava de um matiz
+que não colidisse com nenhum status nem com o fundo. Com o polígono neutro, o benefício acabou e
+sobrou o custo — uma segunda fonte de cor no mapa, e um marcador selecionado cuja borda dizia
+"selecionado" e já não dizia qual status.
+
+O risco da troca é conhecido e foi tratado, não ignorado: anel da mesma cor do miolo tende a sumir à
+distância, e o caso difícil é o aglomerado de Aracaju, quatro unidades que podem compartilhar
+status. Por isso a seleção **não é só o anel**. São duas dimensões:
+
+- **translucidez (78%)** separa anel de miolo de perto;
+- **tamanho (13px → 19px)** separa selecionado de não-selecionado de longe.
+
+19px e não 17px porque 17px é o hover: iguais, passar o mouse num vizinho o deixaria do tamanho do
+selecionado.
+
+Geometria dos anéis do marcador selecionado, do centro para fora — mudar qualquer um dos números
+exige refazer a conta inteira:
+
+| anel | raio |
+|---|---|
+| miolo | 9,5px |
+| seleção (`box-shadow` 3px) | 9,5 → 12,5px |
+| foco (`outline` 2px, offset 3px) | 12,5 → 14,5px |
+| pulso nasce (`::after`, `inset: -6px`) | 15,5px |
+
+Seleção e foco são **tangentes**, nunca sobrepostos — é a mesma relação que o lilás de 3px tinha com
+o marcador de 13px, e ela existe porque o `outline` pinta por cima e recortaria o anel justamente no
+estado que vem logo depois do clique: selecionado E focado.
+
+### Verificado
+
+- Contraste dos seis status contra `#16283a` calculado por script (fórmula WCAG 2.x de luminância
+  relativa), não estimado: 6,86 / 3,84 / 6,96 / 6,67 / 5,01 / 3,41 — todos ≥ 3:1.
+- `ng test` (suíte completa) e `npx ng build` sem erro. O aviso de budget `anyComponentStyle` do
+  SCSS do mapa é pré-existente.
+- `e2e/n07-pulso-ping-dica.cjs`: caso 2 lê `borderTopWidth === '0px'` e `width === '13px'` nos onze
+  marcadores e exige `map__unidade--pulsa` em todos; caso 9 confere 19px no selecionado, ausência do
+  lilás na `box-shadow` computada e coincidência de matiz com `--cor-unidade`, mais captura por
+  status. Evidência em `e2e/n07-evidence/d19-anel-*.png` e `d19-tudo-junto.png`.
+
+### Descartado
+
+- **Remover o aro sem clarear os dois neutros.** Cumpriria o pedido ao pé da letra e deixaria
+  `sem-equipamentos` a 1,22:1 — marcador de 13px invisível contra o município.
+- **Remover o aro só dos quatro status coloridos.** Preservaria o contraste ao custo de um marcador
+  com duas aparências, e de uma regra de exceção por status no SCSS, que é exatamente o que
+  `--cor-unidade` existe para evitar.
+- **Anel de seleção só translúcido, sem crescer o marcador.** Uma dimensão só; verde translúcido
+  sobre verde no zoom de estado não se lê a distância.
+- **Voltar o anel de seleção a uma cor neutra** quando a translucidez se mostrou fraca. Descartado
+  por instrução explícita: o reforço tem de vir na mesma cor.

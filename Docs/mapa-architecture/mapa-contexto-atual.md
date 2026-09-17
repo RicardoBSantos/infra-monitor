@@ -7,6 +7,10 @@ Estado da rodada em curso. Atualizado como parte do commit que muda o Mapa, nunc
 > **§5 (layout e câmera) e §7 (suítes) foram revistos na rodada N07 — ver §8.** Os números de
 > câmera e de legenda das seções anteriores valem para a versão com extrusão e ficam como registro
 > do que foi medido na época, não como estado atual.
+>
+> **As linhas de marcador, pulso e seleção em §10.2 e §11 foram revistas na rodada D19 — ver §12.**
+> Aro claro, pulso seletivo e anel lilás valeram para as rodadas D16/D17 e ficam como registro do que
+> foi implementado na época, não como estado atual.
 
 ---
 
@@ -564,3 +568,52 @@ unitário para isso (`pontos[8] === pontoNoArco(hub, filha, 8/32)`).
 Ajustes nos roteiros: n05 caso 20 passou a provar a **ausência** do anel (e que o lilás está no
 marcador); n07 caso 8 lê a amostra da legenda como gradiente e a janela de amostragem do movimento
 subiu para 1050 ms, acompanhando o período novo.
+
+---
+
+## 12. D19 — marcador final: sem aro, pulso geral, seleção por status
+
+Decisão em [D19](mapa-decisoes.md). Três mudanças na mesma rodada, e duas delas revertem escolhas de
+N07 — ver D19 para o raciocínio completo de cada uma. Esta seção substitui, para marcador, pulso e
+seleção, as linhas equivalentes de §10.2 e §11 (que ficam como registro das rodadas D16/D17).
+
+### O que está no código
+
+| | Antes (N07/D16, D17) | Agora (D19) |
+|---|---|---|
+| Marcador | 13px, aro claro 2px (`rgba(232,240,248,.92)`), miolo = `COR_DO_STATUS`; 17px no hover | **sem aro** — disco chapado, 13px, miolo = `COR_DO_STATUS`; 17px no hover |
+| `COR_DO_STATUS['sem-dados']` | `#435464` (1,92:1) | **`#8797a6`** (5,01:1) |
+| `COR_DO_STATUS['sem-equipamentos']` | `#263744` (1,22:1) | **`#667b8b`** (3,41:1) |
+| Pulso | `::after`, `transform`+`opacity`, só `INDISPONIVEL` e `DEGRADADA` (`STATUS_QUE_PULSA`) | **todos os marcadores** pulsam — `STATUS_QUE_PULSA` removida |
+| Seleção (`aria-pressed`) | `box-shadow` 3px `#f2d6ff` (D17), marcador cresce a 13px → 17px | `color-mix(in srgb, var(--cor-unidade) 78%, transparent)`, marcador cresce **13px → 19px** |
+
+Os outros quatro status (`DISPONIVEL`, `DEGRADADA`, `INDISPONIVEL`, `EM_MANUTENCAO`) não mudam de
+cor: 6,86:1, 3,84:1, 6,96:1 e 6,67:1 contra `#16283a`, os mesmos números de N07/D16.
+
+`prefers-reduced-motion` não muda: pings continuam não sendo criados, e o anel de pulso continua
+estático e **visível**, nunca ausente.
+
+### Geometria dos anéis do marcador selecionado
+
+Do centro para fora — mudar qualquer um dos números exige refazer a conta inteira:
+
+| anel | raio |
+|---|---|
+| miolo | 9,5px |
+| seleção (`box-shadow` 3px) | 9,5 → 12,5px |
+| foco (`outline` 2px, offset 3px) | 12,5 → 14,5px |
+| pulso nasce (`::after`, `inset: -6px`) | 15,5px |
+
+Seleção e foco continuam **tangentes**, nunca sobrepostos, pelo mesmo motivo de D17: o `outline`
+pinta por cima e recortaria o anel de seleção no estado selecionado + focado.
+
+### Verificado
+
+- Contraste dos seis status contra `#16283a`, calculado por script (fórmula WCAG 2.x de luminância
+  relativa), não estimado: 6,86 / 3,84 / 6,96 / 6,67 / 5,01 / 3,41 — todos ≥ 3:1.
+- `ng test` (suíte completa) e `npx ng build` sem erro. O aviso de budget `anyComponentStyle` do
+  SCSS do mapa é pré-existente.
+- `e2e/n07-pulso-ping-dica.cjs`: caso 2 lê `borderTopWidth === '0px'` e `width === '13px'` nos onze
+  marcadores e exige `map__unidade--pulsa` em todos; caso 9 confere 19px no selecionado, ausência do
+  lilás na `box-shadow` computada e coincidência de matiz com `--cor-unidade`, mais captura por
+  status. Evidência em `e2e/n07-evidence/d19-anel-*.png` e `d19-tudo-junto.png`.
