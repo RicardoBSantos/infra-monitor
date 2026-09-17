@@ -1,0 +1,228 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "legenda descreve o marcador, não o polígono",
+      "ok": true,
+      "detalhe": "Cor do marcador de unidade."
+    },
+    {
+      "caso": 1,
+      "nome": "seis status numa lista só, sem disclosure",
+      "ok": true,
+      "detalhe": "6 itens, 0 disclosure"
+    },
+    {
+      "caso": 1,
+      "nome": "amostras exclusivas de polígono removidas",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "duas notas de gramática do mapa",
+      "ok": true,
+      "detalhe": "2 nota(s)"
+    },
+    {
+      "caso": 2,
+      "nome": "onze marcadores de unidade",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 2,
+      "nome": "pulsa exatamente quem está Indisponível ou Degradada",
+      "ok": true,
+      "detalhe": "5 pulsando de 11: Degradada, Degradada, Degradada, Degradada, Degradada"
+    },
+    {
+      "caso": 2,
+      "nome": "nem todos pulsam — é seletivo, não decorativo",
+      "ok": true,
+      "detalhe": "5/11"
+    },
+    {
+      "caso": 2,
+      "nome": "animação no ::after, nunca no elemento (DV13)",
+      "ok": true,
+      "detalhe": "_ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none"
+    },
+    {
+      "caso": 2,
+      "nome": "quem não pulsa não tem anel de pulso",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 3,
+      "nome": "há marcador isolado o bastante para hover determinístico",
+      "ok": true,
+      "detalhe": "unidade 4, vizinho mais próximo a 243px"
+    },
+    {
+      "caso": 3,
+      "nome": "transform de autor não entra: a matriz nunca ganha escala",
+      "ok": true,
+      "detalhe": "matrix(1, 0, 0, 1, 675.783, 289.13) -> matrix(1, 0, 0, 1, 673.783, 287.13)"
+    },
+    {
+      "caso": 3,
+      "nome": "hover cresce por largura, e isso funciona",
+      "ok": true,
+      "detalhe": "13px -> 17px"
+    },
+    {
+      "caso": 4,
+      "nome": "dica aparece no hover",
+      "ok": true,
+      "detalhe": "visible/1"
+    },
+    {
+      "caso": 4,
+      "nome": "dica traz nome, status e incidentes abertos",
+      "ok": true,
+      "detalhe": "Unidade Propriá STATUS Degradada INCIDENTES ABERTOS 0"
+    },
+    {
+      "caso": 4,
+      "nome": "dica é aria-hidden — o conteúdo vai pelo aria-label",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 4,
+      "nome": "aria-label leva os mesmos três dados da dica",
+      "ok": true,
+      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)"
+    },
+    {
+      "caso": 5,
+      "nome": "Tab alcança um marcador de unidade",
+      "ok": true,
+      "detalhe": "unidade 7 em 92 passo(s) de Tab"
+    },
+    {
+      "caso": 7,
+      "nome": "nenhum ping recebeu foco na varredura de Tab",
+      "ok": true,
+      "detalhe": "0 ping(s) focado(s) em 92 passo(s)"
+    },
+    {
+      "caso": 5,
+      "nome": "dica também aparece no foco de teclado",
+      "ok": true,
+      "detalhe": "visible"
+    },
+    {
+      "caso": 5,
+      "nome": "focar NÃO seleciona — relance e seleção são níveis diferentes",
+      "ok": true,
+      "detalhe": "0 -> 0"
+    },
+    {
+      "caso": 5,
+      "nome": "anel de foco com a cor fixa do mapa, independente do tema",
+      "ok": true,
+      "detalhe": "rgb(59, 110, 255) 2px"
+    },
+    {
+      "caso": 5,
+      "nome": "Enter no marcador focado seleciona (dica não rouba a ação)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 6,
+      "nome": "marcador que pulsa alcançado por Tab",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 6,
+      "nome": "anel de pulso NASCE fora do anel de foco, não o atravessa",
+      "ok": true,
+      "detalhe": "pulso a 12.5px do centro, foco termina em 11.5px"
+    },
+    {
+      "caso": 7,
+      "nome": "dois pings por linha de conexão desenhável, em fases opostas",
+      "ok": true,
+      "detalhe": "18 ping(s) para 9 linha(s)"
+    },
+    {
+      "caso": 7,
+      "nome": "todo ping é aria-hidden",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 7,
+      "nome": "nenhum ping tem tabindex",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 7,
+      "nome": "ping é <div>, não elemento focável por natureza",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 7,
+      "nome": "nenhum ping na coleção de focáveis da página",
+      "ok": true,
+      "detalhe": "117 focáveis na página, 0 pings"
+    },
+    {
+      "caso": 7,
+      "nome": "ping não tem nome acessível, texto nem papel",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 8,
+      "nome": "ping herda a cor de status da unidade conectada",
+      "ok": true,
+      "detalhe": "pings: #34c77b #e8a33d · esperado: #34c77b #e8a33d"
+    },
+    {
+      "caso": 8,
+      "nome": "amostra da linha e traco solido, sem gradiente",
+      "ok": true,
+      "detalhe": "{\"imagem\":\"none\",\"cor\":\"rgba(124, 150, 180, 0.65)\"}"
+    },
+    {
+      "caso": 8,
+      "nome": "todo ping percorre a linha — nenhum fica parado",
+      "ok": true,
+      "detalhe": "18/18 em movimento · percurso mínimo 12.2px em 2,1s"
+    },
+    {
+      "caso": 9,
+      "nome": "sob reduced-motion nenhum ping é criado",
+      "ok": true,
+      "detalhe": "0 ping(s)"
+    },
+    {
+      "caso": 9,
+      "nome": "anel de pulso vira estático, não some",
+      "ok": true,
+      "detalhe": "5 anel(éis), animação none, opacidade 0.55"
+    },
+    {
+      "caso": 9,
+      "nome": "evidência ampliada: marcador que pulsa focado por teclado em 3x",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página no roteiro inteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "erros": [],
+  "fatal": null
+}
