@@ -97,6 +97,10 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os dois tons mais dessaturados da
  * tabela, que é o que os faz ler como ausência de dado e não como estado; o que mudou foi a
  * luminância, não o matiz.
+ *
+ * Esse clareamento é também o que sustenta o pulso geral de D19: o argumento de N07 para pulsar só
+ * dois status era, em parte, que `sem-dados` (1,92:1) e `sem-equipamentos` (1,22:1) gerariam anel de
+ * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu — os seis pulsam com anel legível.
  */
 const COR_DO_STATUS: Record<string, string> = {
   'disponivel': '#34c77b', 'indisponivel': '#e5484d', 'degradada': '#e8a33d', 'em-manutencao': '#7fadff',
@@ -146,21 +150,6 @@ const COR_MUNICIPIO = '#16283a';
  * é onde a forma se lê sem a malha competir com os marcadores; medido por captura, não estimado.
  */
 const COR_CONTORNO_MUNICIPIO = '#456a8e';
-
-/**
- * Status cujo marcador pulsa. Só os dois que pedem ação.
- *
- * Pulsar os onze seria onze coisas disputando atenção — um indicador "live" pulsa porque é o único
- * na tela. `EM_MANUTENCAO` fica de fora de propósito: é estado conhecido e planejado, não chamado.
- * Os dois de ausência de dado também: não há o que atender.
- *
- * Efeito colateral útil, medido: o pulso herda a cor do status, e os dois tons que pior contrastam
- * com o município (`sem-dados` 1,92:1 e `sem-equipamentos` 1,22:1) simplesmente não pulsam. Nenhum
- * anel de pulso ilegível pode existir — #e5484d dá 3,84:1 e #e8a33d dá 6,96:1 contra #16283a.
- */
-const STATUS_QUE_PULSA: readonly UnitOperationalStatus[] = [
-  UnitOperationalStatus.Unavailable, UnitOperationalStatus.Degraded,
-];
 
 /**
  * Duração de uma travessia completa do ping — hub → unidade → hub.
@@ -722,9 +711,9 @@ export class MapaComponent implements OnDestroy {
       // A cor de status vai por variavel CSS, e nao por classe: sao os mesmos hex do canvas, num
       // unico lugar, e nao ha classe de status para criar e manter em paralelo no SCSS.
       alvo.style.setProperty('--cor-unidade', corDoStatus(unidade.status));
-      // Pulso só nos dois status que pedem ação, e por classe e não por `:has()`: o SCSS não precisa
-      // conhecer a lista de status, e a lista vive num lugar só (STATUS_QUE_PULSA).
-      if (STATUS_QUE_PULSA.includes(unidade.status)) alvo.classList.add('map__unidade--pulsa');
+      // Pulso em TODOS os marcadores — D19 reverteu o filtro de N07. Continua por classe e não por
+      // `:has()` ou seletor de status: o SCSS não conhece a lista de status, e não passa a conhecer.
+      alvo.classList.add('map__unidade--pulsa');
       alvo.appendChild(dicaDaUnidade(unidade));
       alvo.addEventListener('click', () => this.selecionarPeloMarcador(unidade), { signal: signalAbort });
       alvo.addEventListener('focus', () => { if (!map.getBounds().contains(coordenada)) map.easeTo({ center: coordenada, duration: 200 }); }, { signal: signalAbort });
