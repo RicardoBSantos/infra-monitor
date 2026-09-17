@@ -202,9 +202,10 @@ function animacaoReduzida(): boolean {
  * a unidade, não a região.
  *
  * A seleção continua inteira, só que no marcador: `aria-pressed` nos dois marcadores (o alvo
- * invisível do município e o da unidade), aro lilás em `.map__unidade[aria-pressed='true']` e o
- * painel lateral. Nenhum canal saiu — e o lilás continua vivo no SCSS, onde a superfície embaixo
- * dele tem 13px e não meio estado.
+ * invisível do município e o da unidade), anel na cor do status em
+ * `.map__unidade[aria-pressed='true']` (D19 — era lilás fixo até D18) e o
+ * painel lateral. Nenhum canal saiu — e o anel de seleção continua vivo no SCSS, onde a superfície
+ * embaixo dele tem 13px e não meio estado.
  *
  * Com a camada `municipio-selecionado` foi embora a única razão de a marcação de seleção esperar o
  * estilo do mapa carregar: `marcarMunicipio` mexe só em atributo de DOM.

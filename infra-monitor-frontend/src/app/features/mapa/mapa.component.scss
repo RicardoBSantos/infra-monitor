@@ -93,14 +93,30 @@
    * atrás do marcador da unidade seguinte no aglomerado de Aracaju. */
   .map__unidade:hover, .map__unidade:focus-visible, .map__unidade:focus-within { z-index: 4; }
 
-  /* Selecionado: lilás — e desde D17 este é o ÚNICO portador da seleção no mapa, porque o anel do
-   * polígono saiu. Selecionar não pode apagar a cor de status, entao o lilás vai no aro e no halo,
-   * nunca no miolo. O
-   * halo passou de 4px para 3px para encostar no anel de foco em vez de cruzá-lo: com 4px os dois
-   * se sobrepunham entre 11,5 e 12,5px de raio, e o `outline`, que pinta por cima, recortava o
-   * lilás justamente quando a unidade estava selecionada E focada — que é o estado logo após o
-   * clique. */
-  .map__unidade[aria-pressed='true'] { border-color: #f2d6ff; box-shadow: 0 0 0 3px rgba(242, 214, 255, .5), 0 1px 3px rgba(0, 0, 0, .6); }
+  /* Selecionado: anel na PRÓPRIA cor do status, e não mais o lilás #f2d6ff de D17.
+   *
+   * O lilás foi escolhido quando o polígono ainda carregava cor e a seleção precisava de um matiz
+   * que não colidisse com nenhum status. Com o polígono neutro sobrou só o custo: uma segunda fonte
+   * de cor no mapa, e um marcador selecionado cuja borda dizia "selecionado" mas já não dizia qual
+   * status. D19 devolve a leitura ao marcador inteiro — miolo, anel e pulso saem todos de
+   * `--cor-unidade`.
+   *
+   * O risco conhecido dessa troca é anel-da-mesma-cor-do-miolo sumir à distância, e é por isso que a
+   * seleção NÃO é só o anel: o marcador cresce de 13px para 19px. São duas dimensões de diferença —
+   * tamanho e anel — contra uma. A translucidez (78%) é o que separa anel de miolo de perto; o
+   * tamanho é o que separa selecionado de não-selecionado de longe, inclusive num aglomerado de
+   * marcadores do mesmo status, que é o caso difícil (Aracaju, quatro unidades).
+   *
+   * 19px e não 17px: 17px é o hover. Se os dois coincidissem, passar o mouse por um marcador vizinho
+   * o deixaria do tamanho do selecionado.
+   *
+   * GEOMETRIA — os três anéis do marcador selecionado, do centro para fora:
+   *   miolo        raio  9,5px
+   *   seleção      9,5 → 12,5px  (box-shadow de 3px)
+   *   foco         12,5 → 14,5px (outline 2px, offset 3px) — tangente, nunca sobreposto
+   *   pulso nasce  15,5px        (::after com inset -6px) — fora do foco
+   * Mudar o tamanho da caixa OU o offset do foco OU a espessura do anel exige refazer esta conta. */
+  .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #8797a6) 78%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
 
   /* --- Pulso (N07, generalizado em D19) -----------------------------------------------------
    *
