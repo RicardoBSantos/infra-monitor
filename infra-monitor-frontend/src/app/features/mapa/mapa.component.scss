@@ -122,7 +122,7 @@
     .map__unidade--pulsa::after { animation: none; transform: scale(1.25); opacity: .55; }
   }
 
-  /* --- Ping na linha de conexão (N07) -------------------------------------------------------
+  /* --- Ping na linha de conexão (N07 + volume D18) -------------------------------------------
    *
    * `--cor-ping` é o status da unidade CONECTADA — a mesma cor que, com D18, a linha inteira já
    * carrega. O ping continua existindo mesmo assim: ele é o elemento que se MOVE, e é o movimento
@@ -130,8 +130,29 @@
    *
    * Aro claro pela mesma razão do marcador: sem ele o ping de uma unidade `sem-equipamentos`
    * (#263744) seria invisível sobre o município. Sem `pointer-events`: o ping cruza os marcadores
-   * e não pode roubar o clique de nenhum. */
-  .map__ping { width: 7px; height: 7px; border: 1px solid rgba(232, 240, 248, .8); border-radius: 50%; background: var(--cor-ping, #435464); box-shadow: 0 0 5px 1px rgba(232, 240, 248, .3); pointer-events: none; z-index: 1; }
+   * e não pode roubar o clique de nenhum.
+   *
+   * Volume por CSS (D18, variação B sobre captura comparativa): o ping é o único elemento do mapa
+   * que representa tráfego — dar-lhe esfera o separa visualmente do marcador de unidade, que é
+   * chapado de propósito. `radial-gradient` com highlight deslocado (32% 28%, fora do centro)
+   * simula a luz vindo de cima-esquerda; a segunda parada escurece a própria `--cor-ping` com
+   * `color-mix` (não branco semitransparente — isso deixava o fundo escuro do cartão atravessar o
+   * disco e virar borrão cinza). A `box-shadow` empilha três camadas: o glow externo que já existia
+   * (`rgba(232,240,248,.3)`), uma sombra interna escura simulando a face oposta à luz, e uma sombra
+   * de contato leve embaixo. Não é extrusão geométrica (isso foi descartado de propósito) — é
+   * shading 2D que lê como esfera a 7px. `--cor-ping` continua sendo o contrato lido pelo e2e
+   * (custom property inline, não `background-color`). */
+  .map__ping {
+    width: 7px; height: 7px; border: 1px solid rgba(232, 240, 248, .8); border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%,
+      color-mix(in srgb, #fff 62%, var(--cor-ping)) 0%,
+      var(--cor-ping) 52%,
+      color-mix(in srgb, var(--cor-ping) 70%, #000) 100%);
+    box-shadow: 0 0 5px 1px rgba(232, 240, 248, .3),
+      inset -1.5px -1.5px 2.5px rgba(0, 0, 0, .38),
+      0 1px 2px rgba(0, 0, 0, .45);
+    pointer-events: none; z-index: 1;
+  }
 
   /* --- Dica de relance (N07) ----------------------------------------------------------------
    *

@@ -670,3 +670,43 @@ sem resultado; `npx ng build` sem erro.
 
 Manter as seis camadas e trocar só a cor final do gradiente (não atende ao pedido: ainda haveria
 trecho neutro); gradiente com transição mais curta em vez de removê-lo (mesmo problema, só adiado).
+
+### Item 2 — Volume no ping por CSS
+
+Segundo pedido do usuário na mesma rodada: o ping de 7px, até aqui um disco chapado
+(`background: var(--cor-ping, #435464)`), ganha volume — vira uma esfera simulada, não geométrica.
+Três intensidades foram geradas para comparação lado a lado
+(`e2e/n07-evidence/d18-ping-variacoes.png`) e o usuário escolheu a **B (médio)**:
+
+```css
+background: radial-gradient(circle at 32% 28%,
+  color-mix(in srgb, #fff 62%, var(--cor-ping)) 0%,
+  var(--cor-ping) 52%,
+  color-mix(in srgb, var(--cor-ping) 70%, #000) 100%);
+box-shadow: 0 0 5px 1px rgba(232, 240, 248, .3),
+  inset -1.5px -1.5px 2.5px rgba(0, 0, 0, .38),
+  0 1px 2px rgba(0, 0, 0, .45);
+```
+
+O highlight desloca-se para fora do centro (32% 28%) para simular luz vindo de cima-esquerda; a
+sombra interna escurece a face oposta. A primeira parada do `box-shadow` (`rgba(232,240,248,.3)`) é
+o glow externo que já existia — preservado, não duplicado.
+
+O rascunho inicial usava `rgba(255,255,255,.62)` como cor de highlight — descartado antes de chegar
+à captura: branco semitransparente deixa o fundo escuro do cartão do mapa atravessar o disco de 7px,
+e o resultado lia como borrão cinza, não como brilho. Trocado por `color-mix(in srgb, #fff 62%,
+var(--cor-ping))`, que mistura opacamente com a própria cor do ping — a mesma % (62%), mas sem
+transparência, então nada do fundo atravessa.
+
+`--cor-ping` continua sendo o contrato: é lido via `style.getPropertyValue('--cor-ping')` (custom
+property inline) tanto pelo componente quanto pelo e2e (`n07-pulso-ping-dica.cjs`), e o
+`radial-gradient`/`color-mix` em `background` não o altera — nada a mudar na leitura do teste.
+
+**Não é extrusão geométrica.** Essa opção foi descartada de propósito (ver histórico de N05/D17
+sobre extrusão 3D no mapa) e não volta aqui: o volume do ping é shading 2D — gradiente e sombra —,
+mais barato e sem exigir geometria WebGL extra por ponto animado.
+
+### Verificado (item 2)
+
+`ng test` (363 testes, suíte completa) sem regressão; `npx ng build` sem erro (aviso de budget do
+SCSS do mapa já existia antes desta mudança, arquivo grande por natureza — MapLibre).

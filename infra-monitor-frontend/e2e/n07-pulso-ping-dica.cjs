@@ -74,6 +74,8 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
   oculto: no.getAttribute('aria-hidden'),
   tabindex: no.getAttribute('tabindex'),
   tag: no.tagName,
+  // custom property inline, não backgroundColor: o volume (D18) usa radial-gradient em `background`,
+  // que não altera --cor-ping — a leitura abaixo continua válida sem mudança.
   cor: no.style.getPropertyValue('--cor-ping'),
   x: Math.round(no.getBoundingClientRect().x), y: Math.round(no.getBoundingClientRect().y),
 })));
