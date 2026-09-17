@@ -83,7 +83,8 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * Cor de cada status operacional, em hex — o canvas WebGL nao le variavel CSS. Mesmos valores do
  * tema escuro.
  *
- * Consumida SÓ pelo marcador de unidade. Era `COR_DO_TOM` e pintava também o polígono do município;
+ * Consumida pelo marcador de unidade, por `camadasDeConexao()` (`line-color`) e pelo `--cor-ping`
+ * do ping da conexão. Era `COR_DO_TOM` e pintava também o polígono do município;
  * com a coloração do polígono removida (N07), os dois tons que só existiam ali — `multiple` e
  * `none`, que não são status de unidade nenhum — saíram junto, e o que restou corresponde
  * exatamente ao enum `UnitOperationalStatus`.
@@ -94,18 +95,16 @@ const COR_DO_STATUS: Record<string, string> = {
 };
 
 /**
- * Valor do enum (`EM_MANUTENCAO`) para a chave de `COR_DO_STATUS` (`em-manutencao`). A conversão
- * estava escrita três vezes em linha; agora que o gradiente da conexão também precisa dela, vira
- * função — a alternativa era reescrever `COR_DO_STATUS` com as chaves do enum, e as chaves em
- * kebab existem porque são as mesmas dos nomes de classe e das variáveis CSS.
+ * Cor do status, com queda para `sem-dados` no valor que a API venha a acrescentar.
+ *
+ * A conversão de valor do enum (`EM_MANUTENCAO`) para chave de `COR_DO_STATUS` (`em-manutencao`)
+ * ficava numa função à parte (`chaveDeStatus`) enquanto tinha dois chamadores — marcador e
+ * gradiente da conexão. O gradiente saiu em D18 (linha inteira, sem gradiente), sobrou só este
+ * chamador, e a função virou inline: as chaves em kebab existem porque são as mesmas dos nomes de
+ * classe e das variáveis CSS.
  */
-function chaveDeStatus(status: string): string {
-  return status.toLowerCase().replace(/_/g, '-');
-}
-
-/** Cor do status, com queda para `sem-dados` no valor que a API venha a acrescentar. */
 function corDoStatus(status: string): string {
-  return COR_DO_STATUS[chaveDeStatus(status)] ?? COR_DO_STATUS['sem-dados'];
+  return COR_DO_STATUS[status.toLowerCase().replace(/_/g, '-')] ?? COR_DO_STATUS['sem-dados'];
 }
 
 /**

@@ -18,6 +18,10 @@
  *   que a lib reposiciona em vez de o componente redesenhar;
  * - ausência de rolagem na área principal do shell (D11);
  * - ausência de faixa morta depois da recalibração de câmera (D11 não pode desfazer D04).
+ *
+ * A camada `conexoes-linha` NÃO é verificada aqui: ela vive no WebGL do MapLibre e não é
+ * inspecionável pelo DOM. Cobertura real é o teste unitário de `camadasDeConexao`
+ * (mapa.component.spec.ts) mais as capturas deste próprio roteiro.
  */
 const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
@@ -109,7 +113,7 @@ const medirFaixa = (page) => page.evaluate(() => {
     checar(1, 'marcadores não colapsam no mesmo pixel', distintos.size === unidades.length,
       `${distintos.size} posição(ões) distintas para ${unidades.length} marcadores`);
 
-    // As quatro de Aracaju: o bloco único do município não conseguia distingui-las.
+    // As quatro de Aracaju: o polígono único do município não consegue distingui-las.
     const aracaju = unidades.filter((u) => ['1', '2', '3', '7'].includes(u.id));
     const xs = aracaju.map((u) => u.x), ys = aracaju.map((u) => u.y);
     const espalhamento = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
@@ -120,19 +124,7 @@ const medirFaixa = (page) => page.evaluate(() => {
       unidades.every((u) => /: (Disponível|Indisponível|Degradada|Em manutenção|Sem dados|Sem equipamentos), \d+ equipamento/.test(u.rotulo)),
       unidades[0].rotulo);
 
-    // -------------------------------------------------- 2. linhas de conexão (N06)
-    const linhas = await page.evaluate(() => {
-      const mapa = document.querySelector('.maplibregl-map');
-      if (!mapa) return null;
-      // A fonte é lida do próprio estilo do mapa, não de um espelho no componente.
-      const chave = Object.keys(mapa).find((k) => k.startsWith('__'));
-      return chave ? null : null;
-    });
-    // A camada não é inspecionável pelo DOM; a prova de que ela existe e desenha é a captura
-    // dedicada abaixo, mais o teste unitário de `conexoesDesenhaveis`.
-    checar(2, 'camada de conexões declarada no estilo', linhas === null, 'verificado por captura + unitário');
-
-    // ---------------------------------------------------- 3. teclado nos marcadores
+    // ---------------------------------------------------- 2. teclado nos marcadores
     await page.keyboard.press('Escape');
     await page.click('.map-page__eyebrow');
     let achou = null;
@@ -141,27 +133,27 @@ const medirFaixa = (page) => page.evaluate(() => {
       const atual = await focado(page);
       if (atual && atual.deUnidade) achou = atual;
     }
-    checar(3, 'marcador de unidade é alcançável por Tab', !!achou, JSON.stringify(achou));
+    checar(2, 'marcador de unidade é alcançável por Tab', !!achou, JSON.stringify(achou));
 
     await page.keyboard.press('Enter');
     await page.waitForTimeout(700);
     const painel = await page.locator('.unit-panel__nome').textContent();
-    checar(3, 'Enter no marcador abre o painel da unidade', !!painel && achou.rotulo.startsWith(painel),
+    checar(2, 'Enter no marcador abre o painel da unidade', !!painel && achou.rotulo.startsWith(painel),
       `painel: ${painel} | marcador: ${achou.rotulo}`);
 
     const aposEnter = await lerUnidades(page);
     const pressionados = aposEnter.filter((u) => u.pressionado);
-    checar(3, 'exatamente um marcador fica aria-pressed', pressionados.length === 1 && pressionados[0].id === achou.unidade,
+    checar(2, 'exatamente um marcador fica aria-pressed', pressionados.length === 1 && pressionados[0].id === achou.unidade,
       JSON.stringify(pressionados.map((u) => u.id)));
 
     // Espaço também: <button> real entrega os dois, e é isso que se está afirmando.
     await page.keyboard.press('Space');
     await page.waitForTimeout(500);
-    checar(3, 'Espaço ativa o mesmo marcador', (await lerUnidades(page)).filter((u) => u.pressionado).length === 1);
+    checar(2, 'Espaço ativa o mesmo marcador', (await lerUnidades(page)).filter((u) => u.pressionado).length === 1);
 
     await page.screenshot({ path: path.join(OUT, '03-marcador-por-teclado.png') });
 
-    // ------------------------------- 4. preservação dos nós em pan/zoom/pitch (N02/N05)
+    // ------------------------------- 3. preservação dos nós em pan/zoom/pitch (N02/N05)
     const antes = await lerUnidades(page);
     const caixa = await page.locator('.map').boundingBox();
     await page.mouse.move(caixa.x + caixa.width / 2, caixa.y + caixa.height / 2);
@@ -174,11 +166,11 @@ const medirFaixa = (page) => page.evaluate(() => {
 
     const mesmosNos = antes.length === depoisPan.length && antes.every((u, i) => u.no === depoisPan[i].no);
     const moveu = antes.some((u, i) => u.x !== depoisPan[i].x || u.y !== depoisPan[i].y);
-    checar(4, 'nenhum marcador é recriado em pan/zoom', mesmosNos, `${antes.length} nós antes, ${depoisPan.length} depois`);
-    checar(4, 'marcadores acompanham a câmera', moveu, 'posições mudaram sem troca de nó');
-    checar(4, 'seleção sobrevive ao pan/zoom', depoisPan.filter((u) => u.pressionado).length === 1);
+    checar(3, 'nenhum marcador é recriado em pan/zoom', mesmosNos, `${antes.length} nós antes, ${depoisPan.length} depois`);
+    checar(3, 'marcadores acompanham a câmera', moveu, 'posições mudaram sem troca de nó');
+    checar(3, 'seleção sobrevive ao pan/zoom', depoisPan.filter((u) => u.pressionado).length === 1);
 
-    // ------------------------------------------- 5. layout: rolagem e faixa morta
+    // ------------------------------------------- 4. layout: rolagem e faixa morta
     const rolagem = await page.evaluate(() => {
       const principal = document.querySelector('.shell__main');
       return {
@@ -188,38 +180,63 @@ const medirFaixa = (page) => page.evaluate(() => {
         larguraPainel: Math.round(document.querySelector('.map-panel').getBoundingClientRect().width),
       };
     });
-    checar(5, 'área principal do shell não rola', rolagem.principal <= 1, `excedente ${rolagem.principal}px`);
-    checar(5, 'documento não rola', rolagem.documento <= 1, `excedente ${rolagem.documento}px`);
-    checar(5, 'painel lateral com a largura nova', rolagem.larguraPainel >= 318 && rolagem.larguraPainel <= 322, `${rolagem.larguraPainel}px`);
+    checar(4, 'área principal do shell não rola', rolagem.principal <= 1, `excedente ${rolagem.principal}px`);
+    checar(4, 'documento não rola', rolagem.documento <= 1, `excedente ${rolagem.documento}px`);
+    checar(4, 'painel lateral com a largura nova', rolagem.larguraPainel >= 318 && rolagem.larguraPainel <= 322, `${rolagem.larguraPainel}px`);
 
-    await page.click('a[href="/mapa"]').catch(() => {});
-    await page.waitForTimeout(400);
+    /*
+     * Remontagem de verdade antes de medir enquadramento. Clicar em /mapa estando em /mapa é no-op
+     * no router: o componente não remonta e a câmera fica como o pan/zoom do caso 4 a deixou — o
+     * que estava sendo medido era a câmera arrastada pelo teste, não a calibração. Sair para outra
+     * rota e voltar destrói e recria o mapa, que é o estado que o operador vê ao abrir a tela.
+     */
+    await page.click('a[href="/dashboard"]');
+    await page.waitForTimeout(600);
+    await page.click('a[href="/mapa"]');
+    await page.waitForSelector('.map__alvo', { timeout: 20000 });
+    await page.waitForTimeout(1800);
     const faixa = await medirFaixa(page);
     // O alvo não é margem zero (o centróide nunca encosta na borda), é EQUILÍBRIO: faixa morta é
     // sobra concentrada de um lado só. Até 6 pontos percentuais de diferença passa despercebido.
-    checar(5, 'enquadramento equilibrado entre topo e base', faixa.desequilibrio <= 0.06,
+    checar(4, 'enquadramento equilibrado entre topo e base', faixa.desequilibrio <= 0.06,
       `topo ${(faixa.topo * 100).toFixed(1)}% · base ${(faixa.base * 100).toFixed(1)}% · desequilíbrio ${(faixa.desequilibrio * 100).toFixed(1)} p.p.`);
-    checar(5, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.34,
+    checar(4, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.34,
       `sobra total ${((faixa.topo + faixa.base) * 100).toFixed(1)}%`);
 
-    // ------------------------------------------------------- 6. legenda compacta
+    // O painel não pode ter buraco: sem município selecionado o conteúdo é curto e a sobra vai para
+    // as costuras entre blocos, distribuída. 307px numa costura só foi o que motivou a mudança.
+    const maiorCostura = await page.evaluate(() => {
+      const painel = document.querySelector('.map-panel').getBoundingClientRect();
+      const blocos = [...document.querySelectorAll('.map-panel > *')].map((n) => n.getBoundingClientRect());
+      let maior = 0;
+      for (let i = 1; i < blocos.length; i++) maior = Math.max(maior, blocos[i].top - blocos[i - 1].bottom);
+      return { maior: Math.round(maior), altura: Math.round(painel.height) };
+    });
+    checar(5, 'nenhuma costura vazia dominante no painel', maiorCostura.maior <= 160,
+      `maior costura ${maiorCostura.maior}px em ${maiorCostura.altura}px de painel`);
+
+    // ----------------------- 5. legenda depois da extrusão (N06) e da cor de município (N07)
+    /*
+     * A legenda de N06 era: 4 status visíveis, 3 notas atrás de um botão de informação, 4 estados
+     * sem leitura atrás de um disclosure. Com a extrusão fora, duas notas descreviam geometria
+     * inexistente e saíram, e o botão de informação foi removido com elas.
+     *
+     * N07 tirou a cor de status do polígono. Isso esvaziou o disclosure de razão: dois dos seus
+     * quatro itens eram vocabulário só de polígono ("Município sem unidade", "Múltiplas unidades")
+     * e morreram com a coloração; os outros dois são UnitOperationalStatus como os demais. Uma
+     * lista de 6, sem disclosure, e uma segunda nota dizendo que o município não tem status.
+     */
     const legendaVisivel = await page.locator('.legend-bloco > .legend li').count();
-    checar(6, 'só os 4 status operacionais visíveis por padrão', legendaVisivel === 4, `${legendaVisivel} item(ns)`);
-    checar(6, 'notas fechadas por padrão', (await page.locator('.legend-notas').count()) === 0);
+    checar(5, 'os 6 status de unidade numa lista só', legendaVisivel === 6, `${legendaVisivel} item(ns)`);
+    checar(5, 'legenda anuncia que fala do marcador, não do polígono',
+      (await page.locator('.legend-bloco .legend__intro').innerText()).toLowerCase().includes('marcador'));
+    checar(5, 'duas notas de gramática do mapa: município neutro e linha de hub',
+      (await page.locator('.legend-bloco > .legend__nota').count()) === 2);
+    checar(5, 'botão de informação removido', (await page.locator('.legend-info').count()) === 0);
+    checar(5, 'disclosure "Estados sem leitura" desfeito', (await page.locator('.legend-extra').count()) === 0);
+    await page.screenshot({ path: path.join(OUT, '05-legenda.png') });
 
-    await page.click('.legend-info');
-    await page.waitForTimeout(250);
-    checar(6, 'botão de informação abre as notas', (await page.locator('.legend-notas').count()) === 1);
-    await page.click('.legend-extra summary');
-    await page.waitForTimeout(250);
-    checar(6, 'disclosure revela os 4 estados sem leitura', (await page.locator('.legend-extra .legend li').count()) === 4);
-    await page.screenshot({ path: path.join(OUT, '05-legenda-aberta.png') });
-
-    await page.click('.legend-info');
-    await page.click('.legend-extra summary');
-    await page.waitForTimeout(300);
-
-    // ------------------------------------------------------------- 7. capturas
+    // ------------------------------------------------------------- 6. capturas
     await page.screenshot({ path: path.join(OUT, '01-tela-inteira.png') });
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-mapa-marcadores-e-linhas.png') });
     await page.locator('.map-panel').screenshot({ path: path.join(OUT, '04-painel-320px.png') });

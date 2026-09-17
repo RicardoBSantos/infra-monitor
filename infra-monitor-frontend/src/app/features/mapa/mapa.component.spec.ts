@@ -216,11 +216,15 @@ describe('camada de conexao (D18)',()=>{
     const paint=(camadasDeConexao()[0] as unknown as {paint:Record<string,unknown>}).paint;
     expect(paint['line-gradient']).toBeUndefined();
     const cor=paint['line-color'] as unknown[];
-    expect(cor[0]).toBe('match');
-    expect(cor[1]).toEqual(['get','status']);
-    // DISPONIVEL -> verde de COR_DO_STATUS, no proprio corpo do match.
-    expect(cor).toContain('#34c77b');
-    // Ultimo elemento e o fallback sem-dados.
-    expect(cor[cor.length-1]).toBe('#435464');
+    // Corpo inteiro do match, na ordem exata: um toContain/toBe isolado passaria com o par
+    // status/cor invertido, e o estilo so quebraria em runtime.
+    expect(cor).toEqual(['match', ['get','status'],
+      'DISPONIVEL', '#34c77b',
+      'INDISPONIVEL', '#e5484d',
+      'DEGRADADA', '#e8a33d',
+      'SEM_DADOS', '#435464',
+      'SEM_EQUIPAMENTOS', '#263744',
+      'EM_MANUTENCAO', '#7fadff',
+      '#435464']);
   });
 });

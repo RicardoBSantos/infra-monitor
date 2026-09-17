@@ -664,7 +664,9 @@ revertido.
 
 `ng test` com os testes de `camadasDeConexao` cobrindo a camada única e a ausência de
 `line-gradient`; `grep -rn "lineMetrics\|line-gradient\|COR_CONEXAO\|INICIO_DO_GRADIENTE" src e2e`
-sem resultado; `npx ng build` sem erro.
+dá 3 ocorrências (`mapa.component.spec.ts:217`, `mapa.component.ts:314` e `:315`) — todas comentário
+histórico explicando por que D18 removeu o gradiente, ou a asserção de que `line-gradient` está
+ausente no teste; nenhuma em código de produção. `npx ng build` sem erro.
 
 ### Descartado
 
