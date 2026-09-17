@@ -590,9 +590,9 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
 
     // -------------------------------------------------- 10. captura combinada pedida na revisão
     /*
-     * Tudo junto numa tela só: pulso seletivo, linha neutra com ping colorido em movimento e a dica
-     * aberta. A dica vai pelo HOVER, que é o estado que o revisor pediu para ver; o caso 5 já provou
-     * por medição que o foco de teclado produz o mesmo.
+     * Tudo junto numa tela só: pulso geral (D19), linha neutra com ping colorido em movimento e a
+     * dica aberta. A dica vai pelo HOVER, que é o estado que o revisor pediu para ver; o caso 5 já
+     * provou por medição que o foco de teclado produz o mesmo.
      */
     await page.locator(`.map__unidade[data-unidade-id="${isolado.id}"]`).hover();
     await page.waitForTimeout(700);
