@@ -301,3 +301,372 @@ aprende uma vez: vão para um botão de informação.
 
 **Descartado tooltip em `:hover`:** exclui teclado e toque. O botão tem `aria-expanded` e
 `aria-controls`.
+
+---
+
+## D13 — Reversão da extrusão: polígonos planos, câmera inclinada
+`N07`, esta rodada. **Reverte a geometria de D04 e a codificação de altura de N03. Não apaga as
+duas: elas foram executadas como pedidas, e o que mudou foi a leitura do resultado.**
+
+Os blocos `fill-extrusion` liam como objetos soltos flutuando sobre o mapa, não como relevo do
+território. Feedback visual direto, depois de ver a tela pronta com dado real: o que a extrusão
+entregava não era profundidade do mapa, era um segundo mapa pairando acima do primeiro. A
+inclinação de câmera (`pitch: 45`, `bearing: -18`) já entrega a leitura tridimensional pretendida, e
+entrega sem descolar o desenho do chão. Fica o `pitch`; sai a altura por município.
+
+**Aprendizado, não falha de execução.** N03 escolheu a escala (400 m por equipamento, medida contra
+a distribuição real do banco) e N05 resolveu tudo que a extrusão exigia — colar de seleção no topo,
+offset de câmera, ordem de camadas. Os dois cumpriram o que foi pedido. O que não dava para saber
+antes de ver era como o recurso lê com os dados reais na tela.
+
+**Consequências revistas, não apagadas:**
+
+- **Altura = equipamentos some sem substituto ambiente.** O número continua no painel lateral (KPI
+  "Equipamentos" da unidade, contagem na lista de município com várias unidades). Descartado número
+  dentro do polígono: a 75 municípios em zoom de estado, vira ruído tipográfico.
+- **Anel de seleção volta à geometria de M04** — camada `line`, 3px no contorno do polígono. A razão
+  de ele ter virado um colar de extrusão em D04 era ficar no topo do bloco em vez do pé; sem bloco,
+  a razão some. **A cor de D04 fica:** `#f2d6ff`. O `--im-primary` do anel de M04 não volta porque
+  lá os `fill` eram translúcidos sobre fundo escuro e hoje são hex sólidos — azul encostado em
+  `em-manutencao` (#7fadff) é a colisão que D04 já tinha registrado.
+- **Câmera recalibrada do zero, não herdada.** `OFFSET_CAMERA` e `ZOOM_AO_INCLINAR` compensavam o
+  encolhimento do bloco inclinado. Além dos valores, mudou a sequência: `fitBounds` agora recebe o
+  `pitch` direto, em vez de enquadrar plano e inclinar depois. Sem blocos, enquadrar já inclinado
+  sai centrado (desequilíbrio topo-base de 4,1% contra 8,6% herdando a sequência de D04), e o que
+  resta é encolhimento uniforme, que a compensação de zoom resolve sozinha. Valores em vigor:
+  `pitch 45`, `bearing -18`, `zoom +0,68`, `offset [-24, 60]`. Medidos por diferença de pixel do
+  desenho contra o fundo do próprio cartão, em três viewports.
+- **Legenda perde duas notas** ("altura do bloco", "colar translúcido"), que descreviam geometria
+  inexistente. Com uma nota só, o botão de informação de D12 custava mais interação do que o texto
+  que escondia: nota promovida ao corpo, botão removido.
+
+**Marcador de unidade, dois sintomas corrigidos junto.** A revisão visual apontou um "círculo
+branco" no meio de um município alaranjado. Não era artefato de renderização: era o marcador de uma
+unidade Degradada sobre um município Degradado — mesmo hex no miolo e no fundo, sobrando só o aro
+escuro, que lê como furo. A borda escura de D10 protegia contra fundo de status diferente, não
+contra o mesmo. Entra um halo claro de 1,5px entre miolo e borda, que não é cor de status e por isso
+separa o marcador dos seis tons. O segundo sintoma — o `Marker` projeta na coordenada de chão
+enquanto o bloco flutuava acima, deixando o marcador visualmente deslocado do topo que deveria
+marcar — desaparece sozinho com o polígono plano. Achados em momentos diferentes da investigação,
+corrigidos no mesmo commit.
+
+---
+
+## D14 — `/mapa` sem `max-width`, e painel sem buraco
+`N07`, esta rodada.
+
+`max-width: 1500px` é a convenção das seis telas de tabela e formulário, onde linha longa demais
+prejudica a leitura. O Mapa é cartografia presa à viewport: cada pixel de gutter é área que não se
+desenha. Em 1700px sobravam ~100px mortos de cada lado, e a coluna do mapa passa de 1119 para
+~1320px sem o limite.
+
+**Verificado antes de mexer:** o valor não é token nem classe compartilhada — é literal repetido em
+cada componente de página, e o `.shell__main` não tem largura máxima. Tirar de `.map-page` não
+alarga nada além do Mapa, e nenhuma media query usa 1500px como ponto de quebra.
+
+**O vazio do painel era conteúdo curto, não grade quebrada.** O painel é item de grade esticado e já
+tinha exatamente a altura do cartão; o que havia era `margin-top:auto` na fonte cartográfica,
+empilhando toda a sobra numa costura só — 307px de buraco no meio da coluna. Duas mudanças, nesta
+ordem: o disclosure "Estados sem leitura" volta a abrir por padrão (conteúdo que já existia e
+estava escondido — a razão de D12 para fechá-lo eram oito itens mais duas notas, e as notas saíram
+com a extrusão), e a sobra restante é distribuída com `justify-content: space-between`. Maior
+costura: 110px. Com unidade selecionada o painel enche e a regra fica inerte.
+
+**Descartado esticar os cards para preencher a altura** e **descartado inventar conteúdo novo** para
+o espaço: o painel mostra o que há, e o que há é curto quando nada está selecionado.
+
+
+---
+
+## D15 — Município perde a cor de status; o marcador vira o portador único
+`N07`, esta rodada. **Aprovado direto, sem investigação prévia.**
+
+O polígono de município passa a ser **contorno `#294056` + fundo `#16283a`, igual em todo o
+estado**. Só o marcador de unidade carrega cor de status daqui pra frente.
+
+**Por que a cor sai do polígono.** Um município é uma área grande e irregular; a mesma cor que num
+marcador de 13px lê como "esta unidade está indisponível", num polígono de meia tela lê como "esta
+REGIÃO está indisponível" — leitura que o dado não sustenta. O caso que expõe isso é Aracaju: com
+quatro unidades ela nunca teve status no mapa, caía no tom `multiple` (#38536b), que não é estado
+operacional nenhum e existia só para dizer "não dá para resumir isto numa cor".
+
+**O código encolheu, como previsto no pedido:**
+
+| Fora | Onde estava |
+|---|---|
+| `toneDoMunicipio()` e seu teste | `mapa.component.ts` / `.spec.ts` |
+| Tons `multiple` e `none` | `COR_DO_TOM` |
+| Propriedade `cor` por feature no GeoJSON | montagem da `FeatureCollection` |
+| `['get','cor']` na camada `municipios-fill` | estilo do mapa |
+| `.legend__dot--none`, `.legend__dot--multiple` | `mapa.component.scss` |
+| `<details class="legend-extra">` e suas 9 regras de estilo | HTML + SCSS |
+
+`COR_DO_TOM` virou `COR_DO_STATUS`: sem os dois tons de polígono, o que resta corresponde
+**exatamente** ao enum `UnitOperationalStatus`, e o mapa passa a ter uma fonte de cor de status só,
+consumida por um consumidor só.
+
+**Legenda reescrita, não só re-rotulada.** Ganha o subtítulo "Cor do marcador de unidade" — sem ele,
+"LEGENDA DE STATUS" num painel ao lado de um mapa cheio de polígonos continua apontando para o
+polígono. E ganha uma segunda nota de gramática, dizendo que o município é neutro de propósito: a
+ausência de cor é uma decisão, e sem dizê-la o operador pode ler o cinza uniforme como "nenhum dado
+chegou".
+
+**O disclosure "Estados sem leitura" foi desfeito, e essa foi a pergunta menos óbvia da mudança.**
+Ele agrupava quatro itens. Dois — "Município sem unidade" e "Múltiplas unidades" — eram vocabulário
+**exclusivo da coloração de polígono**: nenhum marcador jamais os usou, e morreram com ela. Os dois
+que sobraram, "Sem dados" e "Sem equipamentos", são `UnitOperationalStatus` de verdade, do mesmo
+enum dos outros quatro. Guardar dois irmãos legítimos atrás de um `<details>` que já abria por
+padrão (D14) custava uma linha de interface para esconder nada. Uma lista de seis.
+
+**Descartado:** manter o disclosure com dois itens (separação sem conteúdo); usar `#0c1722` (o
+`none` antigo) como fundo neutro — é escuro demais, o polígono some no `radial-gradient` do cartão;
+usar `#263744` — já é o hex de `sem-equipamentos`, e reaproveitá-lo como "neutro" recria em cinza a
+ambiguidade que a mudança existe para tirar.
+
+**Confirmado, não assumido — o painel "STATUS GEOGRÁFICO · SERGIPE" não dependia disto.**
+`statusGeografico` é `contarPorStatus(municipios().flatMap(m => m.units))`: agrega as **unidades**,
+sem passar por `toneDoMunicipio` nem por `COR_DO_TOM`. Os contadores continuam idênticos. O que
+mudou é que a antiga garantia "por construção o card não pode divergir da cor dos municípios"
+(comentário de `ORDEM_SEVERIDADE`) deixou de ter objeto — não há mais cor de município com que
+divergir.
+
+**Nenhum e2e verificava cor de município**, ao contrário do que o pedido supunha: o canvas roda com
+`preserveDrawingBuffer` desligado e não é legível in-page, então a coloração do polígono só existia
+como **captura de evidência**. O que existia e mudou são contagens de legenda no `e2e:n06` (4 → 6
+itens, disclosure ausente, subtítulo presente, 2 notas) e o texto do caso 20 do `e2e:n05`, que
+prometia mostrar "a cor de status intacta dentro do anel". O `--cor-unidade` lido pelo `e2e:n06`
+continua valendo: é marcador, não polígono.
+
+---
+
+## D16 — Pulso seletivo, ping colorido na linha neutra, dica de relance
+`N07`, esta rodada. Fecha a investigação registrada em
+[mapa-contexto-atual §9](mapa-contexto-atual.md).
+
+### O que entrou
+
+**Pulso seletivo.** Anel no `::after` do marcador, `transform` + `opacity`, só em `INDISPONIVEL` e
+`DEGRADADA`. Pulsar os onze seria onze coisas disputando atenção — um indicador "live" pulsa porque
+é o único na tela. `EM_MANUTENCAO` fica fora: é estado planejado, não chamado. Os dois de ausência
+de dado também: não há o que atender.
+
+Efeito colateral que não foi projetado e vale registrar: **a seletividade resolve sozinha o problema
+de contraste do anel**. Os dois tons que pior contrastam com o município (`sem-dados` 1,92:1 e
+`sem-equipamentos` 1,22:1) simplesmente não pulsam; os que pulsam dão 3,84:1 e 6,96:1.
+
+**Linha neutra, ping colorido.** A linha continua `#4a6c8c`. A cor de status vai no **ping**, e é a
+da unidade **conectada** (o filho), porque a linha existe por causa dela. Foi a contraproposta feita
+na investigação e aprovada: colorir a linha inteira repetiria em outro elemento grande o erro de
+leitura que D15 acabou de tirar do polígono — uma linha vermelha cruzando meio estado afirma "este
+caminho está indisponível", e o caminho não é monitorado. Um ponto de 7px não afirma sobre a área
+que atravessa.
+
+**Técnica do ping: `Marker` DOM com `setLngLat` por quadro.** Escolhida por medição, contra
+`setData` de GeoJSON (2,9× mais caro) e `line-dasharray` animado (1,7× mais caro, em degraus e não
+bidirecional). Dois pings por linha em fase oposta entregam o "ida e volta" sem camada extra: as
+linhas têm exatamente dois vértices, então a posição é um `lerp` e a volta é o mesmo `lerp`
+espelhado. Números na [§9.2](mapa-contexto-atual.md).
+
+**Dica de relance.** Filha do `<button>` do marcador, não `Popup` do MapLibre — a lib já reposiciona
+o pai, e a dica acompanha de graça. Três campos: **nome, status, incidentes abertos**. Os outros
+quatro da imagem de referência (latência, disponibilidade, monitores, última verificação) não
+existem em `DashboardUnidade`: são de granularidade de equipamento ou de relatório. A referência é
+um cartão de equipamento; o marcador é de unidade. Ampliar o read-model fica para quando for pedido
+— ver [DV14](mapa-dividas.md).
+
+Aparece em `:hover` **e** em `:focus-visible`. Não há conflito com Enter/Espaço, e a razão é que são
+eventos diferentes: a dica reage a foco e ponteiro, a seleção reage a `click`, que é o que Enter e
+Espaço disparam num `<button>`. **Focar não é acionar.** Provado no `e2e:n07` caso 5: com a dica
+aberta por Tab, a contagem de `aria-pressed=true` não muda; o `Enter` seguinte seleciona.
+
+`aria-hidden` na dica, e os mesmos três dados no `aria-label` do botão (`rotuloDaUnidade` ganhou os
+incidentes). Sem isso o leitor de tela anunciaria tudo duas vezes — ou, pior, o mouse teria um dado
+que o teclado não tem.
+
+**Pings invisíveis para teclado e leitor de tela.** `<div aria-hidden="true">` sem `tabindex`, sem
+nome acessível, sem papel. Verificado por **varredura de Tab real** no `e2e:n07`: 92 paradas de Tab
+na página, zero pings.
+
+### Três correções exigidas na revisão, todas resolvidas nesta rodada
+
+**1. `transform` morto — DV13 fechada.** O MapLibre reescreve `element.style.transform` do `Marker`,
+e estilo inline vence folha de autor: os `transform: scale()` de N06 nunca aplicaram. A regra que
+fica é **`transform` no elemento do `Marker` pertence à lib**. Duas consequências, e não uma:
+
+- o **pulso** vai no `::after`, que tem `transform` próprio (é o que a revisão pediu);
+- o **hover e a seleção** crescem por `width`/`height`, não por pseudo-elemento. Não é desvio da
+  regra — é a mesma regra aplicada a um caso diferente. O pseudo-elemento serve quando se precisa de
+  `transform`; quando o que se quer é o **elemento** maior, largura e altura funcionam, e funcionam
+  porque o `translate(-50%, -50%)` da própria lib é relativo ao tamanho: o marcador cresce centrado
+  sozinho, e o `outline` de foco acompanha a caixa sem conta nenhuma. Um `::before` crescendo teria
+  colidido de raio com o anel de foco e com o anel de pulso, que já disputam os mesmos 15px.
+
+O `e2e:n07` caso 3 trava a regra: a matriz de `transform` do elemento nunca ganha componente de
+escala, e é a largura que muda no hover.
+
+**2. Contraste dos status escuros — regressão do item 1, corrigida.** A borda escura do marcador
+(N06) foi desenhada contra um fundo que **mudava** de cor. Com D15 o fundo é um tom só, e a borda
+escura passou a valer 1,28:1 — deixou de existir. Sem ela, os dois status escuros encostavam no
+município: `sem-dados` 1,92:1 e `sem-equipamentos` **1,22:1**.
+
+Trocado por **aro claro por fora** (`rgba(232,240,248,.92)`, 13,05:1) e o halo interno de 1,5px
+removido. O marcador passa a se separar do mapa pelo **aro**, não pelo miolo, e o miolo fica livre
+para ser só a cor de status. Duas declarações de borda viram uma.
+
+**3. Anel de foco seguia o tema da aplicação — achado novo, mesmo caso.** Perseguindo o contraste do
+item 2, apareceu um defeito maior: `--im-primary` muda com o tema, mas **o canvas não tem tema**.
+Todas as cores desenhadas nele são hex literais, porque o WebGL não lê variável CSS. No tema claro
+`--im-primary` é `#1a56db`, e contra o `#16283a` do município isso dá **2,43:1** — reprovado por
+WCAG 2.2, que exige 3:1 para indicador de foco. No escuro passava (3,47:1). O anel de foco do mapa
+estava dependendo de qual tema o operador escolheu.
+
+Antes de D15 o defeito existia mas era intermitente, porque o polígono tinha cor variável. Com fundo
+constante dá para fechar: `--cor-foco-mapa: #3B6EFF`, literal, aplicado aos três focos que vivem
+sobre o canvas (`.map__unidade`, `.map__alvo`, `.maplibregl-canvas`). **É o único lugar do sistema
+onde um literal vence o token — e vence porque a superfície embaixo dele também é literal.**
+
+### Quarta correção, achada na revisão visual das próprias capturas
+
+**Divisa municipal sumiu.** Enquanto cada município tinha cor de status, a divisa entre dois deles
+era a diferença entre dois **preenchimentos**; o traço era reforço. Com preenchimento constante o
+traço virou o único separador, e `#294056` contra `#16283a` dá **1,40:1** — na captura as divisas
+não estavam lá. Contorno clareado para `#456a8e` (2,65:1).
+
+Não vai aos 3:1 de propósito: a 75 municípios num zoom de estado, traço com contraste de controle de
+interface vira grade, e a divisa é contexto — o conteúdo essencial está no marcador, a 13,05:1.
+2,65:1 foi onde a forma se lê sem a malha competir com os marcadores, medido por captura.
+
+**Dica cobria o anel de pulso.** Com `bottom: calc(100% + 10px)` a caixa entrava sobre o anel, que
+cresce até 25px do centro — e no foco os dois aparecem **juntos**, então um escondia o outro
+justamente no estado que a revisão precisava conferir. Afastada para 18px. Achado na captura, não no
+raciocínio.
+
+### Descartado
+
+Colorir a linha inteira por status (ver acima); `Popup` do MapLibre para a dica (segunda entidade a
+sincronizar, folha própria a sobrescrever, botão de fechar indesejado); buscar dados por unidade no
+`hover` (uma requisição por passagem de mouse, dica piscando vazia); pulsar todos os marcadores;
+`box-shadow` como técnica de pulso (45% mais caro e não compõe no compositor).
+
+---
+
+## D17 — Seleção só no marcador, conexão em arco com gradiente na ponta, ping mais lento
+
+Quatro ajustes pedidos depois da revisão visual de N07, todos sobre o mesmo desenho.
+
+### 1. O anel lilás do município saiu
+
+Era a última coisa que fazia o polígono participar da interação, e contradizia D15: o município é
+cartografia neutra, a unidade é quem carrega estado. Um contorno de 3px em volta de uma área de meia
+tela **afirma sobre a área**, e afirma justamente no instante do clique — quando o dado que importa
+é a unidade. Que o tom não pertença a nenhum status não resolve: ele é o elemento mais chamativo da
+tela naquele momento.
+
+Saiu com ele o disco lilás de `aria-pressed` no `.map__alvo`, achado na captura: um ponto de 22px no
+centroide do município, que não é lugar nenhum — nem unidade, nem sede — e que na imagem lia como
+uma décima segunda unidade.
+
+A seleção continua inteira em três canais: `aria-pressed` nos dois marcadores, aro lilás em
+`.map__unidade[aria-pressed='true']` e o painel lateral. O lilás continua vivo onde a superfície
+embaixo dele tem 13px, não meio estado.
+
+Consequências no código: `COR_SELECAO`, `LARGURA_ANEL` e a camada `municipio-selecionado`
+desapareceram, e com a camada foi embora a única razão de a marcação esperar `isStyleLoaded()` —
+`aplicarTons` virou `marcarMunicipio` e mexe só em atributo de DOM.
+
+### 2. Gradiente na conexão, não linha colorida — *superseded por D18*
+
+> D18 reverteu este item a pedido: a linha voltou a ser inteira na cor do status. O texto abaixo
+> fica como registro do porquê do gradiente ter existido, não como estado atual.
+
+O pedido era aproximar a linha do estado da unidade. Pintar a linha inteira com a cor de status é
+exatamente o erro que D15 corrigiu no polígono, um nível acima: o caminho atravessa municípios que
+não têm nada a ver com a leitura.
+
+Resolvido por gramática, e não por intensidade: **neutro (`#4a6c8c`) nos primeiros 72% do caminho,
+esmaecendo para a cor do status só no trecho que encosta no marcador filho** — onde a afirmação já é
+sobre a unidade, e onde o próprio marcador está ao lado para confirmá-la. 0,72 e não 0,5: com metade
+da linha tingida ela volta a ser uma linha colorida atravessando o estado.
+
+**Restrição do MapLibre que decidiu a implementação:** `line-gradient` só aceita expressão de
+`['line-progress']` e é a única propriedade de pintura que **não** admite styling dirigido por
+propriedade da feature. Uma camada por status, filtrada por `['==', ['get','status'], …]`, com a
+lista saindo do próprio enum — status novo na API vira camada sozinho. A fonte `conexoes` passou a
+exigir `lineMetrics: true`; sem ele o estilo inteiro falha na validação e o mapa não monta.
+
+### 3. Arco no lugar da reta
+
+Curva de Bézier quadrática, ponto de controle perpendicular à corda, **sempre para o mesmo lado** —
+arquear conforme a direção faria o conjunto ler como ruído em vez de idioma.
+
+A curvatura é **fração do comprimento** (0,14), não afastamento absoluto: é isso que dá "mesmo efeito
+visual em todas as conexões". Com valor fixo em graus, a conexão curta viraria laço e a longa
+ficaria visualmente reta. Abaixo de ~0,08 o arco é indistinguível de reta na escala de Sergipe;
+acima de ~0,20 as conexões que saem do mesmo hub começam a se cruzar entre si.
+
+Geometria plana em lng/lat, sem correção por `cos(lat)`: a -10,9° o fator é 0,982 e a distorção é
+menor que a espessura de 1,4px da linha. Isto é desenho, não medida.
+
+**O ping continua barato.** A geometria virou polilinha de 33 vértices, mas o ping **não percorre a
+polilinha** — ele reavalia a mesma curva em forma fechada, com `pontoNoArco`, a partir das duas
+pontas (que `arcoEntre` mantém exatas em `u=0` e `u=1`). Continua sendo O(1) por quadro, que era a
+razão de a técnica de N07 ter vencido as duas alternativas medidas. De Casteljau sobre `interpolar`:
+três interpolações lineares, reaproveitando a função que já existia.
+
+### 4. Ping mais lento
+
+`PERIODO_PING_MS` de 2600 para 4200. O valor antigo foi escolhido contra uma linha reta e curta; com
+18 pings simultâneos no estado inteiro, o conjunto lia como tráfego agitado e não como batimento de
+sonda. O período é a única variável do movimento — a fase de ida-e-volta e o passo são funções puras
+dele — então desacelerar é trocar este número.
+
+Efeito no roteiro: a janela de amostragem de `e2e:n07` subiu de 650ms para 1050ms, para as três
+amostras continuarem cobrindo meio ciclo. Sem isso o check "nenhum ping fica parado" acusaria falso
+positivo em ping perto do ponto de retorno.
+
+### Verificado
+
+`ng test` 361/361 · `e2e:n05` 22/22 · `e2e:n06` 24/24 · `e2e:n07` 37/37, contra a aplicação real.
+Capturas em `screenshots/mapa/d17-*.png`.
+
+### Descartado
+
+Pintar a linha inteira por status (de novo, ver acima — *é exatamente o que D18 fez, a pedido do
+usuário*); colorir por camada única com `['get']` na cor (o MapLibre não permite em `line-gradient`,
+restrição que só existe enquanto o gradiente existe — D18 removeu as duas juntas); ping percorrendo
+a polilinha vértice a vértice (troca O(1) por busca de segmento a cada quadro, sem ganho visual
+nenhum — isto continua descartado, D18 não mexeu no ping).
+
+## D18 — Gradiente de D17 revertido: linha inteira na cor do status
+
+Pedido explícito do usuário: a divisão em neutro-até-72%-e-cor-na-ponta que D17 introduziu saiu, e a
+conexão volta a ser inteiramente pintada com a cor do status da unidade filha — a leitura que D17
+tinha evitado por achar que "afirma sobre todo o caminho". A decisão de reverter é do usuário, não
+uma correção técnica: registrada aqui como decisão, não como bug.
+
+A reversão do gradiente arrasta duas coisas que só existiam por causa dele, e não por si:
+
+- **As seis camadas `conexoes-linha-<status>`** existiam porque `line-gradient` é a única paint
+  property do MapLibre que não aceita expressão dirigida por propriedade da feature — sem gradiente,
+  a restrição desaparece junto, e a coloração volta a ser uma camada só com `line-color` por
+  `['match', ['get', 'status'], ...]`, o mesmo padrão que `StatusBadgeComponent` e as cores de KPI já
+  usam no resto do sistema.
+- **`lineMetrics: true`** na fonte `conexoes` só existia porque `line-gradient` precisa de
+  `['line-progress']` para funcionar. Verificado antes de remover: o ping **não** depende disso — ele
+  não lê `line-progress` nem percorre a polilinha, `montarPings` lê só o primeiro e o último vértice
+  da geometria (`arcoEntre`) e reconstrói a curva em JS a cada quadro via `pontoNoArco`/
+  `controleDoArco`. Removível sem tocar no ping.
+
+O arco em si (D17, item 3) e a velocidade do ping (D17, item 4) não mudam — só o item 2 de D17 foi
+revertido.
+
+### Verificado
+
+`ng test` com os testes de `camadasDeConexao` cobrindo a camada única e a ausência de
+`line-gradient`; `grep -rn "lineMetrics\|line-gradient\|COR_CONEXAO\|INICIO_DO_GRADIENTE" src e2e`
+sem resultado; `npx ng build` sem erro.
+
+### Descartado
+
+Manter as seis camadas e trocar só a cor final do gradiente (não atende ao pedido: ainda haveria
+trecho neutro); gradiente com transição mais curta em vez de removê-lo (mesmo problema, só adiado).

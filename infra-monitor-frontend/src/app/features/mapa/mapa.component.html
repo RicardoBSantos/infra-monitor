@@ -57,40 +57,33 @@
         }
       </div>
     }
-    <!-- Oito itens sempre abertos mais dois parágrafos de nota empurravam o resto da coluna para
-         fora da dobra. Visíveis por padrão ficam só os quatro status operacionais reais — os que
-         mudam de um dia para o outro e que o plantão consulta. Os outros quatro descrevem ausência
-         de dado (nunca mudam sozinhos) e vão para o disclosure; as duas notas descrevem a
-         gramática do mapa, que se aprende uma vez, e vão para o botão de informação. -->
+    <!-- A legenda descreve a cor do MARCADOR DE UNIDADE, e não mais a do polígono: com N07 o
+         município é contorno + fundo neutro, e o marcador virou o único portador de estado. O
+         subtítulo diz isso explicitamente — sem ele, "legenda de status" num painel ao lado de um
+         mapa cheio de polígonos continua apontando para o polígono.
+
+         O disclosure "Estados sem leitura" foi desfeito. Ele agrupava quatro itens, e dois deles
+         ("Município sem unidade" e "Múltiplas unidades") eram vocabulário EXCLUSIVO da coloração de
+         polígono: morreram com ela, porque não são status de unidade — nenhum marcador jamais os
+         usou. Os dois que sobraram (Sem dados, Sem equipamentos) são UnitOperationalStatus de
+         verdade, do mesmo enum dos outros quatro, e escondê-los atrás de um disclosure que já abria
+         por padrão custava uma linha de interface para esconder nada. Seis itens numa lista só. -->
     <div class="legend-bloco">
-      <div class="legend-bloco__topo">
-        <p class="panel-label">LEGENDA DE STATUS</p>
-        <button class="legend-info" type="button" [attr.aria-expanded]="notasVisiveis()" aria-controls="legend-notas"
-                aria-label="Como ler o mapa: altura do bloco e marca de seleção" (click)="notasVisiveis.set(!notasVisiveis())">i</button>
-      </div>
+      <p class="panel-label">LEGENDA DE STATUS</p>
+      <p class="legend__intro">Cor do marcador de unidade.</p>
       <ul class="legend">
         <li><span class="legend__dot legend__dot--success"></span>Disponível</li>
         <li><span class="legend__dot legend__dot--danger"></span>Indisponível</li>
         <li><span class="legend__dot legend__dot--warning"></span>Degradada</li>
         <li><span class="legend__dot legend__dot--info"></span>Em manutenção</li>
+        <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
+        <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
       </ul>
-      @if (notasVisiveis()) {
-        <div class="legend-notas" id="legend-notas" role="note">
-          <p class="legend__nota"><strong>Altura do bloco</strong> = equipamentos monitorados no município. Município sem equipamento fica rente ao chão.</p>
-          <p class="legend__nota"><span class="legend__anel"></span>Colar translúcido no topo do bloco marca o município selecionado — a cor de status continua visível por baixo.</p>
-          <p class="legend__nota"><span class="legend__linha"></span>Linha discreta liga cada unidade ao hub. Só aparece quando as duas pontas têm coordenada cadastrada.</p>
-        </div>
-      }
-      <!-- <details> nativo: Enter/Espaço, estado exposto ao leitor de tela e nenhuma linha de JS. -->
-      <details class="legend-extra">
-        <summary>Estados sem leitura</summary>
-        <ul class="legend">
-          <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
-          <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
-          <li><span class="legend__dot legend__dot--none"></span>Município sem unidade</li>
-          <li><span class="legend__dot legend__dot--multiple"></span>Múltiplas unidades</li>
-        </ul>
-      </details>
+      <!-- Notas da gramática do mapa: o que NÃO é status. A primeira é nova em N07 — a ausência de
+           cor no município é uma decisão, e sem dizê-la o operador pode ler o cinza uniforme como
+           "nenhum dado chegou". As duas da extrusão já tinham saído em N06. -->
+      <p class="legend__nota"><span class="legend__municipio"></span>Município é contorno e fundo neutros, iguais em todo o estado: a cartografia situa, não informa estado.</p>
+      <p class="legend__nota"><span class="legend__linha"></span>Arco discreto liga cada unidade ao hub, inteiro na cor do status da unidade conectada. Só aparece quando as duas pontas têm coordenada cadastrada.</p>
     </div>
     @if (state() === 'empty') { <div class="map-feedback"><strong>Nenhuma unidade retornada</strong><p>A cartografia permanece disponível; não há unidades para associar.</p></div> }
     @if (semLocalizacao().length) { <div class="map-feedback"><strong>Unidades sem localização</strong><ul class="unit-list">@for (unit of semLocalizacao(); track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }

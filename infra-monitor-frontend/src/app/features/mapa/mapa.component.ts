@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import type { Feature, FeatureCollection } from 'geojson';
+import type { LayerSpecification } from 'maplibre-gl';
 import { LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import { take } from 'rxjs';
 
@@ -43,19 +44,6 @@ export function agruparUnidades(fonte: Municipio[], unidades: DashboardUnidade[]
   };
 }
 
-/**
- * Sufixo da classe CSS do município. Mesma escala de cor do SVG anterior, sem alteração.
- *
- * A seleção NÃO entra aqui: virou uma segunda classe, somada a esta. Enquanto substituía o tom, o
- * azul do município selecionado colidia com o de `--em-manutencao` e, pior, escondia o status
- * justamente da unidade que o operador acabou de escolher.
- */
-export function toneDoMunicipio(municipio: MapMunicipio): string {
-  if (municipio.units.length === 0) return 'none';
-  if (municipio.units.length > 1) return 'multiple';
-  return municipio.units[0].status.toLowerCase().replace(/_/g, '-');
-}
-
 export function rotuloDoMunicipio(municipio: MapMunicipio): string {
   return `${municipio.nome}: ${municipio.units.length ? `${municipio.units.length} unidade(s)` : 'nenhuma unidade cadastrada'}`;
 }
@@ -91,85 +79,263 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
     && equipamento.status !== EquipmentOperationalStatus.Disabled);
 }
 
-/** Cor de cada tom, em hex — o canvas WebGL nao le variavel CSS. Mesmos valores do tema escuro. */
-const COR_DO_TOM: Record<string, string> = {
+/**
+ * Cor de cada status operacional, em hex — o canvas WebGL nao le variavel CSS. Mesmos valores do
+ * tema escuro.
+ *
+ * Consumida SÓ pelo marcador de unidade. Era `COR_DO_TOM` e pintava também o polígono do município;
+ * com a coloração do polígono removida (N07), os dois tons que só existiam ali — `multiple` e
+ * `none`, que não são status de unidade nenhum — saíram junto, e o que restou corresponde
+ * exatamente ao enum `UnitOperationalStatus`.
+ */
+const COR_DO_STATUS: Record<string, string> = {
   'disponivel': '#34c77b', 'indisponivel': '#e5484d', 'degradada': '#e8a33d', 'em-manutencao': '#7fadff',
-  'sem-dados': '#435464', 'sem-equipamentos': '#263744', 'multiple': '#38536b', 'none': '#0c1722',
+  'sem-dados': '#435464', 'sem-equipamentos': '#263744',
 };
 
 /**
- * Colar do município selecionado. Três decisões, cada uma custou uma tentativa:
- *
- * 1. Não reaproveita `--im-primary` (#3B6EFF), a cor do anel no mapa plano: em 3D o colar encosta
- *    no bloco, e azul sobre `em-manutencao` (#7fadff) ficava ambíguo.
- * 2. Não é magenta saturado (#c05cff). Translúcido, magenta sobre verde vira cinza dessaturado —
- *    apaga o status E apaga a seleção. Lilás claro clareia sem torcer o matiz de baixo.
- * 3. É claro, não escuro: o fundo do mapa é escuro, e só um tom claro se separa dele.
- *
- * Nenhum status usa esta faixa do espectro, então o colar nunca é lido como estado operacional.
+ * Valor do enum (`EM_MANUTENCAO`) para a chave de `COR_DO_STATUS` (`em-manutencao`). A conversão
+ * estava escrita três vezes em linha; agora que o gradiente da conexão também precisa dela, vira
+ * função — a alternativa era reescrever `COR_DO_STATUS` com as chaves do enum, e as chaves em
+ * kebab existem porque são as mesmas dos nomes de classe e das variáveis CSS.
  */
-const COR_SELECAO = '#f2d6ff';
+function chaveDeStatus(status: string): string {
+  return status.toLowerCase().replace(/_/g, '-');
+}
+
+/** Cor do status, com queda para `sem-dados` no valor que a API venha a acrescentar. */
+function corDoStatus(status: string): string {
+  return COR_DO_STATUS[chaveDeStatus(status)] ?? COR_DO_STATUS['sem-dados'];
+}
 
 /**
- * Altura da extrusão: metros por equipamento monitorado no município (decisão de produto N03).
+ * Cor única do polígono de município. Fundo neutro escuro, igual em todos — o município voltou a ser
+ * cartografia, e não indicador de estado.
  *
- * 400 e não os 800 do spike porque no banco real a distribuição é desigual — Aracaju soma quatro
- * unidades e 81 equipamentos, o triplo do segundo colocado. Com 800 aquele bloco virava uma parede
- * de 65 km que tapava metade do estado. A escala segue linear: a legenda promete altura
- * proporcional a equipamentos, e achatar o maior por estética quebraria essa promessa.
+ * Por que a cor de status saiu do polígono: um município é uma área grande e irregular, e a mesma
+ * cor que num marcador de 13px lê como "esta unidade está indisponível", num polígono de meia tela
+ * lê como "esta REGIÃO está indisponível" — leitura que o dado não sustenta. Aracaju, com quatro
+ * unidades, nem status tinha: caía no tom `multiple`, que não é estado operacional nenhum. O estado
+ * passa a ter um portador só, o marcador de unidade.
+ *
+ * O valor fica entre o `none` antigo (#0c1722, escuro demais — o polígono sumia no gradiente do
+ * cartão) e o `sem-equipamentos` (#263744, já encostado na faixa de status): claro o bastante para o
+ * contorno recortar a forma, escuro o bastante para o marcador colorido vencer por contraste.
  */
-const METROS_POR_EQUIPAMENTO = 400;
-
-/** Espessura do anel em metros. O anel é um colar no topo da extrusão, não um traço no chão. */
-const ESPESSURA_ANEL = 700;
+const COR_MUNICIPIO = '#16283a';
 
 /**
- * Opacidade do colar. Não é 1 de propósito: o mapa é visto de cima, e colar opaco apagava a face
- * superior — justamente a mais visível — deixando o município selecionado sem cor de status. Isso
- * inverteria a prioridade: status é o dado operacional, seleção é só interação. O anel do mapa
- * plano (M04) era ortogonal ao status, e essa propriedade tinha de sobreviver ao 3D.
+ * Contorno do município. **Clareado de #294056 para #456a8e nesta rodada**, e a razão é D15.
+ *
+ * Enquanto cada município tinha cor de status, a divisa entre dois deles era a diferença entre dois
+ * PREENCHIMENTOS — o traço era reforço, não o separador. Com o preenchimento constante, o traço
+ * virou a única coisa que separa um município do vizinho, e #294056 contra #16283a dá **1,40:1**:
+ * na revisão visual da captura as divisas simplesmente não estavam lá.
+ *
+ * #456a8e dá 2,65:1. Não chega aos 3:1 de WCAG 1.4.11 de propósito: a 75 municípios num zoom de
+ * estado, traço com contraste de controle de interface vira grade, e a divisa é contexto — o
+ * conteúdo essencial (o estado operacional) está no marcador, que tem aro claro a 13,05:1. 2,65:1
+ * é onde a forma se lê sem a malha competir com os marcadores; medido por captura, não estimado.
  */
-const OPACIDADE_ANEL = 0.5;
+const COR_CONTORNO_MUNICIPIO = '#456a8e';
+
+/**
+ * Status cujo marcador pulsa. Só os dois que pedem ação.
+ *
+ * Pulsar os onze seria onze coisas disputando atenção — um indicador "live" pulsa porque é o único
+ * na tela. `EM_MANUTENCAO` fica de fora de propósito: é estado conhecido e planejado, não chamado.
+ * Os dois de ausência de dado também: não há o que atender.
+ *
+ * Efeito colateral útil, medido: o pulso herda a cor do status, e os dois tons que pior contrastam
+ * com o município (`sem-dados` 1,92:1 e `sem-equipamentos` 1,22:1) simplesmente não pulsam. Nenhum
+ * anel de pulso ilegível pode existir — #e5484d dá 3,84:1 e #e8a33d dá 6,96:1 contra #16283a.
+ */
+const STATUS_QUE_PULSA: readonly UnitOperationalStatus[] = [
+  UnitOperationalStatus.Unavailable, UnitOperationalStatus.Degraded,
+];
+
+/**
+ * Duração de uma travessia completa do ping — hub → unidade → hub.
+ *
+ * 4200 ms, e não os 2600 de N07. O valor antigo foi escolhido contra uma linha reta e curta; com
+ * vinte pings simultâneos no estado inteiro o conjunto lia como tráfego agitado, não como um
+ * batimento de sonda. O período é a ÚNICA variável do movimento (a fase de ida-e-volta e o passo
+ * são funções puras dele), então desacelerar é trocar este número — nada mais muda.
+ */
+const PERIODO_PING_MS = 4200;
+
+/**
+ * Pings simultâneos por linha. Dois, em fase oposta: enquanto um vai, o outro volta — é isto que
+ * entrega o "ida e volta" do ICMP echo sem nenhuma camada extra nem inversão periódica de animação.
+ */
+const PINGS_POR_LINHA = 2;
+
+/**
+ * Posição na ida-e-volta, dado o tempo em ciclos. `0 → 1 → 0` num ciclo. Pura.
+ *
+ * É o que torna a técnica escolhida barata: as linhas de conexão têm EXATAMENTE dois vértices
+ * (hub e unidade), então "quanto do caminho já andei" é um número só, e a volta é o mesmo número
+ * espelhado. Não há comprimento de arco a percorrer nem vértice intermediário a procurar.
+ */
+export function faseVaiEVolta(ciclos: number): number {
+  const fase = ((ciclos % 1) + 1) % 1;
+  return fase < 0.5 ? fase * 2 : (1 - fase) * 2;
+}
+
+/** Ponto a `u` do caminho entre dois pares [lng, lat]. Pura. */
+export function interpolar(origem: [number, number], destino: [number, number], u: number): [number, number] {
+  return [origem[0] + (destino[0] - origem[0]) * u, origem[1] + (destino[1] - origem[1]) * u];
+}
+
+/**
+ * Preferência do sistema por menos movimento. Lida no momento de montar, e não guardada: o operador
+ * pode trocar a preferência do SO com a tela aberta, e o próximo monte do mapa já respeita.
+ */
+function animacaoReduzida(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/*
+ * O anel lilás que contornava o município selecionado SAIU.
+ *
+ * Ele era a última coisa que fazia o polígono participar da interação, e isso contradiz o que N07
+ * já tinha decidido: o município é cartografia neutra, a unidade é quem carrega estado. Um contorno
+ * de 3px em volta de uma área de meia tela afirma sobre a ÁREA — mesmo num tom que nenhum status
+ * usa, ele é o elemento mais chamativo do desenho justamente no instante do clique, e o dado ali é
+ * a unidade, não a região.
+ *
+ * A seleção continua inteira, só que no marcador: `aria-pressed` nos dois marcadores (o alvo
+ * invisível do município e o da unidade), aro lilás em `.map__unidade[aria-pressed='true']` e o
+ * painel lateral. Nenhum canal saiu — e o lilás continua vivo no SCSS, onde a superfície embaixo
+ * dele tem 13px e não meio estado.
+ *
+ * Com a camada `municipio-selecionado` foi embora a única razão de a marcação de seleção esperar o
+ * estilo do mapa carregar: `marcarMunicipio` mexe só em atributo de DOM.
+ */
 
 /** Inclinação padrão da experiência — não é toggle: em pitch 0 o mapa é o Leaflet de antes. */
 const PITCH = 45;
 const BEARING = -18;
 
 /**
- * Offset da câmera, em pixels de tela. Com a inclinação aplicada o estado sobe e sobra faixa morta
- * na metade de baixo do cartão; este deslocamento recoloca o alvo mais abaixo.
+ * Offset da câmera, em pixels de tela: recentra o desenho depois da compensação de zoom.
  *
- * Recalibrado de 40 para 82 quando o cartão deixou de ter proporção fixa `760/680` e passou a ter
- * altura presa à viewport (ver o comentário da altura em mapa.component.scss). Medido, não
- * estimado: com 40 sobravam 13,9% de folga no topo contra 25,1% na base — faixa morta embaixo, a
- * mesma que o offset existia para fechar. Com 82, 3,6% contra 8,2%. `e2e/n06-marcadores-e-conexoes`
- * mede os dois lados a cada execução e falha se voltarem a desequilibrar.
+ * Recalibrado do zero — 82 vinha de N05 e 40 do spike, e os dois compensavam o encolhimento do
+ * BLOCO inclinado, problema que não existe mais. Herdá-los teria mantido correção sem causa. Os
+ * valores atuais saíram de medição por pixel do desenho contra o fundo do próprio cartão (o canvas
+ * não é legível in-page: `preserveDrawingBuffer` está desligado), varrendo zoom e offset até topo
+ * e base ficarem equilibrados: 10,9% contra 9,3% em 1500x950, 10,8% contra 10,0% em 1700x907,
+ * 10,9% contra 12,4% em 1280x800.
+ *
+ * O `-24` em x é o único valor novo: com `bearing -18` o estado deitado desloca-se para a esquerda
+ * quando a câmera sobe, e sem ele a ponta oeste ficava a 4px da borda (0,4% de folga contra 5,7%
+ * do outro lado). Com ele, 2,2% contra 4,1%.
  */
-const OFFSET_CAMERA: [number, number] = [0, 82];
+const OFFSET_CAMERA: [number, number] = [-24, 60];
 
 /**
- * Zoom somado ao enquadramento plano na hora de inclinar. Inclinar encolhe o desenho — a mesma
- * área passa a caber num trapézio menor — e sem esta compensação o estado fica pequeno no meio do
- * cartão, com faixa morta em cima E embaixo.
+ * Zoom somado ao enquadramento na hora de inclinar. Continua existindo porque `fitBounds` com
+ * `pitch` recua a câmera para caber o trapézio inteiro — 52% da altura do cartão sobrando, medido
+ * — mas o valor não é mais o de N05: 0,68, não 0,75, e agora contra a moldura já inclinada e não
+ * contra o enquadramento plano.
  *
- * Recalibrado de 0,55 para 0,75 junto com OFFSET_CAMERA, e pelo mesmo motivo: no cartão mais baixo
- * a compensação anterior deixava 39% da altura sobrando. Com 0,75, 11,8%.
+ * O teto é a largura, não a altura: acima de 0,70 a ponta oeste do estado começa a sair do cartão,
+ * enquanto ainda sobram ~20% de altura. Isso é geometria de Sergipe deitado a -18°, não folga a
+ * fechar. `e2e/n06-marcadores-e-conexoes` mede topo e base a cada execução e falha se
+ * desequilibrarem.
  */
-const ZOOM_AO_INCLINAR = 0.75;
+const ZOOM_AO_INCLINAR = 0.68;
 
-/**
- * Cor da linha hub->unidade (N06). Cinza-azulado dessaturado de proposito: a linha e topologia, nao
- * estado operacional, e qualquer tom da escala de status (verde, ambar, vermelho, azul claro) seria
- * lido como um. Fica no mesmo registro do contorno dos municipios (#294056), um passo mais claro
- * para se separar dele.
- */
-const COR_CONEXAO = '#4a6c8c';
 const LARGURA_CONEXAO = 1.4;
 /**
  * Linha translucida. Ela cruza o estado inteiro e passa por cima de municipios cuja cor de status e
- * o dado que importa; opaca, ela recortava o bloco em dois.
+ * o dado que importa; opaca, ela recortava o bloco em dois. Com D18 a linha inteira carrega a cor
+ * do status, e a translucidez continua cumprindo o mesmo papel: deixar o município por baixo
+ * legível mesmo com a linha colorida de ponta a ponta por cima dele.
  */
 const OPACIDADE_CONEXAO = 0.65;
+
+/**
+ * Curvatura do arco, como fração do comprimento da corda hub→unidade.
+ *
+ * Fração e não valor absoluto: é isso que dá "mesmo efeito visual em todas as conexões". Com um
+ * afastamento fixo em graus, a conexão curta viraria um laço e a longa ficaria visualmente reta.
+ * Proporcional, todos os arcos têm a mesma barriga relativa, como as rotas de um mapa aéreo.
+ *
+ * 0,14 é o ponto em que o arco se lê como intenção e não como erro de geometria: abaixo de ~0,08
+ * ele é indistinguível de reta na escala de Sergipe, acima de ~0,20 as conexões que saem do mesmo
+ * hub começam a se cruzar entre si.
+ */
+const CURVATURA_ARCO = 0.14;
+
+/**
+ * Vértices do arco desenhado. O arco é matemática contínua; o GeoJSON é polilinha, e este é o
+ * número de segmentos em que ela é amostrada. 32 porque abaixo de ~20 a quebra aparece no zoom
+ * máximo (14) e acima disso só se paga vértice: são ~20 conexões, não milhares.
+ */
+const SEGMENTOS_DO_ARCO = 32;
+
+/**
+ * Ponto de controle da curva de Bézier quadrática que descreve o arco. Puro.
+ *
+ * Perpendicular à corda, sempre com o mesmo sinal (giro de -90°): todas as conexões arqueiam para o
+ * mesmo lado. Arquear para lados diferentes conforme a direção faria o conjunto ler como ruído.
+ *
+ * Geometria plana em lng/lat, sem correção por cos(lat): a -10,9° o fator é 0,982, e a distorção
+ * que ele introduziria no arco é menor que a espessura de 1,4px da própria linha. Isto é desenho,
+ * não medida — a distância real nunca foi lida daqui.
+ */
+export function controleDoArco(origem: [number, number], destino: [number, number]): [number, number] {
+  const [x0, y0] = origem;
+  const [x1, y1] = destino;
+  return [(x0 + x1) / 2 + (y1 - y0) * CURVATURA_ARCO, (y0 + y1) / 2 - (x1 - x0) * CURVATURA_ARCO];
+}
+
+/**
+ * Ponto a `u` do arco entre duas pontas. Puro.
+ *
+ * De Casteljau sobre `interpolar`, e não a forma expandida do polinômio: três interpolações lineares
+ * reaproveitam a função que o ping já usava, e o ping continua sendo uma conta de O(1) por quadro —
+ * o que fazia a técnica de N07 ser barata. O arco não introduziu busca por comprimento de arco nem
+ * varredura de vértice: a curva é conhecida em forma fechada, e `u` é o mesmo parâmetro de antes.
+ */
+export function pontoNoArco(origem: [number, number], destino: [number, number], u: number): [number, number] {
+  const controle = controleDoArco(origem, destino);
+  return interpolar(interpolar(origem, controle, u), interpolar(controle, destino, u), u);
+}
+
+/** O arco amostrado como polilinha, para o GeoJSON. Puro. As duas pontas são exatas. */
+export function arcoEntre(origem: [number, number], destino: [number, number]): [number, number][] {
+  return Array.from({ length: SEGMENTOS_DO_ARCO + 1 }, (_, i) => pontoNoArco(origem, destino, i / SEGMENTOS_DO_ARCO));
+}
+
+/**
+ * Uma camada só, com a cor saindo da própria feature.
+ *
+ * D17 tinha dividido a conexão em seis camadas filtradas por status, e ligado `lineMetrics: true`
+ * na fonte, por uma razão única: `line-gradient` é a única paint property do MapLibre que NÃO
+ * aceita expressão dirigida por propriedade da feature. Sem gradiente, a restrição some junto — e
+ * `['get', 'status']` num `match` é o mesmo padrão de coloração por status que o resto do sistema
+ * já usa (StatusBadgeComponent, cores de KPI).
+ *
+ * `match` e não `case`: a chave é um enum fechado, e o fallback cobre o status que a API venha a
+ * acrescentar — a mesma queda para `sem-dados` que `corDoStatus` faz.
+ */
+export function camadasDeConexao(): LayerSpecification[] {
+  return [{
+    id: 'conexoes-linha',
+    type: 'line',
+    source: 'conexoes',
+    layout: { 'line-cap': 'round' },
+    paint: {
+      'line-width': LARGURA_CONEXAO,
+      'line-opacity': OPACIDADE_CONEXAO,
+      'line-color': ['match', ['get', 'status'],
+        ...Object.values(UnitOperationalStatus).flatMap(status => [status, corDoStatus(status)]),
+        COR_DO_STATUS['sem-dados']],
+    },
+  } as unknown as LayerSpecification];
+}
 
 /** Coordenada da unidade, quando as duas metades existem. Nunca por veracidade: 0 e valido. */
 export function coordenadaDaUnidade(unidade: DashboardUnidade): [number, number] | null {
@@ -195,18 +361,77 @@ export function conexoesDesenhaveis(unidades: DashboardUnidade[]): Feature[] {
     const origem = pai ? coordenadaDaUnidade(pai) : null;
     const destino = coordenadaDaUnidade(unidade);
     if (!origem || !destino) continue;
+    /*
+     * `status` é o do FILHO, não o do hub: a linha existe por causa da unidade conectada, e é o
+     * estado dela que o ping carrega e que a linha inteira assume. Serve também ao `match` de
+     * `camadasDeConexao`.
+     *
+     * A geometria deixou de ser o par de pontas e passou a ser o arco amostrado. As pontas seguem
+     * sendo o primeiro e o último vértice, exatos — é de onde `montarPings` os lê.
+     */
     linhas.push({
       type: 'Feature',
-      properties: { de: unidade.conectaAUnidadeId, para: unidade.id },
-      geometry: { type: 'LineString', coordinates: [origem, destino] },
+      properties: { de: unidade.conectaAUnidadeId, para: unidade.id, status: unidade.status },
+      geometry: { type: 'LineString', coordinates: arcoEntre(origem, destino) },
     });
   }
   return linhas;
 }
 
-/** Rotulo do marcador de unidade. Status por extenso: "DEGRADADA" cru nao e texto de leitor de tela. */
+/**
+ * Rotulo do marcador de unidade. Status por extenso: "DEGRADADA" cru nao e texto de leitor de tela.
+ *
+ * Os incidentes abertos entraram aqui junto com a dica de relance (N07): a dica aparece no hover E
+ * no foco, mas ela é `aria-hidden` — quem usa leitor de tela não a "vê", ouve este rótulo. Se o
+ * número só estivesse na dica, o mouse teria uma informação que o teclado não tem.
+ */
 export function rotuloDaUnidade(unidade: DashboardUnidade): string {
-  return `${unidade.nome}: ${ROTULO_STATUS[unidade.status]}, ${unidade.equipamentosTotal} equipamento(s)`;
+  return `${unidade.nome}: ${ROTULO_STATUS[unidade.status]}, ${unidade.equipamentosTotal} equipamento(s), `
+    + `${unidade.incidentesAbertos} incidente(s) aberto(s)`;
+}
+
+/**
+ * Dica de relance do marcador, como filho do próprio <button>.
+ *
+ * Elemento próprio, e NÃO `Popup` do MapLibre: o `Popup` é uma segunda entidade ancorada por
+ * `LngLat`, que a lib reprojeta por conta — mas o marcador já é um elemento DOM que ela reposiciona,
+ * e pendurar a dica dentro dele a faz acompanhar de graça, sem sincronizar duas coisas, sem a folha
+ * do `Popup` para sobrescrever e sem o botão de fechar que ele traz.
+ *
+ * `aria-hidden`: o conteúdo já está no `aria-label` do botão (ver `rotuloDaUnidade`), e sem isto o
+ * leitor de tela anuncia os mesmos três dados duas vezes.
+ *
+ * Três campos, não os sete da referência. Latência, disponibilidade, monitores e última verificação
+ * não existem em `DashboardUnidade` — são de granularidade de equipamento ou de relatório. Buscar
+ * no hover seria uma requisição por passagem de mouse, com a dica piscando vazia. Ver a tabela de
+ * cobertura em `Docs/mapa-architecture/mapa-contexto-atual.md` §9.5.
+ */
+function dicaDaUnidade(unidade: DashboardUnidade): HTMLElement {
+  const dica = document.createElement('span');
+  dica.className = 'map__dica';
+  dica.setAttribute('aria-hidden', 'true');
+
+  const nome = document.createElement('span');
+  nome.className = 'map__dica-nome';
+  nome.textContent = unidade.nome;
+  dica.appendChild(nome);
+
+  for (const [rotulo, valor] of [
+    ['STATUS', ROTULO_STATUS[unidade.status]],
+    ['INCIDENTES ABERTOS', String(unidade.incidentesAbertos)],
+  ] as const) {
+    const linha = document.createElement('span');
+    linha.className = 'map__dica-linha';
+    const chave = document.createElement('span');
+    chave.className = 'map__dica-rotulo';
+    chave.textContent = rotulo;
+    const dado = document.createElement('span');
+    dado.className = 'map__dica-valor';
+    dado.textContent = valor;
+    linha.append(chave, dado);
+    dica.appendChild(linha);
+  }
+  return dica;
 }
 
 /** Varre coordenadas de Polygon/MultiPolygon sem alocar array intermediario. */
@@ -238,8 +463,6 @@ export class MapaComponent implements OnDestroy {
   protected readonly error = signal<string | null>(null);
   /** Região viva: o painel lateral é visual, e sem isto quem navega por teclado não ouve a troca. */
   protected readonly anuncio = signal('');
-  /** Notas de leitura do mapa, atrás do botão de informação da legenda. Fechadas por padrão. */
-  protected readonly notasVisiveis = signal(false);
 
   /** Unidade em foco no painel. Município com uma única unidade seleciona sozinho; com várias, espera o clique. */
   protected readonly unidadeSelecionada = signal<DashboardUnidade | null>(null);
@@ -268,6 +491,13 @@ export class MapaComponent implements OnDestroy {
    * manual por frame, e um <button> real entrega Tab, Enter e Espaco de graca.
    */
   private readonly marcadoresUnidade = new Map<number, Marker>();
+  /**
+   * Pings em voo. Não entram em `marcadoresUnidade`: aquele mapa é indexado por id de unidade e
+   * serve ao `aria-pressed`; estes não têm identidade nem estado, são desenho em movimento.
+   */
+  private pings: Marker[] = [];
+  /** Quadro de animação dos pings. Cancelado em `destruirMapa`, junto com o AbortController. */
+  private quadroPing: number | null = null;
   private teclado: AbortController | null = null;
 
   constructor() {
@@ -279,7 +509,7 @@ export class MapaComponent implements OnDestroy {
       if (!elemento || municipios.length === 0) { this.destruirMapa(); return; }
       this.montarMapa(elemento, municipios);
     });
-    effect(() => this.aplicarTons(this.selected()?.codigoIbge ?? null));
+    effect(() => this.marcarMunicipio(this.selected()?.codigoIbge ?? null));
     // Estado do marcador de unidade acompanha o painel, e nao o municipio: clicar na lista de
     // "varias unidades" troca a unidade sem trocar o municipio, e o marcador tem de acompanhar.
     effect(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
@@ -380,15 +610,10 @@ export class MapaComponent implements OnDestroy {
 
     const colecao = {
       type: 'FeatureCollection',
-      features: municipios.map(municipio => ({
-        ...municipio.feature,
-        properties: {
-          ...municipio.feature.properties,
-          cor: COR_DO_TOM[toneDoMunicipio(municipio)],
-          // Altura = equipamentos monitorados na unidade (decisao de produto N03).
-          equipamentos: municipio.units.reduce((soma, unidade) => soma + unidade.equipamentosTotal, 0),
-        },
-      })),
+      // As features vão como vieram da cartografia. A propriedade `cor` derivada por município saiu
+      // com a coloração por status (N07), como a de altura já tinha saído com a extrusão: nenhuma
+      // camada lê mais nada além de `id`, que serve ao clique e ao filtro do anel de seleção.
+      features: municipios.map(municipio => municipio.feature),
     } as unknown as FeatureCollection;
 
     const conexoes = {
@@ -401,30 +626,25 @@ export class MapaComponent implements OnDestroy {
       // Estilo proprio: sem tiles, sprite ou glyphs — nenhuma requisicao de rede externa.
       style: { version: 8, sources: { municipios: { type: 'geojson', data: colecao }, conexoes: { type: 'geojson', data: conexoes } }, layers: [
         { id: 'fundo', type: 'background', paint: { 'background-color': 'rgba(0,0,0,0)' } },
-        { id: 'municipios-3d', type: 'fill-extrusion', source: 'municipios', paint: {
-            'fill-extrusion-color': ['get', 'cor'],
-            'fill-extrusion-height': ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO],
-            'fill-extrusion-opacity': 0.92 } },
-        { id: 'municipios-contorno', type: 'line', source: 'municipios', paint: { 'line-color': '#294056', 'line-width': 1 } },
         /*
-         * Linhas da topologia (N06), depois da extrusao na ordem das camadas: antes dela, o bloco
-         * de Aracaju — o mais alto do estado — cobria o feixe inteiro que sai dele. A linha e
-         * desenhada no chao, entao um bloco alto no caminho ainda a oculta em parte; isso e
-         * correto, e o que se perde e trecho por baixo de um bloco, nao a ligacao.
+         * `fill` plano, e não mais `fill-extrusion`. O bloco extrudado lia como objeto solto
+         * flutuando sobre o mapa, não como relevo do próprio município — o que a inclinação de
+         * câmera entrega sem custo nenhum. O pitch fica; a altura por equipamento sai.
+         *
+         * Cor constante, e não mais `['get', 'cor']`: contorno + fundo neutro, sem distinção por
+         * status (N07). A camada continua existindo — ela é a forma do estado e o alvo do clique.
          */
-        { id: 'conexoes-linha', type: 'line', source: 'conexoes',
-          layout: { 'line-cap': 'round' },
-          paint: { 'line-color': COR_CONEXAO, 'line-width': LARGURA_CONEXAO, 'line-opacity': OPACIDADE_CONEXAO } },
+        { id: 'municipios-fill', type: 'fill', source: 'municipios', paint: {
+            'fill-color': COR_MUNICIPIO,
+            'fill-opacity': 0.92 } },
+        { id: 'municipios-contorno', type: 'line', source: 'municipios', paint: { 'line-color': COR_CONTORNO_MUNICIPIO, 'line-width': 1 } },
         /*
-         * Anel de seleção como segunda extrusão, e não como `line`: camada de linha desenha no
-         * nível do chão, e em município alto o anel ficava no pé do bloco, longe do topo que o
-         * operador está olhando. Este colar nasce onde a extrusão termina e sobe `ESPESSURA_ANEL`.
+         * Linhas da topologia (N06), depois do preenchimento na ordem das camadas. Com tudo no
+         * mesmo plano a ordem passou a ser o unico criterio de quem cobre quem — e a linha tem de
+         * ficar por cima: ela e o dado que atravessa varios municipios. O motivo original (o bloco
+         * alto de Aracaju cobria o feixe que saia dele) deixou de existir com a extrusao.
          */
-        { id: 'municipio-selecionado', type: 'fill-extrusion', source: 'municipios', filter: ['==', ['get', 'id'], ''], paint: {
-            'fill-extrusion-color': COR_SELECAO,
-            'fill-extrusion-base': ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO],
-            'fill-extrusion-height': ['+', ['*', ['get', 'equipamentos'], METROS_POR_EQUIPAMENTO], ESPESSURA_ANEL],
-            'fill-extrusion-opacity': OPACIDADE_ANEL } },
+        ...camadasDeConexao(),
       ] },
       // Nasce plano: o enquadramento é calculado sem inclinação, e o pitch entra depois (ver abaixo).
       attributionControl: false, minZoom: 6, maxZoom: 14, maxPitch: 60, pitch: 0, bearing: BEARING,
@@ -435,14 +655,16 @@ export class MapaComponent implements OnDestroy {
     const limites = new LngLatBounds();
     for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => limites.extend(ponto as [number, number]));
     /*
-     * Duas etapas de propósito. `fitBounds` com `pitch` junto encolhe o mapa: a câmera recua para
-     * caber a área inclinada, que é maior que o retângulo. Enquadra-se plano, onde a projeção
-     * cobre o cartão inteiro, e só então aplica-se a inclinação com `OFFSET_CAMERA`.
+     * Agora `fitBounds` já recebe o `pitch`, em vez de enquadrar plano e inclinar depois. As duas
+     * etapas de N05 existiam porque a extrusão fazia o enquadramento inclinado recuar demais; sem
+     * blocos, enquadrar já inclinado dá um resultado CENTRADO (desequilíbrio de 4,1% topo-base,
+     * contra 8,6% herdando a sequência antiga), e o que sobra é encolhimento uniforme — que uma
+     * compensação de zoom sozinha resolve, sem o offset ter de corrigir centralização também.
      */
-    map.fitBounds(limites, { padding: 34, bearing: BEARING, duration: 0 });
-    map.easeTo({ pitch: PITCH, zoom: map.getZoom() + ZOOM_AO_INCLINAR, offset: OFFSET_CAMERA, duration: 0 });
+    map.fitBounds(limites, { padding: 34, bearing: BEARING, pitch: PITCH, duration: 0 });
+    map.easeTo({ zoom: map.getZoom() + ZOOM_AO_INCLINAR, offset: OFFSET_CAMERA, duration: 0 });
 
-    map.on('click', 'municipios-3d', evento => {
+    map.on('click', 'municipios-fill', evento => {
       const codigo = normalizeCodigoIbge(evento.features?.[0]?.properties?.['id'] as string);
       const municipio = municipios.find(candidato => candidato.codigoIbge === codigo);
       if (municipio) this.selectMunicipio(municipio);
@@ -491,17 +713,86 @@ export class MapaComponent implements OnDestroy {
       alvo.setAttribute('data-unidade-id', String(unidade.id));
       // A cor de status vai por variavel CSS, e nao por classe: sao os mesmos hex do canvas, num
       // unico lugar, e nao ha classe de status para criar e manter em paralelo no SCSS.
-      alvo.style.setProperty('--cor-unidade', COR_DO_TOM[unidade.status.toLowerCase().replace(/_/g, '-')] ?? COR_DO_TOM['sem-dados']);
+      alvo.style.setProperty('--cor-unidade', corDoStatus(unidade.status));
+      // Pulso só nos dois status que pedem ação, e por classe e não por `:has()`: o SCSS não precisa
+      // conhecer a lista de status, e a lista vive num lugar só (STATUS_QUE_PULSA).
+      if (STATUS_QUE_PULSA.includes(unidade.status)) alvo.classList.add('map__unidade--pulsa');
+      alvo.appendChild(dicaDaUnidade(unidade));
       alvo.addEventListener('click', () => this.selecionarPeloMarcador(unidade), { signal: signalAbort });
       alvo.addEventListener('focus', () => { if (!map.getBounds().contains(coordenada)) map.easeTo({ center: coordenada, duration: 200 }); }, { signal: signalAbort });
       const marcador = new Marker({ element: alvo, pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(coordenada).addTo(map);
       this.marcadoresUnidade.set(unidade.id, marcador);
     }
 
-    // `aplicarTons` depende do estilo pronto, e no primeiro monte ele ainda não está.
-    map.on('load', () => untracked(() => this.aplicarTons(this.selected()?.codigoIbge ?? null)));
-    untracked(() => this.aplicarTons(this.selected()?.codigoIbge ?? null));
+    this.montarPings(map, conexoes.features as Feature[]);
+
+    // Marcação inicial dos dois marcadores. Sem `map.on('load')`: nada aqui depende do estilo.
+    untracked(() => this.marcarMunicipio(this.selected()?.codigoIbge ?? null));
     untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
+  }
+
+  /**
+   * Pings percorrendo as linhas de conexão — ICMP echo como desenho.
+   *
+   * Um `Marker` DOM por ping, reposicionado por `setLngLat` a cada quadro. Escolhido contra as duas
+   * alternativas conhecidas, com medição (ver `mapa-contexto-atual.md` §9.2, cenários D/E/F):
+   *
+   * - `setData` de GeoJSON numa camada `circle` a cada quadro: 2,54 ms de CPU por quadro contra
+   *   0,99 ms desta — 2,9x mais cara, quase toda em reparse do GeoJSON no worker.
+   * - `line-dasharray` animado por `setPaintProperty`: 1,65 ms por quadro mesmo rodando a 20 Hz e
+   *   não a 60, porque cada troca reconstrói a textura de tracejado. Além do custo, o movimento é
+   *   em degraus e o tracejado não é bidirecional: "ida e volta" exigiria duas camadas sobrepostas
+   *   em fase invertida.
+   *
+   * E é o padrão que N02 e N06 já fixaram: a lib reposiciona o elemento em pan, zoom, pitch e
+   * rotate sem sincronização manual.
+   *
+   * Sob `prefers-reduced-motion` os pings não são CRIADOS — não basta parar a animação, porque um
+   * ponto parado no meio de uma linha é lido como um lugar, e não há lugar nenhum ali.
+   */
+  private montarPings(map: MaplibreMap, linhas: Feature[]): void {
+    if (linhas.length === 0 || animacaoReduzida()) return;
+    const trajetos = linhas.flatMap(linha => {
+      /*
+       * `as unknown` no meio porque `Geometry` e uniao de sete tipos e o TS nao aceita o
+       * estreitamento direto.
+       *
+       * Primeiro e ultimo vertice, e nao mais o par inteiro: a geometria virou o arco amostrado.
+       * As PONTAS continuam exatas (`arcoEntre` avalia u=0 e u=1), entao o ping refaz a mesma curva
+       * a partir delas, com a mesma conta de O(1) por quadro — ele nao percorre a polilinha. Se
+       * percorresse, cada quadro viraria uma busca por segmento, que e o custo que N07 evitou.
+       */
+      const vertices = (linha.geometry as unknown as { coordinates: [number, number][] }).coordinates;
+      const origem = vertices[0];
+      const destino = vertices[vertices.length - 1];
+      const status = String(linha.properties?.['status'] ?? '');
+      return Array.from({ length: PINGS_POR_LINHA }, (_, indice) => {
+        const elemento = document.createElement('div');
+        elemento.className = 'map__ping';
+        /*
+         * Requisito de aceite, não detalhe: o ping é desenho puro. `aria-hidden` o tira da árvore
+         * de acessibilidade, e ser um <div> sem `tabindex` o mantém fora da ordem de Tab — que
+         * continua sendo município, depois unidade. Um ponto que se move e não faz nada, recebendo
+         * foco, seria um tab-stop morto multiplicado por vinte.
+         */
+        elemento.setAttribute('aria-hidden', 'true');
+        elemento.style.setProperty('--cor-ping', corDoStatus(status));
+        const marcador = new Marker({ element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
+          .setLngLat(origem).addTo(map);
+        this.pings.push(marcador);
+        return { marcador, origem, destino, defasagem: indice / PINGS_POR_LINHA };
+      });
+    });
+
+    const inicio = performance.now();
+    const passo = (): void => {
+      const ciclos = (performance.now() - inicio) / PERIODO_PING_MS;
+      for (const { marcador, origem, destino, defasagem } of trajetos) {
+        marcador.setLngLat(pontoNoArco(origem, destino, faseVaiEVolta(ciclos + defasagem)));
+      }
+      this.quadroPing = requestAnimationFrame(passo);
+    };
+    this.quadroPing = requestAnimationFrame(passo);
   }
 
   /**
@@ -517,33 +808,35 @@ export class MapaComponent implements OnDestroy {
     this.anuncio.set(`${unidade.nome} selecionada. ${ROTULO_STATUS[unidade.status]}.`);
   }
 
-  /** Estado do marcador de unidade. Fora de `aplicarTons`: nao depende do estilo do mapa. */
+  /** Estado do marcador de unidade. Par de `marcarMunicipio`: nenhum dos dois depende do estilo do mapa. */
   private marcarUnidade(selecionada: number | null): void {
     for (const [id, marcador] of this.marcadoresUnidade) {
       marcador.getElement().setAttribute('aria-pressed', String(id === selecionada));
     }
   }
 
-  private aplicarTons(selecionado: string | null): void {
-    const map = this.map;
-    if (!map) return;
-    /*
-     * O `aria-pressed` vem primeiro, e fora da guarda de estilo. Enquanto os dois estavam depois
-     * do `isStyleLoaded()`, selecionar antes de o estilo terminar de carregar deixava o marcador
-     * sem estado nenhum — o painel abria, o anúncio saía, e o leitor de tela continuava dizendo
-     * que nada estava selecionado. O efeito não roda de novo sozinho: a dependência não mudou.
-     */
+  /**
+   * Estado de seleção do município. Só `aria-pressed`, desde que o anel do polígono saiu.
+   *
+   * Sem camada a filtrar, some também a guarda de `isStyleLoaded()` e a repetição no evento `load`
+   * do mapa — que existiam porque selecionar antes de o estilo terminar de carregar deixava o
+   * marcador sem estado nenhum. Atributo de DOM não espera WebGL.
+   */
+  private marcarMunicipio(selecionado: string | null): void {
     for (const municipio of this.municipios()) {
       const marcador = this.marcadores.get(municipio.codigoIbge);
       marcador?.getElement().setAttribute('aria-pressed', String(municipio.codigoIbge === selecionado));
     }
-    if (!map.isStyleLoaded()) return;
-    map.setFilter('municipio-selecionado', ['==', ['get', 'id'], selecionado ?? '']);
   }
 
   private destruirMapa(): void {
     this.teclado?.abort();
     this.teclado = null;
+    // Antes dos marcadores: o quadro pendente chamaria `setLngLat` num Marker já removido do mapa.
+    if (this.quadroPing !== null) cancelAnimationFrame(this.quadroPing);
+    this.quadroPing = null;
+    for (const ping of this.pings) ping.remove();
+    this.pings = [];
     for (const marcador of this.marcadores.values()) marcador.remove();
     this.marcadores.clear();
     for (const marcador of this.marcadoresUnidade.values()) marcador.remove();
