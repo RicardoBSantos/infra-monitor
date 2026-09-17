@@ -198,8 +198,11 @@ ponta oeste ficava a 4px da borda (0,4% contra 5,7% do outro lado); com ele, 2,2
 `.shell__main` não limita nada). Painel com `justify-content: space-between` e disclosure aberto por
 padrão: a maior costura vazia cai de **307px para 110px** num painel de 754px.
 
-**Marcador de unidade.** Halo claro de 1,5px entre o miolo de status e a borda escura. Corrige a
-camuflagem de unidade Degradada sobre município Degradado — o "círculo branco" relatado na revisão.
+**Marcador de unidade.** N06 introduziu um halo claro de 1,5px entre o miolo de status e a borda
+escura, para corrigir a camuflagem de unidade Degradada sobre município Degradado — o "círculo
+branco" relatado na revisão. D16 trocou esse halo pelo aro claro por fora (ver
+[D16](mapa-decisoes.md)), e D19 removeu o aro — ver §12: o marcador de hoje não tem halo nem aro, é
+um disco chapado.
 
 **Legenda.** Subtítulo "Cor do marcador de unidade" + **6 status numa lista só** + 2 notas de
 gramática do mapa (município neutro, linha de hub). Sem botão de informação e **sem disclosure**: os
