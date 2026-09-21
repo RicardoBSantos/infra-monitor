@@ -5,9 +5,13 @@ import br.com.inframonitor.monitoring.icmp.IcmpResult;
 import br.com.inframonitor.monitoring.icmp.StatusIcmp;
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Sondagem ICMP pela API do Windows. O status vem como numero, imune ao idioma do sistema. */
 public class WindowsNativeIcmpRunner implements IcmpCommandRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(WindowsNativeIcmpRunner.class);
 
     private static final int IP_SUCCESS = 0;
     private static final int IP_DEST_NET_UNREACHABLE = 11002;
@@ -55,6 +59,10 @@ public class WindowsNativeIcmpRunner implements IcmpCommandRunner {
                 return paraResultado(lido.status, lido.roundTripTime);
             }
         } catch (RuntimeException excecao) {
+            // A camada nativa falhou, nao o alvo. Sem este log a falha chega ao banco
+            // como "Erro ICMP 0" e ninguem descobre que e' hora de trocar
+            // monitoring.icmp.implementacao para processo-ping.
+            log.warn("Falha na camada nativa ICMP ao sondar {}", ip, excecao);
             return IcmpResult.erro(0);
         } finally {
             if (handle != null) {
