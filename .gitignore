@@ -26,3 +26,6 @@ infra-monitor-frontend/e2e/n04-evidence/
 
 # Artefatos transitorios de smoke test e execucao local.
 tmp/
+
+# Workspace efemero do subagent-driven-development
+.superpowers/
