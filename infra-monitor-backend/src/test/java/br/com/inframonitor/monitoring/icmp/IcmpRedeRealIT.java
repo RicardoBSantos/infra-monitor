@@ -54,6 +54,8 @@ class IcmpRedeRealIT {
         System.out.println("10.79.20.250 frio -> " + frio + " | quente -> " + quente);
         assertThat(frio.status()).isEqualTo(StatusIcmp.HOST_INACESSIVEL);
         assertThat(quente.status()).isEqualTo(StatusIcmp.HOST_INACESSIVEL);
+        assertThat(frio.rttMs()).as("RTT so vale em SUCESSO; a API preenche RoundTripTime mesmo em erro ICMP").isNull();
+        assertThat(quente.rttMs()).as("RTT so vale em SUCESSO; a API preenche RoundTripTime mesmo em erro ICMP").isNull();
     }
 
     @Test
@@ -62,6 +64,7 @@ class IcmpRedeRealIT {
         IcmpResult r = sondar("10.73.10.15");
         System.out.println("10.73.10.15 -> " + r);
         assertThat(r.status()).isEqualTo(StatusIcmp.TIMEOUT);
+        assertThat(r.rttMs()).as("RTT so vale em SUCESSO; medido RoundTripTime=2998ms num timeout").isNull();
     }
 
     @Test
