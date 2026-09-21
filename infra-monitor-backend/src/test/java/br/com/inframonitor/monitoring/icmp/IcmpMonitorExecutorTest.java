@@ -2,6 +2,8 @@ package br.com.inframonitor.monitoring.icmp;
 
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitoring.execution.MonitorCandidate;
+import br.com.inframonitor.monitoring.execution.MonitorExecutionResult;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -10,38 +12,88 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class IcmpMonitorExecutorTest {
-    private final IcmpCommandRunner runner = mock(IcmpCommandRunner.class);
-    private final IcmpMonitorExecutor executor = new IcmpMonitorExecutor(runner,
-            Clock.fixed(Instant.parse("2026-08-19T12:00:00Z"), ZoneOffset.UTC));
 
-    @Test
-    void sucessoRetornaLatenciaInteira() throws Exception {
-        when(runner.run("10.0.0.1", 2000)).thenReturn(new IcmpProcessResult(false, 0, 7));
-        var result = executor.execute(candidate());
-        assertThat(result.success()).isTrue();
-        assertThat(result.latencyMs()).isEqualTo(7);
+    private static final Instant AGORA = Instant.parse("2026-09-21T12:00:00Z");
+    private static final Clock RELOGIO = Clock.fixed(AGORA, ZoneOffset.UTC);
+    private static final MonitorCandidate MONITOR =
+            new MonitorCandidate(1L, TipoMonitor.ICMP, 60, 3_000, "10.79.10.6", null);
+
+    private static IcmpMonitorExecutor executorQueDevolve(IcmpResult resultado) {
+        return new IcmpMonitorExecutor((ip, timeoutMs) -> resultado, RELOGIO);
     }
 
     @Test
-    void falhaETimeoutGeramResultadoDeFalha() throws Exception {
-        when(runner.run("10.0.0.1", 2000)).thenReturn(new IcmpProcessResult(false, 1, 2));
-        assertThat(executor.execute(candidate()).message()).isEqualTo("Ping failed");
-        when(runner.run("10.0.0.1", 2000)).thenReturn(new IcmpProcessResult(true, -1, 2000));
-        var timeout = executor.execute(candidate());
-        assertThat(timeout.success()).isFalse();
-        assertThat(timeout.latencyMs()).isNull();
-        assertThat(timeout.message()).isEqualTo("Timeout");
+    @DisplayName("SUCESSO grava o RTT informado, sem cronometro")
+    void sucessoGravaRtt() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.sucesso(7)).execute(MONITOR);
+        assertThat(r.success()).isTrue();
+        assertThat(r.latencyMs()).isEqualTo(7);
+        assertThat(r.message()).isNull();
+        assertThat(r.executedAt()).isEqualTo(AGORA);
     }
 
     @Test
-    void erroDeProcessoGeraFalhaSemRedeReal() throws Exception {
-        when(runner.run("10.0.0.1", 2000)).thenThrow(new IOException("ping unavailable"));
-        assertThat(executor.execute(candidate()).message()).isEqualTo("Execution error");
+    @DisplayName("TTL expirado e FALHA, nao sucesso")
+    void ttlExpiradoEFalha() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.falha(StatusIcmp.TTL_EXPIRADO)).execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("TTL expirado em trânsito");
+        assertThat(r.latencyMs()).isNull();
     }
 
-    private MonitorCandidate candidate() { return new MonitorCandidate(1L, TipoMonitor.ICMP, 60, 2000, "10.0.0.1", null); }
+    @Test
+    @DisplayName("host inacessivel e FALHA, nao sucesso")
+    void hostInacessivelEFalha() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.falha(StatusIcmp.HOST_INACESSIVEL)).execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("Host de destino inacessível");
+    }
+
+    @Test
+    void redeInacessivelEFalha() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.falha(StatusIcmp.REDE_INACESSIVEL)).execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("Rede de destino inacessível");
+    }
+
+    @Test
+    void timeoutEFalha() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.falha(StatusIcmp.TIMEOUT)).execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("Timeout");
+    }
+
+    @Test
+    @DisplayName("codigo desconhecido vai para a mensagem")
+    void erroLevaOCodigo() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.erro(11050)).execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("Erro ICMP 11050");
+    }
+
+    @Test
+    @DisplayName("todas as mensagens cabem em medicao.mensagem VARCHAR(255)")
+    void mensagensCabemNaColuna() {
+        for (StatusIcmp status : StatusIcmp.values()) {
+            IcmpResult resultado = status == StatusIcmp.SUCESSO
+                    ? IcmpResult.sucesso(1)
+                    : status == StatusIcmp.ERRO ? IcmpResult.erro(2147483647) : IcmpResult.falha(status);
+            String mensagem = IcmpMonitorExecutor.mensagem(resultado);
+            if (mensagem != null) {
+                assertThat(mensagem.length()).isLessThanOrEqualTo(255);
+            }
+        }
+    }
+
+    @Test
+    void ioExceptionViraFalha() {
+        IcmpMonitorExecutor executor = new IcmpMonitorExecutor((ip, timeoutMs) -> {
+            throw new IOException("sem permissao");
+        }, RELOGIO);
+        MonitorExecutionResult r = executor.execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("Erro ao executar a sondagem ICMP");
+    }
 }

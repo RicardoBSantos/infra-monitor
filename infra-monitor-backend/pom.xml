@@ -20,6 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <jna.version>5.19.0</jna.version>
     </properties>
 
     <dependencyManagement>
@@ -86,6 +87,19 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- ICMP nativo no Windows: IcmpSendEcho via IPHLPAPI. O ping.exe nao
+             distingue TTL expirado nem host inacessivel pelo codigo de saida. -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>${jna.version}</version>
         </dependency>
 
         <dependency>
