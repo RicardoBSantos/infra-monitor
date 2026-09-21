@@ -2,6 +2,8 @@ package br.com.inframonitor.monitoring.icmp.processo;
 
 import br.com.inframonitor.monitoring.icmp.IcmpCommandRunner;
 import br.com.inframonitor.monitoring.icmp.IcmpResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,18 +19,26 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ProcessoPingIcmpRunner implements IcmpCommandRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(ProcessoPingIcmpRunner.class);
+
     @Override
     public IcmpResult run(String ip, int timeoutMs) throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder(comando(ip, timeoutMs)).redirectErrorStream(true);
-        Process process = builder.start();
+        return conduzir(builder.start(), ip, timeoutMs);
+    }
+
+    /** Visivel para teste: e' aqui que se prova que a leitura nao prende a thread chamadora. */
+    IcmpResult conduzir(Process process, String ip, int timeoutMs) throws InterruptedException {
         // A leitura vai para uma thread daemon: readAllBytes nao tem timeout proprio e
         // prenderia um worker do pool para sempre se o processo nao fechasse stdout.
         AtomicReference<String> saida = new AtomicReference<>("");
         Thread leitor = new Thread(() -> {
             try (InputStream stream = process.getInputStream()) {
                 saida.set(new String(stream.readAllBytes(), Charset.defaultCharset()));
-            } catch (IOException ignorada) {
-                // Stream fechado a forca pelo encerramento: o que chegou ja esta em saida.
+            } catch (IOException excecao) {
+                // A thread nao pode lancar para fora; o esperado aqui e' o fechamento forcado
+                // por encerrar(), mas um erro de I/O real nao pode sumir sem rastro.
+                log.debug("Falha ao ler a saida do ping para {}", ip, excecao);
             }
         }, "ping-reader");
         leitor.setDaemon(true);
