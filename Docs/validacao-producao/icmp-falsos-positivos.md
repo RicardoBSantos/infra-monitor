@@ -157,8 +157,11 @@ volta da chamada: a latência gravada é o RTT informado pela pilha de rede (Win
 ## Teste contra a rede real — `IcmpRedeRealIT`
 
 Teste `@EnabledOnOs(WINDOWS)` + `@Tag("rede-real")`, fora da execução padrão da suíte (excluído via
-`<excludedGroups>rede-real</excludedGroups>` no `maven-surefire-plugin`), contra os mesmos 4 alvos.
-Saída integral capturada em 2026-09-21, `./mvnw -o test -Dgroups=rede-real -Dtest=IcmpRedeRealIT`:
+`<excludedGroups>${excluded.groups}</excludedGroups>` no `maven-surefire-plugin`, propriedade
+`excluded.groups` fixada em `rede-real` no `pom.xml`). No JUnit a exclusão vence a inclusão: rodar
+só com `-Dgroups=rede-real` seleciona **zero** testes. É preciso liberar a exclusão também, com
+`-Dexcluded.groups=` vazio. Contra os mesmos 4 alvos, saída integral capturada em 2026-09-21,
+`./mvnw -o test -Dexcluded.groups= -Dgroups=rede-real -Dtest=IcmpRedeRealIT`:
 
 ```
 [INFO] Running br.com.inframonitor.monitoring.icmp.IcmpRedeRealIT
@@ -194,9 +197,12 @@ classificado como `ERRO`.
 
 Complementarmente, `ProvaDeReversaoIcmpTest` roda as mesmas fixtures contra a lógica antiga
 (`exitCode != 0`) e falha se a correção for revertida — prova que TTL expirado e host inacessível
-passariam como SUCESSO sob a regra descartada. A contagem da suíte cresceu de 282 para 286 testes
-com essa classe (4 testes novos), suíte completa `BUILD SUCCESS`, `Tests run: 286, Failures: 0,
-Errors: 0, Skipped: 0`.
+passariam como SUCESSO sob a regra descartada. Depois da onda de correções finais desta revisão
+(2026-09-21: `catch (RuntimeException | LinkageError)` na camada nativa, handle inválido não vira
+11010, `leitor.join(250)` passa a checar `isAlive()`, casamento de IP por fronteira de token, `erro(0)`
+não vira mais "Erro ICMP 0", `naoPrendeAThreadAlemDoTimeout` removido por tocar rede real, e a
+dependência `jna-platform` removida por não ter uso), suíte completa `BUILD SUCCESS`,
+`Tests run: 291, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## Condição (2) da trava de viabilidade: NÃO VERIFICADA
 
@@ -227,3 +233,5 @@ funcionaria sob SYSTEM, mas é inferência, não algo medido nesta rodada.
    como formato confirmado.
 3. A execução como conta de sistema (SYSTEM) não foi verificada, pelo motivo acima
    (`schtasks /ru SYSTEM` recusado por falta de elevação nesta máquina).
+4. `WindowsNativeIcmpRunner.paraOrdemDeRede` só entende IPv4, mas `equipamento.ip` é do tipo `INET`
+   e aceitaria IPv6; um alvo IPv6 falharia em toda sondagem.

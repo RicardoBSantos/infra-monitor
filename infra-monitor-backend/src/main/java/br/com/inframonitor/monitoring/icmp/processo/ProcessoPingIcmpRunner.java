@@ -54,6 +54,12 @@ public class ProcessoPingIcmpRunner implements IcmpCommandRunner {
         }
         // join estabelece happens-before: o valor lido aqui e o que a thread escreveu.
         leitor.join(250);
+        if (leitor.isAlive()) {
+            // A leitura nao terminou nem depois de matar o processo: sem texto para
+            // interpretar, a unica leitura honesta e' timeout, nao um codigo inventado.
+            log.warn("A leitura da saida do ping para {} nao terminou; tratando como timeout", ip);
+            return PingOutputParser.analisar(ip, "", false);
+        }
         return PingOutputParser.analisar(ip, saida.get(), terminou);
     }
 

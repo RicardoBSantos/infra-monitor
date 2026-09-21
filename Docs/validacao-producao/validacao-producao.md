@@ -25,3 +25,5 @@ pasta.
    `ERRO: Acesso negado.` nesta máquina, que não é administradora. Ver
    [icmp-falsos-positivos.md](icmp-falsos-positivos.md) para o comando e o raciocínio separado da
    verificação.
+4. `WindowsNativeIcmpRunner.paraOrdemDeRede` só entende IPv4, mas `equipamento.ip` é do tipo `INET`
+   e aceitaria IPv6; um alvo IPv6 falharia em toda sondagem.

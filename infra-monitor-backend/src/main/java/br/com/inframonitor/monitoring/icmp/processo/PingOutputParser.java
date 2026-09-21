@@ -56,11 +56,35 @@ public final class PingOutputParser {
         }
         for (String linha : texto.split("\\R")) {
             String minuscula = linha.toLowerCase(Locale.ROOT);
-            if (minuscula.contains(ipAlvo.toLowerCase(Locale.ROOT)) && minuscula.contains("ttl=")) {
+            if (minuscula.contains("ttl=") && citaOAlvo(minuscula, ipAlvo.toLowerCase(Locale.ROOT))) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * `contains` puro casaria "10.79.10.6" dentro de "10.79.10.60" - exatamente a
+     * classe de bug que este branch existe para eliminar: um alvo silencioso lido
+     * como disponivel porque um vizinho respondeu. Exige fronteira de token: o
+     * caractere antes e o depois do IP na linha nao podem ser digito nem ponto.
+     */
+    private static boolean citaOAlvo(String linha, String ipAlvo) {
+        int de = linha.indexOf(ipAlvo);
+        while (de >= 0) {
+            int ate = de + ipAlvo.length();
+            boolean antesLivre = de == 0 || !ehDigitoOuPonto(linha.charAt(de - 1));
+            boolean depoisLivre = ate == linha.length() || !ehDigitoOuPonto(linha.charAt(ate));
+            if (antesLivre && depoisLivre) {
+                return true;
+            }
+            de = linha.indexOf(ipAlvo, de + 1);
+        }
+        return false;
+    }
+
+    private static boolean ehDigitoOuPonto(char c) {
+        return Character.isDigit(c) || c == '.';
     }
 
     private static int latenciaMs(String texto) {

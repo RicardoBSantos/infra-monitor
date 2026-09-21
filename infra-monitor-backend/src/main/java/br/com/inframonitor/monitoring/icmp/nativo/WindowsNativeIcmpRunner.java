@@ -39,7 +39,10 @@ public class WindowsNativeIcmpRunner implements IcmpCommandRunner {
         try {
             handle = iphlpapi.icmpCreateFile();
             if (handle == null || Pointer.nativeValue(handle) == 0L || Pointer.nativeValue(handle) == -1L) {
-                return IcmpResult.erro(IP_REQ_TIMED_OUT);
+                // Falha local de recurso, nao da rede: nao pode sair como 11010
+                // (IP_REQ_TIMED_OUT), que faria o banco dizer que o alvo nao respondeu.
+                log.warn("IcmpCreateFile devolveu handle invalido ao sondar {}", ip);
+                return IcmpResult.erro(0);
             }
             try (Memory requisicao = new Memory(TAMANHO_REQUISICAO);
                  Memory reply = new Memory(TAMANHO_REPLY);
@@ -58,10 +61,12 @@ public class WindowsNativeIcmpRunner implements IcmpCommandRunner {
                 IcmpEchoReply lido = new IcmpEchoReply(reply);
                 return paraResultado(lido.status, lido.roundTripTime);
             }
-        } catch (RuntimeException excecao) {
-            // A camada nativa falhou, nao o alvo. Sem este log a falha chega ao banco
-            // como "Erro ICMP 0" e ninguem descobre que e' hora de trocar
-            // monitoring.icmp.implementacao para processo-ping.
+        } catch (RuntimeException | LinkageError excecao) {
+            // LinkageError e' obrigatorio aqui: Native.load lanca UnsatisfiedLinkError
+            // (um Error, nao uma RuntimeException) no inicializador estatico de
+            // Iphlpapi.Jna.Biblioteca, disparado pela primeira chamada a icmpCreateFile.
+            // Sem este catch o erro escapa ate' o FutureTask do pool e desaparece: o
+            // motor para de gravar medicao sem deixar rastro.
             log.warn("Falha na camada nativa ICMP ao sondar {}", ip, excecao);
             return IcmpResult.erro(0);
         } finally {

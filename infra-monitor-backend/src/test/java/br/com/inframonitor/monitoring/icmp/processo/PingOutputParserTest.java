@@ -177,6 +177,14 @@ class PingOutputParserTest {
     }
 
     @Test
+    @DisplayName("resposta de um IP que apenas comeca igual ao alvo nao e' sucesso")
+    void vizinhoComPrefixoIgualNaoESucesso() {
+        String saida = "Resposta de 10.79.10.60: bytes=32 tempo=1ms TTL=127\n";
+        IcmpResult r = PingOutputParser.analisar("10.79.10.6", saida, true);
+        assertThat(r.status()).isNotEqualTo(StatusIcmp.SUCESSO);
+    }
+
+    @Test
     @DisplayName("formato de referencia do iputils: sucesso com virgula/ponto decimal")
     void linuxSucessoFormatoDeReferencia() {
         IcmpResult r = PingOutputParser.analisar("10.79.10.6", LINUX_SUCESSO, true);

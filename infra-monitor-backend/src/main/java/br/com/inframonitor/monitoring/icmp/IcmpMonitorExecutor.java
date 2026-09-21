@@ -57,7 +57,13 @@ public class IcmpMonitorExecutor implements MonitorExecutor {
             case HOST_INACESSIVEL -> "Host de destino inacessível";
             case REDE_INACESSIVEL -> "Rede de destino inacessível";
             case TTL_EXPIRADO -> "TTL expirado em trânsito";
-            case ERRO -> "Erro ICMP " + (result.codigoNativo() == null ? 0 : result.codigoNativo());
+            case ERRO -> {
+                Integer codigo = result.codigoNativo();
+                // 0 e' IP_SUCCESS: como codigo de erro ele nao diz nada. Acontece quando a
+                // saida do ping nao casou com nenhum padrao conhecido, ou quando a camada
+                // nativa estourou antes de produzir codigo.
+                yield codigo == null || codigo == 0 ? "Erro ICMP não identificado" : "Erro ICMP " + codigo;
+            }
         };
     }
 }

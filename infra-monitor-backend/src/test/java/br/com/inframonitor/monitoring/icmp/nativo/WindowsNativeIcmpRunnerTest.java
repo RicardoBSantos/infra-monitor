@@ -126,19 +126,36 @@ class WindowsNativeIcmpRunnerTest {
     @Test
     @DisplayName("falha de carga da biblioteca nativa tambem vira ERRO com handle fechado")
     void falhaDeCargaNativaViraErro() {
+        // A JNA nunca embrulha em RuntimeException: Native.load lanca o
+        // UnsatisfiedLinkError cru a partir do inicializador estatico.
         IphlpapiFalsa falsa = new IphlpapiFalsa(new Iphlpapi.Retorno(1, 0), 0, 1) {
             @Override
             public Retorno icmpSendEcho(Pointer h, int d, Pointer rq, short t, Pointer o,
                                         Pointer rp, int tr, int tm) {
                 chamadas.add("send");
-                throw new RuntimeException("falha ao invocar a nativa",
-                        new UnsatisfiedLinkError("Iphlpapi.dll nao encontrada"));
+                throw new UnsatisfiedLinkError("Iphlpapi.dll nao encontrada");
             }
         };
         IcmpResult r = new WindowsNativeIcmpRunner(falsa).run("10.79.10.6", 3_000);
         assertThat(r.status()).isEqualTo(StatusIcmp.ERRO);
         assertThat(r.codigoNativo()).isEqualTo(0);
         assertThat(falsa.chamadas).containsExactly("create", "send", "close");
+    }
+
+    @Test
+    @DisplayName("handle invalido nao pode sair como 11010 (IP_REQ_TIMED_OUT): e' falha local, nao de rede")
+    void handleInvalidoNaoViraTimeoutDeRede() {
+        IphlpapiFalsa falsa = new IphlpapiFalsa(new Iphlpapi.Retorno(1, 0), 0, 1) {
+            @Override
+            public Pointer icmpCreateFile() {
+                chamadas.add("create");
+                return null;
+            }
+        };
+        IcmpResult r = new WindowsNativeIcmpRunner(falsa).run("10.79.10.6", 3_000);
+        assertThat(r.status()).isEqualTo(StatusIcmp.ERRO);
+        assertThat(r.codigoNativo()).isEqualTo(0);
+        assertThat(falsa.chamadas).containsExactly("create");
     }
 
     @Test

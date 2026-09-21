@@ -74,6 +74,14 @@ class IcmpMonitorExecutorTest {
     }
 
     @Test
+    @DisplayName("codigo 0 e' IP_SUCCESS: como erro ele nao pode virar 'Erro ICMP 0'")
+    void erroComCodigoZeroNaoViraMensagemDeSucesso() {
+        MonitorExecutionResult r = executorQueDevolve(IcmpResult.erro(0)).execute(MONITOR);
+        assertThat(r.success()).isFalse();
+        assertThat(r.message()).isEqualTo("Erro ICMP não identificado");
+    }
+
+    @Test
     @DisplayName("todas as mensagens cabem em medicao.mensagem VARCHAR(255)")
     void mensagensCabemNaColuna() {
         for (StatusIcmp status : StatusIcmp.values()) {
