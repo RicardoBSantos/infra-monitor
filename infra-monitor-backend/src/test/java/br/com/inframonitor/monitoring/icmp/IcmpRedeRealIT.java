@@ -11,10 +11,12 @@ import org.junit.jupiter.api.condition.OS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Toca a rede Sesc de verdade. Fica FORA da execucao padrao (tag rede-real) e
- * so roda no Windows. Para rodar:
+ * Toca a rede Sesc de verdade. Fica FORA da execucao padrao (tag rede-real,
+ * excluida via a propriedade excluded.groups no pom.xml) e so roda no
+ * Windows. Para rodar, e preciso liberar a exclusao com -Dexcluded.groups=
+ * (vazio) e selecionar a tag com -Dgroups=rede-real:
  *
- *   ./mvnw -o test -Dgroups=rede-real -Dtest=IcmpRedeRealIT
+ *   ./mvnw -o test -Dexcluded.groups= -Dgroups=rede-real -Dtest=IcmpRedeRealIT
  */
 @Tag("rede-real")
 @EnabledOnOs(OS.WINDOWS)
