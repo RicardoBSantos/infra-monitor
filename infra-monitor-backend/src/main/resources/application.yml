@@ -84,6 +84,11 @@ monitoring:
     scheduler-delay-ms: ${MONITORING_ENGINE_SCHEDULER_DELAY_MS:1000}
     worker-threads: ${MONITORING_ENGINE_WORKER_THREADS:4}
     queue-capacity: ${MONITORING_ENGINE_QUEUE_CAPACITY:100}
+  icmp:
+    # auto | nativo-windows | processo-ping
+    # auto: IcmpSendEcho no Windows, leitura do texto do ping no resto.
+    # Valvula de escape: forcar processo-ping se a JNA falhar em producao.
+    implementacao: ${MONITORING_ICMP_IMPLEMENTACAO:auto}
 
 notification:
   telegram:
