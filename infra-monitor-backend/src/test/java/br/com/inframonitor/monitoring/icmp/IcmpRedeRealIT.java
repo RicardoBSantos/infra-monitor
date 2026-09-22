@@ -25,7 +25,7 @@ class IcmpRedeRealIT {
     private static final int TIMEOUT_MS = 3_000;
 
     private static IcmpResult sondar(String ip) {
-        return new WindowsNativeIcmpRunner(new Iphlpapi.Jna()).run(ip, TIMEOUT_MS);
+        return new WindowsNativeIcmpRunner(Iphlpapi.Jna.carregar()).run(ip, TIMEOUT_MS);
     }
 
     @Test

@@ -26,11 +26,10 @@ public interface Iphlpapi {
 
     void icmpCloseHandle(Pointer handle);
 
-    /** Ligacao real com a DLL. So e carregada no Windows. */
+    /** Ligacao real com a DLL. A carga e' explicita, feita uma vez na subida. */
     final class Jna implements Iphlpapi {
 
         private interface Biblioteca extends StdCallLibrary {
-            Biblioteca INSTANCE = Native.load("Iphlpapi", Biblioteca.class, W32APIOptions.DEFAULT_OPTIONS);
 
             Pointer IcmpCreateFile() throws LastErrorException;
 
@@ -41,16 +40,35 @@ public interface Iphlpapi {
             boolean IcmpCloseHandle(Pointer handle) throws LastErrorException;
         }
 
+        private final Biblioteca biblioteca;
+
+        private Jna(Biblioteca biblioteca) {
+            this.biblioteca = biblioteca;
+        }
+
+        /**
+         * Carrega a DLL AGORA e lanca UnsatisfiedLinkError cru se falhar.
+         *
+         * <p>Antes, Native.load morava no inicializador estatico do campo
+         * Biblioteca.INSTANCE — campo de interface e' implicitamente static
+         * final —, entao a carga so acontecia na PRIMEIRA sondagem, dentro de
+         * uma thread do pool. A falha virava erro de sondagem em vez de erro de
+         * subida, e o operador via a rede inteira caida.
+         */
+        public static Jna carregar() {
+            return new Jna(Native.load("Iphlpapi", Biblioteca.class, W32APIOptions.DEFAULT_OPTIONS));
+        }
+
         @Override
         public Pointer icmpCreateFile() {
-            return Biblioteca.INSTANCE.IcmpCreateFile();
+            return biblioteca.IcmpCreateFile();
         }
 
         @Override
         public Retorno icmpSendEcho(Pointer handle, int destino, Pointer requisicao, short tamanho,
                                     Pointer opcoes, Pointer reply, int tamanhoReply, int timeoutMs) {
             try {
-                int valor = Biblioteca.INSTANCE.IcmpSendEcho(handle, destino, requisicao, tamanho,
+                int valor = biblioteca.IcmpSendEcho(handle, destino, requisicao, tamanho,
                         opcoes, reply, tamanhoReply, timeoutMs);
                 return new Retorno(valor, 0);
             } catch (LastErrorException excecao) {
@@ -62,7 +80,7 @@ public interface Iphlpapi {
 
         @Override
         public void icmpCloseHandle(Pointer handle) {
-            Biblioteca.INSTANCE.IcmpCloseHandle(handle);
+            biblioteca.IcmpCloseHandle(handle);
         }
     }
 }
