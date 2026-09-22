@@ -517,3 +517,55 @@ navegador.
 **Commits** (9, nenhum merge): `d3ed76c` spec · `0bdc20b` plano · `83f1aa4` envelope · `3a4dce7`
 rótulo e pools · `69ed6f4` carga nativa · `f513128` bloco icmp no status · `bdb55a8` medida da
 mensagem · `ceb8ea2` + `513037a` documento · `c008def` + `2293b8c` + `36c3e4c` onda de correção.
+
+---
+
+# A.4 — `.superpowers/`
+
+Verificado por comando, não repetindo afirmação de terceiro:
+
+```
+$ git check-ignore -v .superpowers
+.gitignore:31:.superpowers/	.superpowers
+
+$ git log --all --oneline -- .superpowers | head
+(saída vazia)
+
+$ git ls-files .superpowers | head
+(saída vazia)
+```
+
+`.superpowers/` está em `.gitignore:31` e **nunca foi versionado** — as duas últimas saídas vieram
+vazias, confirmando que nenhum commit, em nenhum branch, tocou esse diretório. Não houve vazamento
+de caminho de usuário nem de token por esse caminho, porque não há histórico algum ali para vazar.
+
+Uma varredura no conteúdo local (não versionado) por padrões de caminho e segredo (`C:\Users\`,
+`/c/Users/`, `BOT_TOKEN`, `JWT_SECRET`, `password`, `senha`) encontrou ocorrências em relatórios e
+diffs de trabalho — todos processo local (briefs, relatórios de tarefa, diffs de revisão, ledgers),
+nunca versionado e fora do escopo de cópia.
+
+**Copiado para `Docs/validacao-producao/evidencias/`** (sanitizado — caminhos absolutos viraram
+relativos, tokens/segredos removidos, sem nome de pessoa):
+
+- `status-motor-desligado-captura-completa.md` — contexto bruto da captura de log de subida +
+  `GET /api/v1/status` (401 sem token, 200 com token, consulta SQL do usuário elegível) que sustenta
+  a seção "2. Modo de falha da biblioteca nativa" deste relatório, incluindo o trecho do log de
+  Flyway e a divergência entre `SecurityConfiguration` e o Javadoc de `StatusController`.
+
+**Deliberadamente deixado de fora** (critério: processo, não evidência de afirmação específica, ou
+já integralmente reproduzido inline neste relatório):
+
+- Todos os `task-*-brief.md` e `task-*-report.md` das duas pastas de `.superpowers/sdd/` — narrativa
+  de processo (o que foi feito e por quê), não evidência bruta; o conteúdo que de fato sustenta
+  afirmações deste relatório já está citado literalmente nas seções 2, 3, 4 e A.1 deste documento.
+- `progress.md` e os ledgers das duas rodadas — estado de execução das tarefas, não evidência.
+- Todos os `review-*.diff` — diffs de revisão de código, processo da rodada anterior, não evidência
+  de comportamento em produção.
+- `correcao-final-report.md` e `parte-b-resumo.md` (rodada anterior) — relatórios de tarefa.
+- Sondagens de rede brutas (`sonda-a0-output.txt`, `ping-comparativo.txt` e equivalentes citados nos
+  relatórios de tarefa) — os números já estão reproduzidos por completo na seção "4. Evidências da
+  Parte A" deste relatório; copiar de novo seria duplicar, não sustentar.
+
+**Decisão sobre o diretório de trabalho:** `.superpowers/sdd/` continua não versionado e fora do
+repositório, como já era — esta seção apenas documenta o que foi conferido e o que foi extraído
+dele.
