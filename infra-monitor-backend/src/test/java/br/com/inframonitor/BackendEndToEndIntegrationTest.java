@@ -36,6 +36,7 @@ import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -95,7 +96,14 @@ class BackendEndToEndIntegrationTest {
         Long monitorId = monitorService.criar(new CreateMonitorRequest(
                 equipamentoId, TipoMonitor.ICMP, "ICMP principal", 60, 2_000, 3, 2)).id();
 
-        Instant inicio = Instant.parse("2026-08-19T12:00:00Z");
+        // monitorService.criar ja abre a janela de monitoramento com inicio_em = agora
+        // (CicloJanelaMonitoramentoService); a ancora do IncidentProcessor exige que as
+        // medicoes sejam posteriores a ela, entao o fixture nao pode mais usar uma data fixa
+        // no passado.
+        // Truncado para milissegundos: TIMESTAMPTZ do Postgres guarda microssegundos e
+        // Instant.now() vem em nanossegundos, o que quebraria a comparacao de igualdade
+        // apos o round-trip pelo banco.
+        Instant inicio = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         registrar(monitorId, StatusMedicao.FALHA, inicio);
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(60));
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(120));

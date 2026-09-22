@@ -8,6 +8,8 @@ import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
+import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,12 +29,14 @@ public class IncidentProcessor {
     private final MedicaoRepository medicaoRepository;
     private final IncidenteRepository incidenteRepository;
     private final IncidenteService incidenteService;
+    private final JanelaMonitoramentoRepository janelaRepository;
 
     public IncidentProcessor(MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository,
-                             IncidenteService incidenteService) {
+                             IncidenteService incidenteService, JanelaMonitoramentoRepository janelaRepository) {
         this.medicaoRepository = medicaoRepository;
         this.incidenteRepository = incidenteRepository;
         this.incidenteService = incidenteService;
+        this.janelaRepository = janelaRepository;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -58,6 +63,24 @@ public class IncidentProcessor {
         List<Medicao> medicoes = ultimasMedicoes(monitor.getId(), threshold);
         if (!sequenciaCompleta(medicoes, threshold, StatusMedicao.FALHA)) {
             log.debug("Failure threshold not reached for monitor {}", monitor.getId());
+            return;
+        }
+        // Espelho da guarda de processarRecovery (:78): medicao anterior ao inicio da
+        // observacao atual nao sustenta abertura. Sem isto, a cauda congelada pela
+        // manutencao abre um incidente com iniciadoEm de antes dela, e dispara Telegram
+        // na PRIMEIRA falha depois da saida - que pode ser o equipamento ainda subindo.
+        //
+        // A ancora e' a janela_monitoramento porque ela ja e' a resposta canonica do
+        // projeto para "desde quando este monitor esta sendo observado", e a saida da
+        // manutencao abre uma janela nova de qualquer jeito (B.5).
+        Optional<JanelaMonitoramento> janela = janelaRepository.aberta(monitor.getId());
+        if (janela.isEmpty()) {
+            log.debug("No open monitoring window for monitor {}; opening skipped", monitor.getId());
+            return;
+        }
+        Instant inicioDaObservacao = janela.get().getInicioEm();
+        if (medicoes.stream().anyMatch(m -> m.getExecutadoEm().isBefore(inicioDaObservacao))) {
+            log.debug("Failure tail predates the open window for monitor {}; opening skipped", monitor.getId());
             return;
         }
         // A lista esta DESC; a ultima posicao e a primeira falha da sequencia.
