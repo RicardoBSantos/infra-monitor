@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -93,6 +96,32 @@ class IcmpMonitorExecutorTest {
                 assertThat(mensagem.length()).isLessThanOrEqualTo(255);
             }
         }
+    }
+
+    @Test
+    @DisplayName("evidencia 4e: toda mensagem gerada cabe em medicao.mensagem VARCHAR(255)")
+    void todaMensagemCabeNoCampo() {
+        List<String> mensagens = new ArrayList<>();
+        for (StatusIcmp status : StatusIcmp.values()) {
+            if (status == StatusIcmp.SUCESSO) {
+                continue;
+            }
+            IcmpResult resultado = status == StatusIcmp.ERRO
+                    ? IcmpResult.erro(Integer.MIN_VALUE)
+                    : IcmpResult.falha(status);
+            mensagens.add(IcmpMonitorExecutor.mensagem(resultado));
+        }
+        mensagens.add(IcmpMonitorExecutor.mensagem(IcmpResult.erro(0)));
+        // As duas do catch de IcmpMonitorExecutor.execute, literais no codigo.
+        mensagens.add("Erro ao executar a sondagem ICMP");
+        mensagens.add("Sondagem ICMP interrompida");
+
+        String maior = mensagens.stream().max(Comparator.comparingInt(String::length)).orElseThrow();
+        System.out.println("[4e] campo: medicao.mensagem VARCHAR(255)");
+        mensagens.forEach(m -> System.out.println("[4e] " + m.length() + " | " + m));
+        System.out.println("[4e] maior: " + maior.length() + " | " + maior);
+
+        assertThat(maior.length()).isLessThan(255);
     }
 
     @Test
