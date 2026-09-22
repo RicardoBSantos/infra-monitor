@@ -129,8 +129,8 @@ alvo=10.73.10.15 retorno=0 replyStatus=- lastError=11010 rttMs=-
 
 Divergências em relação a 2026-09-21: `10.72.10.16` deu `retorno=0 lastError=11010` (timeout puro)
 hoje, contra `retorno=1 replyStatus=11013` (`TTL_EXPIRADO`) em 2026-09-21 — o alvo está inalcançável
-agora, ver a nota sobre a evidência 4b abaixo. `10.73.10.15` deu timeout nas duas datas, mas com
-`rttMs` diferente de exibição (`-` hoje contra `-` em 2026-09-21 também — sem divergência real aí).
+agora, ver a nota sobre a evidência 4b abaixo. `10.73.10.15` deu timeout nas duas datas, com
+`rttMs=-` nas duas — sem divergência nesse alvo.
 `10.79.20.250` manteve `HOST_INACESSIVEL` (`replyStatus=11003`) nas duas datas, com `rttMs` em
 ~3000 ms nos dois casos (1042/2998 ms em 2026-09-21, 3002/3003 ms hoje) — mesma ordem de grandeza,
 perto do teto do timeout configurado, sem contradição entre as duas medições. `10.79.10.6` deu
@@ -361,7 +361,7 @@ o RTT de 0 a 2 ms relatado acima já foi medido abrindo um handle novo em cada c
 thread só se pagaria se esse custo tivesse aparecido, e não apareceu. O `finally` fecha o handle
 mesmo quando `IcmpSendEcho` lança exceção.
 
-O `try`/`finally` do handle, `WindowsNativeIcmpRunner.java:36-85`:
+O `try`/`finally` do handle, `WindowsNativeIcmpRunner.java:36-81`:
 
 ```java
 @Override
@@ -595,8 +595,8 @@ permanece **NÃO VERIFICADA**, e nenhuma inferência sobre privilégio a substit
 
    O risco **aumentou** com a conversão: `VARCHAR(45)` não valida nada — aceita IPv6, hostname e
    lixo, enquanto o `INET` original ao menos rejeitava o que não fosse endereço. Um alvo não-IPv4
-   faz `paraOrdemDeRede` lançar `IllegalArgumentException` (`:123`), que o
-   `catch (RuntimeException | LinkageError)` de `:73` transforma em `IcmpResult.erro(0)`, e o banco
+   faz `paraOrdemDeRede` lançar `IllegalArgumentException` (`:109`), que o
+   `catch (RuntimeException | LinkageError)` de `:64` transforma em `IcmpResult.erro(0)`, e o banco
    recebe medição `FALHA` com `"Erro ICMP não identificado"` em **toda** sondagem daquele monitor,
    sem nada apontar para a causa.
 5. `GET /api/v1/status` exige role hoje (`SecurityConfiguration.java:13`,
