@@ -70,7 +70,16 @@ na criação do bean:
 | ligado | `nativo-windows` | falha | **app não sobe** — `IllegalStateException` citando a propriedade, a DLL e a alternativa |
 | ligado | `auto` (Windows) | falha | `log.error` + queda para `processo-ping`, `cargaNativa=FALHOU` |
 | ligado | `processo-ping` | — | `NAO_TENTADA` |
-| desligado | qualquer | — | resolve, não carrega, `NAO_TENTADA` |
+| desligado | `nativo-windows` | falha | `ativa=NATIVO_WINDOWS`, `cargaNativa=FALHOU` — não derruba a subida (não há motor rodando para derrubar) |
+| desligado | `auto` (Windows) | falha | `log.error` + queda para `processo-ping`, `cargaNativa=FALHOU` |
+| desligado | `processo-ping` | — | `NAO_TENTADA` |
+| desligado | `nativo-windows`/`auto` | sucesso | `cargaNativa=OK` |
+
+**Correção posterior (commit `d10412e`, ver seção A.1):** a tabela acima já reflete o estado atual.
+Até `d10412e`, toda linha "desligado" era uma única `qualquer | — | resolve, não carrega,
+NAO_TENTADA` — o motor desligado nunca tentava a carga nativa, mesmo quando ela teria falhado. Isso
+significava que `/status` podia mentir "não tentei" quando a resposta honesta era "tentei e teria
+falhado". A seção A.1 detalha a correção e traz evidência real do comportamento atual.
 
 `pedida` e `ativa` são campos separados de propósito: sem isso, um `auto` que caiu fica
 indistinguível de `processo-ping` configurado de propósito.
@@ -93,7 +102,7 @@ Fake que lança `UnsatisfiedLinkError` **cru**, não embrulhado:
 A revisão final confirmou: **nenhum `Native.load` preguiçoso sobrou** — único ponto de carga é
 `Iphlpapi.Jna.carregar()`.
 
-## Log real de subida, motor desligado
+## Log real de subida, motor desligado (antes da correção `d10412e` — ver seção A.1 para o comportamento atual)
 
 ```
 2026-09-22T09:22:32.517-03:00  INFO 33032 --- [infra-monitor-backend] [main] o.f.core.internal.command.DbValidate     : Successfully validated 18 migrations (execution time 00:00.034s)
@@ -101,7 +110,7 @@ A revisão final confirmou: **nenhum `Native.load` preguiçoso sobrou** — úni
 2026-09-22T09:22:35.640-03:00  INFO 33032 --- [infra-monitor-backend] [main] b.c.i.m.icmp.IcmpAmbienteConfiguration   : Implementacao ICMP ativa: NATIVO_WINDOWS (pedida: AUTO, carga nativa: NAO_TENTADA, motor: desligado, so=Windows 11)
 ```
 
-## Resposta real de `GET /api/v1/status`
+## Resposta real de `GET /api/v1/status` (antes da correção `d10412e` — ver seção A.1 para o comportamento atual)
 
 ```json
 {"aplicacao":"infra-monitor-backend","status":"UP","instante":"2026-09-22T12:26:44.469096600Z","icmp":{"pedida":"AUTO","ativa":"NATIVO_WINDOWS","cargaNativa":"NAO_TENTADA","detalheFalha":null,"motorLigado":false}}

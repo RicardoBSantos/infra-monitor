@@ -77,6 +77,16 @@ HTTP_STATUS:200
 `200 OK`, bloco `icmp` presente: `ativa: "NATIVO_WINDOWS"`, `motorLigado: false` — confirma em
 JSON, pela via oficial do endpoint, exatamente o que o log de subida já mostrava em texto.
 
+**Aviso de formato: `detalheFalha` não existe mais nesse payload.** O commit `c008def`
+(`fix(icmp): corrigir comentario obsoleto, vazamento de path e invariante nao garantida`), deste
+mesmo branch, removeu o campo `detalheFalha` de `StatusController.IcmpResposta` porque ele publicava
+cru a mensagem de `Native.load`, que carrega o caminho completo de recurso do sistema de arquivos
+(ex.: `C:\Users\<usuário>\...`) para qualquer papel com acesso ao endpoint, inclusive
+`VISUALIZADOR`. O Javadoc de `StatusController` (linhas 50–56) documenta a decisão: o detalhe
+continua existindo em `IcmpAmbiente` e no log de subida, e `cargaNativa=FALHOU` já sinaliza o
+problema pela API. A captura JSON acima é anterior a `c008def` e preserva `detalheFalha:null` porque
+é transcrição literal do que foi colhido naquele momento — não é o formato que a API produz hoje.
+
 ## Divergência registrada a partir desta captura
 
 O Javadoc de `StatusController` descrevia o endpoint como "mínimo de infraestrutura", texto que lê

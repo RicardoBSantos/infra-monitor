@@ -183,7 +183,18 @@ class CapacidadeQuedaEmMassaBenchTest {
             estado.ocupacaoMediaSucessoRealMs(), estado.ocupacaoMediaSucessoRealMs() * FATOR,
             estado.ocupacaoMediaFalhaRealMs(), estado.ocupacaoMediaFalhaRealMs() * FATOR);
 
-        assertThat(estado.totalFalhas()).isGreaterThan(k);
+        // Nao assertamos convergencia (todosOsFalhosAtingiram) nem um piso arbitrario de
+        // totalFalhas(): a celula K=250/workers=4 estoura o TETO_REAL sem convergir e ainda
+        // assim acumula muito mais que qualquer piso pequeno faria parecer suspeito - um
+        // "isGreaterThan(k)" antigo passava exatamente nesse caso que deveria capturar. O que
+        // o arnes sabe checar e' a propria sanidade da simulacao: a falha REAL de cada monitor
+        // com falhasPorMonitor <= k precisa ocupar ~TIMEOUT_MS (em tempo virtual), porque e'
+        // isso que ExecutorFalso.execute() faz de proposito. Se essa ocupacao desviar muito do
+        // timeout configurado, o experimento parou de medir o que diz medir - convirja ou nao.
+        double ocupacaoVirtualFalhaMs = estado.ocupacaoMediaFalhaRealMs() * FATOR;
+        assertThat(ocupacaoVirtualFalhaMs)
+                .as("ocupacao media de falha (virtual) deve ficar perto do TIMEOUT_MS configurado")
+                .isCloseTo(TIMEOUT_MS, org.assertj.core.data.Percentage.withPercentage(10));
     }
 
     // ---------- relogio ----------

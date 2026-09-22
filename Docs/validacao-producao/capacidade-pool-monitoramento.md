@@ -324,8 +324,12 @@ que é um erro pior que um pool apertado.
 - **A suíte padrão**: **314 testes antes e 314 depois**, nenhuma falha, e nenhum relatório de
   `CapacidadeQuedaEmMassaBenchTest` em `target/surefire-reports`. O arnês fica fora por tag.
   (O "antes" foi medido com o arnês removido da árvore e o `pom.xml` revertido, não por inferência.
-  Se em algum lugar o número anotado for 319, ele está somando os 5 testes de `IcmpRedeRealIT`, que
-  a tag `rede-real` mantém fora da execução padrão desde antes desta tarefa.)
+  Se em algum lugar o número anotado for 319: a causa confirmada foi agregação de XML rançoso em
+  `target/surefire-reports` de execuções anteriores — `mvn test` soma relatórios já presentes na
+  pasta em vez de só os da execução atual. A suspeita inicial, de que fossem os 5 testes de
+  `IcmpRedeRealIT` somados por engano, **não se confirmou**; essa suíte continua fora da execução
+  padrão pela tag `rede-real` desde antes desta tarefa. A lição prática: limpar
+  `target/surefire-reports` antes de contar testes, sempre.)
 
 ## Dívidas que esta medição deixa registradas
 

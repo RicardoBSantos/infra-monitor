@@ -71,7 +71,7 @@ Esta tarefa não faz isso porque está restrita a comandos de leitura.
 
 ```
 * 75985a6 (HEAD -> fix/icmp-nativo-windows) docs(icmp): colher evidencia real de motor ligado na secao A.1
-* 6a58458 fix(monitoring): remover bean monitoringClock duplicado no motor
+* 6a58454 fix(monitoring): remover bean monitoringClock duplicado no motor
 * d10412e fix(icmp): tentar a carga nativa tambem com o motor desligado
 * 9717b3e docs(plano): fechamento do branch ICMP e manutencao de equipamento
 * 805e3c4 docs(desenho): fechamento do branch ICMP e manutencao de equipamento
@@ -140,8 +140,8 @@ Commits ahead da `main` local (`main..HEAD`): **84**. Commits ahead da `main` re
 - `feat/unidade-hub` — **local, sem correspondente em `origin`**. É um ancestral direto de `HEAD`
   (o commit `7cab508` aparece no grafo de `fix/icmp-nativo-windows` acima). Não representa trabalho
   paralelo pendente de decisão; é só um ponteiro antigo que ficou para trás no mesmo branch de fato.
-- `spike/n01-maplibre` — **local, sem correspondente em `origin`**, com o worktree apontado em
-  `C:/Users/rbfilho/Documents/infra-monitor-n01-spike`. Foi deliberadamente mantido fora do repositório
+- `spike/n01-maplibre` — **local, sem correspondente em `origin`**, com o worktree apontado num
+  diretório fora deste repositório. Foi deliberadamente mantido fora do repositório
   de trabalho principal (decisão registrada em memória do projeto: nada do spike entra no branch antes
   de um gate). **Não deve ser tratado como trabalho a integrar** nesta rodada.
 - `main` (local) — desatualizada, 4 commits atrás de `origin/main` (ver seção 1).
@@ -178,7 +178,7 @@ Três opções avaliadas. **Nenhuma foi executada.**
 - **Riscos:**
   - Um merge de 80 commits e ~105 mil linhas é impossível de revisar de verdade num PR só; qualquer
     problema introduzido em algum ponto do meio (ex.: a remoção do bean `monitoringClock` duplicado,
-    commit `6a58458`) fica escondido dentro de um diff gigante.
+    commit `6a58454`) fica escondido dentro de um diff gigante.
   - Se algo quebrar em produção depois do merge, não há como isolar "foi o Mapa ou foi o Auth" sem
     reverter tudo.
   - Concentra meses de trabalho de frentes completamente diferentes (Mapa, Auth, Relatórios, ICMP) num
