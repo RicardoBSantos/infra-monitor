@@ -10,9 +10,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -97,6 +99,41 @@ class ExecutorQueLogaFalhasTest {
         assertThat(terminou.await(2, TimeUnit.SECONDS)).isTrue();
         Thread.sleep(100);
         assertThat(registros.list).isEmpty();
+    }
+
+    @Test
+    @DisplayName("InterruptedException e' logada e repropagada como interrupcao da thread, nao engolida")
+    void interrupcaoERepropagadaComoFlagDaThread() {
+        // ThreadPoolExecutor limpa o flag de interrupcao da worker thread entre uma
+        // tarefa e outra (via Thread.interrupted() dentro de runWorker), entao um pool
+        // real esconderia o efeito. Delegado sintetico que roda na propria thread do
+        // teste, para observar a flag no ponto exato em que envelopar() termina.
+        ExecutorService executaNaThreadAtual = new ExecutorService() {
+            @Override public void execute(Runnable tarefa) { tarefa.run(); }
+            @Override public void shutdown() { }
+            @Override public java.util.List<Runnable> shutdownNow() { return java.util.List.of(); }
+            @Override public boolean isShutdown() { return false; }
+            @Override public boolean isTerminated() { return false; }
+            @Override public boolean awaitTermination(long t, TimeUnit u) { return true; }
+            @Override public <T> Future<T> submit(Callable<T> t) { throw new UnsupportedOperationException(); }
+            @Override public <T> Future<T> submit(Runnable t, T r) { throw new UnsupportedOperationException(); }
+            @Override public Future<?> submit(Runnable t) { throw new UnsupportedOperationException(); }
+            @Override public <T> java.util.List<Future<T>> invokeAll(java.util.Collection<? extends Callable<T>> t) { throw new UnsupportedOperationException(); }
+            @Override public <T> java.util.List<Future<T>> invokeAll(java.util.Collection<? extends Callable<T>> t, long a, TimeUnit u) { throw new UnsupportedOperationException(); }
+            @Override public <T> T invokeAny(java.util.Collection<? extends Callable<T>> t) { throw new UnsupportedOperationException(); }
+            @Override public <T> T invokeAny(java.util.Collection<? extends Callable<T>> t, long a, TimeUnit u) { throw new UnsupportedOperationException(); }
+        };
+        ExecutorQueLogaFalhas envelopado = new ExecutorQueLogaFalhas(executaNaThreadAtual);
+
+        try {
+            envelopado.execute(new TarefaRotulada("worker 5",
+                    () -> { throw new RuntimeException("empacotando", new InterruptedException("simulada")); }));
+
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            // nao pode vazar a flag para os demais testes desta classe
+            Thread.interrupted();
+        }
     }
 
     @Test

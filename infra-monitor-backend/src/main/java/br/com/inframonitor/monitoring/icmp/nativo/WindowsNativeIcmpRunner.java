@@ -62,11 +62,13 @@ public class WindowsNativeIcmpRunner implements IcmpCommandRunner {
                 return paraResultado(lido.status, lido.roundTripTime);
             }
         } catch (RuntimeException | LinkageError excecao) {
-            // LinkageError e' obrigatorio aqui: Native.load lanca UnsatisfiedLinkError
-            // (um Error, nao uma RuntimeException) no inicializador estatico de
-            // Iphlpapi.Jna.Biblioteca, disparado pela primeira chamada a icmpCreateFile.
-            // Sem este catch o erro escapa ate' o FutureTask do pool e desaparece: o
-            // motor para de gravar medicao sem deixar rastro.
+            // LinkageError e' obrigatorio aqui: a carga da biblioteca ja aconteceu na
+            // subida (Iphlpapi.Jna.carregar(), fora deste runner), mas a JNA resolve
+            // cada simbolo de funcao de forma preguicosa, na primeira invocacao do
+            // proxy. Um IcmpSendEcho ou IcmpCloseHandle ausente na DLL ainda sobe como
+            // UnsatisfiedLinkError aqui dentro, na sondagem, mesmo com a biblioteca ja
+            // carregada. Sem este catch esse erro escapa ate' o FutureTask do pool e
+            // desaparece: o motor para de gravar medicao sem deixar rastro.
             log.warn("Falha na camada nativa ICMP ao sondar {}", ip, excecao);
             return IcmpResult.erro(0);
         } finally {

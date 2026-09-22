@@ -26,7 +26,7 @@ class StatusControllerTest {
         @Bean
         IcmpAmbiente icmpAmbiente() {
             return new IcmpAmbiente(IcmpImplementacao.AUTO, IcmpImplementacao.NATIVO_WINDOWS,
-                    CargaNativa.NAO_TENTADA, null, false, null);
+                    CargaNativa.FALHOU, "java.lang.UnsatisfiedLinkError: C:\\Users\\alguem\\...", false, null);
         }
     }
 
@@ -59,7 +59,15 @@ class StatusControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.icmp.ativa").value("NATIVO_WINDOWS"))
                 .andExpect(jsonPath("$.icmp.pedida").value("AUTO"))
-                .andExpect(jsonPath("$.icmp.cargaNativa").value("NAO_TENTADA"))
+                .andExpect(jsonPath("$.icmp.cargaNativa").value("FALHOU"))
                 .andExpect(jsonPath("$.icmp.motorLigado").value(false));
+    }
+
+    @Test
+    @DisplayName("detalheFalha nao sai no payload: vazaria caminho do sistema de arquivos a qualquer role autenticada")
+    void naoExpoeDetalheFalhaNoPayload() throws Exception {
+        mockMvc.perform(get("/api/v1/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.icmp.detalheFalha").doesNotExist());
     }
 }

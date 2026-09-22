@@ -42,6 +42,12 @@ public final class ExecutorQueLogaFalhas implements ExecutorService {
             try {
                 tarefa.run();
             } catch (Throwable falha) {
+                if (falha instanceof InterruptedException || falha.getCause() instanceof InterruptedException) {
+                    // Interrupcao e' sinal de desligamento, nao uma falha comum: o
+                    // desenho exige que ela seja repropagada como interrupcao da
+                    // thread, nao engolida junto com as demais.
+                    Thread.currentThread().interrupt();
+                }
                 log.error("Tarefa [{}] falhou e foi descartada", tarefa, falha);
             }
         };

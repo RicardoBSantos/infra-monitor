@@ -19,9 +19,23 @@ public class IcmpRunnerConfiguration {
 
     /** Visivel para teste: monta o runner a partir de um ambiente ja resolvido. */
     static IcmpCommandRunner criarRunner(IcmpAmbiente ambiente) {
-        return ambiente.ativa() == IcmpImplementacao.NATIVO_WINDOWS
-                ? new WindowsNativeIcmpRunner(ambiente.nativo())
-                : new ProcessoPingIcmpRunner();
+        if (ambiente.ativa() == IcmpImplementacao.NATIVO_WINDOWS) {
+            if (ambiente.nativo() == null) {
+                // Inalcancavel em producao: com o motor ligado, IcmpAmbienteConfiguration
+                // ou carrega a biblioteca nativa e preenche este campo, ou lanca
+                // IllegalStateException antes de chegar aqui. Um ambiente com
+                // ativa=NATIVO_WINDOWS e nativo=null so existiria com motor desligado, e
+                // esse @ConditionalOnProperty impede este bean de montar nesse caso. O
+                // guarda existe porque criarRunner e' package-visible para teste, e um
+                // ambiente assim montado a mao nao pode virar um runner com null por
+                // dentro, silenciosamente.
+                throw new IllegalStateException(
+                        "IcmpAmbiente com ativa=NATIVO_WINDOWS precisa de nativo() preenchido; "
+                                + "ambiente com nativo() nulo nao pode construir WindowsNativeIcmpRunner");
+            }
+            return new WindowsNativeIcmpRunner(ambiente.nativo());
+        }
+        return new ProcessoPingIcmpRunner();
     }
 
     /** Resolve AUTO; nunca devolve AUTO. */

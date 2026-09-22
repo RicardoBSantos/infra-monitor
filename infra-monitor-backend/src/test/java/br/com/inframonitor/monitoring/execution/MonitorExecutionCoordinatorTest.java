@@ -145,6 +145,9 @@ class MonitorExecutionCoordinatorTest {
         }
     }
 
+    // Teste de pinning: trava um comportamento que ja existia antes desta rodada
+    // (fila cheia rejeitando e virando WARN sem sumir). Nao prova a mudanca desta
+    // task; existe para acusar regressao se algo futuro alterar esse caminho.
     @Test
     @DisplayName("fila cheia: RejectedExecutionException continua virando WARN, e nao some")
     void filaCheiaContinuaLogando() {

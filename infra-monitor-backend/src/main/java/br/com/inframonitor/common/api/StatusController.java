@@ -12,8 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 
 /**
- * Endpoint minimo de infraestrutura: prova que a API responde no prefixo /api/v1
- * e diz qual implementacao ICMP este processo resolveu na subida.
+ * Diz qual implementacao ICMP este processo resolveu na subida. Nao e' um endpoint
+ * publico: exige token com role ADMIN, OPERADOR ou VISUALIZADOR, igual a qualquer
+ * outro endpoint de negocio sob /api/v1 (ver SecurityConfiguration).
  * Diagnostico completo (banco, disco) fica no Actuator em /actuator/health.
  */
 @RestController
@@ -39,14 +40,21 @@ public class StatusController {
         IcmpAmbiente resolvido = ambiente.getIfAvailable();
         IcmpResposta icmp = resolvido == null ? null
                 : new IcmpResposta(resolvido.pedida(), resolvido.ativa(), resolvido.cargaNativa(),
-                        resolvido.detalheFalha(), resolvido.motorLigado());
+                        resolvido.motorLigado());
         return new StatusResposta(aplicacao, "UP", Instant.now(), icmp);
     }
 
     public record StatusResposta(String aplicacao, String status, Instant instante, IcmpResposta icmp) {
     }
 
+    /**
+     * detalheFalha propositalmente fora daqui: a mensagem crua do Native.load carrega o
+     * resource path completo do sistema de arquivos (ex.: C:\Users\<usuario>\...), e este
+     * endpoint e' acessivel a ADMIN, OPERADOR e VISUALIZADOR. O detalhe continua existindo
+     * em IcmpAmbiente e sendo logado na subida; cargaNativa=FALHOU ja sinaliza o problema
+     * por aqui, e quem precisa do detalhe le o log.
+     */
     public record IcmpResposta(IcmpImplementacao pedida, IcmpImplementacao ativa, CargaNativa cargaNativa,
-                               String detalheFalha, boolean motorLigado) {
+                               boolean motorLigado) {
     }
 }
