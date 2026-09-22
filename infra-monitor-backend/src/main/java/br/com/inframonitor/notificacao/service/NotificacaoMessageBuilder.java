@@ -15,8 +15,16 @@ public class NotificacaoMessageBuilder {
     public String construir(Incidente incidente, TipoEventoNotificacao tipoEvento) {
         Monitor monitor = incidente.getMonitor();
         Equipamento equipamento = monitor.getEquipamento();
-        String cabecalho = tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO
-                ? "INCIDENTE ABERTO" : "INCIDENTE ENCERRADO";
+        String cabecalho;
+        if (tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO) {
+            cabecalho = "INCIDENTE ABERTO";
+        } else if (tipoEvento == TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO) {
+            // NUNCA o texto de "resolvido": ninguem resolveu nada, o equipamento
+            // saiu do radar por decisao operacional.
+            cabecalho = "🔧 Incidente encerrado: equipamento entrou em manutenção";
+        } else {
+            cabecalho = "INCIDENTE ENCERRADO";
+        }
         StringBuilder mensagem = new StringBuilder(cabecalho)
                 .append("\n\nUnidade: ").append(equipamento.getUnidade().getNome())
                 .append("\nEquipamento: ").append(equipamento.getNome());
@@ -28,7 +36,12 @@ public class NotificacaoMessageBuilder {
         if (tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO && incidente.getMotivo() != null) {
             mensagem.append("\nMotivo: ").append(incidente.getMotivo());
         }
-        if (tipoEvento == TipoEventoNotificacao.INCIDENTE_FECHADO) {
+        // Fim/Duracao valem para qualquer encerramento, manutencao inclusive: quando
+        // este metodo roda, o incidente ja foi fechado (encerradoEm preenchido) pelo
+        // chamador. So o cabecalho muda por motivo; o restante do corpo segue o
+        // mesmo estilo dos vizinhos.
+        if (tipoEvento == TipoEventoNotificacao.INCIDENTE_FECHADO
+                || tipoEvento == TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO) {
             mensagem.append("\nFim: ").append(incidente.getEncerradoEm());
             if (incidente.getIniciadoEm() != null && incidente.getEncerradoEm() != null) {
                 mensagem.append("\nDuracao: ").append(formatarDuracao(Duration.between(
@@ -45,8 +58,16 @@ public class NotificacaoMessageBuilder {
     public String construirParaEpisodio(MonitorEpisodioLatencia episodio, TipoEventoNotificacao tipoEvento) {
         Monitor monitor = episodio.getMonitor();
         Equipamento equipamento = monitor.getEquipamento();
-        String cabecalho = tipoEvento == TipoEventoNotificacao.LATENCIA_ALTA
-                ? "LATENCIA ALTA" : "LATENCIA NORMALIZADA";
+        String cabecalho;
+        if (tipoEvento == TipoEventoNotificacao.LATENCIA_ALTA) {
+            cabecalho = "LATENCIA ALTA";
+        } else if (tipoEvento == TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO) {
+            // NUNCA o texto de "normalizada": ninguem mediu a recuperacao, o
+            // equipamento saiu do radar por decisao operacional.
+            cabecalho = "🔧 Latencia encerrada: equipamento entrou em manutenção";
+        } else {
+            cabecalho = "LATENCIA NORMALIZADA";
+        }
         StringBuilder mensagem = new StringBuilder(cabecalho)
                 .append("\n\nUnidade: ").append(equipamento.getUnidade().getNome())
                 .append("\nEquipamento: ").append(equipamento.getNome());
@@ -56,7 +77,10 @@ public class NotificacaoMessageBuilder {
         mensagem.append("\nMonitor: ").append(monitor.getNome())
                 .append("\nLimiar: ").append(episodio.getLimiarMs()).append(" ms")
                 .append("\nInicio: ").append(episodio.getIniciadoEm());
-        if (tipoEvento == TipoEventoNotificacao.LATENCIA_NORMALIZADA) {
+        // Mesma logica do lado do incidente: Fim/Duracao valem para qualquer
+        // encerramento, manutencao inclusive.
+        if (tipoEvento == TipoEventoNotificacao.LATENCIA_NORMALIZADA
+                || tipoEvento == TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO) {
             mensagem.append("\nFim: ").append(episodio.getEncerradoEm());
             if (episodio.getIniciadoEm() != null && episodio.getEncerradoEm() != null) {
                 mensagem.append("\nDuracao: ").append(formatarDuracao(Duration.between(

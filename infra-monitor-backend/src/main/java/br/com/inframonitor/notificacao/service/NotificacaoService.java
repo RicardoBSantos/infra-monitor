@@ -55,6 +55,32 @@ public class NotificacaoService {
     }
 
     /**
+     * Matriz por estado da notificacao de ABERTURA, nao por tipo de evento:
+     * PENDENTE  -> cancela, nenhum aviso (a mensagem nunca saiu)
+     * ENVIANDO  -> intocada, cria aviso (tratamos como "vai sair")
+     * ENVIADA   -> intocada, cria aviso
+     * FALHA     -> intocada, nenhum aviso (nao chegou ao grupo)
+     * inexistente -> nada
+     */
+    @Transactional
+    public void tratarEncerramentoPorManutencao(Incidente incidente) {
+        boolean despachada = notificacaoRepository.existeAberturaJaDespachada(incidente.getId());
+        notificacaoRepository.cancelarPendentesDoIncidente(incidente.getId(), Instant.now());
+        if (despachada) {
+            criarPendente(incidente, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO);
+        }
+    }
+
+    @Transactional
+    public void tratarEncerramentoPorManutencao(MonitorEpisodioLatencia episodio) {
+        boolean despachada = notificacaoRepository.existeAberturaJaDespachadaDoEpisodio(episodio.getId());
+        notificacaoRepository.cancelarPendentesDoEpisodio(episodio.getId(), Instant.now());
+        if (despachada) {
+            criarPendente(episodio, TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO);
+        }
+    }
+
+    /**
      * A idempotencia mora no ON CONFLICT DO NOTHING de
      * {@link NotificacaoRepository#inserirPendenteSeAusente}, nao aqui. O par
      * SELECT-de-verificacao + catch de DataIntegrityViolationException que existia antes

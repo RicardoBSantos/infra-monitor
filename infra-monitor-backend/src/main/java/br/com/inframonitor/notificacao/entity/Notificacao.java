@@ -141,4 +141,12 @@ public class Notificacao {
         erro = mensagemErro;
         proximaTentativaEm = null;
     }
+
+    /** CANCELADA e terminal: nenhuma transicao sai dela. So PENDENTE entra aqui. */
+    public void cancelar() {
+        if (status != StatusNotificacao.PENDENTE) {
+            throw new IllegalStateException("So notificacao PENDENTE pode ser cancelada; estava " + status);
+        }
+        status = StatusNotificacao.CANCELADA;
+    }
 }
