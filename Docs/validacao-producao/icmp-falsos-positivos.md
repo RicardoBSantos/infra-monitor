@@ -393,11 +393,13 @@ public IcmpResult run(String ip, int timeoutMs) {
             return paraResultado(lido.status, lido.roundTripTime);
         }
     } catch (RuntimeException | LinkageError excecao) {
-        // LinkageError e' obrigatorio aqui: Native.load lanca UnsatisfiedLinkError
-        // (um Error, nao uma RuntimeException) no inicializador estatico de
-        // Iphlpapi.Jna.Biblioteca, disparado pela primeira chamada a icmpCreateFile.
-        // Sem este catch o erro escapa ate' o FutureTask do pool e desaparece: o
-        // motor para de gravar medicao sem deixar rastro.
+        // LinkageError e' obrigatorio aqui: a carga da biblioteca ja aconteceu na
+        // subida (Iphlpapi.Jna.carregar(), fora deste runner), mas a JNA resolve
+        // cada simbolo de funcao de forma preguicosa, na primeira invocacao do
+        // proxy. Um IcmpSendEcho ou IcmpCloseHandle ausente na DLL ainda sobe como
+        // UnsatisfiedLinkError aqui dentro, na sondagem, mesmo com a biblioteca ja
+        // carregada. Sem este catch esse erro escapa ate' o FutureTask do pool e
+        // desaparece: o motor para de gravar medicao sem deixar rastro.
         log.warn("Falha na camada nativa ICMP ao sondar {}", ip, excecao);
         return IcmpResult.erro(0);
     } finally {
@@ -411,6 +413,13 @@ public IcmpResult run(String ip, int timeoutMs) {
     }
 }
 ```
+
+(Evidência corrigida em 2026-09-22: o comentário anterior, colado acima em versões anteriores
+deste documento, descrevia um mecanismo que já não existe — atribuía o `UnsatisfiedLinkError` ao
+inicializador estático de `Iphlpapi.Jna.Biblioteca`, disparado pela primeira chamada a
+`icmpCreateFile`. Essa carga virou explícita em `Iphlpapi.Jna.carregar()`, chamada uma única vez na
+subida por `IcmpAmbienteConfiguration`; o `catch` continua necessário porque a JNA resolve cada
+símbolo de função sob demanda, na primeira invocação do proxy.)
 
 O tamanho do pool que motivaria compartilhar handle, `MonitoringEngineProperties.java:9`:
 
@@ -604,3 +613,18 @@ permanece **NÃO VERIFICADA**, e nenhuma inferência sobre privilégio a substit
    enquanto o Javadoc de `StatusController` (`:14-17`) o descreve como "endpoint minimo de
    infraestrutura" que "prova que a API responde". Divergência registrada em
    2026-09-22, não corrigida nesta rodada — ver a seção `## GET /api/v1/status`.
+6. `monitoring.engine.enabled` aceita binding relaxado do Spring (`yes`, `on`, `1`) para
+   `MonitoringEngineProperties.isEnabled()`, mas `IcmpRunnerConfiguration` usa
+   `@ConditionalOnProperty(prefix = "monitoring.engine", name = "enabled", havingValue = "true")`,
+   que compara o valor bruto da property literalmente contra a string `"true"`. Com um desses
+   valores relaxados, `isEnabled()` devolve `true` e `IcmpAmbienteConfiguration` carrega a DLL
+   ansiosamente na subida — ela roda fora do `@ConditionalOnProperty` do motor, de proposito, para
+   que `/api/v1/status` sempre tenha o que informar — mas o `@ConditionalOnProperty` do
+   `IcmpRunnerConfiguration` não bate com o valor relaxado e o bean do runner não é montado: o
+   motor nunca chega a ser efetivamente montado. Com
+   `monitoring.icmp.implementacao=nativo-windows`, essa carga ansiosa derruba a subida inteira
+   (`IcmpAmbienteConfiguration.resolver` lança `IllegalStateException` quando a implementação
+   nativa foi pedida explicitamente e a carga falha) por um motor que nunca seria usado. Antes
+   desta rodada a carga era preguiçosa (por sondagem), então nada disparava; a carga ansiosa é
+   nova nesta rodada, e o risco é novo junto com ela. Registrado como dívida; comportamento não
+   alterado nesta rodada.
