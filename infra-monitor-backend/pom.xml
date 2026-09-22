@@ -21,9 +21,11 @@
         <java.version>21</java.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <jna.version>5.19.0</jna.version>
-        <!-- rede-real toca a rede corporativa; fica fora da execucao padrao.
-             Para rodar sob demanda: ./mvnw -o test -Dexcluded.groups= -Dgroups=rede-real -->
-        <excluded.groups>rede-real</excluded.groups>
+        <!-- rede-real toca a rede corporativa; bench segura threads de proposito e leva
+             minutos. Os dois ficam fora da execucao padrao. Para rodar sob demanda:
+             ./mvnw -o test -Dexcluded.groups= -Dgroups=rede-real
+             ./mvnw -o test -Dexcluded.groups=rede-real -Dgroups=bench -->
+        <excluded.groups>rede-real,bench</excluded.groups>
     </properties>
 
     <dependencyManagement>

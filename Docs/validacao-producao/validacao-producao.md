@@ -13,6 +13,7 @@ pasta.
 |---|---|
 | [icmp-falsos-positivos.md](icmp-falsos-positivos.md) | Os falsos positivos do `ping.exe` no Windows, a decisão pela API nativa `IcmpSendEcho` via JNA, a evidência medida e o teste contra a rede real |
 | [manutencao-proposta.md](manutencao-proposta.md) | Proposta de desenho (sem código) para suprimir notificação e incidente durante a manutenção de um equipamento |
+| [capacidade-pool-monitoramento.md](capacidade-pool-monitoramento.md) | Medição do pool de monitoramento numa queda em massa: 9 células de K caídos × workers, e a proposta de `worker-threads`/`queue-capacity` que sai dos números |
 | [design — icmp-nativo-windows](../superpowers/specs/2026-09-21-icmp-nativo-windows-design.md) | O design que este ciclo implementou: contrato `IcmpResult`/`StatusIcmp`, mapeamento de códigos Win32, componentes criados |
 
 ## Dívidas do ciclo
