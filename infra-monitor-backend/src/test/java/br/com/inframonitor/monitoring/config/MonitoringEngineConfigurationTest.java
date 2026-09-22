@@ -24,9 +24,26 @@ class MonitoringEngineConfigurationTest {
     }
 
     @Test
+    void engineHabilitadoComMonitoringClockConfigurationNaoDuplicaBean() {
+        // Reproduz o contexto real: MonitoringClockConfiguration (sem condicional de
+        // motor) e MonitoringEngineConfiguration (com o motor ligado) sao ambas
+        // registradas pelo component scan. Duas @Bean("monitoringClock") derrubam o
+        // contexto porque allow-bean-definition-overriding e false por padrao.
+        new ApplicationContextRunner()
+                .withUserConfiguration(MonitoringClockConfiguration.class, MonitoringEngineConfiguration.class)
+                .withPropertyValues("monitoring.engine.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(Clock.class);
+                    assertThat(context).hasBean("monitoringClock");
+                });
+    }
+
+    @Test
     void engineHabilitadoCriaExecutorComMonitoringClockMesmoComNotificationClock() {
         new ApplicationContextRunner()
-                .withUserConfiguration(MonitoringEngineConfiguration.class, NotificationDispatcherConfiguration.class)
+                .withUserConfiguration(MonitoringClockConfiguration.class, MonitoringEngineConfiguration.class,
+                        NotificationDispatcherConfiguration.class)
                 .withPropertyValues("monitoring.engine.enabled=true")
                 .withBean(IcmpCommandRunner.class, () -> mock(IcmpCommandRunner.class))
                 .withBean(IcmpMonitorExecutor.class)

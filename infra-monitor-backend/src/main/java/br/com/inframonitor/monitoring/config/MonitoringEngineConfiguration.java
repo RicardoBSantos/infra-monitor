@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.time.Clock;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -31,6 +30,4 @@ public class MonitoringEngineConfiguration {
         // chamador, que ja' a trata. O envelope so' cobre a falha DENTRO da tarefa.
         return new ExecutorQueLogaFalhas(pool);
     }
-
-    @Bean("monitoringClock") Clock monitoringClock() { return Clock.systemUTC(); }
 }
