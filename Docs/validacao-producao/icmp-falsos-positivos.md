@@ -64,7 +64,9 @@ subida da aplicação inteira com `IllegalStateException`; com `auto`, a mesma f
 cair para `processo-ping` e registra um log `ERROR` com o detalhe da falha, sem impedir a subida.
 `GET /api/v1/status` publica o resultado dessa decisão em quatro campos: `pedida` (o que foi
 configurado), `ativa` (o que este processo está de fato usando), `cargaNativa` (`NAO_TENTADA`, `OK`
-ou `FALHOU`) e `detalheFalha`, além de `motorLigado`.
+ou `FALHOU`) e `motorLigado`. `detalheFalha` existe em `IcmpAmbiente` e é logado na subida, mas
+**não sai no payload HTTP** desde 2026-09-22 — a mensagem crua do `Native.load` carrega o caminho
+completo do sistema de arquivos, e o endpoint é acessível a ADMIN, OPERADOR e VISUALIZADOR.
 
 ## GET /api/v1/status
 
@@ -90,14 +92,18 @@ de dev), `200 OK`:
 {"aplicacao":"infra-monitor-backend","status":"UP","instante":"2026-09-22T12:26:44.469096600Z","icmp":{"pedida":"AUTO","ativa":"NATIVO_WINDOWS","cargaNativa":"NAO_TENTADA","detalheFalha":null,"motorLigado":false}}
 ```
 
-**Divergência registrada, sem corrigir agora.** O Javadoc de `StatusController`
-(`src/main/java/br/com/inframonitor/common/api/StatusController.java:14-17`) descreve o endpoint
-como "Endpoint minimo de infraestrutura: prova que a API responde no prefixo /api/v1 e diz qual
-implementacao ICMP este processo resolveu na subida", no mesmo tom de algo público e leve. Na
-prática, o endpoint exige token com role válida, igual a qualquer endpoint de negócio do domínio — o
-comentário não menciona essa exigência. É divergência entre a intenção documentada (endpoint mínimo,
-implícito público) e o comportamento real (autenticado, `hasAnyRole`); a regra de segurança em si
-está correta e não foi alterada.
+**Coleta de 2026-09-22, anterior à remoção de `detalheFalha` do payload** (ver correção
+2026-09-22 mais abaixo). O JSON acima é a captura real feita naquele momento, e é mantido como
+registro histórico — não é o formato atual. O payload atual de `GET /api/v1/status` tem os mesmos
+campos, exceto `detalheFalha`, que deixou de ser serializado.
+
+**Correção 2026-09-22 (nesta rodada).** O Javadoc de `StatusController`
+(`src/main/java/br/com/inframonitor/common/api/StatusController.java:14-18`) foi reescrito: já não
+descreve o endpoint como "endpoint minimo de infraestrutura" que "prova que a API responde", e passou
+a dizer explicitamente que ele exige token com role ADMIN, OPERADOR ou VISUALIZADOR, igual a qualquer
+outro endpoint de negócio sob `/api/v1`, com referência a `SecurityConfiguration`. A divergência entre
+a intenção documentada (endpoint mínimo, implícito público) e o comportamento real (autenticado,
+`hasAnyRole`) registrada aqui deixou de existir; a regra de segurança em si não foi alterada.
 
 ## Saída bruta do `IcmpSendEcho`
 
@@ -599,8 +605,10 @@ permanece **NÃO VERIFICADA**, e nenhuma inferência sobre privilégio a substit
    Um registro anterior desta série afirmou que a coluna era `INET`; **estava errado**, no nome e no
    tipo. A `V2:88` de fato a criou como `INET NOT NULL`, com `ck_equipamento_ip_e_host` (`V2:104-106`)
    exigindo máscara de host; a `V4:5-9` derrubou a constraint e converteu para `VARCHAR(45)` NULL.
-   O CLAUDE.md do projeto ainda registra "endereços IP deverão utilizar o tipo PostgreSQL `INET`"
-   como decisão arquitetural — o estado real diverge da decisão, e isso fica em aberto.
+   O CLAUDE.md do projeto registrava "endereços IP deverão utilizar o tipo PostgreSQL `INET`" como
+   decisão arquitetural sem mencionar o desvio; **corrigido em 2026-09-22** (`CLAUDE.md:45-46` agora
+   nota o estado real). A divergência entre decisão e banco em si — `VARCHAR(45)` no lugar de
+   `INET` — segue aberta; só a lacuna de registro foi fechada.
 
    O risco **aumentou** com a conversão: `VARCHAR(45)` não valida nada — aceita IPv6, hostname e
    lixo, enquanto o `INET` original ao menos rejeitava o que não fosse endereço. Um alvo não-IPv4
@@ -608,12 +616,7 @@ permanece **NÃO VERIFICADA**, e nenhuma inferência sobre privilégio a substit
    `catch (RuntimeException | LinkageError)` de `:64` transforma em `IcmpResult.erro(0)`, e o banco
    recebe medição `FALHA` com `"Erro ICMP não identificado"` em **toda** sondagem daquele monitor,
    sem nada apontar para a causa.
-5. `GET /api/v1/status` exige role hoje (`SecurityConfiguration.java:13`,
-   `.requestMatchers(HttpMethod.GET,"/api/v1/**").hasAnyRole("ADMIN","OPERADOR","VISUALIZADOR")`),
-   enquanto o Javadoc de `StatusController` (`:14-17`) o descreve como "endpoint minimo de
-   infraestrutura" que "prova que a API responde". Divergência registrada em
-   2026-09-22, não corrigida nesta rodada — ver a seção `## GET /api/v1/status`.
-6. `monitoring.engine.enabled` aceita binding relaxado do Spring (`yes`, `on`, `1`) para
+5. `monitoring.engine.enabled` aceita binding relaxado do Spring (`yes`, `on`, `1`) para
    `MonitoringEngineProperties.isEnabled()`, mas `IcmpRunnerConfiguration` usa
    `@ConditionalOnProperty(prefix = "monitoring.engine", name = "enabled", havingValue = "true")`,
    que compara o valor bruto da property literalmente contra a string `"true"`. Com um desses
