@@ -10,12 +10,12 @@ import br.com.inframonitor.notificacao.service.NotificacaoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -92,15 +92,18 @@ public class LatencyEpisodeProcessor {
             return;
         }
         // A lista esta DESC; a ultima posicao e a primeira medicao degradada da sequencia.
-        MonitorEpisodioLatencia episodio = new MonitorEpisodioLatencia(monitor,
-                medicoes.get(medicoes.size() - 1).getExecutadoEm(), limiarMs);
-        try {
-            episodioRepository.saveAndFlush(episodio);
-        } catch (DataIntegrityViolationException ex) {
-            // uq_monitor_episodio_latencia_aberto resolve a corrida concorrente.
-            log.warn("Concurrent latency episode opening for monitor {} was resolved by another processing", monitorId);
+        Instant iniciadoEm = medicoes.get(medicoes.size() - 1).getExecutadoEm();
+        if (episodioRepository.inserirSeElegivel(monitorId, iniciadoEm, limiarMs, Instant.now()) == 0) {
+            // Manutencao ganhou a corrida, monitor/equipamento saiu do ar, ou ja havia
+            // episodio aberto. Sem insercao, sem notificacao.
+            log.debug("Latency episode opening skipped for monitor {}: equipment under maintenance, "
+                    + "monitor inactive, or episode already open", monitorId);
             return;
         }
+        MonitorEpisodioLatencia episodio = episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(monitorId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "insercao reportou 1 linha mas nenhum episodio aberto foi encontrado para o monitor "
+                                + monitorId));
         notificacaoService.criarParaLatenciaAlta(episodio);
         log.info("Latency episode {} opened for monitor {}", episodio.getId(), monitorId);
     }

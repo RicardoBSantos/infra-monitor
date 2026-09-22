@@ -1,6 +1,5 @@
 package br.com.inframonitor.monitoring.incident;
 
-import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.incidente.entity.Incidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
@@ -62,13 +61,12 @@ public class IncidentProcessor {
             return;
         }
         // A lista esta DESC; a ultima posicao e a primeira falha da sequencia.
-        try {
-            Incidente incidente = incidenteService.abrirAutomaticamente(monitor,
-                    medicoes.get(medicoes.size() - 1).getExecutadoEm(), threshold);
-            log.info("Incident {} opened automatically for monitor {}", incidente.getId(), monitor.getId());
-        } catch (ConflitoException ex) {
-            log.warn("Concurrent incident opening for monitor {} was resolved by another processing", monitor.getId());
-        }
+        incidenteService.abrirAutomaticamente(monitor, medicoes.get(medicoes.size() - 1).getExecutadoEm(), threshold)
+                .ifPresentOrElse(
+                        incidente -> log.info("Incident {} opened automatically for monitor {}",
+                                incidente.getId(), monitor.getId()),
+                        () -> log.debug("Incident opening skipped for monitor {}: equipment under maintenance, "
+                                + "monitor inactive, or incident already open", monitor.getId()));
     }
 
     private void processarRecovery(Monitor monitor, Incidente incidente, Medicao atual) {

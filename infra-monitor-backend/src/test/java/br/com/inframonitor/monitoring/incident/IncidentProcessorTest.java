@@ -49,7 +49,7 @@ class IncidentProcessorTest {
         prepararAtual(terceira);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(terceira, segunda, primeira));
-        when(incidenteService.abrirAutomaticamente(any(), any(), eq(3))).thenReturn(incidente(monitor));
+        when(incidenteService.abrirAutomaticamente(any(), any(), eq(3))).thenReturn(Optional.of(incidente(monitor)));
 
         processor.process(terceira);
 
@@ -76,7 +76,7 @@ class IncidentProcessorTest {
         Medicao falha = medicao(monitor, 1L, StatusMedicao.FALHA, T0);
         prepararAtual(falha);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class))).thenReturn(List.of(falha));
-        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(incidente(monitor));
+        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(Optional.of(incidente(monitor)));
 
         processor.process(falha);
 
@@ -142,7 +142,7 @@ class IncidentProcessorTest {
 
         when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.empty());
-        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(incidente(monitor));
+        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(Optional.of(incidente(monitor)));
         processor.process(falha);
         verify(incidenteService).abrirAutomaticamente(monitor, falha.getExecutadoEm(), 1);
     }

@@ -126,12 +126,29 @@ class IncidenteServiceTest {
     @Test
     void fluxosAutomaticosTambemGeramNotificacoes() {
         Monitor monitor = monitor();
+        Incidente incidenteInserido = incidente(StatusIncidente.ABERTO);
+        when(incidenteRepository.inserirSeElegivel(eq(1L), eq(INICIO), any(), any())).thenReturn(1);
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
+                .thenReturn(Optional.of(incidenteInserido));
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        Incidente aberto = incidenteService.abrirAutomaticamente(monitor, INICIO, 3);
-        incidenteService.fecharAutomaticamente(aberto, INICIO.plusSeconds(60), 2);
 
-        verify(notificacaoService).criarParaIncidenteAberto(aberto);
-        verify(notificacaoService).criarParaIncidenteFechado(aberto);
+        Optional<Incidente> aberto = incidenteService.abrirAutomaticamente(monitor, INICIO, 3);
+        assertThat(aberto).contains(incidenteInserido);
+        incidenteService.fecharAutomaticamente(aberto.orElseThrow(), INICIO.plusSeconds(60), 2);
+
+        verify(notificacaoService).criarParaIncidenteAberto(incidenteInserido);
+        verify(notificacaoService).criarParaIncidenteFechado(incidenteInserido);
+    }
+
+    @Test
+    void abrirAutomaticamenteDevolveVazioQuandoInsercaoNaoAcontece() {
+        Monitor monitor = monitor();
+        when(incidenteRepository.inserirSeElegivel(eq(1L), eq(INICIO), any(), any())).thenReturn(0);
+
+        Optional<Incidente> aberto = incidenteService.abrirAutomaticamente(monitor, INICIO, 3);
+
+        assertThat(aberto).isEmpty();
+        verifyNoInteractions(notificacaoService);
     }
 
     @Test

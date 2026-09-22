@@ -58,4 +58,25 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
             + "i.reconhecidoEm = :agora, i.reconhecidoPor = :usuario, i.updatedAt = :agora "
             + "where i.id = :id and i.status = br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO")
     int reconhecerSeAberto(@Param("id") Long id, @Param("usuario") Usuario usuario, @Param("agora") Instant agora);
+
+    /**
+     * Abertura condicional, no idioma de NotificacaoRepository.inserirPendenteSeAusente.
+     * O WHERE carrega o predicado inteiro de "este monitor deveria estar sendo
+     * observado agora"; o ON CONFLICT DO NOTHING absorve uq_incidente_monitor_aberto.
+     *
+     * <p>Retorno 0 significa "a manutencao ganhou a corrida, ou o monitor saiu do ar
+     * administrativamente, ou ja havia incidente aberto". Nos tres casos NAO se cria
+     * notificacao — e e' esse o ponto, porque o caminho antigo notificava logo depois
+     * do save sem olhar se algo tinha sido inserido.
+     */
+    @Modifying
+    @Query(value = """
+            INSERT INTO incidente (monitor_id, status, iniciado_em, motivo, created_at, updated_at)
+            SELECT m.id, 'ABERTO', :iniciadoEm, :motivo, :agora, :agora
+              FROM monitor m JOIN equipamento e ON e.id = m.equipamento_id
+             WHERE m.id = :monitorId AND m.ativo AND e.ativo AND e.em_manutencao = false
+            ON CONFLICT DO NOTHING
+            """, nativeQuery = true)
+    int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,
+                          @Param("motivo") String motivo, @Param("agora") Instant agora);
 }

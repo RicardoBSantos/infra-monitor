@@ -26,6 +26,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -52,17 +53,21 @@ class LatencyEpisodeProcessorTest {
         Medicao primeira = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
         Medicao segunda = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
         prepararAtual(segunda);
-        semEpisodioAberto();
+        // Primeira chamada (checagem no topo de process()) sem episodio aberto; segunda
+        // chamada (releitura apos o INSERT condicional) devolve o episodio recem-criado.
+        when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L))
+                .thenReturn(Optional.empty(), Optional.of(episodio(monitor)));
+        when(episodioRepository.inserirSeElegivel(eq(1L), eq(T0), eq(LIMIAR), any())).thenReturn(1);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(segunda, primeira));
 
         processor().process(segunda);
 
+        verify(episodioRepository).inserirSeElegivel(eq(1L), eq(T0), eq(LIMIAR), any());
         ArgumentCaptor<MonitorEpisodioLatencia> aberto = ArgumentCaptor.forClass(MonitorEpisodioLatencia.class);
-        verify(episodioRepository).saveAndFlush(aberto.capture());
+        verify(notificacaoService).criarParaLatenciaAlta(aberto.capture());
         assertThat(aberto.getValue().getIniciadoEm()).isEqualTo(T0);
         assertThat(aberto.getValue().getLimiarMs()).isEqualTo(LIMIAR);
-        verify(notificacaoService).criarParaLatenciaAlta(any());
     }
 
     @Test void umUnicoCicloAcimaDoLimiarNaoAbreEpisodio() {
@@ -75,7 +80,7 @@ class LatencyEpisodeProcessorTest {
 
         processor().process(atual);
 
-        verify(episodioRepository, never()).saveAndFlush(any());
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
         verify(notificacaoService, never()).criarParaLatenciaAlta(any());
     }
 
@@ -90,7 +95,7 @@ class LatencyEpisodeProcessorTest {
 
         processor().process(atual);
 
-        verify(episodioRepository, never()).saveAndFlush(any());
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
     }
 
     @Test void episodioAbertoNormalizaNoSegundoCicloDentroDoLimiar() {

@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -64,21 +65,36 @@ public class IncidenteService {
     }
 
     /**
-     * Entrada de dominio usada pelo Incident Engine. A verificacao de incidente
-     * aberto e feita pelo processor; o indice parcial continua sendo a garantia
-     * final em caso de corrida concorrente.
+     * Entrada de dominio usada pelo Incident Engine.
+     *
+     * <p>Abertura condicional via INSERT ... SELECT ... WHERE: o WHERE carrega o
+     * predicado inteiro de "este monitor deveria estar sendo observado agora"
+     * (monitor ativo, equipamento ativo, equipamento fora de manutencao), e o
+     * ON CONFLICT DO NOTHING absorve o indice parcial uq_incidente_monitor_aberto
+     * contra a corrida concorrente. Ver IncidenteRepository.inserirSeElegivel.
+     *
+     * <p>Retorno vazio significa que nada foi inserido — manutencao ganhou a
+     * corrida, monitor/equipamento saiu do ar, ou ja havia incidente aberto — e,
+     * principalmente, que NENHUMA notificacao nasce. O caminho antigo chamava
+     * notificacaoService logo depois do save, sem olhar se algo tinha sido
+     * inserido; e esse o defeito que a corrida com a manutencao expunha.
      */
     @Transactional
-    public Incidente abrirAutomaticamente(Monitor monitor, Instant iniciadoEm, int falhasConsecutivas) {
+    public Optional<Incidente> abrirAutomaticamente(Monitor monitor, Instant iniciadoEm, int falhasConsecutivas) {
         String motivo = "Indisponibilidade detectada automaticamente apos " + falhasConsecutivas
                 + " falhas consecutivas.";
-        try {
-            Incidente incidente = incidenteRepository.saveAndFlush(new Incidente(monitor, iniciadoEm, motivo, null));
-            notificacaoService.criarParaIncidenteAberto(incidente);
-            return incidente;
-        } catch (DataIntegrityViolationException ex) {
-            throw new ConflitoException(MENSAGEM_INCIDENTE_ABERTO);
+        if (incidenteRepository.inserirSeElegivel(monitor.getId(), iniciadoEm, motivo, Instant.now()) == 0) {
+            // Manutencao ganhou a corrida, monitor/equipamento saiu do ar, ou ja havia
+            // incidente aberto. Sem insercao, sem notificacao.
+            return Optional.empty();
         }
+        Incidente aberto = incidenteRepository
+                .findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(monitor.getId(), StatusIncidente.EM_ABERTO)
+                .orElseThrow(() -> new IllegalStateException(
+                        "insercao reportou 1 linha mas nenhum incidente aberto foi encontrado para o monitor "
+                                + monitor.getId()));
+        notificacaoService.criarParaIncidenteAberto(aberto);
+        return Optional.of(aberto);
     }
 
     @Transactional
