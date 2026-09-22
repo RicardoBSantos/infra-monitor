@@ -36,25 +36,39 @@ public class IcmpAmbienteConfiguration {
     static IcmpAmbiente resolver(IcmpImplementacao pedida, boolean windows, boolean motorLigado,
                                  Supplier<Iphlpapi> fabrica) {
         IcmpImplementacao escolhida = IcmpRunnerConfiguration.escolher(pedida, windows);
-        if (escolhida != IcmpImplementacao.NATIVO_WINDOWS || !motorLigado) {
+        // A tentativa de carga NAO depende do motor: com o motor desligado o processo
+        // ainda precisa dizer em /api/v1/status se a biblioteca nativa carregaria aqui.
+        // Descobrir a falha so' quando alguem liga o motor e' descobrir tarde demais.
+        if (escolhida != IcmpImplementacao.NATIVO_WINDOWS) {
             return new IcmpAmbiente(pedida, escolhida, CargaNativa.NAO_TENTADA, null, motorLigado, null);
         }
         try {
-            return new IcmpAmbiente(pedida, escolhida, CargaNativa.OK, null, true, fabrica.get());
+            return new IcmpAmbiente(pedida, escolhida, CargaNativa.OK, null, motorLigado, fabrica.get());
         } catch (RuntimeException | LinkageError falha) {
             // LinkageError e' obrigatorio: Native.load lanca UnsatisfiedLinkError,
             // que e' um Error e nao seria pego por catch (Exception).
             String detalhe = falha.getClass().getName() + ": " + falha.getMessage();
-            if (pedida == IcmpImplementacao.NATIVO_WINDOWS) {
+            if (pedida == IcmpImplementacao.NATIVO_WINDOWS && motorLigado) {
                 throw new IllegalStateException(
                         "monitoring.icmp.implementacao=nativo-windows foi pedido explicitamente, mas a carga da "
                                 + "biblioteca nativa Iphlpapi falhou: " + detalhe
                                 + ". Suba com monitoring.icmp.implementacao=processo-ping para nao depender dela.",
                         falha);
             }
+            if (pedida == IcmpImplementacao.NATIVO_WINDOWS) {
+                // Motor desligado: a subida nao pode cair por causa de algo que este
+                // processo nao vai usar. Mas o pedido explicito NAO vira fallback
+                // silencioso — ativa continua NATIVO_WINDOWS para que /status mostre
+                // exatamente o que impediria ligar o motor aqui.
+                log.error("Carga da biblioteca nativa Iphlpapi falhou nesta subida e o motor esta desligado; "
+                        + "ligar o motor neste processo derrubaria a subida. Detalhe: {}", detalhe, falha);
+                return new IcmpAmbiente(pedida, IcmpImplementacao.NATIVO_WINDOWS, CargaNativa.FALHOU, detalhe,
+                        false, null);
+            }
             log.error("Carga da biblioteca nativa Iphlpapi falhou nesta subida; monitoring.icmp.implementacao=auto "
                     + "cai para processo-ping. Detalhe: {}", detalhe, falha);
-            return new IcmpAmbiente(pedida, IcmpImplementacao.PROCESSO_PING, CargaNativa.FALHOU, detalhe, true, null);
+            return new IcmpAmbiente(pedida, IcmpImplementacao.PROCESSO_PING, CargaNativa.FALHOU, detalhe,
+                    motorLigado, null);
         }
     }
 }

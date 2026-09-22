@@ -413,6 +413,67 @@ anterior e vale igual. Legado fica `NULL`.
 
 ---
 
+# A.1 — `/status` verdadeiro com o motor desligado
+
+A seção 2 acima documentou a revisão anterior do branch, onde `motorLigado == false` **curto-
+circuitava** `resolver` antes de tocar a fábrica: `cargaNativa` saía sempre `NAO_TENTADA`, mesmo
+quando a biblioteca nativa teria falhado ao carregar naquele processo. Ou seja, `/status` podia
+dizer "não tentei" quando a resposta honesta era "tentei e teria falhado" — só que ninguém saberia
+até ligar o motor.
+
+**Correção (Task 1 do fechamento do branch):** `IcmpAmbienteConfiguration.resolver` agora tenta a
+carga nativa sempre que a implementação resolvida é `NATIVO_WINDOWS`, **independente de
+`motorLigado`**. Só `escolhida != NATIVO_WINDOWS` continua pulando a tentativa (`NAO_TENTADA`
+passou a significar "implementação de processo, ou SO não-Windows" — não mais "motor desligado").
+
+Regra de queda aprovada para o caso `motorLigado == false`:
+
+- **Falha com pedido `AUTO`:** cai para `PROCESSO_PING`, `cargaNativa=FALHOU` — igual ao caso com
+  motor ligado.
+- **Falha com pedido explícito `NATIVO_WINDOWS`:** a subida **não cai** (não há motor rodando para
+  derrubar), mas o resultado **não vira fallback silencioso** — `ativa` continua `NATIVO_WINDOWS`
+  com `cargaNativa=FALHOU`, para que `/status` mostre exatamente o que impediria ligar o motor
+  neste processo. Só com `motorLigado == true` o mesmo pedido explícito derruba a subida com
+  `IllegalStateException`, como já documentado na seção 2.
+
+## Log real de subida, motor desligado (após a correção)
+
+Máquina Windows real, biblioteca nativa disponível — a carga é tentada e funciona:
+
+```
+2026-09-22T13:48:24.889-03:00  INFO 29076 --- [infra-monitor-backend] [           main] b.c.i.m.icmp.IcmpAmbienteConfiguration   : Implementacao ICMP ativa: NATIVO_WINDOWS (pedida: AUTO, carga nativa: OK, motor: desligado, so=Windows 11)
+```
+
+## Resposta real de `GET /api/v1/status`, motor desligado (após a correção)
+
+Subida contra Postgres descartável (`postgres:16`, porta `5435`, container `infra-status-evid`,
+removido ao final), token de `ADMIN` emitido por um bootstrap-admin descartável só para esta
+captura:
+
+```json
+{"aplicacao":"infra-monitor-backend","status":"UP","instante":"2026-09-22T16:48:40.310267900Z","icmp":{"pedida":"AUTO","ativa":"NATIVO_WINDOWS","cargaNativa":"OK","motorLigado":false}}
+```
+
+`cargaNativa=OK` com `motorLigado=false` é exatamente a lacuna que esta task fecha: antes da
+correção, essa mesma combinação de ambiente teria respondido `NAO_TENTADA`.
+
+## Motor ligado, mesmo banco descartável — NÃO VERIFICADO
+
+A subida com `MONITORING_ENGINE_ENABLED=true` **não chegou a montar o contexto**, por um bug
+pré-existente e alheio a esta task: `MonitoringEngineConfiguration` e
+`MonitoringClockConfiguration` definem os dois um bean `"monitoringClock"`
+(`@ConditionalOnMissingBean(name = "monitoringClock")` na segunda não impede a colisão), e o Spring
+recusa a subida com "A bean with that name has already been defined ... and overriding is
+disabled". Isso independe da mudança desta task — reproduz com qualquer código em
+`IcmpAmbienteConfiguration` — e está fora do escopo do brief (não é para alterar código além dos
+três arquivos listados). Registrando como dívida, não como parte desta entrega: o par
+`ativa=NATIVO_WINDOWS`/`motorLigado=true` com carga OK, e o caso de falha com motor ligado citado na
+seção 2, continuam cobertos só pelos testes unitários
+(`pedidoExplicitoQueFalhaComMotorLIGADOContinuaDerrubandoASubida` e os testes já existentes), não por
+evidência de subida real.
+
+---
+
 # Decisões tomadas sem consulta
 
 Estas são as escolhas feitas no caminho, com o custo de cada uma se estiver errada:

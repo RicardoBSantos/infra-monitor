@@ -4,6 +4,6 @@ package br.com.inframonitor.monitoring.icmp;
 public enum CargaNativa {
     OK,
     FALHOU,
-    /** Nao se aplica: implementacao de processo, ou motor desligado. */
+    /** Nao se aplica: implementacao de processo, ou sistema operacional nao-Windows. */
     NAO_TENTADA
 }

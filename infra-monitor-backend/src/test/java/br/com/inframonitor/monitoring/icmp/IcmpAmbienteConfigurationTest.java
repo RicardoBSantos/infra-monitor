@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 class IcmpAmbienteConfigurationTest {
 
@@ -70,15 +71,15 @@ class IcmpAmbienteConfigurationTest {
     }
 
     @Test
-    @DisplayName("motor desligado nao carrega a biblioteca, mas resolve a implementacao")
-    void motorDesligadoNaoCarrega() {
+    @DisplayName("motor desligado ainda assim tenta a carga, para que /status nao minta")
+    void motorDesligadoAindaAssimTentaACarga() {
         AtomicInteger cargas = new AtomicInteger();
         IcmpAmbiente ambiente = IcmpAmbienteConfiguration.resolver(
                 IcmpImplementacao.AUTO, true, false, contar(cargas));
 
-        assertThat(cargas.get()).isZero();
+        assertThat(cargas.get()).isEqualTo(1);
         assertThat(ambiente.ativa()).isEqualTo(IcmpImplementacao.NATIVO_WINDOWS);
-        assertThat(ambiente.cargaNativa()).isEqualTo(CargaNativa.NAO_TENTADA);
+        assertThat(ambiente.cargaNativa()).isEqualTo(CargaNativa.OK);
         assertThat(ambiente.motorLigado()).isFalse();
     }
 
@@ -111,6 +112,78 @@ class IcmpAmbienteConfigurationTest {
 
         // Se alguem carregar por sondagem, aqui e' 6 e o teste falha.
         assertThat(cargas.get()).isEqualTo(1);
+    }
+
+    @Test
+    void tentaCargaNativaComMotorDesligadoERegistraFalha() {
+        AtomicInteger invocacoes = new AtomicInteger();
+        Supplier<Iphlpapi> fabricaQueFalha = () -> {
+            invocacoes.incrementAndGet();
+            throw new UnsatisfiedLinkError("Iphlpapi indisponivel no teste");
+        };
+
+        IcmpAmbiente ambiente = IcmpAmbienteConfiguration.resolver(
+                IcmpImplementacao.AUTO, true, false, fabricaQueFalha);
+
+        assertThat(invocacoes.get()).isEqualTo(1);
+        assertThat(ambiente.cargaNativa()).isEqualTo(CargaNativa.FALHOU);
+        assertThat(ambiente.ativa()).isEqualTo(IcmpImplementacao.PROCESSO_PING);
+        assertThat(ambiente.detalheFalha()).contains("Iphlpapi indisponivel no teste");
+        assertThat(ambiente.motorLigado()).isFalse();
+    }
+
+    @Test
+    void pedidoExplicitoQueFalhaComMotorDesligadoNaoDerrubaASubidaEMantemAtiva() {
+        Supplier<Iphlpapi> fabricaQueFalha = () -> {
+            throw new UnsatisfiedLinkError("Iphlpapi indisponivel no teste");
+        };
+
+        IcmpAmbiente ambiente = IcmpAmbienteConfiguration.resolver(
+                IcmpImplementacao.NATIVO_WINDOWS, true, false, fabricaQueFalha);
+
+        // Pedido explicito nao vira fallback silencioso: /status precisa mostrar
+        // exatamente o que impediria ligar o motor neste processo.
+        assertThat(ambiente.ativa()).isEqualTo(IcmpImplementacao.NATIVO_WINDOWS);
+        assertThat(ambiente.cargaNativa()).isEqualTo(CargaNativa.FALHOU);
+        assertThat(ambiente.nativo()).isNull();
+    }
+
+    @Test
+    void cargaNativaComMotorDesligadoQueFuncionaEntregaALigacao() {
+        Iphlpapi ligacao = mock(Iphlpapi.class);
+
+        IcmpAmbiente ambiente = IcmpAmbienteConfiguration.resolver(
+                IcmpImplementacao.AUTO, true, false, () -> ligacao);
+
+        assertThat(ambiente.cargaNativa()).isEqualTo(CargaNativa.OK);
+        assertThat(ambiente.ativa()).isEqualTo(IcmpImplementacao.NATIVO_WINDOWS);
+        assertThat(ambiente.nativo()).isSameAs(ligacao);
+    }
+
+    @Test
+    void pedidoExplicitoQueFalhaComMotorLIGADOContinuaDerrubandoASubida() {
+        Supplier<Iphlpapi> fabricaQueFalha = () -> {
+            throw new UnsatisfiedLinkError("Iphlpapi indisponivel no teste");
+        };
+
+        assertThatThrownBy(() -> IcmpAmbienteConfiguration.resolver(
+                IcmpImplementacao.NATIVO_WINDOWS, true, true, fabricaQueFalha))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void foraDoWindowsNaoTentaCargaNativa() {
+        AtomicInteger invocacoes = new AtomicInteger();
+
+        IcmpAmbiente ambiente = IcmpAmbienteConfiguration.resolver(
+                IcmpImplementacao.AUTO, false, false, () -> {
+                    invocacoes.incrementAndGet();
+                    return mock(Iphlpapi.class);
+                });
+
+        assertThat(invocacoes.get()).isZero();
+        assertThat(ambiente.cargaNativa()).isEqualTo(CargaNativa.NAO_TENTADA);
+        assertThat(ambiente.ativa()).isEqualTo(IcmpImplementacao.PROCESSO_PING);
     }
 
     /** Iphlpapi falso: conta cargas e devolve sempre timeout, sem tocar a rede. */
