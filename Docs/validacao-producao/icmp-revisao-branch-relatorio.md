@@ -457,20 +457,30 @@ captura:
 `cargaNativa=OK` com `motorLigado=false` é exatamente a lacuna que esta task fecha: antes da
 correção, essa mesma combinação de ambiente teria respondido `NAO_TENTADA`.
 
-## Motor ligado, mesmo banco descartável — NÃO VERIFICADO
+## Motor ligado, mesmo banco descartável (após `6a58454`)
 
-A subida com `MONITORING_ENGINE_ENABLED=true` **não chegou a montar o contexto**, por um bug
-pré-existente e alheio a esta task: `MonitoringEngineConfiguration` e
-`MonitoringClockConfiguration` definem os dois um bean `"monitoringClock"`
-(`@ConditionalOnMissingBean(name = "monitoringClock")` na segunda não impede a colisão), e o Spring
-recusa a subida com "A bean with that name has already been defined ... and overriding is
-disabled". Isso independe da mudança desta task — reproduz com qualquer código em
-`IcmpAmbienteConfiguration` — e está fora do escopo do brief (não é para alterar código além dos
-três arquivos listados). Registrando como dívida, não como parte desta entrega: o par
-`ativa=NATIVO_WINDOWS`/`motorLigado=true` com carga OK, e o caso de falha com motor ligado citado na
-seção 2, continuam cobertos só pelos testes unitários
-(`pedidoExplicitoQueFalhaComMotorLIGADOContinuaDerrubandoASubida` e os testes já existentes), não por
-evidência de subida real.
+O bean `monitoringClock` duplicado (`MonitoringEngineConfiguration` e
+`MonitoringClockConfiguration` definindo os dois o mesmo nome) que antes impedia a subida com
+`MONITORING_ENGINE_ENABLED=true` foi corrigido no commit `6a58454` (`fix(monitoring): remover bean
+monitoringClock duplicado no motor`). A subida com o motor ligado passou a ser possível, e a
+evidência abaixo foi colhida com o mesmo procedimento da subida com o motor desligado.
+
+Log real de subida, motor ligado:
+
+```
+2026-09-22T14:02:37.818-03:00  INFO 30124 --- [infra-monitor-backend] [           main] b.c.i.m.icmp.IcmpAmbienteConfiguration   : Implementacao ICMP ativa: NATIVO_WINDOWS (pedida: AUTO, carga nativa: OK, motor: ligado, so=Windows 11)
+```
+
+Resposta real de `GET /api/v1/status`, motor ligado — Postgres descartável (`postgres:16`, porta
+`5435`, container `icmp-a1-motor-ligado`, removido ao final), token de `ADMIN` emitido por um
+bootstrap-admin descartável só para esta captura:
+
+```json
+{"aplicacao":"infra-monitor-backend","status":"UP","instante":"2026-09-22T17:02:49.204219900Z","icmp":{"pedida":"AUTO","ativa":"NATIVO_WINDOWS","cargaNativa":"OK","motorLigado":true}}
+```
+
+O par `ativa=NATIVO_WINDOWS`/`motorLigado=true` com carga OK, antes coberto só pelos testes
+unitários, agora tem evidência de subida real.
 
 ---
 
