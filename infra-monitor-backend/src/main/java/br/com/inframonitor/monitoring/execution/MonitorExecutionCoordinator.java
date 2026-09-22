@@ -1,5 +1,6 @@
 package br.com.inframonitor.monitoring.execution;
 
+import br.com.inframonitor.common.concurrent.TarefaRotulada;
 import br.com.inframonitor.medicao.dto.CreateMedicaoRequest;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.service.MedicaoService;
@@ -66,7 +67,7 @@ public class MonitorExecutionCoordinator {
     void submit(MonitorCandidate candidate) {
         if (!runningMonitors.add(candidate.monitorId())) return;
         try {
-            workerExecutor.submit(() -> execute(candidate));
+            workerExecutor.submit(new TarefaRotulada("monitor " + candidate.monitorId(), () -> execute(candidate)));
             log.debug("Monitor {} submitted for execution", candidate.monitorId());
         } catch (RejectedExecutionException exception) {
             runningMonitors.remove(candidate.monitorId());

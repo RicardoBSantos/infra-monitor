@@ -1,11 +1,16 @@
 package br.com.inframonitor.monitoring.execution;
 
+import br.com.inframonitor.common.concurrent.ExecutorQueLogaFalhas;
 import br.com.inframonitor.medicao.dto.CreateMedicaoRequest;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.service.MedicaoService;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -109,4 +114,77 @@ class MonitorExecutionCoordinatorTest {
     }
 
     private MonitorCandidate candidate(Long id, String ip) { return new MonitorCandidate(id, TipoMonitor.ICMP, 60, 2000, ip, null); }
+
+    @Test
+    @DisplayName("Error dentro da execucao do monitor vira ERROR nomeando o monitor")
+    void errorNaExecucaoViraErrorComRotulo() throws Exception {
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                        br.com.inframonitor.common.concurrent.ExecutorQueLogaFalhas.class);
+        ListAppender<ILoggingEvent> registros = new ListAppender<>();
+        registros.start();
+        logger.addAppender(registros);
+        ExecutorService poolReal = Executors.newSingleThreadExecutor();
+        MonitorExecutionCoordinator comEnvelope = new MonitorExecutionCoordinator(repository, medicaoService,
+                new ExecutorQueLogaFalhas(poolReal),
+                Clock.fixed(Instant.parse("2026-08-19T12:00:00Z"), ZoneOffset.UTC), List.of(executor));
+        try {
+            when(repository.findActiveExecutionCandidates()).thenReturn(List.of(candidate(77L, "10.0.0.9")));
+            when(executor.execute(any())).thenAnswer(invocation -> {
+                throw new UnsatisfiedLinkError("Iphlpapi nao encontrada");
+            });
+
+            comEnvelope.scheduleDueMonitors();
+
+            assertThat(aguardarRegistro(registros)).isTrue();
+            assertThat(registros.list.get(0).getLevel()).isEqualTo(Level.ERROR);
+            assertThat(registros.list.get(0).getFormattedMessage()).contains("monitor 77");
+        } finally {
+            logger.detachAppender(registros);
+            poolReal.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("fila cheia: RejectedExecutionException continua virando WARN, e nao some")
+    void filaCheiaContinuaLogando() {
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(MonitorExecutionCoordinator.class);
+        ListAppender<ILoggingEvent> registros = new ListAppender<>();
+        registros.start();
+        logger.addAppender(registros);
+        ExecutorService recusa = new ExecutorQueLogaFalhas(new java.util.concurrent.ThreadPoolExecutor(
+                1, 1, 0, TimeUnit.MILLISECONDS, new java.util.concurrent.ArrayBlockingQueue<>(1),
+                new java.util.concurrent.ThreadPoolExecutor.AbortPolicy()) {
+            @Override
+            public java.util.concurrent.Future<?> submit(Runnable tarefa) {
+                throw new java.util.concurrent.RejectedExecutionException("fila cheia");
+            }
+        });
+        MonitorExecutionCoordinator saturado = new MonitorExecutionCoordinator(repository, medicaoService,
+                recusa, Clock.fixed(Instant.parse("2026-08-19T12:00:00Z"), ZoneOffset.UTC), List.of(executor));
+        try {
+            MonitorCandidate candidato = candidate(91L, "10.0.0.10");
+            saturado.submit(candidato);
+
+            assertThat(registros.list).isNotEmpty();
+            assertThat(registros.list.get(0).getLevel()).isEqualTo(Level.WARN);
+            assertThat(registros.list.get(0).getFormattedMessage()).contains("91");
+            // o monitor voltou para a fila logica: nao ficou preso em runningMonitors
+            assertThat(saturado.isRunning(91L)).isFalse();
+        } finally {
+            logger.detachAppender(registros);
+            recusa.shutdownNow();
+        }
+    }
+
+    private static boolean aguardarRegistro(ListAppender<ILoggingEvent> registros) throws InterruptedException {
+        for (int tentativa = 0; tentativa < 40; tentativa++) {
+            if (!registros.list.isEmpty()) {
+                return true;
+            }
+            Thread.sleep(50);
+        }
+        return false;
+    }
 }
