@@ -116,7 +116,7 @@ class IncidenteServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         Incidente fechado = incidente(StatusIncidente.ABERTO);
-        fechado.fechar(INICIO.plusSeconds(60), "original", null, MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
+        fechado.fechar(INICIO.plusSeconds(60), "original", null, MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
         when(incidenteRepository.findById(11L)).thenReturn(Optional.of(fechado));
         var resposta = incidenteService.fechar(11L, new CloseIncidenteRequest(INICIO.plusSeconds(120), "nova"), 7L);
         assertThat(resposta.encerradoEm()).isEqualTo(INICIO.plusSeconds(60));
@@ -190,7 +190,9 @@ class IncidenteServiceTest {
                 .isInstanceOf(ConflitoException.class).hasMessageContaining("ja foi reconhecido");
 
         // Corrida real: o motor fechou entre o SELECT e o UPDATE do operador.
-        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(incidente(StatusIncidente.FECHADO)));
+        Incidente fechadoMotor = incidente(StatusIncidente.ABERTO);
+        fechadoMotor.fechar(INICIO.plusSeconds(60), null, null, MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(fechadoMotor));
         assertThatThrownBy(() -> incidenteService.reconhecer(10L, 7L))
                 .isInstanceOf(ConflitoException.class).hasMessageContaining("ja foi fechado");
     }
