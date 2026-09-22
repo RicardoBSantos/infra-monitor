@@ -72,7 +72,7 @@ public class LatencyEpisodeProcessor {
         if (incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
                 monitorId, StatusIncidente.EM_ABERTO).isPresent()) {
             episodioAberto.ifPresent(episodio -> {
-                episodio.encerrar(medicaoPersistida.getExecutadoEm());
+                episodio.encerrar(medicaoPersistida.getExecutadoEm(), MotivoEncerramentoEpisodio.INCIDENTE);
                 log.info("Latency episode {} closed by incident for monitor {}", episodio.getId(), monitorId);
             });
             return;
@@ -112,7 +112,7 @@ public class LatencyEpisodeProcessor {
             log.debug("Latency recovery not reached for monitor {}", monitorId);
             return;
         }
-        episodio.encerrar(atual.getExecutadoEm());
+        episodio.encerrar(atual.getExecutadoEm(), MotivoEncerramentoEpisodio.NORMALIZACAO);
         episodioRepository.saveAndFlush(episodio);
         notificacaoService.criarParaLatenciaNormalizada(episodio);
         log.info("Latency episode {} normalized for monitor {}", episodio.getId(), monitorId);

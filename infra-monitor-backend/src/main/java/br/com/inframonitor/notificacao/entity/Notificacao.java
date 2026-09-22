@@ -44,7 +44,7 @@ public class Notificacao {
     private CanalNotificacao canal;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_evento", nullable = false, length = 30)
+    @Column(name = "tipo_evento", nullable = false, length = 40)
     private TipoEventoNotificacao tipoEvento;
 
     @Enumerated(EnumType.STRING)

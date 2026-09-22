@@ -6,6 +6,7 @@ import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.incidente.dto.CloseIncidenteRequest;
 import br.com.inframonitor.incidente.dto.CreateIncidenteRequest;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
@@ -115,7 +116,7 @@ class IncidenteServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         Incidente fechado = incidente(StatusIncidente.ABERTO);
-        fechado.fechar(INICIO.plusSeconds(60), "original", null);
+        fechado.fechar(INICIO.plusSeconds(60), "original", null, MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
         when(incidenteRepository.findById(11L)).thenReturn(Optional.of(fechado));
         var resposta = incidenteService.fechar(11L, new CloseIncidenteRequest(INICIO.plusSeconds(120), "nova"), 7L);
         assertThat(resposta.encerradoEm()).isEqualTo(INICIO.plusSeconds(60));
@@ -223,7 +224,7 @@ class IncidenteServiceTest {
     private Incidente incidente(StatusIncidente status) {
         Incidente incidente = new Incidente(monitor(), INICIO, "motivo", "observacao");
         if (status == StatusIncidente.RECONHECIDO) incidente.reconhecer(INICIO.plusSeconds(30), operador());
-        if (status == StatusIncidente.FECHADO) incidente.fechar(INICIO.plusSeconds(60), null, null);
+        if (status == StatusIncidente.FECHADO) incidente.fechar(INICIO.plusSeconds(60), null, null, MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
         definirId(incidente, 10L);
         return incidente;
     }

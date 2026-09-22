@@ -5,6 +5,7 @@ import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
@@ -141,7 +142,7 @@ class DisponibilidadePaginacaoSortPostgresIntegrationTest {
     private Monitor monitor(Equipamento e, String nome, Instant inicio, Instant fim) { Monitor m = monitores.saveAndFlush(new Monitor(e, TipoMonitor.ICMP, nome, 60, 1000)); janela(m, inicio, fim); return m; }
     private void janela(Monitor m, Instant inicio, Instant fim) { JanelaMonitoramento j = new JanelaMonitoramento(m, inicio, OrigemJanelaMonitoramento.PRECISA); j.fechar(fim); janelas.saveAndFlush(j); }
     private void medir(Monitor m, Instant em) { medicoes.saveAndFlush(new Medicao(m, StatusMedicao.SUCESSO, 1, null, em)); }
-    private void incidente(Monitor m, Instant inicio, Instant fim) { Incidente i = new Incidente(m, inicio, "x", null); i.fechar(fim, null, null); incidentes.saveAndFlush(i); }
+    private void incidente(Monitor m, Instant inicio, Instant fim) { Incidente i = new Incidente(m, inicio, "x", null); i.fechar(fim, null, null, MotivoEncerramentoIncidente.FECHAMENTO_MANUAL); incidentes.saveAndFlush(i); }
     private void criarLinha(String nome, Instant inicio, Instant fim, int indisponivel, int quantidade) { Equipamento e = equipamento(nome, nome); criarMonitorComDados(e, nome, inicio, fim, indisponivel, quantidade); }
     private void criarMonitorComDados(Equipamento e, String nome, Instant inicio, Instant fim, int indisponivel, int quantidade) { Monitor m = monitor(e, nome, inicio, fim); medir(m, inicio); for (int n = 0; n < quantidade; n++) { Instant a = inicio.plusSeconds(n * 200L); incidente(m, a, a.plusSeconds(indisponivel / Math.max(quantidade, 1))); } }
     private void unidadeComEquipamentos(String nome, int quantidade) { long u = criarUnidade(nome); IntStream.range(0, quantidade).forEach(n -> criarEquipamento(u, nome + n)); }

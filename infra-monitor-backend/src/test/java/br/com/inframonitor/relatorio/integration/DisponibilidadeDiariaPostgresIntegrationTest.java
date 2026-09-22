@@ -5,6 +5,7 @@ import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
@@ -167,7 +168,7 @@ class DisponibilidadeDiariaPostgresIntegrationTest {
 
     private void incidente(Monitor monitor, String inicio, String fim) {
         Incidente incidente = new Incidente(monitor, Instant.parse(inicio), "teste", null);
-        incidente.fechar(Instant.parse(fim), null, null);
+        incidente.fechar(Instant.parse(fim), null, null, MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
         incidentes.saveAndFlush(incidente);
     }
 }

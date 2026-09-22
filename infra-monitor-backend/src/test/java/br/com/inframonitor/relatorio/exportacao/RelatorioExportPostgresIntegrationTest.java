@@ -5,6 +5,7 @@ import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
@@ -97,7 +98,7 @@ class RelatorioExportPostgresIntegrationTest {
         Monitor monitor=monitores.saveAndFlush(new Monitor(equipamento,TipoMonitor.ICMP,"Monitor \"ICMP\"",60,1000));monitorId=monitor.getId();
         JanelaMonitoramento janela=new JanelaMonitoramento(monitor,INICIO,OrigemJanelaMonitoramento.PRECISA);janela.fechar(FIM);janelas.saveAndFlush(janela);
         medicoes.saveAndFlush(new Medicao(monitor,StatusMedicao.SUCESSO,25,null,INICIO.plusSeconds(60)));
-        Incidente incidente=new Incidente(monitor,INICIO.plusSeconds(120),"=1+1","linha 1\nlinha 2");incidente.fechar(INICIO.plusSeconds(180),null,null);incidenteId=incidentes.saveAndFlush(incidente).getId();
+        Incidente incidente=new Incidente(monitor,INICIO.plusSeconds(120),"=1+1","linha 1\nlinha 2");incidente.fechar(INICIO.plusSeconds(180),null,null,MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);incidenteId=incidentes.saveAndFlush(incidente).getId();
         Notificacao notificacao=notificacoes.saveAndFlush(new Notificacao(incidente,CanalNotificacao.TELEGRAM,TipoEventoNotificacao.INCIDENTE_ABERTO,"mensagem fora do CSV"));
         jdbc.update("update notificacao set created_at=? where id=?",java.sql.Timestamp.from(INICIO.plusSeconds(150)),notificacao.getId());
         String hash=encoder.encode(PASSWORD);

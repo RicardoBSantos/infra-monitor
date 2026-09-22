@@ -8,6 +8,7 @@ import br.com.inframonitor.incidente.dto.CreateIncidenteRequest;
 import br.com.inframonitor.incidente.dto.IncidenteResponse;
 import br.com.inframonitor.incidente.dto.MonitorIncidenteResponse;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
@@ -90,7 +91,7 @@ public class IncidenteService {
         }
         // Sem autor: quem fechou foi o motor. E o unico caminho que deixa fechado_por nulo.
         incidente.fechar(encerradoEm, "Recuperacao detectada automaticamente apos " + sucessosConsecutivos
-                + " sucessos consecutivos.", null);
+                + " sucessos consecutivos.", null, MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
         Incidente fechado = incidenteRepository.saveAndFlush(incidente);
         notificacaoService.criarParaIncidenteFechado(fechado);
         return fechado;
@@ -138,7 +139,8 @@ public class IncidenteService {
         if (requisicao.encerradoEm().isBefore(incidente.getIniciadoEm())) {
             throw new IllegalArgumentException("encerradoEm deve ser maior ou igual a iniciadoEm");
         }
-        incidente.fechar(requisicao.encerradoEm(), normalizar(requisicao.observacao()), autor(usuarioId));
+        incidente.fechar(requisicao.encerradoEm(), normalizar(requisicao.observacao()), autor(usuarioId),
+                MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
         Incidente fechado = incidenteRepository.saveAndFlush(incidente);
         notificacaoService.criarParaIncidenteFechado(fechado);
         return paraResposta(fechado);
