@@ -161,9 +161,10 @@ class CapacidadeQuedaEmMassaBenchTest {
         long[] atrasos = estado.atrasosSaudaveisOrdenados();
 
         String cpu = cpuMedida
-                ? String.format("%.0f ms de CPU para %d threads x %.1f s reais = %.1f%% de um worker",
+                ? String.format("%.0f ms de CPU para %d threads x %.1f s reais = %.2f%% de uma CPU "
+                        + "(nao do pool de %d workers)",
                         cpuWorkersNs / 1_000_000.0, workers, duracaoRealNs / 1_000_000_000.0,
-                        100.0 * cpuWorkersNs / Math.max(1L, (long) workers * duracaoRealNs))
+                        100.0 * cpuWorkersNs / Math.max(1L, duracaoRealNs), workers)
                 : "NAO VERIFICADO (ThreadMXBean sem CPU por thread)";
 
         System.out.printf(
@@ -182,7 +183,7 @@ class CapacidadeQuedaEmMassaBenchTest {
             estado.ocupacaoMediaSucessoRealMs(), estado.ocupacaoMediaSucessoRealMs() * FATOR,
             estado.ocupacaoMediaFalhaRealMs(), estado.ocupacaoMediaFalhaRealMs() * FATOR);
 
-        assertThat(estado.totalFalhas()).isPositive();
+        assertThat(estado.totalFalhas()).isGreaterThan(k);
     }
 
     // ---------- relogio ----------
