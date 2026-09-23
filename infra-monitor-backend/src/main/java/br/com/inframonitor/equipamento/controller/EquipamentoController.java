@@ -6,7 +6,9 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.common.api.PaginaResposta;
 import br.com.inframonitor.common.api.Paginacao;
+import br.com.inframonitor.security.UsuarioPrincipal;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -72,7 +74,12 @@ public class EquipamentoController {
     public EquipamentoResponse desativar(@PathVariable Long id) { return equipamentoService.desativar(id); }
 
     @PatchMapping("/{id}/manutencao/iniciar")
-    public EquipamentoResponse iniciarManutencao(@PathVariable Long id) { return equipamentoService.entrarEmManutencao(id); }
+    public EquipamentoResponse iniciarManutencao(@PathVariable Long id,
+                                                  @AuthenticationPrincipal UsuarioPrincipal principal) {
+        // O tipo e UsuarioPrincipal, nao Usuario: o tipo errado injeta null em
+        // silencio e so estoura no banco.
+        return equipamentoService.entrarEmManutencao(id, principal.id());
+    }
 
     @PatchMapping("/{id}/manutencao/encerrar")
     public EquipamentoResponse encerrarManutencao(@PathVariable Long id) { return equipamentoService.sairDeManutencao(id); }

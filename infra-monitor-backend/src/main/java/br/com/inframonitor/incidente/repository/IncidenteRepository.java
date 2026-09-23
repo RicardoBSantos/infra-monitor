@@ -79,4 +79,29 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
             """, nativeQuery = true)
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,
                           @Param("motivo") String motivo, @Param("agora") Instant agora);
+
+    // Espelha reconhecerSeAberto. Fecha todos os monitores do equipamento numa
+    // instrucao e devolve quantos fechou.
+    //
+    // O grafo inclui equipamento e unidade, e nao so' monitor: fecharPorManutencao
+    // roda um @Modifying(clearAutomatically = true) logo em seguida, que limpa o
+    // contexto de persistencia; sem essas associacoes ja carregadas, o acesso lazy
+    // que NotificacaoMessageBuilder faz depois (via tratarEncerramentoPorManutencao)
+    // estoura LazyInitializationException porque a sessao ja nao existe mais.
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
+    @Query("select i from Incidente i where i.monitor.equipamento.id = :equipamentoId "
+            + "and i.status in (br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO, "
+            + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
+    List<Incidente> abertosDoEquipamento(@Param("equipamentoId") Long equipamentoId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Incidente i set i.status = br.com.inframonitor.incidente.entity.StatusIncidente.FECHADO, "
+            + "i.encerradoEm = :agora, "
+            + "i.motivoEncerramento = br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente.MANUTENCAO, "
+            + "i.fechadoPor = :usuario, i.updatedAt = :agora "
+            + "where i.monitor.equipamento.id = :equipamentoId "
+            + "and i.status in (br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO, "
+            + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
+    int fecharPorManutencao(@Param("equipamentoId") Long equipamentoId, @Param("usuario") Usuario usuario,
+                            @Param("agora") Instant agora);
 }

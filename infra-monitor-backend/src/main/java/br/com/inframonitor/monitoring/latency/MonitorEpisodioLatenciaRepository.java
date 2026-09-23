@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface MonitorEpisodioLatenciaRepository extends JpaRepository<MonitorEpisodioLatencia, Long> {
@@ -34,4 +35,20 @@ public interface MonitorEpisodioLatenciaRepository extends JpaRepository<Monitor
             """, nativeQuery = true)
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,
                           @Param("limiarMs") int limiarMs, @Param("agora") Instant agora);
+
+    // Irmao de IncidenteRepository.abertosDoEquipamento/fecharPorManutencao. Grafo
+    // largo pelo mesmo motivo: encerrarPorManutencao limpa o contexto de persistencia
+    // (clearAutomatically), e o acesso lazy do NotificacaoMessageBuilder precisa de
+    // equipamento/unidade ja carregados.
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
+    @Query("select e from MonitorEpisodioLatencia e where e.monitor.equipamento.id = :equipamentoId "
+            + "and e.encerradoEm is null")
+    List<MonitorEpisodioLatencia> abertosDoEquipamento(@Param("equipamentoId") Long equipamentoId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update MonitorEpisodioLatencia e set e.encerradoEm = :agora, "
+            + "e.motivoEncerramento = br.com.inframonitor.monitoring.latency.MotivoEncerramentoEpisodio.MANUTENCAO, "
+            + "e.updatedAt = :agora "
+            + "where e.monitor.equipamento.id = :equipamentoId and e.encerradoEm is null")
+    int encerrarPorManutencao(@Param("equipamentoId") Long equipamentoId, @Param("agora") Instant agora);
 }
