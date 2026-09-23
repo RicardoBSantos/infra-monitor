@@ -36,7 +36,7 @@ public class DashboardIncidenteReadRepository {
             with evento as (
                 select 'INCIDENTE'::text tipo, i.id, 'ALTA'::text severidade, i.status,
                        i.iniciado_em, i.encerrado_em, i.motivo, null::integer limiar_ms,
-                       i.reconhecido_em, ru.nome reconhecido_por_nome,
+                       i.reconhecido_em, ru.nome reconhecido_por_nome, i.motivo_encerramento,
                        m.id monitor_id, m.nome monitor_nome,
                        e.id equipamento_id, e.nome equipamento_nome,
                        u.id unidade_id, u.nome unidade_nome,
@@ -55,7 +55,7 @@ public class DashboardIncidenteReadRepository {
                 select 'LATENCIA'::text, ep.id, 'MEDIA'::text,
                        case when ep.encerrado_em is null then 'ABERTO' else 'FECHADO' end,
                        ep.iniciado_em, ep.encerrado_em, null::varchar, ep.limiar_ms,
-                       null::timestamptz, null::varchar,
+                       null::timestamptz, null::varchar, null::varchar,
                        m.id, m.nome, e.id, e.nome, u.id, u.nome,
                        n.canal, n.status, n.enviado_em
                   from monitor_episodio_latencia ep
@@ -86,6 +86,7 @@ public class DashboardIncidenteReadRepository {
             r.getString("tipo"), r.getLong("id"), r.getString("severidade"), r.getString("status"),
             instant(r, "iniciado_em"), instant(r, "encerrado_em"), r.getString("motivo"),
             (Integer) r.getObject("limiar_ms"), instant(r, "reconhecido_em"), r.getString("reconhecido_por_nome"),
+            r.getString("motivo_encerramento"),
             r.getLong("monitor_id"), r.getString("monitor_nome"),
             r.getLong("equipamento_id"), r.getString("equipamento_nome"),
             r.getLong("unidade_id"), r.getString("unidade_nome"),

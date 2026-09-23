@@ -33,11 +33,11 @@ export interface DashboardIncidenteResponse {
   reconhecidoEm: string | null;
   reconhecidoPorNome: string | null;
   /**
-   * Só em linhas de incidente. O read-model desta tela ainda não projeta a coluna do
-   * banco — chega `undefined` até o backend adicionar; o marcador de manutenção da lista
-   * simplesmente não aparece até lá, não é um valor inventado no cliente.
+   * Só em linhas de incidente; episódio de latência tem coluna própria no banco mas
+   * este read-model não a projeta. Nulo é o caso comum, não exceção: a maior parte do
+   * histórico foi fechada antes da V19 e nunca foi classificada.
    */
-  motivoEncerramento?: IncidentClosureReason | null;
+  motivoEncerramento: IncidentClosureReason | null;
   monitorId: number; monitorNome: string;
   equipamentoId: number; equipamentoNome: string;
   unidadeId: number; unidadeNome: string;
