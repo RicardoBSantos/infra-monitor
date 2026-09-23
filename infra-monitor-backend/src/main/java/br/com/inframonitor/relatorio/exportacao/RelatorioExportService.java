@@ -32,7 +32,7 @@ public class RelatorioExportService {
         select i.id incidente_id,u.id unidade_id,u.nome unidade_nome,e.id equipamento_id,e.nome equipamento_nome,
                m.id monitor_id,m.nome monitor_nome,m.tipo tipo_monitor,i.status,i.iniciado_em,i.encerrado_em,
                extract(epoch from greatest(interval '0', least(coalesce(i.encerrado_em,:fim),:fim)-greatest(i.iniciado_em,:inicio)))::bigint duracao,
-               i.motivo,i.observacao
+               i.motivo,i.observacao,i.motivo_encerramento
           from incidente i join monitor m on m.id=i.monitor_id join equipamento e on e.id=m.equipamento_id
           join unidade u on u.id=e.unidade_id
          where i.iniciado_em<:fim and (i.encerrado_em is null or i.encerrado_em>=:inicio)
@@ -109,8 +109,8 @@ public class RelatorioExportService {
         String order=reports.validarExportacaoIncidentes(inicio,fim,unidadeId,equipamentoId,monitorId,sort);
         Map<String,Object> p=hierarchy(inicio,fim,unidadeId,equipamentoId,monitorId);p.put("status",status);
         return prepare("incidentes",inicio,fim,principal,safeFilters(p,order),definition(INCIDENTES,order+", incidente_id",p,
-                "incidente_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,iniciado_em,encerrado_em,duracao_segundos_no_periodo,motivo,observacao",
-                r->new Object[]{lng(r,"incidente_id"),lng(r,"unidade_id"),r.getString("unidade_nome"),lng(r,"equipamento_id"),r.getString("equipamento_nome"),lng(r,"monitor_id"),r.getString("monitor_nome"),r.getString("tipo_monitor"),r.getString("status"),instant(r,"iniciado_em"),instant(r,"encerrado_em"),r.getLong("duracao"),r.getString("motivo"),r.getString("observacao")}));
+                "incidente_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,iniciado_em,encerrado_em,duracao_segundos_no_periodo,motivo,observacao,motivo_encerramento",
+                r->new Object[]{lng(r,"incidente_id"),lng(r,"unidade_id"),r.getString("unidade_nome"),lng(r,"equipamento_id"),r.getString("equipamento_nome"),lng(r,"monitor_id"),r.getString("monitor_nome"),r.getString("tipo_monitor"),r.getString("status"),instant(r,"iniciado_em"),instant(r,"encerrado_em"),r.getLong("duracao"),r.getString("motivo"),r.getString("observacao"),r.getString("motivo_encerramento")}));
     }
 
     public ExportDownload medicoes(Instant inicio,Instant fim,Long unidadeId,Long equipamentoId,Long monitorId,

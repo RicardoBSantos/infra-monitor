@@ -224,6 +224,6 @@ public class IncidenteService {
                 new MonitorIncidenteResponse(monitor.getId(), monitor.getNome(), monitor.getTipo(),
                         equipamento.getId(), equipamento.getNome(), equipamento.getUnidade().getId(),
                         equipamento.getUnidade().getNome()),
-                incidente.getCreatedAt(), incidente.getUpdatedAt());
+                incidente.getCreatedAt(), incidente.getUpdatedAt(), incidente.getMotivoEncerramento());
     }
 }
