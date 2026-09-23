@@ -1,0 +1,115 @@
+{
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído, fora de /login",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4200/dashboard"
+    },
+    {
+      "caso": "lista-manutencao-badge",
+      "nome": "lista unificada mostra a marca 🔧 de manutenção em pelo menos uma linha",
+      "ok": true,
+      "detalhe": "linhas com marca=3"
+    },
+    {
+      "caso": "drawer-encerrado-por",
+      "nome": "drawer mostra \"Encerrado por\"",
+      "ok": true,
+      "detalhe": "ocorrências=1"
+    },
+    {
+      "caso": "drawer-motivo",
+      "nome": "drawer mostra \"Motivo do encerramento\"",
+      "ok": true,
+      "detalhe": "ocorrências=1"
+    },
+    {
+      "caso": "timeline-presente",
+      "nome": "seção \"Linha do tempo\" presente no drawer",
+      "ok": true,
+      "detalhe": "ocorrências=1"
+    },
+    {
+      "caso": "timeline-sem-recuperacao-falsa",
+      "nome": "texto da timeline não afirma recuperação para incidente fechado por manutenção (verificação textual, não prova ausência de bug — ver nota no documento)",
+      "ok": true,
+      "detalhe": "texto contém \"recupera\" — CONFERIR MANUALMENTE se é a frase correta de manutenção sem recuperação medida"
+    },
+    {
+      "caso": "drawer-fecha",
+      "nome": "Escape fecha o drawer antes de navegar",
+      "ok": true,
+      "detalhe": "gaveta ainda presente=false"
+    },
+    {
+      "caso": "painel-kpi-manutencao",
+      "nome": "painel mostra o KPI \"EM MANUTENÇÃO\"",
+      "ok": true,
+      "detalhe": "cartões encontrados=1"
+    },
+    {
+      "caso": "painel-kpi-manutencao-valor",
+      "nome": "valor do KPI de manutenção",
+      "ok": true,
+      "detalhe": "valor=\"1\""
+    },
+    {
+      "caso": "mapa-canvas-presente",
+      "nome": "mapa renderizou o canvas MapLibre",
+      "ok": true,
+      "detalhe": "canvas=1"
+    },
+    {
+      "caso": "notificacoes-tabela-presente",
+      "nome": "histórico de notificações carregou tabela",
+      "ok": true,
+      "detalhe": "tabela=1"
+    },
+    {
+      "caso": "notificacoes-cancelada-visivel",
+      "nome": "texto \"CANCELADA\" aparece na tabela",
+      "ok": true,
+      "detalhe": "encontrado"
+    },
+    {
+      "caso": "notificacoes-filtro-evento-manutencao",
+      "nome": "filtro de EVENTO lista \"Incidente encerrado por manutenção\"",
+      "ok": true,
+      "detalhe": "selects com a opção=1"
+    },
+    {
+      "caso": "erros-console",
+      "nome": "nenhum erro de página/console no roteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    "2026-09-23T07:08:58.033Z POST /auth/login",
+    "2026-09-23T07:08:58.293Z GET /dashboard/resumo",
+    "2026-09-23T07:08:58.310Z GET /dashboard/unidades",
+    "2026-09-23T07:08:58.310Z GET /unidades?ativo=true",
+    "2026-09-23T07:08:58.310Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-24T07:08:58.295Z&fim=2026-09-23T07:08:58.295Z&size=200",
+    "2026-09-23T07:08:58.311Z GET /relatorios/latencia/unidades?inicio=2026-08-24T07:08:58.296Z&fim=2026-09-23T07:08:58.296Z&size=500",
+    "2026-09-23T07:08:58.311Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-09-23T07:08:58.334Z GET /incidentes?status=ABERTO&size=20&sort=iniciadoEm,desc",
+    "2026-09-23T07:08:58.403Z GET /unidades?ativo=true",
+    "2026-09-23T07:08:58.408Z GET /dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&status=ABERTO&inicio=2026-09-16T07:08:58.404Z&fim=2026-09-23T07:08:58.404Z",
+    "2026-09-23T07:08:58.409Z GET /dashboard/incidentes/contadores?inicio=2026-09-16T07:08:58.404Z&fim=2026-09-23T07:08:58.404Z",
+    "2026-09-23T07:08:58.463Z GET /dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&inicio=2026-09-16T07:08:58.404Z&fim=2026-09-23T07:08:58.404Z",
+    "2026-09-23T07:08:59.398Z GET /incidentes/3",
+    "2026-09-23T07:08:59.409Z GET /relatorios/medicoes?inicio=2026-09-23T03:13:04.638Z&fim=2026-09-23T03:23:40.176Z&size=200&sort=executadoEm,asc&monitorId=2",
+    "2026-09-23T07:08:59.409Z GET /monitores/2",
+    "2026-09-23T07:08:59.409Z GET /notificacoes?incidenteId=3&size=20&sort=createdAt,asc",
+    "2026-09-23T07:09:01.602Z GET /unidades?ativo=true",
+    "2026-09-23T07:09:01.602Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-24T07:09:01.598Z&fim=2026-09-23T07:09:01.598Z&size=200",
+    "2026-09-23T07:09:01.603Z GET /relatorios/latencia/unidades?inicio=2026-08-24T07:09:01.598Z&fim=2026-09-23T07:09:01.598Z&size=500",
+    "2026-09-23T07:09:01.615Z GET /incidentes?status=ABERTO&size=20&sort=iniciadoEm,desc",
+    "2026-09-23T07:09:01.615Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-09-23T07:09:02.583Z GET /dashboard/unidades",
+    "2026-09-23T07:09:05.338Z GET /notificacoes?page=0&size=20&sort=createdAt,desc"
+  ],
+  "erros": [],
+  "fatal": null
+}
