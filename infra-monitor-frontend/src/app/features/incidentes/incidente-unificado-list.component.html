@@ -69,6 +69,9 @@
               </td>
               <td>
                 <app-status-badge [status]="linha.status" />
+                @if (linha.motivoEncerramento === 'MANUTENCAO') {
+                  <span class="marca-manutencao" title="Encerrado por entrada em manutenção" aria-label="Encerrado por entrada em manutenção">🔧</span>
+                }
               </td>
               <td class="reconhecido">
                 @if (linha.reconhecidoPorNome) { {{ linha.reconhecidoPorNome }} }

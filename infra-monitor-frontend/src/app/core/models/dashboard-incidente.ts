@@ -1,4 +1,4 @@
-import { IncidentStatus } from './api-enums';
+import { IncidentClosureReason, IncidentStatus } from './api-enums';
 import { PageQuery } from './page-query';
 
 /**
@@ -32,6 +32,12 @@ export interface DashboardIncidenteResponse {
   limiarMs: number | null;
   reconhecidoEm: string | null;
   reconhecidoPorNome: string | null;
+  /**
+   * Só em linhas de incidente. O read-model desta tela ainda não projeta a coluna do
+   * banco — chega `undefined` até o backend adicionar; o marcador de manutenção da lista
+   * simplesmente não aparece até lá, não é um valor inventado no cliente.
+   */
+  motivoEncerramento?: IncidentClosureReason | null;
   monitorId: number; monitorNome: string;
   equipamentoId: number; equipamentoNome: string;
   unidadeId: number; unidadeNome: string;

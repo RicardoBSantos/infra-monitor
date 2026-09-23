@@ -25,7 +25,12 @@
             <tr>
               <td class="mono"><a [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a></td>
               <td class="mono">{{ incidente.monitor.equipamentoNome }}</td>
-              <td>{{ incidente.motivo ?? 'Indisponibilidade consolidada' }}</td>
+              <td>
+                {{ incidente.motivo ?? 'Indisponibilidade consolidada' }}
+                @if (rotuloEncerramento(incidente); as encerramento) {
+                  <span class="apagado"> · {{ encerramento }}</span>
+                }
+              </td>
               <td class="mono">{{ incidente.iniciadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
               <td class="numerico mono">{{ duracao(incidente) }}</td>
               <td class="numerico"><app-status-badge [status]="incidente.status" /></td>

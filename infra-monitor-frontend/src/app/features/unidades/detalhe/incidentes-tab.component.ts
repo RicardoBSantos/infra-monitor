@@ -5,6 +5,7 @@ import { take } from 'rxjs';
 
 import { IncidenteResponse } from '../../../core/models/incidente';
 import { IncidenteApiService } from '../../../core/services/incidente-api.service';
+import { rotuloMotivoEncerramento } from '../../incidentes/ocorrencia';
 import { StatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { Estado, UnidadeDetalheStore } from './unidade-detalhe.store';
 
@@ -35,6 +36,15 @@ export class IncidentesTabComponent {
       next: (pagina) => { this.incidentes.set(pagina.content); this.estado.set('success'); },
       error: () => { this.incidentes.set([]); this.estado.set('error'); },
     });
+  }
+
+  /**
+   * Como o incidente terminou — resolvido de verdade ou apenas interrompido por
+   * manutenção. `null` enquanto aberto: ainda não há como saber. `incidente.motivo` é o
+   * motivo de ABERTURA; não confundir os dois.
+   */
+  protected rotuloEncerramento(incidente: IncidenteResponse): string | null {
+    return incidente.encerradoEm ? rotuloMotivoEncerramento(incidente.motivoEncerramento) : null;
   }
 
   /** Derivada no cliente: fim - início, ou agora - início enquanto o incidente estiver aberto. */

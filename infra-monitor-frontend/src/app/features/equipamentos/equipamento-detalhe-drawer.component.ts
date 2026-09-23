@@ -15,6 +15,7 @@ import { IncidenteApiService } from '../../core/services/incidente-api.service';
 import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { rotuloMotivoEncerramento } from '../incidentes/ocorrencia';
 import { MonitorManagementComponent } from '../monitores/monitor-management.component';
 import { JANELA_DIAS } from '../unidades/detalhe/unidade-detalhe.store';
 
@@ -412,6 +413,15 @@ export class EquipamentoDetalheDrawerComponent {
     if (minutos < 60) return `há ${minutos} min`;
     const horas = Math.floor(minutos / 60);
     return horas < 24 ? `há ${horas} h` : `há ${Math.floor(horas / 24)} d`;
+  }
+
+  /**
+   * Como o incidente terminou — resolvido de verdade ou apenas interrompido por
+   * manutenção. `null` enquanto aberto: ainda não há como saber. `incidente.motivo` é o
+   * motivo de ABERTURA; não confundir os dois.
+   */
+  protected rotuloEncerramento(incidente: IncidenteResponse): string | null {
+    return incidente.encerradoEm ? rotuloMotivoEncerramento(incidente.motivoEncerramento) : null;
   }
 }
 

@@ -19,7 +19,7 @@ import { NotificacaoApiService } from '../../core/services/notificacao-api.servi
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
-import { duracaoDe, rotuloEvento } from './ocorrencia';
+import { duracaoDe, rotuloEvento, rotuloMotivoEncerramento } from './ocorrencia';
 import { OcorrenciaGraficoComponent } from './ocorrencia-grafico.component';
 import { IncidenteTimelineComponent } from './timeline/incidente-timeline.component';
 import { LimiaresMonitor, derivarTimeline } from './timeline/timeline';
@@ -412,16 +412,9 @@ export class IncidenteDetalheDrawerComponent {
    * `motivoEncerramento` nulo, porque foram encerrados antes da V19 que introduziu a coluna.
    */
   protected rotuloDoMotivoDeEncerramento(motivo: IncidentClosureReason | null): string {
-    if (motivo === null || motivo === undefined) return '—';
-    return ROTULOS_MOTIVO_ENCERRAMENTO[motivo];
+    return rotuloMotivoEncerramento(motivo);
   }
 }
-
-const ROTULOS_MOTIVO_ENCERRAMENTO: Record<IncidentClosureReason, string> = {
-  [IncidentClosureReason.AutomaticRecovery]: 'Recuperação automática',
-  [IncidentClosureReason.ManualClosure]: 'Fechamento manual',
-  [IncidentClosureReason.Maintenance]: 'Entrada em manutenção',
-};
 
 // ---- Normalização --------------------------------------------------------------
 
