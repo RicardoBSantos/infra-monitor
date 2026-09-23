@@ -9,7 +9,6 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
-import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
 import br.com.inframonitor.unidade.entity.Unidade;
@@ -105,7 +104,7 @@ public class EquipamentoService {
             throw new ConflitoException("Nao e possivel ativar o equipamento porque o tipo de equipamento esta inativo");
         }
         equipamento.setAtivo(true);
-        if (cicloJanela != null) monitorRepository.findByEquipamentoIdIn(java.util.List.of(id)).stream().filter(Monitor::isAtivo).forEach(cicloJanela::abrir);
+        if (cicloJanela != null) cicloJanela.abrirEquipamento(id);
         return paraResposta(equipamento);
     }
 
