@@ -24,6 +24,11 @@ public interface MonitorEpisodioLatenciaRepository extends JpaRepository<Monitor
      * mesmo predicado de elegibilidade, mesmo ON CONFLICT DO NOTHING absorvendo
      * uq_monitor_episodio_latencia_aberto. Retorno 0 tem o mesmo significado triplo
      * e a mesma consequencia — nenhuma notificacao nasce.
+     *
+     * <p>{@code FOR UPDATE OF e}: mesmo buraco e mesma correcao de
+     * IncidenteRepository.inserirSeElegivel — ver o comentario la para a mecanica
+     * completa e o argumento de ausencia de deadlock (mesma ordem de lock
+     * equipamento-antes-de-incidente/episodio nas duas transacoes).
      */
     @Modifying
     @Query(value = """
@@ -31,6 +36,7 @@ public interface MonitorEpisodioLatenciaRepository extends JpaRepository<Monitor
             SELECT m.id, :iniciadoEm, :limiarMs, :agora, :agora
               FROM monitor m JOIN equipamento e ON e.id = m.equipamento_id
              WHERE m.id = :monitorId AND m.ativo AND e.ativo AND e.em_manutencao = false
+             FOR UPDATE OF e
             ON CONFLICT DO NOTHING
             """, nativeQuery = true)
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,

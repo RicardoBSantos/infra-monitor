@@ -68,6 +68,20 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
      * administrativamente, ou ja havia incidente aberto". Nos tres casos NAO se cria
      * notificacao — e e' esse o ponto, porque o caminho antigo notificava logo depois
      * do save sem olhar se algo tinha sido inserido.
+     *
+     * <p>{@code FOR UPDATE OF e} disputa a MESMA linha de equipamento que
+     * {@code EquipamentoRepository.marcarEmManutencaoSeNaoEstiver} trava. Sem isto, sob
+     * READ COMMITTED, este SELECT e aquele UPDATE tocam linhas diferentes (equipamento
+     * vs. incidente) e nunca serializam: a abertura pode ler em_manutencao=false antes
+     * do flag commitar, inserir o incidente, e so depois a manutencao rodar
+     * fecharPorManutencao sobre uma lista de incidentes abertos que ja estava vazia no
+     * momento em que foi lida — o incidente sobrevive ABERTO. Com o lock, quando a
+     * manutencao ja tiver travado a linha, este SELECT espera; ao ser liberado, o
+     * Postgres reavalia o WHERE via EvalPlanQual sobre a versao nova da linha
+     * (em_manutencao=true) e nao insere nada. Ordem de lock equipamento-antes-de-
+     * incidente e a MESMA nas duas transacoes (entrarEmManutencao tambem trava
+     * equipamento primeiro e so depois escreve em incidente), entao nao ha ciclo nem
+     * risco de deadlock.
      */
     @Modifying
     @Query(value = """
@@ -75,6 +89,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
             SELECT m.id, 'ABERTO', :iniciadoEm, :motivo, :agora, :agora
               FROM monitor m JOIN equipamento e ON e.id = m.equipamento_id
              WHERE m.id = :monitorId AND m.ativo AND e.ativo AND e.em_manutencao = false
+             FOR UPDATE OF e
             ON CONFLICT DO NOTHING
             """, nativeQuery = true)
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,

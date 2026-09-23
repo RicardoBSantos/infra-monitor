@@ -266,6 +266,15 @@ class ManutencaoPostgresIntegrationTest {
                 + "join incidente i on i.id = n.incidente_id where i.monitor_id = ? "
                 + "and n.tipo_evento = 'INCIDENTE_ABERTO' and n.status = 'PENDENTE'", Integer.class, monitorId);
 
+        // Diagnostico de qual desfecho legitimo ocorreu nesta repeticao, so' para o
+        // relatorio da correcao da corrida: (a) manutencao ganhou e nenhum incidente
+        // chegou a existir para o monitor; (b) o incidente abriu antes do flag e foi
+        // fechado com motivo MANUTENCAO. Nao participa de nenhuma asserção.
+        Integer totalIncidentes = jdbc.queryForObject("select count(*) from incidente where monitor_id = ?",
+                Integer.class, monitorId);
+        System.out.println("[corrida-manutencao] desfecho=" + (totalIncidentes == 0 ? "a-manutencao-ganhou"
+                : "b-incidente-abriu-e-foi-fechado") + " totalIncidentes=" + totalIncidentes);
+
         assertThat(incidentesAbertos)
                 .as("nenhum incidente pode sobreviver ABERTO/RECONHECIDO a entrada em manutencao")
                 .isZero();
