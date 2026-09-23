@@ -83,12 +83,15 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     // Espelha reconhecerSeAberto. Fecha todos os monitores do equipamento numa
     // instrucao e devolve quantos fechou.
     //
-    // O grafo inclui equipamento e unidade, e nao so' monitor: fecharPorManutencao
-    // roda um @Modifying(clearAutomatically = true) logo em seguida, que limpa o
-    // contexto de persistencia; sem essas associacoes ja carregadas, o acesso lazy
-    // que NotificacaoMessageBuilder faz depois (via tratarEncerramentoPorManutencao)
-    // estoura LazyInitializationException porque a sessao ja nao existe mais.
-    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
+    // Grafo minimo de proposito: o chamador (EquipamentoService.entrarEmManutencao) so
+    // usa esta lista para extrair ids ANTES do bulk update — nao para ler campos de
+    // equipamento/unidade, muito menos os escalares que o UPDATE esta prestes a mudar
+    // (status, encerradoEm, motivoEncerramento). Widening o grafo aqui so esconderia o
+    // sintoma (LazyInitializationException) sem resolver a causa raiz, que e' o
+    // proprio bulk update nao repropagar para instancias Java ja carregadas — por isso
+    // a notificacao usa findAllById (abaixo) para RELER depois do UPDATE, nunca esta
+    // lista.
+    @EntityGraph(attributePaths = "monitor")
     @Query("select i from Incidente i where i.monitor.equipamento.id = :equipamentoId "
             + "and i.status in (br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO, "
             + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
@@ -104,4 +107,22 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
             + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
     int fecharPorManutencao(@Param("equipamentoId") Long equipamentoId, @Param("usuario") Usuario usuario,
                             @Param("agora") Instant agora);
+
+    /**
+     * Releitura pos-bulk-update. {@code fecharPorManutencao} e {@code clearAutomatically}:
+     * a instrucao roda direto no banco e nao repropaga para os objetos Java ja
+     * carregados (mesma licao de IncidenteService.reconhecer, que rele antes de
+     * responder). Sem isto, {@code NotificacaoMessageBuilder} montaria a mensagem de
+     * encerramento com {@code encerradoEm} ainda nulo — "Fim: null", sem acusar erro.
+     *
+     * <p>Grafo largo de proposito, igual a findById: o acesso lazy a
+     * monitor.equipamento.unidade acontece dentro do forEach de notificacao, e
+     * NotificacaoService.tratarEncerramentoPorManutencao roda outro
+     * clearAutomatically (cancelarPendentesDoIncidente) a cada iteracao — sem
+     * pre-carregar aqui, a segunda iteracao em diante estouraria
+     * LazyInitializationException.
+     */
+    @Override
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade", "reconhecidoPor", "fechadoPor"})
+    List<Incidente> findAllById(Iterable<Long> ids);
 }

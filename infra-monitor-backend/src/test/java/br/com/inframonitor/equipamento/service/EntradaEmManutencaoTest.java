@@ -4,6 +4,8 @@ import br.com.inframonitor.incidente.entity.Incidente;
 import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
+import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
+import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatenciaRepository;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
@@ -47,6 +49,7 @@ class EntradaEmManutencaoTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EquipamentoService equipamentoService;
     @Autowired private IncidenteRepository incidenteRepository;
+    @Autowired private MonitorEpisodioLatenciaRepository episodioRepository;
     @Autowired private NotificacaoRepository notificacaoRepository;
     @Autowired private JanelaMonitoramentoRepository janelaRepository;
 
@@ -94,10 +97,27 @@ class EntradaEmManutencaoTest {
         assertThat(janelaRepository.aberta(monitorId)).isEmpty();
         assertThat(existe(incidenteId, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO)).isTrue();
         assertThat(existe(incidenteId, TipoEventoNotificacao.INCIDENTE_FECHADO)).isFalse();
+
+        // Fix round 1: nao basta a linha existir — o CONTEUDO da mensagem precisa do
+        // Fim real. Sem a releitura por id depois do bulk update, este texto sairia
+        // com "Fim: null" (o objeto Java carregado no passo 2 continua com
+        // encerradoEm nulo em memoria, mesmo o banco ja tendo a data).
+        String mensagem = mensagemDe(incidenteId, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO);
+        assertThat(mensagem).contains("Fim: " + fechado.getEncerradoEm());
+        assertThat(mensagem).contains("Duracao:");
+        assertThat(mensagem).doesNotContain("null");
     }
 
     @Test
     void entrarEmManutencaoDuasVezesRodaOsEfeitosUmaVezSo() {
+        // ATENCAO: este teste NAO exercita a CAS de marcarEmManutencaoSeNaoEstiver. Sem
+        // incidente/episodio aberto, a segunda chamada ja encontra abertosDoEquipamento
+        // vazio (filtro de status/encerradoEm, nao a flag) e a asserção de contagem
+        // passaria mesmo se o "if (... == 0) return" fosse removido — verificado por
+        // reversao manual no fix round 1. A CAS protege a corrida CONCORRENTE (dois
+        // operadores clicando ao mesmo tempo), que uma chamada sequencial no mesmo
+        // thread nao alcanca. Este teste prova so que rodar duas vezes em sequencia e
+        // seguro, nao que a corrida esta coberta.
         equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
         long notificacoesDepoisDaPrimeira = notificacaoRepository.count();
 
@@ -110,15 +130,20 @@ class EntradaEmManutencaoTest {
     void episodioDeLatenciaAbertoEEncerradoComMotivoManutencao() {
         long episodioId = insert("insert into monitor_episodio_latencia (monitor_id, iniciado_em, limiar_ms) "
                 + "values (?, ?, 200) returning id", monitorId, Timestamp.from(T0));
+        enviarNotificacaoDeLatenciaAlta(episodioId);
 
         equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
 
-        Timestamp encerradoEm = jdbc.queryForObject(
-                "select encerrado_em from monitor_episodio_latencia where id = ?", Timestamp.class, episodioId);
-        String motivo = jdbc.queryForObject(
-                "select motivo_encerramento from monitor_episodio_latencia where id = ?", String.class, episodioId);
-        assertThat(encerradoEm).isNotNull();
-        assertThat(motivo).isEqualTo("MANUTENCAO");
+        MonitorEpisodioLatencia encerrado = episodioRepository.findById(episodioId).orElseThrow();
+        assertThat(encerrado.getEncerradoEm()).isNotNull();
+        assertThat(encerrado.getMotivoEncerramento())
+                .isEqualTo(br.com.inframonitor.monitoring.latency.MotivoEncerramentoEpisodio.MANUTENCAO);
+
+        // Mesma prova de conteudo que o incidente: Fim real, nunca "null".
+        String mensagem = mensagemDoEpisodio(episodioId, TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO);
+        assertThat(mensagem).contains("Fim: " + encerrado.getEncerradoEm());
+        assertThat(mensagem).contains("Duracao:");
+        assertThat(mensagem).doesNotContain("null");
     }
 
     @Test
@@ -151,11 +176,31 @@ class EntradaEmManutencaoTest {
                 Timestamp.from(T0));
     }
 
+    // ENVIADA: so' assim tratarEncerramentoPorManutencao cria a notificacao de
+    // encerramento (mesma matriz de NotificacaoManutencaoTest).
+    private void enviarNotificacaoDeLatenciaAlta(long episodioId) {
+        insert("insert into notificacao (episodio_latencia_id, canal, tipo_evento, status, tentativas, mensagem, "
+                + "enviado_em, created_at, updated_at) values (?, 'TELEGRAM', 'LATENCIA_ALTA', 'ENVIADA', 0, "
+                + "'x', ?, ?, ?) returning id", episodioId, Timestamp.from(T0), Timestamp.from(T0),
+                Timestamp.from(T0));
+    }
+
     private boolean existe(long incidenteId, TipoEventoNotificacao tipoEvento) {
         List<Long> ids = jdbc.queryForList(
                 "select id from notificacao where incidente_id = ? and tipo_evento = ?", Long.class,
                 incidenteId, tipoEvento.name());
         return !ids.isEmpty();
+    }
+
+    private String mensagemDe(long incidenteId, TipoEventoNotificacao tipoEvento) {
+        return jdbc.queryForObject("select mensagem from notificacao where incidente_id = ? and tipo_evento = ?",
+                String.class, incidenteId, tipoEvento.name());
+    }
+
+    private String mensagemDoEpisodio(long episodioId, TipoEventoNotificacao tipoEvento) {
+        return jdbc.queryForObject(
+                "select mensagem from notificacao where episodio_latencia_id = ? and tipo_evento = ?",
+                String.class, episodioId, tipoEvento.name());
     }
 
     private long insert(String sql, Object... args) {

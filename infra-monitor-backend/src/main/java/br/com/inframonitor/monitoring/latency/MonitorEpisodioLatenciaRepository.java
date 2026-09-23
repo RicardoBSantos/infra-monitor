@@ -36,11 +36,10 @@ public interface MonitorEpisodioLatenciaRepository extends JpaRepository<Monitor
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,
                           @Param("limiarMs") int limiarMs, @Param("agora") Instant agora);
 
-    // Irmao de IncidenteRepository.abertosDoEquipamento/fecharPorManutencao. Grafo
-    // largo pelo mesmo motivo: encerrarPorManutencao limpa o contexto de persistencia
-    // (clearAutomatically), e o acesso lazy do NotificacaoMessageBuilder precisa de
-    // equipamento/unidade ja carregados.
-    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
+    // Irmao de IncidenteRepository.abertosDoEquipamento: grafo minimo de proposito. O
+    // chamador so usa esta lista para extrair ids ANTES do bulk update; ver o
+    // comentario la para o porque de nao widenar aqui.
+    @EntityGraph(attributePaths = "monitor")
     @Query("select e from MonitorEpisodioLatencia e where e.monitor.equipamento.id = :equipamentoId "
             + "and e.encerradoEm is null")
     List<MonitorEpisodioLatencia> abertosDoEquipamento(@Param("equipamentoId") Long equipamentoId);
@@ -51,4 +50,14 @@ public interface MonitorEpisodioLatenciaRepository extends JpaRepository<Monitor
             + "e.updatedAt = :agora "
             + "where e.monitor.equipamento.id = :equipamentoId and e.encerradoEm is null")
     int encerrarPorManutencao(@Param("equipamentoId") Long equipamentoId, @Param("agora") Instant agora);
+
+    /**
+     * Releitura pos-bulk-update, irma de IncidenteRepository.findAllById. Sem isto a
+     * mensagem de encerramento do episodio saira com "Fim: null" — encerrarPorManutencao
+     * e clearAutomatically, e nao repropaga para as instancias ja carregadas em
+     * abertosDoEquipamento.
+     */
+    @Override
+    @EntityGraph(attributePaths = {"monitor", "monitor.equipamento", "monitor.equipamento.unidade"})
+    List<MonitorEpisodioLatencia> findAllById(Iterable<Long> ids);
 }

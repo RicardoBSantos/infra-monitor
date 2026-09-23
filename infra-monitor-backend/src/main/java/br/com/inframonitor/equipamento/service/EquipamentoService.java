@@ -62,9 +62,6 @@ public class EquipamentoService {
         this.notificacaoService = notificacaoService;
         this.usuarioRepository = usuarioRepository;
     }
-    public EquipamentoService(EquipamentoRepository a, UnidadeRepository b, TipoEquipamentoRepository c, MonitorRepository d){
-        this(a,b,c,d,null,null,null,null,null);
-    }
 
     @Transactional
     public EquipamentoResponse criar(CreateEquipamentoRequest requisicao) {
@@ -144,26 +141,33 @@ public class EquipamentoService {
      */
     @Transactional
     public EquipamentoResponse entrarEmManutencao(Long id, Long usuarioId) {
-        Equipamento equipamento = obterEquipamento(id);
         Instant agora = Instant.now();
         // 1. flag, com CAS
         if (equipamentoRepository.marcarEmManutencaoSeNaoEstiver(id, agora) == 0) {
             return paraResposta(obterEquipamento(id));
         }
-        // 2. incidentes em aberto: lidos ANTES do bulk update, porque depois dele eles
-        //    ja nao satisfazem o filtro e a notificacao precisa saber quais eram.
-        List<Incidente> afetados = incidenteRepository.abertosDoEquipamento(id);
+        // 2. incidentes em aberto: os ids sao lidos ANTES do bulk update, porque depois
+        //    dele eles ja nao satisfazem o filtro e a notificacao precisa saber quais
+        //    eram.
+        List<Long> incidentesAfetadosIds = incidenteRepository.abertosDoEquipamento(id).stream()
+                .map(Incidente::getId).toList();
         incidenteRepository.fecharPorManutencao(id, autor(usuarioId), agora);
         // 3. episodios de latencia em aberto
-        List<MonitorEpisodioLatencia> episodios = episodioRepository.abertosDoEquipamento(id);
+        List<Long> episodiosAfetadosIds = episodioRepository.abertosDoEquipamento(id).stream()
+                .map(MonitorEpisodioLatencia::getId).toList();
         episodioRepository.encerrarPorManutencao(id, agora);
         // 4. janelas: sem isto o SLA continua descontando o periodo de manutencao
         cicloJanela.fecharEquipamento(id);
         // 5. notificacoes: cancela a abertura pendente, avisa o encerramento quando a
-        //    abertura ja foi despachada. Depois do fechamento, para que a mensagem
-        //    descreva o incidente ja fechado.
-        afetados.forEach(notificacaoService::tratarEncerramentoPorManutencao);
-        episodios.forEach(notificacaoService::tratarEncerramentoPorManutencao);
+        //    abertura ja foi despachada. RELEITURA por id, e nao os objetos capturados
+        //    no passo 2/3: fecharPorManutencao/encerrarPorManutencao sao bulk update
+        //    (clearAutomatically) e nao repropagam para instancias Java ja carregadas
+        //    — a mesma licao que fez IncidenteService.reconhecer reler antes de
+        //    responder. Sem reler, NotificacaoMessageBuilder monta a mensagem com
+        //    encerradoEm ainda nulo ("Fim: null"), porque os objetos antigos continuam
+        //    com status ABERTO e encerradoEm nulo em memoria.
+        incidenteRepository.findAllById(incidentesAfetadosIds).forEach(notificacaoService::tratarEncerramentoPorManutencao);
+        episodioRepository.findAllById(episodiosAfetadosIds).forEach(notificacaoService::tratarEncerramentoPorManutencao);
         return paraResposta(obterEquipamento(id));
     }
 
