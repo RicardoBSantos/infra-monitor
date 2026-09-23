@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Observable, take } from 'rxjs';
 
 import { ApiErrorCode, isApiError } from '../../core/models/api-error';
-import { IncidentStatus, MeasurementStatus, isIncidentOpen } from '../../core/models/api-enums';
+import { IncidentClosureReason, IncidentStatus, MeasurementStatus, isIncidentOpen } from '../../core/models/api-enums';
 import { DashboardIncidenteResponse, IncidentKind } from '../../core/models/dashboard-incidente';
 import { EpisodioLatenciaResponse } from '../../core/models/episodio-latencia';
 import { IncidenteResponse } from '../../core/models/incidente';
@@ -49,6 +49,10 @@ interface OcorrenciaDetalhe {
   ciclosParaEpisodio: number | null;
   reconhecidoEm: string | null;
   reconhecidoPorNome: string | null;
+  /** Só o incidente tem: nulo em FECHADO significa fechamento automático pelo motor. */
+  fechadoPorNome: string | null;
+  /** Só o incidente tem. Ausente é o caso comum: fechado antes da V19 que o introduziu. */
+  motivoEncerramento: IncidentClosureReason | null;
   monitorId: number; monitorNome: string;
   equipamentoId: number; equipamentoNome: string;
   unidadeId: number; unidadeNome: string;
@@ -402,7 +406,22 @@ export class IncidenteDetalheDrawerComponent {
 
   /** Status exibido antes da resposta: a linha da lista já traz o dele. */
   protected readonly statusExibido = computed(() => this.ocorrencia()?.status ?? this.linha()?.status ?? null);
+
+  /**
+   * Ausente é o caso comum, não exceção: no banco de dev, 75 dos 76 incidentes fechados têm
+   * `motivoEncerramento` nulo, porque foram encerrados antes da V19 que introduziu a coluna.
+   */
+  protected rotuloDoMotivoDeEncerramento(motivo: IncidentClosureReason | null): string {
+    if (motivo === null || motivo === undefined) return '—';
+    return ROTULOS_MOTIVO_ENCERRAMENTO[motivo];
+  }
 }
+
+const ROTULOS_MOTIVO_ENCERRAMENTO: Record<IncidentClosureReason, string> = {
+  [IncidentClosureReason.AutomaticRecovery]: 'Recuperação automática',
+  [IncidentClosureReason.ManualClosure]: 'Fechamento manual',
+  [IncidentClosureReason.Maintenance]: 'Entrada em manutenção',
+};
 
 // ---- Normalização --------------------------------------------------------------
 
@@ -419,6 +438,8 @@ function deIncidente(incidente: IncidenteResponse): OcorrenciaDetalhe {
     ciclosParaEpisodio: null,
     reconhecidoEm: incidente.reconhecidoEm,
     reconhecidoPorNome: incidente.reconhecidoPorNome,
+    fechadoPorNome: incidente.fechadoPorNome,
+    motivoEncerramento: incidente.motivoEncerramento,
     monitorId: incidente.monitor.id, monitorNome: incidente.monitor.nome,
     equipamentoId: incidente.monitor.equipamentoId, equipamentoNome: incidente.monitor.equipamentoNome,
     unidadeId: incidente.monitor.unidadeId, unidadeNome: incidente.monitor.unidadeNome,
@@ -443,6 +464,8 @@ function deEpisodio(episodio: EpisodioLatenciaResponse): OcorrenciaDetalhe {
     ciclosParaEpisodio: episodio.ciclosParaEpisodio,
     reconhecidoEm: null,
     reconhecidoPorNome: null,
+    fechadoPorNome: null,
+    motivoEncerramento: null,
     monitorId: episodio.monitorId, monitorNome: episodio.monitorNome,
     equipamentoId: episodio.equipamentoId, equipamentoNome: episodio.equipamentoNome,
     unidadeId: episodio.unidadeId, unidadeNome: episodio.unidadeNome,

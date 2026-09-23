@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { IncidentStatus, MonitorOperationalStatus } from '../../core/models/api-enums';
+import { IncidentStatus, MonitorOperationalStatus, NotificationStatus } from '../../core/models/api-enums';
 import { StatusBadgeComponent } from './status-badge.component';
 
 @Component({ imports: [StatusBadgeComponent], template: '<app-status-badge [status]="status" />' })
@@ -38,5 +38,15 @@ describe('StatusBadgeComponent', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Resolvido');
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Fechado');
     expect((fixture.nativeElement as HTMLElement).querySelector('.badge')?.classList).toContain('badge--success');
+  });
+
+  it('rotula CANCELADA sem dizer que falhou', () => {
+    const fixture = TestBed.createComponent(StatusBadgeComponent);
+    fixture.componentRef.setInput('status', NotificationStatus.Cancelled);
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('.badge');
+    expect(badge.textContent.trim()).toBe('Cancelada');
+    // 'Falha' seria mentira: nao tentamos e nao deu, o evento deixou de valer.
+    expect(badge.className).not.toContain('badge--danger');
   });
 });
