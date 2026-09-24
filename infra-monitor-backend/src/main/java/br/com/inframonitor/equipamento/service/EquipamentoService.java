@@ -14,6 +14,7 @@ import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatenciaRepository;
+import br.com.inframonitor.monitoring.latency.MotivoEncerramentoEpisodio;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
@@ -174,7 +175,10 @@ public class EquipamentoService {
         incidenteRepository.findAllById(incidentesAfetadosIds).stream()
                 .filter(incidente -> incidente.getMotivoEncerramento() == MotivoEncerramentoIncidente.MANUTENCAO)
                 .forEach(incidente -> notificacaoService.tratarEncerramentoPorManutencao(incidente, agora));
-        episodioRepository.findAllById(episodiosAfetadosIds)
+        //    Mesmo filtro dos incidentes: um episodio lido no passo 3 pode ter sido normalizado
+        //    pelo motor (CAS) antes do bulk update, que entao o pula.
+        episodioRepository.findAllById(episodiosAfetadosIds).stream()
+                .filter(episodio -> episodio.getMotivoEncerramento() == MotivoEncerramentoEpisodio.MANUTENCAO)
                 .forEach(episodio -> notificacaoService.tratarEncerramentoPorManutencao(episodio, agora));
         return paraResposta(obterEquipamento(id));
     }

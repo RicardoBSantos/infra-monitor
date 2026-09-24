@@ -58,6 +58,18 @@ public interface MonitorEpisodioLatenciaRepository extends JpaRepository<Monitor
     int encerrarPorManutencao(@Param("equipamentoId") Long equipamentoId, @Param("agora") Instant agora);
 
     /**
+     * Normalizacao como CAS: 0 linhas quando a manutencao (ou outro ciclo) encerrou o episodio
+     * entre a leitura do processor e aqui. So colunas de encerramento — o saveAndFlush da
+     * entidade lida antes regravava a linha inteira por cima de um encerramento commitado.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update MonitorEpisodioLatencia e set e.encerradoEm = :encerradoEm, "
+            + "e.motivoEncerramento = br.com.inframonitor.monitoring.latency.MotivoEncerramentoEpisodio.NORMALIZACAO, "
+            + "e.updatedAt = :agora where e.id = :id and e.encerradoEm is null")
+    int encerrarPorNormalizacaoSeAberto(@Param("id") Long id, @Param("encerradoEm") Instant encerradoEm,
+                                        @Param("agora") Instant agora);
+
+    /**
      * Releitura pos-bulk-update, irma de IncidenteRepository.findAllById. Sem isto a
      * mensagem de encerramento do episodio saira com "Fim: null" — encerrarPorManutencao
      * e clearAutomatically, e nao repropaga para as instancias ja carregadas em

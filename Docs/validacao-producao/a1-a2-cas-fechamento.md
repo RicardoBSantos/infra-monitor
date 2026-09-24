@@ -1,7 +1,7 @@
 # A1 / A2 — CAS nos fechamentos
 
 Data: 2026-09-24. Branch `main`, base `44e51b8`. Linhas da auditoria corrigidas:
-`auditoria-concorrencia-ciclo-de-vida.md` A1 (este documento) e A2/A2b (seção a acrescentar pela Task 6).
+`auditoria-concorrencia-ciclo-de-vida.md` A1 (Task 5) e A2/A2b (Task 6), neste documento.
 
 ## A1 — fechamento manual de incidente
 
@@ -115,3 +115,120 @@ regravava por cima.
 `./mvnw test`: **Tests run: 542, Failures: 0, Errors: 0, Skipped: 0** — BUILD SUCCESS. Distribuição
 das corridas A1 nessa execução: MAN 19 / AUTO 11 · OP1 23 / OP2 7 · MANUTENCAO 26 / MAN 4, zero
 ILEGITIMO.
+
+## A2 / A2b — encerramento do episódio de latência: normalização × manutenção
+
+Task 6, base `10cc09b`. As duas metades do mesmo par, como no incidente: A2 é o lado do motor,
+A2b o lado da manutenção. Uma não fecha a outra.
+
+### Defeitos
+
+- **A2 (motor).** `LatencyEpisodeProcessor.processarNormalizacao` lia o episódio aberto, chamava
+  `encerrar(..., NORMALIZACAO)` e fazia `saveAndFlush` — UPDATE de todas as colunas `WHERE id = ?`,
+  sem versão. Uma entrada em manutenção commitada entre a leitura e a escrita era regravada:
+  `MANUTENCAO` virava `NORMALIZACAO`, `encerrado_em` virava o da medição, e o grupo recebia
+  `LATENCIA_ENCERRADA_MANUTENCAO` **e** `LATENCIA_NORMALIZADA` (tipos distintos, o uq não barra).
+- **A2b (manutenção).** `EquipamentoService.entrarEmManutencao` lê os ids dos episódios abertos
+  (`abertosDoEquipamento`) **antes** do bulk `encerrarPorManutencao`. Se o motor normaliza e commita
+  nesse intervalo, o bulk pula o episódio (já encerrado), mas a releitura notificava todos os ids
+  lidos: `LATENCIA_ENCERRADA_MANUTENCAO` sobre uma linha que diz `NORMALIZACAO`. Na auditoria isto
+  estava "por leitura de código"; agora foi observado (tabela de reversão abaixo).
+
+### Correção
+
+- `MonitorEpisodioLatenciaRepository.encerrarPorNormalizacaoSeAberto(id, encerradoEm, agora)`: bulk
+  UPDATE `WHERE e.id = :id AND e.encerradoEm IS NULL`, só `encerrado_em`, `motivo_encerramento =
+  NORMALIZACAO` e `updated_at`; `clearAutomatically`/`flushAutomatically` como o
+  `encerrarPorManutencao` irmão.
+- `LatencyEpisodeProcessor.processarNormalizacao`: CAS no lugar de `encerrar()` + `saveAndFlush`.
+  Retorno 0 → `return` sem notificação (o encerramento commitado vale). Retorno 1 → releitura por
+  `findById` (grafo largo `monitor.equipamento.unidade`, o que `construirParaEpisodio` usa) e
+  `criarParaLatenciaNormalizada` com a instância relida — o bulk update não repropaga.
+- `EquipamentoService.entrarEmManutencao`: a releitura `findAllById(episodiosAfetadosIds)` passou a
+  filtrar `motivoEncerramento == MANUTENCAO`, mesmo filtro que a releitura de incidentes já tinha.
+- `LatencyEpisodeProcessorTest`: `episodioAbertoNormalizaNoSegundoCicloDentroDoLimiar` mocka o CAS
+  (1) e a releitura, e verifica que a notificação sai da instância relida e que `saveAndFlush` não é
+  chamado; novo `normalizacaoPerdidaParaOutroEncerramentoNaoNotifica` (CAS 0 → sem
+  `LATENCIA_NORMALIZADA`).
+- Fora do escopo, sem mudança: o ramo "incidente aberto encerra o episódio em silêncio" do mesmo
+  processor continua por dirty checking (A3, documentado sem correção nesta rodada).
+
+### Testes
+
+`infra-monitor-backend/src/test/java/br/com/inframonitor/monitoring/latency/EpisodioLatenciaConcorrenciaPostgresIntegrationTest.java`
+— Testcontainers (PostgreSQL 16), `@EnabledIf("dockerDisponivel")`, mesmo harness de
+`FechamentoManualConcorrenciaPostgresIntegrationTest`. Cenário comum: equipamento e monitor ativos,
+episódio aberto com `LATENCIA_ALTA` já `ENVIADA` (a manutenção então avisa em vez de só cancelar),
+janela aberta e duas medições `SUCESSO` com latência = limiar/2. O limiar e o número de ciclos são
+lidos das mesmas propriedades que o processor recebe (`monitoring.latencia-degradada-ms`, 250;
+`monitoring.latencia-ciclos`, 2 — o teste afirma 2).
+
+**Gancho determinístico.** `@MockitoSpyBean` em `MedicaoRepository` e
+`MonitorEpisodioLatenciaRepository` funciona no Spring Boot 4.1 / Spring Framework 7, com um
+detalhe: `invocation.callRealMethod()` **não** serve, porque o bean é um proxy JDK do Spring Data e
+o método da interface é abstrato (na primeira tentativa a thread falhava antes de sinalizar e o
+teste esperava 10 s pelo gancho). O gancho chama a resposta padrão que o próprio spy do Spring
+configurou (`mockingDetails(mock).getMockCreationSettings().getDefaultAnswer().answer(invocacao)`),
+que chega ao repositório real. O `doAnswer` só pausa na thread de nome combinado; qualquer outra
+thread passa direto. Nenhum código de produção mudou por causa do teste.
+
+| Teste | Intercalação forçada | Esperado com a correção |
+|---|---|---|
+| `normalizacaoComLeituraVelhaNaoSobrescreveManutencao` (A2) | thread "motor" já leu o episódio aberto e pausa em `findByMonitorIdOrderByExecutadoEmDescIdDesc` (leitura das medições, antes da escrita); a principal roda `entrarEmManutencao` e commita; o motor segue | `MANUTENCAO`, `encerrado_em` ≠ o da medição, 1 `LATENCIA_ENCERRADA_MANUTENCAO` com `Fim:` = `encerrado_em` da linha, 0 `LATENCIA_NORMALIZADA` |
+| `manutencaoComLeituraVelhaNaoAvisaEpisodioNormalizado` (A2b) | thread "manutencao" pausa depois de `abertosDoEquipamento`; a principal roda `processor.process` e commita; a manutenção segue | `NORMALIZACAO`, `encerrado_em` = `executado_em` da última medição, 1 `LATENCIA_NORMALIZADA` com o `Fim:` da linha, 0 `LATENCIA_ENCERRADA_MANUTENCAO`; `em_manutencao = true` |
+
+Em nenhum dos dois o gancho virou espera em lock: o motor não trava nada antes do ponto de pausa (só
+SELECTs), e a normalização não precisa da linha do equipamento que a manutenção trava.
+
+Corrida real `normalizacaoEEntrarEmManutencaoConcorrentes` (`@RepeatedTest(30)`, `CyclicBarrier`,
+jitter 0..3 ms na manutenção), imprime `[corrida-latencia-manutencao] desfecho=`:
+
+- **MANUTENCAO** legítimo: motivo `MANUTENCAO`, exatamente 1 `LATENCIA_ENCERRADA_MANUTENCAO` com
+  `Fim:` = `encerrado_em` da linha, 0 `LATENCIA_NORMALIZADA`.
+- **NORMALIZACAO** legítimo: motivo `NORMALIZACAO`, `encerrado_em` = `executado_em` da última
+  medição, exatamente 1 `LATENCIA_NORMALIZADA` (`criarParaLatenciaNormalizada` cria sempre uma
+  PENDENTE, e o uq absorve repetição) com `Fim:` = `encerrado_em`, 0 `LATENCIA_ENCERRADA_MANUTENCAO`.
+
+O critério do `Fim:` segue a lição da A1: sem ele, uma regravação pode deixar a linha coerente e só
+o aviso já criado denunciar o outro vencedor.
+
+### Calibração do jitter (com a correção)
+
+| Jitter | Distribuição |
+|---|---|
+| 0..4 ms no motor | MANUTENCAO 29 / NORMALIZACAO 1 |
+| 0..6 ms na manutenção | MANUTENCAO 6 / NORMALIZACAO 24 |
+| **0..3 ms na manutenção (final)** | MANUTENCAO 12 / NORMALIZACAO 18 (só a corrida) · MANUTENCAO 26 / NORMALIZACAO 4 (classe inteira + `LatencyEpisodeProcessorTest`) |
+
+O motor faz cinco leituras antes do CAS; atrasá-lo faz a manutenção vencer quase sempre. A
+distribuição varia entre execuções (a mesma configuração deu 12/18 e 26/4), mas os dois desfechos
+legítimos apareceram em todas as execuções com a correção, e **zero ILEGITIMO**.
+
+### Prova de reversão
+
+Sem `git stash`. Cada arquivo tinha só a mudança desta task: foi copiado para fora do repositório,
+voltado ao conteúdo de `HEAD` com `git checkout -- <arquivo>`, a classe rodou, e a cópia foi
+restaurada; `git diff --stat` conferido antes e depois. Uma reversão por vez.
+
+| | Código original (Step 1) | Sem o CAS do processor | Sem o filtro da manutenção |
+|---|---|---|---|
+| Resultado | Tests run: 32, Failures: 32 | Tests run: 32, Failures: 25 | Tests run: 32, Failures: 12 |
+| (a) A2 | FALHA: `motivo_encerramento` = NORMALIZACAO (esperado MANUTENCAO) | FALHA (idem) | passa |
+| (b) A2b | FALHA: `LATENCIA_ENCERRADA_MANUTENCAO` = 1 (esperado 0) | passa | FALHA (idem) |
+| corrida | **ILEGITIMO 30** (jitter 0..4 ms no motor) | NORMALIZACAO 6 / **ILEGITIMO 24** | MANUTENCAO 19 / **ILEGITIMO 11** |
+
+No Step 1, a primeira execução de (a)/(b) falhou por outro motivo (gancho com `callRealMethod`, ver
+acima); os motivos da tabela são da segunda execução, já com o gancho corrigido e o código de
+produção ainda original. Linha ILEGITIMO típica sem correção:
+
+```
+[corrida-latencia-manutencao] desfecho=ILEGITIMO motivo=NORMALIZACAO encerradasPorManutencao=1 normalizadas=1 encerradoEm=2026-09-01 05:03:00.0
+```
+
+(`encerradoEm` impresso no fuso da JVM: 05:03 local = 08:03Z = `executado_em` da última medição.)
+Sem o CAS nenhuma repetição deu MANUTENCAO: quando a manutenção ganhava, o motor regravava por cima.
+Sem o filtro nenhuma deu NORMALIZACAO: quando o motor ganhava, a manutenção avisava assim mesmo.
+
+### Suíte completa (com a correção)
+
+`./mvnw test`: **Tests run: 575, Failures: 0, Errors: 0, Skipped: 0** — BUILD SUCCESS (542 da Task 5 + 32 da classe nova + 1 unitário novo). Corrida A2/A2b nessa execução: MANUTENCAO 17 / NORMALIZACAO 13, zero ILEGITIMO. As corridas A1 na mesma execução: MAN 26 / AUTO 4 · OP1 27 / OP2 3 · MANUTENCAO 27 / MAN 3, zero ILEGITIMO.

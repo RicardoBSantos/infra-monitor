@@ -120,9 +120,18 @@ public class LatencyEpisodeProcessor {
             log.debug("Latency recovery not reached for monitor {}", monitorId);
             return;
         }
-        episodio.encerrar(atual.getExecutadoEm(), MotivoEncerramentoEpisodio.NORMALIZACAO);
-        episodioRepository.saveAndFlush(episodio);
-        notificacaoService.criarParaLatenciaNormalizada(episodio);
+        if (episodioRepository.encerrarPorNormalizacaoSeAberto(episodio.getId(), atual.getExecutadoEm(),
+                Instant.now()) == 0) {
+            // A manutencao (ou outro ciclo) encerrou o episodio depois da nossa leitura:
+            // o encerramento dela vale, e nenhuma LATENCIA_NORMALIZADA nasce.
+            log.debug("Latency episode {} already closed before normalization for monitor {}",
+                    episodio.getId(), monitorId);
+            return;
+        }
+        // Bulk update nao repropaga para a instancia carregada: releitura (grafo largo do
+        // findById, o mesmo que a mensagem usa) antes de notificar.
+        MonitorEpisodioLatencia normalizado = episodioRepository.findById(episodio.getId()).orElseThrow();
+        notificacaoService.criarParaLatenciaNormalizada(normalizado);
         log.info("Latency episode {} normalized for monitor {}", episodio.getId(), monitorId);
     }
 

@@ -109,11 +109,35 @@ class LatencyEpisodeProcessorTest {
         when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L)).thenReturn(Optional.of(episodio));
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(atual, primeira));
+        when(episodioRepository.encerrarPorNormalizacaoSeAberto(eq(20L), eq(atual.getExecutadoEm()), any()))
+                .thenReturn(1);
+        MonitorEpisodioLatencia relido = episodio(monitor);
+        relido.encerrar(atual.getExecutadoEm(), MotivoEncerramentoEpisodio.NORMALIZACAO);
+        when(episodioRepository.findById(20L)).thenReturn(Optional.of(relido));
 
         processor().process(atual);
 
-        assertThat(episodio.getEncerradoEm()).isEqualTo(atual.getExecutadoEm());
-        verify(notificacaoService).criarParaLatenciaNormalizada(episodio);
+        // A notificacao sai da releitura pos-CAS, nao da instancia lida antes.
+        verify(notificacaoService).criarParaLatenciaNormalizada(relido);
+        verify(episodioRepository, never()).saveAndFlush(any());
+    }
+
+    @Test void normalizacaoPerdidaParaOutroEncerramentoNaoNotifica() {
+        Monitor monitor = monitor();
+        MonitorEpisodioLatencia episodio = episodio(monitor);
+        Medicao primeira = medicao(monitor, 3L, StatusMedicao.SUCESSO, 100, T0.plusSeconds(120));
+        Medicao atual = medicao(monitor, 4L, StatusMedicao.SUCESSO, 90, T0.plusSeconds(180));
+        prepararAtual(atual);
+        when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L)).thenReturn(Optional.of(episodio));
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(atual, primeira));
+        // CAS devolve 0: a manutencao encerrou o episodio entre a leitura e a escrita.
+        when(episodioRepository.encerrarPorNormalizacaoSeAberto(eq(20L), eq(atual.getExecutadoEm()), any()))
+                .thenReturn(0);
+
+        processor().process(atual);
+
+        verify(notificacaoService, never()).criarParaLatenciaNormalizada(any());
     }
 
     @Test void incidenteAbertoEncerraEpisodioEmSilencio() {
