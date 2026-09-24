@@ -10,6 +10,7 @@ import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
 import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
@@ -43,6 +44,7 @@ class IncidentProcessorTest {
     @Mock private IncidenteRepository incidenteRepository;
     @Mock private IncidenteService incidenteService;
     @Mock private JanelaMonitoramentoRepository janelaRepository;
+    @Mock private LimiteDeEsperaPorLock limiteDeEsperaPorLock;
     @InjectMocks private IncidentProcessor processor;
 
     @Test void abreSomenteNaTerceiraFalhaConsecutivaComInicioCorreto() {

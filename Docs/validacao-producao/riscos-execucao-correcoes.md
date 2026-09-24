@@ -116,3 +116,115 @@ calibração, com o código corrigido: 12/4 ms deu 15 M / 15 R e 9 F / 21 RF; 25
 - A proporção entre os desfechos depende da máquina, porque o atraso foi calibrado contra a latência
   local. O que discrimina o CAS de forma determinística são os dois testes de ordem fixa. As corridas
   ficam como guarda contra intercalações que a ordem fixa não cobre.
+
+## 1b. `lock_timeout` e pool
+
+### Onde o motor espera lock
+
+`IncidenteRepository.inserirSeElegivel` (`IncidenteRepository.java:114`) e
+`MonitorEpisodioLatenciaRepository.inserirSeElegivel` (`MonitorEpisodioLatenciaRepository.java:39`)
+fazem `FOR UPDATE OF e` na linha do equipamento, a mesma que `entrarEmManutencao` trava. Os bulk
+updates de fechamento disputam a linha do incidente/episódio com a manutenção. Tudo roda dentro das
+transações `REQUIRES_NEW` de `IncidentProcessor.process` (`IncidentProcessor.java:47`) e
+`LatencyEpisodeProcessor.process` (`LatencyEpisodeProcessor.java:61`). Antes desta correção não havia
+`lock_timeout` nem `statement_timeout` em lugar nenhum: o worker esperava o detentor pelo tempo que
+ele quisesse, segurando a conexão.
+
+### Correção
+
+- `LimiteDeEsperaPorLock.aplicarNaTransacaoCorrente()` executa
+  `select set_config('lock_timeout', '2000ms', true)`. O terceiro argumento `true` é `SET LOCAL`:
+  vale só para a transação corrente e morre no commit/rollback, não vaza para a conexão devolvida ao
+  pool. É a primeira instrução de `process` nos dois processors (`IncidentProcessor.java:49`,
+  `LatencyEpisodeProcessor.java:63`). O `JdbcTemplate` participa da transação JPA (o
+  `JpaTransactionManager` expõe a conexão ao `DataSourceUtils`): a prova é o próprio teste abaixo, que
+  só volta em ~2 s se o `set_config` cair na conexão que depois faz o `FOR UPDATE`.
+- Valor: **2 s**, `monitoring.engine.lock-timeout-ms` (env `MONITORING_ENGINE_LOCK_TIMEOUT_MS`,
+  `application.yml:92`). Quem segura a linha do equipamento são transações curtas, só banco:
+  `entrarEmManutencao`, `atualizar`/`ativar`/`desativar` de equipamento, e a abertura concorrente de
+  outro monitor do mesmo equipamento, todas na casa de milissegundos. 2 s fica duas ordens de grandeza
+  acima da espera legítima e bem abaixo do menor intervalo de monitor (10 s).
+
+### Decisão no estouro: pula o ciclo
+
+O Postgres devolve `55P03` (`canceling statement due to lock timeout`), o Spring traduz para
+`PessimisticLockingFailureException`, e a transação do processor faz rollback inteira.
+`MedicaoService.criar` é `NOT_SUPPORTED` (`MedicaoService.java:44`) e a medição já foi gravada antes,
+fora dessa transação: nada se perde. A próxima medição do monitor reavalia a cauda inteira e abre ou
+fecha no ciclo seguinte. `MedicaoService.criar` captura `PessimisticLockingFailureException` antes do
+`catch (RuntimeException)` genérico (`MedicaoService.java:54` e `:66`) e loga **WARN** sem stack trace.
+
+- **Não registrar falha:** a medição é verdadeira. O que não aconteceu foi a interpretação dela.
+- **Não tentar de novo na hora:** o detentor típico é a própria manutenção. Tentar de novo prende o
+  worker atrás dele, que é exatamente o que a correção tira.
+- **Custo conhecido:** uma abertura adiada um ciclo nasce com `iniciado_em` na primeira falha da cauda
+  avaliada no ciclo seguinte, um intervalo depois do que teria sido. Um fechamento adiado tem
+  `encerrado_em` um intervalo depois, pelo mesmo motivo.
+
+### Prova
+
+`LockTimeoutMotorPostgresIntegrationTest` (Testcontainers, `postgres:16-alpine`): uma transação
+externa faz `select ... from equipamento where id = ? for update` e segura a linha por 8 s. A 3ª falha
+consecutiva chega pelo caminho real do motor (`MedicaoService.criar` → `IncidentProcessor`). O teste
+exige que a chamada volte em menos de 4 s, que a medição exista (3 no monitor), que não haja incidente
+nem notificação, e que, solto o lock, a próxima falha abra o incidente.
+
+**Antes (código sem `lock_timeout`, teste já escrito):** `Tests run: 1, Failures: 1`
+
+```
+[lock-timeout] chamada voltou em 7998 ms
+LockTimeoutMotorPostgresIntegrationTest.lockEstouradoPulaOCicloSemPerderMedicaoEAProximaMedicaoAbre:118 [o motor nao pode esperar o lock inteiro]
+```
+
+**Depois:** `Tests run: 1, Failures: 0`
+
+```
+WARN ... b.c.i.medicao.service.MedicaoService     : Lock not acquired while processing incidents for measurement 3; re-evaluated on the next measurement
+[lock-timeout] chamada voltou em 2238 ms
+```
+
+A linha seguinte ao WARN no log é o `DEBUG` do `LatencyEpisodeProcessor`: sem stack trace. O Hibernate
+ainda emite as suas duas linhas WARN do erro JDBC (`HHH000247: ErrorCode: 0, SQLState: 55P03` e
+`ERROR: canceling statement due to lock timeout`), também sem stack trace.
+
+Suíte completa depois da correção: `Tests run: 445, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+
+### Pool
+
+A conta do desenho previa 11 detentores de segundo plano. A leitura do código dá **10**:
+
+| Detentor | Quantas threads | Evidência | Conexões no pico |
+|---|---|---|---|
+| Workers do motor | 4 | `MonitoringEngineConfiguration.java:26` (`ThreadPoolExecutor` fixo de `worker-threads`), `application.yml:89` | 4 |
+| Thread de agendamento | 1 | `MonitoringScheduler.java:13`, `NotificationDispatcher.java:44` e `TelegramIdentityCache.java:39` são `@Scheduled` sem `TaskScheduler` próprio nem threads virtuais; `spring.task.scheduling.pool.size` tem default 1 no Spring Boot 4.1.0 | 1 |
+| Workers do dispatcher | 5 | `NotificationDispatcherConfiguration.java:27`, `application.yml:115` | 5 |
+
+O scheduler do motor e o poll do dispatcher **dividem a mesma thread**: rodam em fila, nunca juntos.
+Por isso são 10, e não 11.
+
+Cada detentor segura no máximo uma conexão por vez, e nenhum a segura durante I/O externo:
+
+- Worker do motor: o ping roda antes e sem transação (`MonitorExecutionCoordinator.java:80`).
+  `MedicaoService.criar` é `NOT_SUPPORTED`, e cada etapa (`findById`, `save`, as duas `REQUIRES_NEW`)
+  abre e devolve a sua. Medido com o `HikariPoolMXBean` amostrado a cada 20 ms enquanto o worker
+  esperava o lock: 1 conexão ativa antes (só o detentor do lock) e **máximo de 2** durante a chamada
+  (detentor + worker), nas duas execuções, com e sem `lock_timeout`.
+- Thread de agendamento: `findActiveExecutionCandidates` (`MonitorExecutionCoordinator.java:49`) e
+  depois `releaseStaleReservations` + `findIdsReadyForDispatch` (`NotificationDispatcher.java:47-50`),
+  cada um na sua transação curta. `TelegramIdentityCache.revalidar` só faz HTTP, sem banco.
+- Worker do dispatcher: só nas transações de estado (`NotificationDispatchStateService.java:18-31`).
+  O HTTP do Telegram roda fora de transação (`NotificationDispatcher.java:65`).
+
+Com o default antigo de 10, o pico de segundo plano já esgota o pool antes de qualquer requisição
+HTTP. Com `lock_timeout`, cada worker do motor pode segurar conexão por até 2 s num estouro. **Novo
+default: 20** (`application.yml:18`, conta no comentário), 10 de segundo plano e 10 para a API, bem
+abaixo do `max_connections = 100` do Postgres. O desenho previa 20 = 11 + 9. Com 10 detentores, a
+regra "segundo plano + 9" daria 19. Arredondado para 20, que também cobre o caso de alguém ligar
+threads virtuais ou subir `spring.task.scheduling.pool.size` (o scheduler e o poll passariam a rodar
+em paralelo e o pico voltaria a 11). `infra-monitor-backend/README.md` atualizado para o mesmo número.
+
+### Fora do escopo
+
+Os `PESSIMISTIC_WRITE` de `UsuarioRepository` e o `UPDATE` de `entrarEmManutencao`, os dois do caminho
+HTTP, continuam sem `lock_timeout`. Estão registrados como B1 em
+[auditoria-concorrencia-ciclo-de-vida.md](auditoria-concorrencia-ciclo-de-vida.md).

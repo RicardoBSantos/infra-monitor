@@ -6,6 +6,7 @@ import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,22 +41,26 @@ public class LatencyEpisodeProcessor {
     private final NotificacaoService notificacaoService;
     private final int limiarMs;
     private final int ciclos;
+    private final LimiteDeEsperaPorLock limiteDeEsperaPorLock;
 
     public LatencyEpisodeProcessor(MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository,
                                    MonitorEpisodioLatenciaRepository episodioRepository,
                                    NotificacaoService notificacaoService,
                                    @Value("${monitoring.latencia-degradada-ms:250}") int limiarMs,
-                                   @Value("${monitoring.latencia-ciclos:2}") int ciclos) {
+                                   @Value("${monitoring.latencia-ciclos:2}") int ciclos,
+                                   LimiteDeEsperaPorLock limiteDeEsperaPorLock) {
         this.medicaoRepository = medicaoRepository;
         this.incidenteRepository = incidenteRepository;
         this.episodioRepository = episodioRepository;
         this.notificacaoService = notificacaoService;
         this.limiarMs = limiarMs;
         this.ciclos = ciclos;
+        this.limiteDeEsperaPorLock = limiteDeEsperaPorLock;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void process(Medicao medicaoPersistida) {
+        limiteDeEsperaPorLock.aplicarNaTransacaoCorrente();
         Long monitorId = medicaoPersistida.getMonitor().getId();
         Optional<Medicao> ultima = medicaoRepository.findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(monitorId);
         if (ultima.isEmpty() || !ultima.get().getId().equals(medicaoPersistida.getId())) {

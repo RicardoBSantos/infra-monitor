@@ -1,6 +1,7 @@
 package br.com.inframonitor.monitoring.incident;
 
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
@@ -8,6 +9,7 @@ import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
 import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import org.slf4j.Logger;
@@ -30,17 +32,21 @@ public class IncidentProcessor {
     private final IncidenteRepository incidenteRepository;
     private final IncidenteService incidenteService;
     private final JanelaMonitoramentoRepository janelaRepository;
+    private final LimiteDeEsperaPorLock limiteDeEsperaPorLock;
 
     public IncidentProcessor(MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository,
-                             IncidenteService incidenteService, JanelaMonitoramentoRepository janelaRepository) {
+                             IncidenteService incidenteService, JanelaMonitoramentoRepository janelaRepository,
+                             LimiteDeEsperaPorLock limiteDeEsperaPorLock) {
         this.medicaoRepository = medicaoRepository;
         this.incidenteRepository = incidenteRepository;
         this.incidenteService = incidenteService;
         this.janelaRepository = janelaRepository;
+        this.limiteDeEsperaPorLock = limiteDeEsperaPorLock;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void process(Medicao medicaoPersistida) {
+        limiteDeEsperaPorLock.aplicarNaTransacaoCorrente();
         Long monitorId = medicaoPersistida.getMonitor().getId();
         Optional<Medicao> ultima = medicaoRepository.findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(monitorId);
         if (ultima.isEmpty() || !ultima.get().getId().equals(medicaoPersistida.getId())) {
@@ -101,7 +107,14 @@ public class IncidentProcessor {
             return;
         }
         Incidente fechado = incidenteService.fecharAutomaticamente(incidente, atual.getExecutadoEm(), threshold);
-        log.info("Incident {} closed automatically for monitor {}", fechado.getId(), monitor.getId());
+        // O CAS pode perder para outra transacao (manutencao, fechamento manual): ai o
+        // incidente volta relido, ja fechado por outro motivo.
+        if (fechado.getMotivoEncerramento() == MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA) {
+            log.info("Incident {} closed automatically for monitor {}", fechado.getId(), monitor.getId());
+        } else {
+            log.debug("Incident {} for monitor {} was already closed by another transaction",
+                    fechado.getId(), monitor.getId());
+        }
     }
 
     private List<Medicao> ultimasMedicoes(Long monitorId, int quantidade) {

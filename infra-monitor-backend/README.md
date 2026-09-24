@@ -39,7 +39,7 @@ ambiente, com defaults de desenvolvimento em `application.yml`.
 | `DB_NAME`     | `inframonitor`  | database                           |
 | `DB_USERNAME` | `inframonitor`  | usuário                            |
 | `DB_PASSWORD` | `inframonitor`  | senha (apenas desenvolvimento)     |
-| `DB_POOL_SIZE`| `10`            | tamanho máximo do pool Hikari      |
+| `DB_POOL_SIZE`| `20`            | tamanho máximo do pool Hikari      |
 | `SERVER_PORT` | `8080`          | porta HTTP da aplicação            |
 
 `.env.example` traz o conjunto pronto para copiar para `.env` (o `.env` é ignorado pelo git).

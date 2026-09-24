@@ -9,6 +9,7 @@ import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,7 +47,7 @@ class LatencyEpisodeProcessorTest {
 
     private LatencyEpisodeProcessor processor() {
         return new LatencyEpisodeProcessor(medicaoRepository, incidenteRepository, episodioRepository,
-                notificacaoService, LIMIAR, CICLOS);
+                notificacaoService, LIMIAR, CICLOS, mock(LimiteDeEsperaPorLock.class));
     }
 
     @Test void abreEpisodioNoSegundoCicloAcimaDoLimiarComInicioNaPrimeiraDegradada() {

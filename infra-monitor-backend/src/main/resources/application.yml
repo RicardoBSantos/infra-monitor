@@ -11,7 +11,11 @@ spring:
     password: ${DB_PASSWORD:inframonitor}
     hikari:
       pool-name: inframonitor-pool
-      maximum-pool-size: ${DB_POOL_SIZE:10}
+      # 4 workers do motor + 1 thread de agendamento (compartilhada por MonitoringScheduler e
+      # pelo poll do NotificationDispatcher: spring.task.scheduling.pool.size default 1) + ate 5
+      # workers do dispatcher = 10 conexoes de segundo plano no pico (cada um segura no maximo uma
+      # por vez), ja igual ao antigo default 10 antes de qualquer requisicao HTTP. 20 deixa 10 para a API.
+      maximum-pool-size: ${DB_POOL_SIZE:20}
 
   jpa:
     open-in-view: false
@@ -84,6 +88,8 @@ monitoring:
     scheduler-delay-ms: ${MONITORING_ENGINE_SCHEDULER_DELAY_MS:1000}
     worker-threads: ${MONITORING_ENGINE_WORKER_THREADS:4}
     queue-capacity: ${MONITORING_ENGINE_QUEUE_CAPACITY:100}
+    # Espera maxima por lock de linha nas transacoes do motor (SET LOCAL lock_timeout).
+    lock-timeout-ms: ${MONITORING_ENGINE_LOCK_TIMEOUT_MS:2000}
   icmp:
     # auto | nativo-windows | processo-ping
     # auto: IcmpSendEcho no Windows, leitura do texto do ping no resto.
