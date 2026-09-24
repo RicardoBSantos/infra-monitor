@@ -24,9 +24,12 @@ Pontos que travam a carga se errados:
   que já existe na API — mudar a grafia entre execuções cria um registro novo
   em vez de atualizar comparação.
 - IP tem que ser IPv4. IPv6 é recusado (mesmo que o equipamento tenha um).
-- `codigoIbge` tem que ter exatamente 7 dígitos e existir no GeoJSON de SE.
-  Se a coordenada e o IBGE não baterem, o script deixa passar como aviso — a
-  coordenada é a que prevalece — mas revise antes de aplicar.
+- `codigoIbge` tem que ter exatamente 7 dígitos **e existir no GeoJSON de
+  SE** — se não existir, é **erro** (a linha não é enviada), mesmo que a
+  linha não tenha coordenada nenhuma. Só depois de o IBGE existir é que entra
+  a checagem de coerência: se a coordenada informada não cai dentro do
+  município daquele IBGE, o script deixa passar como **aviso** — a coordenada
+  é a que prevalece — mas revise antes de aplicar.
 
 ## 2. Definir a credencial
 
@@ -119,3 +122,16 @@ já existentes que divergem (só relata, não sobrescreve).
 nunca em arquivo. Papel mínimo OPERADOR. Usuário com troca de senha
 obrigatória pendente falha no login (checagem feita pelo próprio script,
 não pelo backend) e o script para.
+
+## Decisão registrada: chave natural do monitor
+
+A especificação original (seção 4 do design) previa a chave natural do
+monitor como `(equipamento, tipo, alvo)`. O campo `alvo` **não existe** em
+`CreateMonitorRequest`/`MonitorResponse` no backend real — só existe
+`equipamentoId, tipo, nome, intervaloSegundos, timeoutMs,
+falhasParaIncidente, sucessosParaRecovery` — e não há nenhuma constraint de
+banco definindo unicidade de monitor (`grep uq_monitor` só encontra
+`uq_monitor_episodio_latencia_aberto`, de outra tabela). A chave usada pelo
+script é `(unidadeSigla, equipamentoNome, nome)` — a mesma tripla usada pelo
+`task-7-brief.md`, que foi conferido contra o DTO real antes da
+implementação. Isso está documentado também no `README.md` do script.

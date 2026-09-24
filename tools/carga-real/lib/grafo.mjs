@@ -52,7 +52,16 @@ export function validarArestas(grafoBase, arestasDesejadas) {
       });
       continue;
     }
-    grafo.set(origem, destino);
+    // So commita a aresta no grafo de trabalho se a unidade origem AINDA NAO
+    // tinha hub em grafoBase. Se ja tinha (igual ou diferente), a acao real
+    // (pulado/divergente) nao muda o hub de fato -- e o PUT so acontece
+    // quando o estado atual e ausente ("criar"). Commitar aqui uma aresta que
+    // nunca sera aplicada corromperia o cheque de ciclo de linhas seguintes
+    // do mesmo arquivo, que devem continuar enxergando o hub real (o que ja
+    // estava em grafoBase), nao o proposto.
+    if (!grafoBase.has(origem)) {
+      grafo.set(origem, destino);
+    }
     resultados.push({ origem, destino, ok: true });
   }
   return resultados;

@@ -19,6 +19,7 @@ import { indexarGeoJson } from './lib/geo.mjs';
 import {
   normalizarTexto,
   chaveMinuscula,
+  normalizarUf,
   validarLinhaTipo,
   validarLinhaUnidade,
   validarLinhaEquipamento,
@@ -302,9 +303,10 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
     if (plano.acao === 'criar' && args.aplicar) {
       const resposta = await criar(fetchImpl, credenciais.apiUrl, token, '/tipos-equipamento', desejado);
       if (resposta.status === 401) {
-        return finalizarComAbortoPor401(relatorio, 'tipo', item.chave, escreverArquivo, args, log, logErro);
+        return finalizarComAbortoPor401(relatorio, 'tipo', item.chave, escreverArquivo, args, log, logErro, registrar);
       }
       if (!resposta.ok) {
+        tiposChavesFalhadas.add(item.chave); // dependentes (equipamentos) devem ver isso como dependencia falhou
         registrar({ fase: 'tipo', chave: item.chave, acao: 'falha', motivo: resposta.corpo?.message || 'erro HTTP', http: { status: resposta.status, corpo: resposta.corpo } });
         continue;
       }
@@ -345,7 +347,7 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
       codigoIbge: normalizarTexto(item.linha.codigoIbge),
       endereco: normalizarTexto(item.linha.endereco),
       cidade: normalizarTexto(item.linha.cidade),
-      uf: normalizarTexto(item.linha.uf),
+      uf: normalizarUf(item.linha.uf), // UnidadeService.normalizarUf uppercase antes de gravar
       latitude: normalizarTexto(item.linha.latitude),
       longitude: normalizarTexto(item.linha.longitude),
     };
@@ -356,9 +358,10 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
     if (plano.acao === 'criar' && args.aplicar) {
       const resposta = await criar(fetchImpl, credenciais.apiUrl, token, '/unidades', desejado);
       if (resposta.status === 401) {
-        return finalizarComAbortoPor401(relatorio, 'unidade', item.chave, escreverArquivo, args, log, logErro);
+        return finalizarComAbortoPor401(relatorio, 'unidade', item.chave, escreverArquivo, args, log, logErro, registrar);
       }
       if (!resposta.ok) {
+        unidadesChavesFalhadas.add(item.chave); // dependentes (equipamentos, conexoes) devem ver isso como dependencia falhou
         registrar({ fase: 'unidade', chave: item.chave, acao: 'falha', motivo: resposta.corpo?.message || 'erro HTTP', http: { status: resposta.status, corpo: resposta.corpo } });
         continue;
       }
@@ -450,9 +453,10 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
     if (plano.acao === 'criar' && args.aplicar) {
       const resposta = await criar(fetchImpl, credenciais.apiUrl, token, '/equipamentos', desejado);
       if (resposta.status === 401) {
-        return finalizarComAbortoPor401(relatorio, 'equipamento', item.chave, escreverArquivo, args, log, logErro);
+        return finalizarComAbortoPor401(relatorio, 'equipamento', item.chave, escreverArquivo, args, log, logErro, registrar);
       }
       if (!resposta.ok) {
+        equipamentosChavesFalhadas.add(item.chave); // dependentes (monitores) devem ver isso como dependencia falhou
         registrar({ fase: 'equipamento', chave: item.chave, acao: 'falha', motivo: resposta.corpo?.message || 'erro HTTP', http: { status: resposta.status, corpo: resposta.corpo } });
         continue;
       }
@@ -495,14 +499,22 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
     const chaveEquip = `${chaveMinuscula(item.linha.unidadeSigla)}::${chaveMinuscula(item.linha.equipamentoNome)}`;
     const equipamento = equipamentosPorChave.get(chaveEquip);
     const existente = monitoresPorChave.get(item.chave);
+    // falhasParaIncidente/sucessosParaRecovery sao opcionais no arquivo. Se
+    // omitidos, o backend aplica um default (Monitor.DEFAULT_FALHAS_PARA_INCIDENTE
+    // = 3, DEFAULT_SUCESSOS_PARA_RECOVERY = 2) na criacao -- e a resposta da
+    // API sempre traz um numero, nunca null. Comparar "omitido no arquivo"
+    // contra "default do backend" sempre diverge, entao esses campos so
+    // entram na comparacao quando o arquivo de fato os informou.
+    const falhasInformado = normalizarTexto(item.linha.falhasParaIncidente) !== null;
+    const sucessosInformado = normalizarTexto(item.linha.sucessosParaRecovery) !== null;
     const desejado = {
       equipamentoId: equipamento.id,
       tipo: normalizarTexto(item.linha.tipo)?.toUpperCase(),
       nome: normalizarTexto(item.linha.nome),
       intervaloSegundos: Number(item.linha.intervaloSegundos),
       timeoutMs: Number(item.linha.timeoutMs),
-      falhasParaIncidente: item.linha.falhasParaIncidente ? Number(item.linha.falhasParaIncidente) : undefined,
-      sucessosParaRecovery: item.linha.sucessosParaRecovery ? Number(item.linha.sucessosParaRecovery) : undefined,
+      falhasParaIncidente: falhasInformado ? Number(item.linha.falhasParaIncidente) : undefined,
+      sucessosParaRecovery: sucessosInformado ? Number(item.linha.sucessosParaRecovery) : undefined,
     };
     const existenteComparavel = existente && {
       equipamentoId: existente.equipamento.id,
@@ -513,14 +525,17 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
       falhasParaIncidente: existente.falhasParaIncidente,
       sucessosParaRecovery: existente.sucessosParaRecovery,
     };
-    const plano = planejarAcao(desejado, existenteComparavel, [
-      'equipamentoId', 'tipo', 'nome', 'intervaloSegundos', 'timeoutMs', 'falhasParaIncidente', 'sucessosParaRecovery',
-    ]);
+    const camposComparaveis = [
+      'equipamentoId', 'tipo', 'nome', 'intervaloSegundos', 'timeoutMs',
+      ...(falhasInformado ? ['falhasParaIncidente'] : []),
+      ...(sucessosInformado ? ['sucessosParaRecovery'] : []),
+    ];
+    const plano = planejarAcao(desejado, existenteComparavel, camposComparaveis);
 
     if (plano.acao === 'criar' && args.aplicar) {
       const resposta = await criar(fetchImpl, credenciais.apiUrl, token, '/monitores', desejado);
       if (resposta.status === 401) {
-        return finalizarComAbortoPor401(relatorio, 'monitor', item.chave, escreverArquivo, args, log, logErro);
+        return finalizarComAbortoPor401(relatorio, 'monitor', item.chave, escreverArquivo, args, log, logErro, registrar);
       }
       if (!resposta.ok) {
         registrar({ fase: 'monitor', chave: item.chave, acao: 'falha', motivo: resposta.corpo?.message || 'erro HTTP', http: { status: resposta.status, corpo: resposta.corpo } });
@@ -582,7 +597,7 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
     if (plano.acao === 'criar' && args.aplicar) {
       const resposta = await definirConexao(fetchImpl, credenciais.apiUrl, token, origem.id, destino.id);
       if (resposta.status === 401) {
-        return finalizarComAbortoPor401(relatorio, 'conexao', item.chave, escreverArquivo, args, log, logErro);
+        return finalizarComAbortoPor401(relatorio, 'conexao', item.chave, escreverArquivo, args, log, logErro, registrar);
       }
       if (!resposta.ok) {
         registrar({ fase: 'conexao', chave: item.chave, acao: 'falha', motivo: resposta.corpo?.message || 'erro HTTP', http: { status: resposta.status, corpo: resposta.corpo } });
@@ -601,8 +616,8 @@ export async function executar({ argv, env, fetchImpl, escreverArquivo, log = co
   return 0;
 }
 
-async function finalizarComAbortoPor401(relatorio, fase, chave, escreverArquivo, args, log, logErro) {
-  relatorio.itens.push({ fase, chave, acao: 'falha', motivo: '401 recebido no meio da execucao; abortando' });
+async function finalizarComAbortoPor401(relatorio, fase, chave, escreverArquivo, args, log, logErro, registrar) {
+  registrar({ fase, chave, acao: 'falha', motivo: '401 recebido no meio da execucao; abortando' });
   relatorio.abortadoEm = new Date().toISOString();
   logErro('401 recebido no meio da execucao (sessao expirou ou foi revogada). Abortando e gravando relatorio parcial.');
   await finalizar(relatorio, args, escreverArquivo, log);

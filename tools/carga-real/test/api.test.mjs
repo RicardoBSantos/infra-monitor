@@ -147,3 +147,23 @@ test('compararCampos: nulo/vazio/undefined sao equivalentes', () => {
   const divergentes = compararCampos({ hostname: '' }, { hostname: null }, ['hostname']);
   assert.deepEqual(divergentes, []);
 });
+
+test('compararCampos: BigDecimal com escala diferente do banco (NUMERIC(9,6)) nao diverge do valor do arquivo', () => {
+  // unidade.latitude/longitude sao NUMERIC(9,6); a API pode devolver -10.685300
+  // (escala fixa) para um arquivo que informou -10.6853. Numericamente iguais.
+  const divergentes = compararCampos(
+    { latitude: '-10.6853', longitude: '-37.0731' },
+    { latitude: -10.6853, longitude: -37.073100 },
+    ['latitude', 'longitude']
+  );
+  assert.deepEqual(divergentes, []);
+});
+
+test('compararCampos: nome/sigla/codigoIbge com espacos a mais no arquivo nao divergem (backend so faz trim)', () => {
+  const divergentes = compararCampos(
+    { nome: '  Matriz  ', sigla: ' MTZ ', codigoIbge: ' 2800308 ' },
+    { nome: 'Matriz', sigla: 'MTZ', codigoIbge: '2800308' },
+    ['nome', 'sigla', 'codigoIbge']
+  );
+  assert.deepEqual(divergentes, []);
+});

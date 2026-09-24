@@ -101,6 +101,17 @@ uma das duas é erro.
 | `falhasParaIncidente` | não | inteiro, 1..100 | `3` |
 | `sucessosParaRecovery` | não | inteiro, 1..100 | `2` |
 
+Chave natural do monitor: `(unidadeSigla, equipamentoNome, nome)`. (A
+especificação original previa `(equipamento, tipo, alvo)`, mas
+`CreateMonitorRequest`/`MonitorResponse` não têm campo `alvo`, e não existe
+constraint de unicidade de monitor no banco — seguimos a chave do
+`task-7-brief.md`, conferida contra o DTO real.)
+
+`falhasParaIncidente`/`sucessosParaRecovery` omitidos no arquivo **não**
+entram na comparação de idempotência: o backend aplica um default (`3`/`2`)
+na criação, e comparar "omitido" contra "default" sempre daria falso
+divergente. Se quiser controlar esses dois campos, informe-os explicitamente.
+
 ### `conexoes` (hub de unidade)
 
 | Coluna | Obrigatória | Formato | Exemplo |
@@ -117,11 +128,17 @@ para ela.
 
 - Campos obrigatórios de cada tipo de linha.
 - Coordenadas sempre em par (as duas ou nenhuma).
-- `codigoIbge` com exatamente 7 dígitos **e existente** no GeoJSON de SE.
-- `codigoIbge` × coordenada: point-in-polygon (com buracos, `Polygon` e
-  `MultiPolygon`) contra o mesmo GeoJSON do mapa do frontend. Divergência é
-  **aviso**, não bloqueio — pela decisão já tomada no projeto, a coordenada
-  prevalece sobre o código IBGE quando os dois discordam.
+- `codigoIbge` com exatamente 7 dígitos **e existente** no GeoJSON de SE —
+  as duas coisas são **erro** (linha não é enviada) se faltarem, **mesmo sem
+  coordenada informada**: um código com formato válido mas que não está no
+  GeoJSON de SE é tratado como unidade fora do estado, algo que este script
+  não aceita.
+- Só quando o `codigoIbge` **existe** no GeoJSON e a linha também tem
+  coordenada: point-in-polygon (com buracos, `Polygon` e `MultiPolygon`)
+  contra o mesmo GeoJSON do mapa do frontend, comparando a coordenada com o
+  polígono do município daquele IBGE. Aqui, sim, a divergência é **aviso**,
+  não bloqueio — pela decisão já tomada no projeto, a coordenada prevalece
+  sobre o código IBGE quando os dois discordam sobre qual é o município.
 - IP: IPv4 válido (IPv6 é recusado). IP repetido **na mesma unidade**, dentro
   do arquivo, é **erro**; repetido **entre unidades diferentes** é **aviso**.
 - Nome de equipamento único por unidade (case-insensitive) e nome de monitor

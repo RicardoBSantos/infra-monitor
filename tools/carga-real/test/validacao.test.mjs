@@ -5,6 +5,7 @@ import {
   ipv4Valido,
   ibgeFormatoValido,
   coordenadasCompletas,
+  normalizarUf,
   validarLinhaTipo,
   validarLinhaUnidade,
   validarLinhaEquipamento,
@@ -129,6 +130,39 @@ test('validarLinhaUnidade: IBGE existente mas coordenada fora do municipio -> av
   );
   assert.deepEqual(resultado.erros, []);
   assert.equal(resultado.avisos.length, 1);
+});
+
+test('validarLinhaUnidade: IBGE com 7 digitos mas AUSENTE do GeoJSON -> ERRO (nao e enviado), mesmo sem coordenada', () => {
+  const resultado = validarLinhaUnidade(
+    { nome: 'Matriz', sigla: 'MTZ', codigoIbge: '9999999' },
+    indexarGeoJson(geojsonExemplo)
+  );
+  assert.ok(resultado.erros.some((e) => e.includes('9999999') && e.includes('nao existe no GeoJSON')));
+  assert.deepEqual(resultado.avisos, []);
+});
+
+test('validarLinhaUnidade: IBGE ausente do GeoJSON e ERRO mesmo COM coordenada informada', () => {
+  const resultado = validarLinhaUnidade(
+    { nome: 'Matriz', sigla: 'MTZ', codigoIbge: '9999999', latitude: '-10.5', longitude: '-37.5' },
+    indexarGeoJson(geojsonExemplo)
+  );
+  assert.ok(resultado.erros.some((e) => e.includes('nao existe no GeoJSON')));
+  // Como o IBGE nem existe, nao ha o que comparar com a coordenada: sem aviso de divergencia.
+  assert.deepEqual(resultado.avisos, []);
+});
+
+// --- normalizarUf ---
+
+test('normalizarUf: aplica trim e maiusculas (espelha UnidadeService.normalizarUf)', () => {
+  assert.equal(normalizarUf(' se '), 'SE');
+  assert.equal(normalizarUf('se'), 'SE');
+  assert.equal(normalizarUf('SE'), 'SE');
+});
+
+test('normalizarUf: vazio/nulo vira null', () => {
+  assert.equal(normalizarUf(''), null);
+  assert.equal(normalizarUf(null), null);
+  assert.equal(normalizarUf(undefined), null);
 });
 
 // --- validarLinhaEquipamento ---

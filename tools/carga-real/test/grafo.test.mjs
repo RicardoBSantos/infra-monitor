@@ -59,3 +59,19 @@ test('validarArestas: auto-referencia tem motivo especifico', () => {
   assert.equal(resultados[0].ok, false);
   assert.match(resultados[0].motivo, /auto-referencia/);
 });
+
+test('validarArestas: aresta que nao muda o hub real (divergente/nao aplicada) nao contamina o grafo de trabalho', () => {
+  // "a" ja tem hub "z" na API. O arquivo propoe a->b (nao seria realmente
+  // aplicado -- so um PUT acontece quando o estado atual esta ausente) e
+  // depois b->a. Sem o fix, a primeira aresta sobrescreveria o mapeamento
+  // de "a" para "b" no grafo de trabalho, fazendo a segunda aresta (b->a)
+  // ser rejeitada como ciclo (b->a->b), quando na realidade "a" continua
+  // apontando para "z" e b->a nao fecha ciclo nenhum.
+  const grafoBase = new Map([['a', 'z']]);
+  const resultados = validarArestas(grafoBase, [
+    { origem: 'a', destino: 'b' },
+    { origem: 'b', destino: 'a' },
+  ]);
+  assert.equal(resultados[0].ok, true);
+  assert.equal(resultados[1].ok, true, 'b->a nao deveria ser rejeitada como ciclo');
+});

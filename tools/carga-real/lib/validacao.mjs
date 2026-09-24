@@ -18,6 +18,12 @@ export function chaveMinuscula(valor) {
   return texto === null ? null : texto.toLowerCase();
 }
 
+/** Espelha UnidadeService.normalizarUf: trim + maiusculas. */
+export function normalizarUf(valor) {
+  const texto = normalizarTexto(valor);
+  return texto === null ? null : texto.toUpperCase();
+}
+
 /** Espelha EquipamentoService.normalizarIp: IPv4 estrito, 4 octetos 0-255. */
 export function ipv4Valido(valor) {
   const texto = normalizarTexto(valor);
@@ -82,17 +88,15 @@ export function validarLinhaUnidade(linha, indiceGeoJson) {
     erros.push('longitude deve estar entre -180 e 180');
   }
 
+  // "IBGE 7 digitos e existente" (spec): um codigo com formato valido mas
+  // ausente do GeoJSON de SE e ERRO -- a linha nao e enviada -- independente
+  // de ter coordenada ou nao. So a DIVERGENCIA entre IBGE existente e a
+  // coordenada informada e aviso (decisao: a coordenada prevalece).
   const ibge = normalizarTexto(linha.codigoIbge);
-  if (
-    erros.length === 0 &&
-    ibge !== null &&
-    latitude !== null &&
-    longitude !== null &&
-    indiceGeoJson
-  ) {
+  if (erros.length === 0 && ibge !== null && indiceGeoJson) {
     if (!municipioExiste(indiceGeoJson, ibge)) {
-      avisos.push(`codigoIbge ${ibge} nao encontrado no GeoJSON de SE (nao verificavel)`);
-    } else {
+      erros.push(`codigoIbge ${ibge} nao existe no GeoJSON de SE (unidades fora de SE nao sao aceitas por este script)`);
+    } else if (latitude !== null && longitude !== null) {
       const dentro = pontoNoMunicipio(indiceGeoJson, ibge, latitude, longitude);
       if (dentro === false) {
         avisos.push(
