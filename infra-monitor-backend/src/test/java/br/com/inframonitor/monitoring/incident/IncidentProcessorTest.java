@@ -89,7 +89,7 @@ class IncidentProcessorTest {
         Medicao primeiro = medicao(monitor, 4L, StatusMedicao.SUCESSO, T0.plusSeconds(180));
         Medicao ultimo = medicao(monitor, 5L, StatusMedicao.SUCESSO, T0.plusSeconds(240));
         prepararAtual(ultimo);
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO))
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.of(incidente));
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class))).thenReturn(List.of(ultimo, primeiro));
         when(incidenteService.fecharAutomaticamente(any(), any(), eq(2))).thenReturn(incidente);
@@ -104,7 +104,7 @@ class IncidentProcessorTest {
         Incidente incidente = incidente(monitor);
         Medicao atual = medicao(monitor, 3L, StatusMedicao.SUCESSO, T0.plusSeconds(120));
         prepararAtual(atual);
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO)).thenReturn(Optional.of(incidente));
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO)).thenReturn(Optional.of(incidente));
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(atual, medicao(monitor, 2L, StatusMedicao.FALHA, T0.plusSeconds(60))));
         processor.process(atual);
@@ -125,7 +125,7 @@ class IncidentProcessorTest {
 
         processor.process(atrasada);
 
-        verify(incidenteRepository, never()).findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(any(), any());
+        verify(incidenteRepository, never()).findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(any(), any());
         verify(incidenteService, never()).abrirAutomaticamente(any(), any(), any(Integer.class));
     }
 
@@ -133,14 +133,14 @@ class IncidentProcessorTest {
         Monitor monitor = monitor(1, 1);
         Medicao falha = medicao(monitor, 2L, StatusMedicao.FALHA, T0.plusSeconds(60));
         prepararAtual(falha);
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO))
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.of(incidente(monitor)));
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class))).thenReturn(List.of(falha));
 
         processor.process(falha);
         verify(incidenteService, never()).abrirAutomaticamente(any(), any(), any(Integer.class));
 
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO))
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.empty());
         when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(incidente(monitor));
         processor.process(falha);
@@ -149,10 +149,10 @@ class IncidentProcessorTest {
 
     private void prepararAtual(Medicao atual) {
         when(medicaoRepository.findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(1L)).thenReturn(Optional.of(atual));
-        when(incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.ABERTO)).thenReturn(Optional.empty());
+        when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO)).thenReturn(Optional.empty());
     }
     private Monitor monitor(int falhas, int sucessos) {
-        Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null), new TipoEquipamento("Switch", null), "SW", null, null, null, null);
+        Equipamento equipamento = new Equipamento(new Unidade("Matriz", "MTZ", null), new TipoEquipamento("Switch", null), "SW", null, null, null, null, null);
         Monitor monitor = new Monitor(equipamento, TipoMonitor.ICMP, "ICMP", 60, 2000, falhas, sucessos);
         ReflectionTestUtils.setField(monitor, "id", 1L);
         return monitor;

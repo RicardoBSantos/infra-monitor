@@ -1,0 +1,147 @@
+@if (estado() === 'loading') {
+  <div class="skeleton" aria-label="Carregando configuração do Telegram">
+    @for (bloco of [1,2,3]; track bloco) { <span></span> }
+  </div>
+} @else if (estado() === 'error') {
+  <div class="aviso aviso--erro" role="alert">
+    <div>
+      <strong>Não foi possível carregar a configuração.</strong>
+      <p>{{ erro() }}</p>
+    </div>
+    <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+  </div>
+} @else if (config(); as dados) {
+  <div class="config">
+    <div class="config__coluna">
+      <section class="cartao">
+        <h2 class="cartao__titulo">TELEGRAM BOT</h2>
+        <div class="cartao__corpo">
+          <p class="config__bot">
+            <app-status-badge [status]="dados.bot.status" />
+            @if (dados.bot.status === 'VERIFICADO') {
+              <strong>&#64;{{ dados.bot.username }}</strong>
+              <span class="mono config__id">id {{ dados.bot.botId }}</span>
+            }
+          </p>
+          @if (dados.bot.status === 'VERIFICADO') {
+            <p class="config__nota">
+              @if (dados.bot.desatualizado) {
+                Bot verificado, mas a última revalidação falhou — os dados acima podem estar desatualizados.
+              } @else {
+                Bot verificado junto à API do Telegram.
+              }
+            </p>
+          } @else {
+            <p class="config__nota">
+              Sem token configurado no servidor, ou a API do Telegram não respondeu à verificação.
+            </p>
+          }
+          <p class="config__nota">O token do bot é armazenado no servidor e nunca trafega para a interface.</p>
+        </div>
+      </section>
+
+      <section class="cartao">
+        <h2 class="cartao__titulo">ESTADO DO CANAL</h2>
+        <dl class="config__estado">
+          <div>
+            <dt>Envio Telegram habilitado</dt>
+            <dd><span class="ponto" [class.ponto--ok]="dados.telegramEnabled" [class.ponto--down]="!dados.telegramEnabled"></span>{{ dados.telegramEnabled ? 'Sim' : 'Não' }}</dd>
+          </div>
+          <div>
+            <dt>Processador de fila ativo</dt>
+            <dd><span class="ponto" [class.ponto--ok]="dados.dispatcherEnabled" [class.ponto--down]="!dados.dispatcherEnabled"></span>{{ dados.dispatcherEnabled ? 'Sim' : 'Não' }}</dd>
+          </div>
+          <div>
+            <dt>Destino padrão configurado</dt>
+            <dd><span class="ponto" [class.ponto--ok]="dados.destinoConfigurado" [class.ponto--down]="!dados.destinoConfigurado"></span>{{ dados.destinoConfigurado ? 'Sim' : 'Não' }}</dd>
+          </div>
+        </dl>
+        @if (dados.telegramEnabled && !dados.dispatcherEnabled) {
+          <p class="config__nota config__nota--alerta">
+            O canal está habilitado, mas o processador de fila está parado: as notificações ficam acumuladas
+            aguardando envio.
+          </p>
+        }
+        <p class="config__nota">
+          Estes valores vêm de variáveis de ambiente do servidor e são exibidos apenas para leitura.
+        </p>
+      </section>
+
+      <section class="cartao">
+        <h2 class="cartao__titulo">TESTAR INTEGRAÇÃO</h2>
+        <div class="cartao__corpo">
+          <button class="botao botao--primario" type="button" [disabled]="!podeTestar()" (click)="testar()">
+            @if (estadoTeste() === 'enviando') { Enviando… }
+            @else if (cooldown() > 0) { Aguarde {{ cooldown() }} s }
+            @else { Testar integração }
+          </button>
+          @if (mensagemTeste()) {
+            <p class="config__resultado" [class.config__resultado--erro]="estadoTeste() === 'falha'" role="status">
+              {{ mensagemTeste() }}
+            </p>
+          }
+          <p class="config__nota">
+            O teste envia uma mensagem real ao destino padrão. Ele não passa pela fila de notificações e,
+            por isso, não aparece no histórico.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="config__coluna">
+      <section class="cartao">
+        <h2 class="cartao__titulo">PRÉVIA DA MENSAGEM · EXEMPLO</h2>
+        <div class="cartao__corpo">
+          <p class="config__nota">
+            Estrutura real das mensagens produzidas pelo backend, preenchida com valores fictícios.
+            Não é uma consulta ao servidor.
+          </p>
+
+          <pre class="config__previa config__previa--down">INCIDENTE ABERTO
+
+Unidade: Sesc Centro
+Equipamento: SW-CORE
+IP: 10.79.25.1
+Monitor: ICMP
+Inicio: 2026-08-19T08:42:31Z
+Motivo: Indisponibilidade detectada automaticamente apos 3 falhas consecutivas</pre>
+
+          <pre class="config__previa config__previa--ok">INCIDENTE ENCERRADO
+
+Unidade: Sesc Centro
+Equipamento: SW-CORE
+IP: 10.79.25.1
+Monitor: ICMP
+Inicio: 2026-08-19T08:42:31Z
+Fim: 2026-08-19T08:47:03Z
+Duracao: 0h 4m 32s</pre>
+
+          <pre class="config__previa config__previa--warn">LATENCIA ALTA
+
+Unidade: Sesc Centro
+Equipamento: SW-CORE
+IP: 10.79.25.1
+Monitor: ICMP
+Limiar: 250 ms
+Inicio: 2026-08-19T09:15:02Z</pre>
+
+          <pre class="config__previa config__previa--ok">LATENCIA NORMALIZADA
+
+Unidade: Sesc Centro
+Equipamento: SW-CORE
+IP: 10.79.25.1
+Monitor: ICMP
+Limiar: 250 ms
+Inicio: 2026-08-19T09:15:02Z
+Fim: 2026-08-19T09:23:40Z
+Duracao: 0h 8m 38s</pre>
+
+          <p class="config__nota">
+            Cada incidente e cada episódio de latência gera no máximo uma mensagem de abertura e uma de
+            encerramento, mesmo que a condição persista por vários ciclos.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+}

@@ -1,5 +1,6 @@
 package br.com.inframonitor.monitoring.execution;
 
+import br.com.inframonitor.common.concurrent.TarefaRotulada;
 import br.com.inframonitor.medicao.dto.CreateMedicaoRequest;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.service.MedicaoService;
@@ -8,6 +9,7 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -33,7 +35,7 @@ public class MonitorExecutionCoordinator {
     private final Set<Long> runningMonitors = ConcurrentHashMap.newKeySet();
 
     public MonitorExecutionCoordinator(MonitorRepository monitorRepository, MedicaoService medicaoService,
-                                       ExecutorService monitoringWorkerExecutor, Clock monitoringClock,
+                                       ExecutorService monitoringWorkerExecutor, @Qualifier("monitoringClock") Clock monitoringClock,
                                        List<MonitorExecutor> executors) {
         this.monitorRepository = monitorRepository;
         this.medicaoService = medicaoService;
@@ -65,7 +67,7 @@ public class MonitorExecutionCoordinator {
     void submit(MonitorCandidate candidate) {
         if (!runningMonitors.add(candidate.monitorId())) return;
         try {
-            workerExecutor.submit(() -> execute(candidate));
+            workerExecutor.submit(new TarefaRotulada("monitor " + candidate.monitorId(), () -> execute(candidate)));
             log.debug("Monitor {} submitted for execution", candidate.monitorId());
         } catch (RejectedExecutionException exception) {
             runningMonitors.remove(candidate.monitorId());

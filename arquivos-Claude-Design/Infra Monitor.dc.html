@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080C12;color:#E4EBF3;font-family:"IBM Plex Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:#0A1017}
+  ::-webkit-scrollbar-thumb{background:#20303F;border-radius:5px;border:2px solid #0A1017}
+  ::-webkit-scrollbar-thumb:hover{background:#2C4055}
+  input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit;outline:none}
+  input::placeholder,textarea::placeholder{color:#59697A}
+  a{color:#4C8DFF;text-decoration:none}
+  a:hover{color:#7FADFF}
+  @keyframes din{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+  @keyframes tin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes fin{from{opacity:0}to{opacity:1}}
+  @keyframes lgUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes lgLeft{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+  @keyframes radar{0%{transform:scale(.35);opacity:.55}70%{opacity:.06}100%{transform:scale(1);opacity:0}}
+  @keyframes pkt{0%{left:-4%;opacity:0}8%{opacity:1}92%{opacity:1}100%{left:102%;opacity:0}}
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.82)}}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(3px)}50%{transform:translateX(-3px)}100%{transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes sweepline{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+</style>
+</helmet>
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+  <div style="height:100vh;width:100%;display:flex;background:#080C12;font-size:13px;line-height:1.45;color:#E4EBF3;position:relative;overflow:hidden">
+    <button onClick="{{ toggleTheme }}" title="{{ themeTitle }}" style="position:absolute;top:16px;right:18px;z-index:5;width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;cursor:pointer;font-size:13px;color:#A9BACB" style-hover="background:#16202B;border-color:#2C3B4C">{{ themeIcon }}</button>
+
+    <div id="login-aside" style="flex:1.15;min-width:0;position:relative;display:flex;flex-direction:column;justify-content:center;gap:26px;padding:0 6vw;background-color:#0A1017;background-image:radial-gradient(700px 440px at 24% 30%,rgba(76,141,255,.17),transparent 70%),radial-gradient(520px 400px at 82% 82%,rgba(52,199,123,.10),transparent 72%);border-right:1px solid #18222E;overflow:hidden">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(124,150,180,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(124,150,180,.055) 1px,transparent 1px);background-size:56px 56px"></div>
+      <div style="position:absolute;inset:0;pointer-events:none;opacity:.85;mask-image:radial-gradient(120% 100% at 100% 50%,#000 38%,transparent 78%);-webkit-mask-image:radial-gradient(120% 100% at 100% 50%,#000 38%,transparent 78%)">
+        <svg viewBox="0 0 360 720" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%">
+          <g stroke="rgba(76,141,255,.24)" stroke-width="1" fill="none">
+            <path d="M196 372 L262 168"></path><path d="M196 372 L308 286"></path>
+            <path d="M196 372 L288 512"></path><path d="M196 372 L176 596"></path>
+            <path d="M196 372 L84 258"></path><path d="M196 372 L96 470"></path>
+          </g>
+          <g fill="#5C7590">
+            <circle cx="262" cy="168" r="3"></circle><circle cx="308" cy="286" r="3"></circle>
+            <circle cx="288" cy="512" r="3"></circle><circle cx="176" cy="596" r="3"></circle>
+            <circle cx="84" cy="258" r="3"></circle><circle cx="96" cy="470" r="3"></circle>
+          </g>
+          <circle cx="262" cy="168" r="3.6" fill="#34C77B"></circle>
+          <circle cx="96" cy="470" r="3.6" fill="#E8A33D"></circle>
+          <circle cx="288" cy="512" r="3.6" fill="#E5484D"></circle>
+          <circle cx="196" cy="372" r="16" fill="none" stroke="rgba(76,141,255,.30)" stroke-width="1">
+            <animate attributeName="r" values="7;46" dur="5.2s" repeatCount="indefinite"></animate>
+            <animate attributeName="opacity" values=".55;0" dur="5.2s" repeatCount="indefinite"></animate>
+          </circle>
+          <circle cx="196" cy="372" r="16" fill="none" stroke="rgba(76,141,255,.30)" stroke-width="1">
+            <animate attributeName="r" values="7;46" dur="5.2s" begin="2.6s" repeatCount="indefinite"></animate>
+            <animate attributeName="opacity" values=".55;0" dur="5.2s" begin="2.6s" repeatCount="indefinite"></animate>
+          </circle>
+          <circle cx="196" cy="372" r="5" fill="#4C8DFF"></circle>
+          <circle r="2.6" fill="#7FADFF"><animateMotion path="M196 372 L262 168" dur="2.6s" repeatCount="indefinite"></animateMotion></circle>
+          <circle r="2.6" fill="#5FD69A"><animateMotion path="M196 372 L308 286" dur="3.1s" begin="0.6s" repeatCount="indefinite"></animateMotion></circle>
+          <circle r="2.6" fill="#5FD69A"><animateMotion path="M196 372 L84 258" dur="2.9s" begin="1.2s" repeatCount="indefinite"></animateMotion></circle>
+          <circle r="2.6" fill="#F0BC6A"><animateMotion path="M196 372 L96 470" dur="3.4s" begin="0.9s" repeatCount="indefinite"></animateMotion></circle>
+          <circle r="2.6" fill="#7FADFF"><animateMotion path="M196 372 L176 596" dur="3.2s" begin="1.7s" repeatCount="indefinite"></animateMotion></circle>
+        </svg>
+      </div>
+
+      <div style="position:relative;display:flex;flex-direction:column;gap:22px;max-width:520px;animation:lgLeft .55s cubic-bezier(.2,.8,.25,1) both">
+        <div style="display:flex;align-items:center;gap:11px">
+          <div style="width:10px;height:28px;background:#4C8DFF;border-radius:1px"></div>
+          <div>
+            <div style="font-size:16px;font-weight:700;letter-spacing:.11em">INFRA MONITOR</div>
+            <div style="font-size:10px;color:#63768A;letter-spacing:.11em;font-family:'IBM Plex Mono',monospace">NOC · SERGIPE</div>
+          </div>
+        </div>
+
+        <div style="font-size:32px;line-height:1.18;font-weight:600;letter-spacing:-.015em;color:#E7F0F9;text-wrap:pretty">Sesc Sergipe<br>Monitoramento</div>
+        <div style="font-size:13px;color:#8FA2B5;max-width:430px">11 unidades · 187 dispositivos</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:11px">
+          <span style="display:flex;align-items:center;gap:7px;padding:5px 11px;background:#0E151D;border:1px solid #1C2733;border-radius:999px;color:#34C77B"><span style="width:6px;height:6px;border-radius:50%;background:#34C77B;animation:pulseDot 2s ease-in-out infinite"></span>181 online</span>
+          <span style="display:flex;align-items:center;gap:7px;padding:5px 11px;background:#0E151D;border:1px solid #1C2733;border-radius:999px;color:#E8A33D"><span style="width:6px;height:6px;border-radius:50%;background:#E8A33D;animation:pulseDot 2s ease-in-out .4s infinite"></span>4 degradados</span>
+          <span style="display:flex;align-items:center;gap:7px;padding:5px 11px;background:#0E151D;border:1px solid #1C2733;border-radius:999px;color:#E5484D"><span style="width:6px;height:6px;border-radius:50%;background:#E5484D;animation:pulseDot 2s ease-in-out .8s infinite"></span>2 offline</span>
+        </div>
+
+        
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:28px">
+    <div style="width:380px;max-width:100%;animation:lgUp .5s cubic-bezier(.2,.8,.25,1) both">
+
+      <div style="background:#0E151D;border:1px solid #1C2733;border-radius:6px;padding:24px 26px 22px;box-shadow:0 26px 60px rgba(0,0,0,.42)">
+        <sc-if value="{{ lg.isLogin }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="font-size:16px;font-weight:600;color:#E7F0F9">Acesso ao monitoramento</div>
+            
+
+            <div style="margin-top:18px;display:flex;flex-direction:column;gap:13px">
+              <div>
+                <div style="font-size:10px;letter-spacing:.09em;color:#5A6B7E;font-weight:600;margin-bottom:5px">USUÁRIO OU E-MAIL</div>
+                <input value="{{ lg.user }}" onChange="{{ lg.onUser }}" onKeyDown="{{ lg.onKey }}" placeholder="rafael.menezes" style="width:100%;height:36px;padding:0 11px;background:#0B1118;border:1px solid {{ lg.bdUser }};border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#DCE9F8;transition:border-color .16s,box-shadow .16s" style-focus="border-color:rgba(76,141,255,.55);box-shadow:0 0 0 3px rgba(76,141,255,.14)">
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <span style="font-size:10px;letter-spacing:.09em;color:#5A6B7E;font-weight:600">SENHA</span>
+                  <button onClick="{{ lg.goRecover }}" style="background:transparent;border:0;padding:0;font-size:11px;color:#6C8098;cursor:pointer" style-hover="color:#9CC1FF">Esqueci minha senha</button>
+                </div>
+                <input type="password" value="{{ lg.pass }}" onChange="{{ lg.onPass }}" onKeyDown="{{ lg.onKey }}" placeholder="••••••••" style="width:100%;height:36px;padding:0 11px;background:#0B1118;border:1px solid {{ lg.bdPass }};border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#DCE9F8;transition:border-color .16s,box-shadow .16s" style-focus="border-color:rgba(76,141,255,.55);box-shadow:0 0 0 3px rgba(76,141,255,.14)">
+              </div>
+
+              <button onClick="{{ lg.toggleRemember }}" style="display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;cursor:pointer;text-align:left">
+                <span style="width:15px;height:15px;flex:0 0 15px;border-radius:3px;border:1px solid {{ lg.rmBd }};background:{{ lg.rmBg }};display:flex;align-items:center;justify-content:center;font-size:10px;color:#9CC1FF">{{ lg.rmMark }}</span>
+                <span style="font-size:12px;color:#A9BACB">Manter conectado neste computador</span>
+              </button>
+
+              <sc-if value="{{ lg.hasError }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:rgba(229,72,77,.07);border:1px solid rgba(229,72,77,.28);border-left:3px solid #E5484D;border-radius:4px;animation:shake .34s ease-out both">
+                  <span style="color:#E5484D;font-size:12px">✕</span>
+                  <div style="font-size:11.5px;color:#E4C4C5">{{ lg.error }}</div>
+                </div>
+              </sc-if>
+
+              <button onClick="{{ lg.submit }}" style="position:relative;overflow:hidden;height:38px;display:flex;align-items:center;justify-content:center;gap:9px;background:rgba(76,141,255,.16);border:1px solid rgba(76,141,255,.40);border-radius:4px;cursor:{{ lg.cursor }};font-size:13px;font-weight:600;color:#9CC1FF;transition:background .16s,transform .1s" style-hover="background:rgba(76,141,255,.26)" style-active="transform:translateY(1px)">
+                <sc-if value="{{ lg.busy }}" hint-placeholder-val="{{ false }}">
+                  <span style="width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(156,193,255,.28);border-top-color:#9CC1FF;animation:spin .7s linear infinite"></span>
+                </sc-if>
+                <span>{{ lg.cta }}</span>
+              </button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ lg.isRecover }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size:16px;font-weight:600;color:#E7F0F9">Recuperar senha</div>
+            <div style="font-size:11.5px;color:#6C7F93;margin-top:3px">Enviaremos um link de redefinição válido por 30 minutos.</div>
+            <div style="margin-top:18px;display:flex;flex-direction:column;gap:13px">
+              <div>
+                <div style="font-size:10px;letter-spacing:.09em;color:#5A6B7E;font-weight:600;margin-bottom:5px">E-MAIL CORPORATIVO</div>
+                <input value="{{ lg.mail }}" onChange="{{ lg.onMail }}" onKeyDown="{{ lg.onKeyRec }}" placeholder="nome.sobrenome@sesc.local" style="width:100%;height:36px;padding:0 11px;background:#0B1118;border:1px solid {{ lg.bdMail }};border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#DCE9F8;transition:border-color .16s,box-shadow .16s" style-focus="border-color:rgba(76,141,255,.55);box-shadow:0 0 0 3px rgba(76,141,255,.14)">
+              </div>
+              <sc-if value="{{ lg.hasError }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:rgba(229,72,77,.07);border:1px solid rgba(229,72,77,.28);border-left:3px solid #E5484D;border-radius:4px;animation:shake .34s ease-out both">
+                  <span style="color:#E5484D;font-size:12px">✕</span>
+                  <div style="font-size:11.5px;color:#E4C4C5">{{ lg.error }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ lg.sent }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:rgba(52,199,123,.07);border:1px solid rgba(52,199,123,.28);border-left:3px solid #34C77B;border-radius:4px;animation:tin .22s ease-out both">
+                  <span style="color:#34C77B;font-size:12px">✓</span>
+                  <div style="font-size:11.5px;color:#B9D8C6">{{ lg.sentMsg }}</div>
+                </div>
+              </sc-if>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ lg.sendLink }}" style="flex:1;height:38px;background:rgba(76,141,255,.16);border:1px solid rgba(76,141,255,.40);border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;color:#9CC1FF;transition:background .16s,transform .1s" style-hover="background:rgba(76,141,255,.26)" style-active="transform:translateY(1px)">Enviar link</button>
+                <button onClick="{{ lg.backLogin }}" style="height:36px;padding:0 14px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12.5px;color:#A9BACB" style-hover="background:#16202B">Voltar</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#4E5F72">
+        <span>{{ lg.hint }}</span>
+        <span>v0.9.0</span>
+      </div>
+    </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isAuthed }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;height:100vh;width:100%;overflow:hidden;background:#080C12;font-size:13px;line-height:1.45;color:#E4EBF3">
+
+  <aside style="width:224px;flex:0 0 224px;background:#0A1017;border-right:1px solid #18222E;display:flex;flex-direction:column">
+    <div style="height:56px;flex:0 0 56px;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid #18222E">
+      <div style="width:9px;height:20px;background:#4C8DFF;border-radius:1px"></div>
+      <div>
+        <div style="font-size:12.5px;font-weight:700;letter-spacing:.10em">INFRA MONITOR</div>
+        <div style="font-size:9.5px;color:#63768A;letter-spacing:.10em;font-family:'IBM Plex Mono',monospace">NOC · SERGIPE</div>
+      </div>
+    </div>
+
+    <nav style="flex:1;overflow-y:auto;padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:9.5px;color:#4E5F72;letter-spacing:.14em;font-weight:600;padding:0 8px 7px">OPERAÇÕES</div>
+      <sc-for list="{{ navOps }}" as="n" hint-placeholder-count="4">
+        <button onClick="{{ n.go }}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px 9px;border-radius:4px;border:1px solid transparent;cursor:pointer;font-size:12.5px;font-weight:500;background:{{ n.bg }};color:{{ n.fg }};border-color:{{ n.bd }}" style-hover="background:#141E28;color:#DCE7F2">
+          <span style="width:15px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{ n.ic }}">{{ n.glyph }}</span>
+          <span style="flex:1">{{ n.label }}</span>
+          <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:1px 5px;border-radius:9px;background:rgba(229,72,77,.16);color:#F2777B;border:1px solid rgba(229,72,77,.34)">{{ n.badge }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+
+      <div style="font-size:9.5px;color:#4E5F72;letter-spacing:.14em;font-weight:600;padding:16px 8px 7px">GERENCIAMENTO</div>
+      <button onClick="{{ goAdmin }}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px 9px;border-radius:4px;border:1px solid transparent;cursor:pointer;font-size:12.5px;font-weight:500;background:{{ adminNav.bg }};color:{{ adminNav.fg }};border-color:{{ adminNav.bd }}" style-hover="background:#141E28">
+        <span style="width:15px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{ adminNav.ic }}">⌗</span>
+        <span style="flex:1">Administração</span>
+      </button>
+      <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:1px;margin:3px 0 0 22px;border-left:1px solid #1B2632;padding-left:8px">
+          <sc-for list="{{ adminSections }}" as="s" hint-placeholder-count="8">
+            <button onClick="{{ s.go }}" style="text-align:left;padding:5px 8px;border-radius:3px;border:0;cursor:pointer;font-size:12px;background:{{ s.bg }};color:{{ s.fg }}" style-hover="background:#131C26;color:#D6E3EF">{{ s.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </nav>
+
+    <div style="padding:11px 13px;border-top:1px solid #18222E;background:#080D13">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#34C77B;box-shadow:0 0 7px rgba(52,199,123,.7)"></span>
+        <span style="font-size:11px;font-weight:600;color:#B6C6D6">Monitoramento ICMP ativo</span>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5A6B7E;line-height:1.7">
+        <div>intervalo 30 s · timeout 1200 ms</div>
+        <div>limite de falhas 3 · varredura {{ sweepTime }}</div>
+      </div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <header style="height:56px;flex:0 0 56px;border-bottom:1px solid #18222E;background:#0B1119;display:flex;align-items:center;gap:16px;padding:0 18px">
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:#7889A0;min-width:150px">
+        <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="2">
+          <span style="color:{{ c.color }};font-weight:{{ c.weight }}">{{ c.label }}</span>
+        </sc-for>
+      </div>
+
+      <div style="position:relative;flex:1;max-width:440px">
+        <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px">
+          <span style="color:#5B6C7F;font-size:12px">⌕</span>
+          <input value="{{ q }}" onChange="{{ onSearch }}" placeholder="Buscar equipamento, hostname, IP, MAC, patrimônio…" style="flex:1;background:transparent;border:0;font-size:12.5px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#4E5F72;border:1px solid #24313F;border-radius:3px;padding:1px 4px">⌘K</span>
+        </div>
+        <sc-if value="{{ showResults }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:38px;left:0;right:0;background:#0E151D;border:1px solid #24313F;border-radius:5px;box-shadow:0 18px 40px rgba(0,0,0,.55);z-index:60;overflow:hidden;animation:tin .12s ease-out">
+            <div style="padding:7px 11px;font-size:9.5px;letter-spacing:.12em;color:#5B6C7F;border-bottom:1px solid #1A242F;font-weight:600">{{ resultCount }} RESULTADOS</div>
+            <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+              <button onClick="{{ r.go }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 11px;background:transparent;border:0;border-bottom:1px solid #141D26;cursor:pointer" style-hover="background:#141E28">
+                <span style="width:7px;height:7px;border-radius:50%;flex:0 0 7px;background:{{ r.color }}"></span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;width:132px;color:#DDE8F3">{{ r.name }}</span>
+                <span style="font-size:11.5px;color:#7C8FA3;width:104px">{{ r.type }}</span>
+                <span style="font-size:11.5px;color:#94A6B8;flex:1">{{ r.unitName }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#7C8FA3">{{ r.ip }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1"></div>
+
+      <div style="display:flex;align-items:center;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px">
+        <sc-for list="{{ healthPills }}" as="p" hint-placeholder-count="3">
+          <span style="display:flex;align-items:center;gap:6px;color:{{ p.color }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.color }}"></span>{{ p.label }}</span>
+        </sc-for>
+      </div>
+      <div style="width:1px;height:24px;background:#1F2A36"></div>
+      <button onClick="{{ refresh }}" style="display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;cursor:pointer;font-size:11.5px;color:#A9BACB" style-hover="background:#16202B;border-color:#2C3B4C">
+        <span style="font-size:12px">↻</span><span style="font-family:'IBM Plex Mono',monospace">{{ sweepTime }}</span>
+      </button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;padding-left:2px">
+        <span id="im-clock" style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#D3DFEB;letter-spacing:.01em">--:--:--</span>
+        <span id="im-date" style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#63768A">--/--/----</span>
+      </div>
+      <button onClick="{{ toggleTheme }}" title="{{ themeTitle }}" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;cursor:pointer;font-size:13px;color:#A9BACB" style-hover="background:#16202B;border-color:#2C3B4C">{{ themeIcon }}</button>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:4px">
+        <div style="width:27px;height:27px;border-radius:4px;background:#16222F;border:1px solid #26343F;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#9DB2C6">RM</div>
+        <div style="line-height:1.25">
+          <div style="font-size:11.5px;font-weight:600;color:#D3DFEB">R. Menezes</div>
+          <div style="font-size:9.5px;color:#63768A;letter-spacing:.05em">ADMIN DE REDE</div>
+        </div>
+        <button onClick="{{ logout }}" title="Sair" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid #1F2A36;border-radius:4px;cursor:pointer;font-size:12px;color:#7C8FA3" style-hover="background:#16202B;color:#F2999C;border-color:#2C3B4C">⏻</button>
+      </div>
+    </header>
+
+    <main style="flex:1;min-height:0;overflow:auto;position:relative">
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:18px 22px 40px;min-width:1280px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Visão Geral da Infraestrutura</h1>
+              <div style="font-size:11.5px;color:#6C7F93;margin-top:3px;font-family:'IBM Plex Mono',monospace">11 unidades · 187 dispositivos monitorados · última varredura {{ sweepTime }}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ expandAll }}" style="height:30px;padding:0 11px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B;border-color:#2C3B4C">{{ expandLabel }}</button>
+              <button onClick="{{ goReports }}" style="height:30px;padding:0 11px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B;border-color:#2C3B4C">Relatório de disponibilidade</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:9px;margin-bottom:12px">
+            <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="8">
+              <div style="background:#0F161E;border:1px solid #1E2A36;border-top:2px solid {{ m.accent }};border-radius:4px;padding:9px 11px 10px">
+                <div style="font-size:9.5px;letter-spacing:.11em;color:#63768A;font-weight:600">{{ m.label }}</div>
+                <div style="font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:3px;font-family:'IBM Plex Mono',monospace;color:{{ m.color }}">{{ m.value }}</div>
+                <div style="font-size:10.5px;color:#5F7286;margin-top:1px">{{ m.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ hasAlert }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 13px;background:rgba(229,72,77,.07);border:1px solid rgba(229,72,77,.28);border-left:3px solid #E5484D;border-radius:4px;margin-bottom:14px">
+              <span style="color:#E5484D;font-size:13px">✕</span>
+              <div style="flex:1">
+                <div style="font-size:12.5px;font-weight:600;color:#F0DADB">{{ alertTitle }}</div>
+                <div style="font-size:11.5px;color:#A78E90;margin-top:1px">{{ alertBody }}</div>
+              </div>
+              <button onClick="{{ goIncidents }}" style="height:28px;padding:0 11px;background:rgba(229,72,77,.13);border:1px solid rgba(229,72,77,.36);border-radius:4px;cursor:pointer;font-size:11.5px;font-weight:500;color:#F2999C" style-hover="background:rgba(229,72,77,.22)">Incidentes abertos</button>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;width:250px">
+              <span style="color:#5B6C7F;font-size:12px">⌕</span>
+              <input value="{{ dashQ }}" onChange="{{ onDashQ }}" placeholder="Filtrar unidades ou equipamentos…" style="flex:1;background:transparent;border:0;font-size:12px">
+            </div>
+            <div style="display:flex;gap:4px;background:#0C1219;border:1px solid #1B2531;border-radius:4px;padding:3px">
+              <sc-for list="{{ typeChips }}" as="c" hint-placeholder-count="8">
+                <button onClick="{{ c.go }}" style="padding:4px 9px;border:0;border-radius:3px;cursor:pointer;font-size:11.5px;font-weight:500;background:{{ c.bg }};color:{{ c.fg }}" style-hover="color:#D5E2EF">{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:4px;background:#0C1219;border:1px solid #1B2531;border-radius:4px;padding:3px">
+              <sc-for list="{{ statusChips }}" as="c" hint-placeholder-count="4">
+                <button onClick="{{ c.go }}" style="display:flex;align-items:center;gap:5px;padding:4px 9px;border:0;border-radius:3px;cursor:pointer;font-size:11.5px;font-weight:500;background:{{ c.bg }};color:{{ c.fg }}" style-hover="color:#D5E2EF"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.dot }}"></span>{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <div style="font-size:11.5px;color:#63768A;font-family:'IBM Plex Mono',monospace">{{ dashCountLabel }}</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:44px minmax(210px,1.6fr) 132px 1.1fr 150px 96px 92px 86px 34px;gap:0;padding:0 12px 7px;font-size:9.5px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">
+            <div></div><div>UNIDADE</div><div>STATUS</div><div>COMPOSIÇÃO</div><div>DISPOSITIVOS</div><div style="text-align:right">DISPONIBILIDADE</div><div style="text-align:right">LATÊNCIA MÉDIA</div><div style="text-align:right">INCIDENTES</div><div></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ unitRows }}" as="u" hint-placeholder-count="6">
+              <div style="background:#0E151D;border:1px solid #1C2733;border-left:3px solid {{ u.color }};border-radius:4px;overflow:hidden">
+                <div onClick="{{ u.toggle }}" style="display:grid;grid-template-columns:41px minmax(210px,1.6fr) 132px 1.1fr 150px 96px 92px 86px 34px;align-items:center;padding:11px 12px;cursor:pointer" style-hover="background:#111A23">
+                  <div style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:4px;background:{{ u.bg }};border:1px solid {{ u.bd }};color:{{ u.color }};font-size:11px">{{ u.icon }}</div>
+                  <div style="min-width:0;padding-right:12px">
+                    <div style="font-size:13.5px;font-weight:600;color:#DFEAF5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</div>
+                    <div style="font-size:11px;color:#657889;font-family:'IBM Plex Mono',monospace">{{ u.meta }}</div>
+                  </div>
+                  <div>
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;color:{{ u.color }};background:{{ u.bg }};border:1px solid {{ u.bd }}">{{ u.icon }} {{ u.label }}</span>
+                  </div>
+                  <div style="padding-right:20px">
+                    <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:#182029;gap:1px">
+                      <div style="background:#34C77B;width:{{ u.pOn }}"></div>
+                      <div style="background:#E8A33D;width:{{ u.pDeg }}"></div>
+                      <div style="background:#E5484D;width:{{ u.pOff }}"></div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:11px;font-family:'IBM Plex Mono',monospace;font-size:11.5px">
+                    <span style="color:#34C77B">{{ u.online }}</span>
+                    <span style="color:{{ u.degColor }}">{{ u.degraded }}</span>
+                    <span style="color:{{ u.offColor }}">{{ u.offline }}</span>
+                    <span style="color:#4E5F72">/ {{ u.count }}</span>
+                  </div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:{{ u.availColor }}">{{ u.avail }}</div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:{{ u.latColor }}">{{ u.latency }}</div>
+                  <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:{{ u.incColor }}">{{ u.inc }}</div>
+                  <div style="text-align:center;color:#5B6C7F;font-size:11px">{{ u.chev }}</div>
+                </div>
+
+                <sc-if value="{{ u.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-top:1px solid #1A242F;background:#0B1118">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #161F29">
+                      <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">EQUIPAMENTOS · {{ u.shownLabel }}</div>
+                      <button onClick="{{ u.open2 }}" style="height:26px;padding:0 10px;background:#131C26;border:1px solid #22303E;border-radius:3px;cursor:pointer;font-size:11.5px;color:#9FB2C5" style-hover="background:#1A2733;color:#D5E2EF">Abrir unidade ↗</button>
+                    </div>
+                    <table style="width:100%;font-size:12px">
+                      <thead>
+                        <tr style="font-size:9.5px;letter-spacing:.1em;color:#54657A">
+                          <th style="text-align:left;padding:6px 14px;font-weight:600;width:38px"></th>
+                          <th style="text-align:left;padding:6px 8px;font-weight:600">NOME</th>
+                          <th style="text-align:left;padding:6px 8px;font-weight:600">TIPO</th>
+                          <th style="text-align:left;padding:6px 8px;font-weight:600">ENDEREÇO IP</th>
+                          <th style="text-align:left;padding:6px 8px;font-weight:600">STATUS</th>
+                          <th style="text-align:right;padding:6px 8px;font-weight:600">LATÊNCIA</th>
+                          <th style="text-align:right;padding:6px 8px;font-weight:600">DISPONIBILIDADE</th>
+                          <th style="text-align:right;padding:6px 14px;font-weight:600">ÚLTIMA VERIFICAÇÃO</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <sc-for list="{{ u.equip }}" as="e" hint-placeholder-count="4">
+                          <tr onClick="{{ e.open }}" style="cursor:pointer;border-bottom:1px solid #131C25" style-hover="background:#111A23">
+                            <td style="padding:7px 14px;width:38px"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{{ e.color }}"></span></td>
+                            <td style="padding:7px 8px;font-family:'IBM Plex Mono',monospace;font-weight:500;color:#D9E5F1;width:170px">{{ e.name }}</td>
+                            <td style="padding:7px 8px;color:#8397AA;width:150px">{{ e.type }}</td>
+                            <td style="padding:7px 8px;font-family:'IBM Plex Mono',monospace;color:#7D91A5;width:150px">{{ e.ip }}</td>
+                            <td style="padding:7px 8px;width:130px"><span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;padding:2px 6px;border-radius:3px;color:{{ e.color }};background:{{ e.bg }};border:1px solid {{ e.bd }}">{{ e.icon }} {{ e.label }}</span></td>
+                            <td style="padding:7px 8px;font-family:'IBM Plex Mono',monospace;text-align:right;width:90px;color:{{ e.latColor }}">{{ e.lat }}</td>
+                            <td style="padding:7px 8px;font-family:'IBM Plex Mono',monospace;text-align:right;width:90px;color:#8397AA">{{ e.avail }}</td>
+                            <td style="padding:7px 14px;text-align:right;color:#5E7185;font-size:11px">{{ e.check }}</td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;display:flex">
+          <div style="flex:1;position:relative;min-width:0">
+            <iframe id="infra-map-frame" src="./sergipe-map.html" style="position:absolute;inset:0;width:100%;height:100%;border:0;display:block"></iframe>
+            <div style="position:absolute;left:14px;top:14px;z-index:5;background:rgba(10,16,23,.9);border:1px solid #1F2A36;border-radius:4px;padding:10px 13px;backdrop-filter:blur(4px)">
+              <div style="font-size:9.5px;letter-spacing:.12em;color:#5A6B7E;font-weight:600">STATUS GEOGRÁFICO · SERGIPE</div>
+              <div style="display:flex;gap:16px;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px">
+                <sc-for list="{{ mapCounts }}" as="c" hint-placeholder-count="4">
+                  <span style="display:flex;align-items:center;gap:6px;color:{{ c.color }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ c.color }}"></span>{{ c.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <aside style="width:360px;flex:0 0 360px;border-left:1px solid #18222E;background:#0B1119;display:flex;flex-direction:column;overflow:hidden">
+            <div style="padding:14px 16px;border-bottom:1px solid #18222E">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="font-size:9.5px;letter-spacing:.12em;color:#5A6B7E;font-weight:600">UNIDADE SELECIONADA</div>
+                <button onClick="{{ fitMap }}" style="background:transparent;border:0;color:#6C8098;font-size:11px;cursor:pointer" style-hover="color:#A9BACB">Restaurar visão</button>
+              </div>
+              <div style="font-size:16px;font-weight:600;margin-top:7px;color:#E7F0F9">{{ mu.name }}</div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:5px">
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;color:{{ mu.color }};background:{{ mu.bg }};border:1px solid {{ mu.bd }}">{{ mu.icon }} {{ mu.label }}</span>
+                <span style="font-size:11.5px;color:#6C7F93">{{ mu.city }}</span>
+              </div>
+              <div style="font-size:11px;color:#5E7185;margin-top:6px;font-family:'IBM Plex Mono',monospace">{{ mu.addr }}</div>
+            </div>
+
+            <div style="padding:14px 16px;border-bottom:1px solid #18222E">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+                <sc-for list="{{ mu.stats }}" as="s" hint-placeholder-count="6">
+                  <div style="background:#0F161E;border:1px solid #1C2733;border-radius:4px;padding:8px 9px">
+                    <div style="font-size:9px;letter-spacing:.09em;color:#5A6B7E;font-weight:600">{{ s.label }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;margin-top:2px;color:{{ s.color }}">{{ s.value }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:11px">
+                <button onClick="{{ mu.openUnit }}" style="flex:1;height:32px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12.5px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">Ver unidade</button>
+                <button onClick="{{ mu.openInc }}" style="height:32px;padding:0 12px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12.5px;color:#A9BACB" style-hover="background:#16202B">Incidentes</button>
+              </div>
+            </div>
+
+            <div style="padding:11px 16px 7px;font-size:9.5px;letter-spacing:.12em;color:#5A6B7E;font-weight:600">EQUIPAMENTOS AFETADOS</div>
+            <div style="flex:1;overflow-y:auto;padding:0 10px 12px">
+              <sc-for list="{{ mu.problems }}" as="p" hint-placeholder-count="2">
+                <button onClick="{{ p.go }}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 9px;margin-bottom:4px;background:#0F161E;border:1px solid #1C2733;border-left:2px solid {{ p.color }};border-radius:4px;cursor:pointer" style-hover="background:#141E28">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#DBE7F3">{{ p.name }}</div>
+                    <div style="font-size:11px;color:#6C7F93">{{ p.type }} · {{ p.ip }}</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:{{ p.color }}">{{ p.lat }}</div>
+                    <div style="font-size:10px;color:#5E7185">{{ p.check }}</div>
+                  </div>
+                </button>
+              </sc-for>
+              <sc-if value="{{ mu.healthy }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:26px 16px;color:#5E7185">
+                  <span style="font-size:18px;color:#2E6B4E">●</span>
+                  <div style="font-size:12px;color:#7C8FA3">Todos os equipamentos saudáveis</div>
+                  <div style="font-size:11px;text-align:center">Nenhum dispositivo degradado ou offline nesta unidade nas últimas 24 horas.</div>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="border-top:1px solid #18222E;max-height:230px;overflow-y:auto">
+              <div style="padding:9px 16px 6px;font-size:9.5px;letter-spacing:.12em;color:#5A6B7E;font-weight:600">TODAS AS UNIDADES</div>
+              <sc-for list="{{ mapUnits }}" as="u" hint-placeholder-count="6">
+                <button onClick="{{ u.go }}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:6px 16px;background:{{ u.bg2 }};border:0;border-left:2px solid {{ u.selBd }};cursor:pointer" style-hover="background:#131C26">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ u.color }}"></span>
+                  <span style="flex:1;font-size:12px;color:#B7C7D8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6C7F93">{{ u.avail }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </aside>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isUnit }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:16px 22px 40px;min-width:1280px">
+          <button onClick="{{ backDash }}" style="background:transparent;border:0;color:#6C8098;font-size:11.5px;cursor:pointer;padding:0;margin-bottom:10px" style-hover="color:#A9BACB">← Voltar ao painel</button>
+
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding-bottom:14px;border-bottom:1px solid #1A242F">
+            <div style="min-width:0">
+              <div style="display:flex;align-items:center;gap:11px">
+                <h1 style="margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em">{{ ud.name }}</h1>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.07em;color:{{ ud.color }};background:{{ ud.bg }};border:1px solid {{ ud.bd }}">{{ ud.icon }} {{ ud.label }}</span>
+              </div>
+              <div style="font-size:11.5px;color:#6C7F93;margin-top:4px;font-family:'IBM Plex Mono',monospace">{{ ud.code }} · {{ ud.city }}/SE · {{ ud.addr }} · {{ ud.coords }}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex:0 0 auto">
+              <button onClick="{{ ud.newEquip }}" style="height:31px;padding:0 12px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">+ Novo equipamento</button>
+              <button onClick="{{ ud.schedule }}" style="height:31px;padding:0 12px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Agendar manutenção</button>
+              <button onClick="{{ ud.edit }}" style="height:31px;padding:0 12px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Editar unidade</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ ud.maintActive }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 13px;margin-top:12px;background:rgba(76,141,255,.07);border:1px solid rgba(76,141,255,.28);border-left:3px solid #4C8DFF;border-radius:4px">
+              <span style="color:#4C8DFF">⚙</span>
+              <div style="font-size:12px;color:#B9CFEE">Janela de manutenção ativa · {{ ud.maintText }} — disponibilidade excluída do SLA neste período.</div>
+            </div>
+          </sc-if>
+
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px;margin:14px 0">
+            <sc-for list="{{ ud.stats }}" as="s" hint-placeholder-count="7">
+              <div style="background:#0F161E;border:1px solid #1E2A36;border-top:2px solid {{ s.accent }};border-radius:4px;padding:9px 11px">
+                <div style="font-size:9.5px;letter-spacing:.11em;color:#63768A;font-weight:600">{{ s.label }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;margin-top:2px;color:{{ s.color }}">{{ s.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:2px;border-bottom:1px solid #1A242F;margin-bottom:14px">
+            <sc-for list="{{ ud.tabs }}" as="t" hint-placeholder-count="5">
+              <button onClick="{{ t.go }}" style="padding:8px 14px;background:transparent;border:0;border-bottom:2px solid {{ t.bd }};cursor:pointer;font-size:12.5px;font-weight:{{ t.w }};color:{{ t.fg }}" style-hover="color:#D5E2EF">{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ ud.tabOverview }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:14px">
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px">
+                <div style="padding:10px 14px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">DISPOSITIVOS COM MAIOR LATÊNCIA</div>
+                <sc-for list="{{ ud.topLat }}" as="e" hint-placeholder-count="5">
+                  <button onClick="{{ e.go }}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:8px 14px;background:transparent;border:0;border-bottom:1px solid #141D26;cursor:pointer" style-hover="background:#121B24">
+                    <span style="width:7px;height:7px;border-radius:50%;background:{{ e.color }}"></span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#DBE7F3;width:150px">{{ e.name }}</span>
+                    <span style="font-size:11.5px;color:#7C8FA3;width:130px">{{ e.type }}</span>
+                    <div style="flex:1;height:5px;background:#161F29;border-radius:3px;overflow:hidden"><div style="height:100%;background:{{ e.color }};width:{{ e.pct }}"></div></div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{ e.color }};width:66px;text-align:right">{{ e.lat }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px">
+                  <div style="padding:10px 14px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">EQUIPAMENTOS POR TIPO</div>
+                  <div style="padding:11px 14px;display:flex;flex-direction:column;gap:7px">
+                    <sc-for list="{{ ud.byType }}" as="t" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="font-size:11.5px;color:#8FA2B5;width:120px">{{ t.label }}</span>
+                        <div style="flex:1;height:6px;background:#161F29;border-radius:3px;overflow:hidden"><div style="height:100%;background:#2E5C8A;width:{{ t.pct }}"></div></div>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#B7C7D8;width:24px;text-align:right">{{ t.n }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;flex:1">
+                  <div style="padding:10px 14px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">INCIDENTES RECENTES</div>
+                  <sc-for list="{{ ud.incidents }}" as="i" hint-placeholder-count="3">
+                    <button onClick="{{ i.go }}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 14px;background:transparent;border:0;border-bottom:1px solid #141D26;cursor:pointer" style-hover="background:#121B24">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6C7F93;width:120px">{{ i.id }}</span>
+                      <span style="flex:1;font-size:12px;color:#C9D8E7">{{ i.event }}</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:3px;color:{{ i.color }};background:{{ i.bg }};border:1px solid {{ i.bd }}">{{ i.status }}</span>
+                    </button>
+                  </sc-for>
+                  <sc-if value="{{ ud.noIncidents }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:24px;text-align:center;font-size:11.5px;color:#5E7185">Nenhum incidente registrado nesta unidade nos últimos 30 dias.</div>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ud.tabEquip }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+                <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;width:230px">
+                  <span style="color:#5B6C7F;font-size:12px">⌕</span>
+                  <input value="{{ ueQ }}" onChange="{{ onUeQ }}" placeholder="Buscar equipamento…" style="flex:1;background:transparent;border:0;font-size:12px">
+                </div>
+                <select value="{{ ueType }}" onChange="{{ onUeType }}" style="height:30px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8;cursor:pointer">
+                  <sc-for list="{{ typeOptions }}" as="o" hint-placeholder-count="10"><option value="{{ o.v }}">{{ o.l }}</option></sc-for>
+                </select>
+                <select value="{{ ueStatus }}" onChange="{{ onUeStatus }}" style="height:30px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8;cursor:pointer">
+                  <sc-for list="{{ statusOptions }}" as="o" hint-placeholder-count="6"><option value="{{ o.v }}">{{ o.l }}</option></sc-for>
+                </select>
+                <div style="flex:1"></div>
+                <div style="font-size:11.5px;color:#63768A;font-family:'IBM Plex Mono',monospace">{{ ud.equipCount }}</div>
+                <button onClick="{{ ud.newEquip }}" style="height:30px;padding:0 12px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">+ Novo equipamento</button>
+              </div>
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;overflow:hidden">
+                <table style="width:100%;font-size:12px">
+                  <thead>
+                    <tr style="font-size:9.5px;letter-spacing:.1em;color:#54657A;background:#0B1118;border-bottom:1px solid #1A242F">
+                      <th style="text-align:left;padding:8px 14px;font-weight:600">NOME</th>
+                      <th style="text-align:left;padding:8px 8px;font-weight:600">TIPO</th>
+                      <th style="text-align:left;padding:8px 8px;font-weight:600">HOSTNAME</th>
+                      <th style="text-align:left;padding:8px 8px;font-weight:600">ENDEREÇO IP</th>
+                      <th style="text-align:left;padding:8px 8px;font-weight:600">STATUS</th>
+                      <th style="text-align:right;padding:8px 8px;font-weight:600">LATÊNCIA</th>
+                      <th style="text-align:right;padding:8px 8px;font-weight:600">DISPONIBILIDADE</th>
+                      <th style="text-align:right;padding:8px 8px;font-weight:600">ÚLTIMA VERIFICAÇÃO</th>
+                      <th style="text-align:right;padding:8px 14px;font-weight:600">AÇÕES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ ud.equip }}" as="e" hint-placeholder-count="8">
+                      <tr onClick="{{ e.go }}" style="cursor:pointer;border-bottom:1px solid #131C25" style-hover="background:#121B24">
+                        <td style="padding:8px 14px"><span style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:{{ e.color }}"></span><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#DBE7F3">{{ e.name }}</span></span></td>
+                        <td style="padding:8px 8px;color:#8397AA">{{ e.type }}</td>
+                        <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#7D91A5">{{ e.host }}</td>
+                        <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#7D91A5">{{ e.ip }}</td>
+                        <td style="padding:8px 8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;padding:2px 6px;border-radius:3px;color:{{ e.color }};background:{{ e.bg }};border:1px solid {{ e.bd }}">{{ e.icon }} {{ e.label }}</span></td>
+                        <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:{{ e.latColor }}">{{ e.lat }}</td>
+                        <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ e.avail }}</td>
+                        <td style="padding:8px 8px;text-align:right;color:#5E7185;font-size:11px">{{ e.check }}</td>
+                        <td style="padding:8px 14px;text-align:right"><span style="color:#5B6C7F;font-size:13px">⋯</span></td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <sc-if value="{{ ud.equipEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:38px;text-align:center">
+                    <div style="font-size:13px;color:#8FA2B5;font-weight:500">Nenhum equipamento corresponde aos filtros</div>
+                    <div style="font-size:11.5px;color:#5E7185;margin-top:4px">Limpe a busca ou escolha outro tipo de equipamento.</div>
+                    <button onClick="{{ ud.clearFilters }}" style="margin-top:11px;height:28px;padding:0 12px;background:#131C26;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:11.5px;color:#A9BACB">Limpar filtros</button>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ud.tabIncidents }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;overflow:hidden">
+              <table style="width:100%;font-size:12px">
+                <thead>
+                  <tr style="font-size:9.5px;letter-spacing:.1em;color:#54657A;background:#0B1118;border-bottom:1px solid #1A242F">
+                    <th style="text-align:left;padding:8px 14px;font-weight:600">INCIDENTE</th>
+                    <th style="text-align:left;padding:8px 8px;font-weight:600">EQUIPAMENTO</th>
+                    <th style="text-align:left;padding:8px 8px;font-weight:600">EVENTO</th>
+                    <th style="text-align:left;padding:8px 8px;font-weight:600">INÍCIO</th>
+                    <th style="text-align:left;padding:8px 8px;font-weight:600">DURAÇÃO</th>
+                    <th style="text-align:right;padding:8px 14px;font-weight:600">STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ ud.incFull }}" as="i" hint-placeholder-count="3">
+                    <tr onClick="{{ i.go }}" style="cursor:pointer;border-bottom:1px solid #131C25" style-hover="background:#121B24">
+                      <td style="padding:8px 14px;font-family:'IBM Plex Mono',monospace;color:#9CC1FF">{{ i.id }}</td>
+                      <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#DBE7F3">{{ i.equip }}</td>
+                      <td style="padding:8px 8px;color:#B7C7D8">{{ i.event }}</td>
+                      <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ i.start }}</td>
+                      <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ i.dur }}</td>
+                      <td style="padding:8px 14px;text-align:right"><span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:3px;color:{{ i.color }};background:{{ i.bg }};border:1px solid {{ i.bd }}">{{ i.status }}</span></td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ud.tabHistory }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px">
+              <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:14px">DISPONIBILIDADE DIÁRIA · ÚLTIMOS 30 DIAS</div>
+              <div style="display:flex;align-items:flex-end;gap:3px;height:150px">
+                <sc-for list="{{ ud.history }}" as="h" hint-placeholder-count="30">
+                  <div title="{{ h.title }}" style="flex:1;height:{{ h.h }};background:{{ h.color }};border-radius:1px;min-width:4px"></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5A6B7E">
+                <span>16/07</span><span>25/07</span><span>04/08</span><span>14/08</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ud.tabSettings }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:1000px">
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px">
+                <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:13px">CADASTRO DA UNIDADE</div>
+                <sc-for list="{{ ud.fields }}" as="f" hint-placeholder-count="7">
+                  <div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #141D26">
+                    <span style="font-size:11.5px;color:#6C7F93;width:130px">{{ f.label }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#C9D8E7">{{ f.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px;height:fit-content">
+                <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:13px">ZONA DE RISCO</div>
+                <div style="font-size:12px;color:#8FA2B5;margin-bottom:11px">Desativar a unidade interrompe o monitoramento ICMP dos seus {{ ud.count }} dispositivos e suprime os alertas do Telegram. O histórico é preservado.</div>
+                <button onClick="{{ ud.disable }}" style="height:31px;padding:0 13px;background:rgba(229,72,77,.10);border:1px solid rgba(229,72,77,.34);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#F2999C" style-hover="background:rgba(229,72,77,.20)">Desativar unidade</button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isInc }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px 22px 40px;min-width:1280px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Incidentes</h1>
+              <div style="font-size:11.5px;color:#6C7F93;margin-top:3px;font-family:'IBM Plex Mono',monospace">{{ incSummary }}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px;flex-wrap:wrap">
+            <div style="display:flex;gap:4px;background:#0C1219;border:1px solid #1B2531;border-radius:4px;padding:3px">
+              <sc-for list="{{ incTabs }}" as="t" hint-placeholder-count="4">
+                <button onClick="{{ t.go }}" style="display:flex;align-items:center;gap:6px;padding:5px 11px;border:0;border-radius:3px;cursor:pointer;font-size:12px;font-weight:500;background:{{ t.bg }};color:{{ t.fg }}" style-hover="color:#D5E2EF">{{ t.label }}<span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:{{ t.nc }}">{{ t.n }}</span></button>
+              </sc-for>
+            </div>
+            <select value="{{ incUnit }}" onChange="{{ onIncUnit }}" style="height:30px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8;cursor:pointer">
+              <sc-for list="{{ unitOptions }}" as="o" hint-placeholder-count="12"><option value="{{ o.v }}">{{ o.l }}</option></sc-for>
+            </select>
+            <select value="{{ incSev }}" onChange="{{ onIncSev }}" style="height:30px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8;cursor:pointer">
+              <sc-for list="{{ sevOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for>
+            </select>
+            <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#8FA2B5">
+              <span style="color:#5B6C7F">▤</span> 14/08/2026 — 14/08/2026
+            </div>
+            <div style="flex:1"></div>
+            <div style="font-size:11.5px;color:#63768A;font-family:'IBM Plex Mono',monospace">{{ incCount }}</div>
+          </div>
+
+          <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;overflow:hidden">
+            <table style="width:100%;font-size:12px">
+              <thead>
+                <tr style="font-size:9.5px;letter-spacing:.1em;color:#54657A;background:#0B1118;border-bottom:1px solid #1A242F">
+                  <th style="text-align:left;padding:8px 14px;font-weight:600">SEV</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">INCIDENTE</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">UNIDADE</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">EQUIPAMENTO</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">EVENTO</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">INÍCIO</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">DURAÇÃO</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">NOTIFICADO</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600">STATUS</th>
+                  <th style="text-align:right;padding:8px 14px;font-weight:600">AÇÕES</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ incRows }}" as="i" hint-placeholder-count="6">
+                  <tr onClick="{{ i.go }}" style="cursor:pointer;border-bottom:1px solid #131C25" style-hover="background:#121B24">
+                    <td style="padding:8px 14px"><span style="display:block;width:3px;height:20px;border-radius:2px;background:{{ i.sevColor }}"></span></td>
+                    <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#9CC1FF">{{ i.id }}</td>
+                    <td style="padding:8px 8px;color:#C9D8E7">{{ i.unit }}</td>
+                    <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#DBE7F3">{{ i.equip }}</td>
+                    <td style="padding:8px 8px"><span style="display:inline-flex;align-items:center;gap:6px;color:#B7C7D8"><span style="color:{{ i.sevColor }}">{{ i.sevIcon }}</span>{{ i.event }}</span></td>
+                    <td style="padding:8px 8px;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ i.start }}</td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:{{ i.durColor }}">{{ i.dur }}</td>
+                    <td style="padding:8px 8px;font-size:11px;color:#6C8098">{{ i.notified }}</td>
+                    <td style="padding:8px 8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.06em;padding:2px 6px;border-radius:3px;color:{{ i.color }};background:{{ i.bg }};border:1px solid {{ i.bd }}">{{ i.status }}</span></td>
+                    <td style="padding:8px 14px;text-align:right">
+                      <sc-if value="{{ i.canAck }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ i.ack }}" style="height:24px;padding:0 9px;background:#131C26;border:1px solid #22303E;border-radius:3px;cursor:pointer;font-size:11px;color:#A9BACB" style-hover="background:#1B2836;color:#DCE9F8">Reconhecer</button>
+                      </sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <sc-if value="{{ incEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:44px;text-align:center">
+                <div style="font-size:16px;color:#2E6B4E;margin-bottom:6px">●</div>
+                <div style="font-size:13px;color:#8FA2B5;font-weight:500">Nenhum incidente corresponde aos filtros</div>
+                <div style="font-size:11.5px;color:#5E7185;margin-top:4px">A infraestrutura está operando dentro dos limites no escopo selecionado.</div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isRep }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px 22px 40px;min-width:1280px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Relatórios de Disponibilidade</h1>
+              <div style="font-size:11.5px;color:#6C7F93;margin-top:3px;font-family:'IBM Plex Mono',monospace">{{ repPeriod }} · 11 unidades · 187 dispositivos</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ exportCsv }}" style="height:31px;padding:0 12px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">↓ Exportar CSV</button>
+              <button onClick="{{ exportPdf }}" style="height:31px;padding:0 12px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Gerar PDF</button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:9px;padding:11px 13px;background:#0E151D;border:1px solid #1C2733;border-radius:4px;margin-bottom:12px;flex-wrap:wrap">
+            <span style="font-size:9.5px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">PERÍODO</span>
+            <div style="display:flex;gap:4px;background:#0B1118;border:1px solid #1B2531;border-radius:4px;padding:3px">
+              <sc-for list="{{ repRanges }}" as="r" hint-placeholder-count="4">
+                <button onClick="{{ r.go }}" style="padding:4px 10px;border:0;border-radius:3px;cursor:pointer;font-size:11.5px;font-weight:500;background:{{ r.bg }};color:{{ r.fg }}" style-hover="color:#D5E2EF">{{ r.label }}</button>
+              </sc-for>
+            </div>
+            <div style="width:1px;height:22px;background:#1F2A36"></div>
+            <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#B7C7D8">{{ repStart }} <span style="color:#4E5F72">→</span> {{ repEnd }}</div>
+            <select value="{{ repUnit }}" onChange="{{ onRepUnit }}" style="height:30px;padding:0 8px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8;cursor:pointer">
+              <sc-for list="{{ unitOptions }}" as="o" hint-placeholder-count="12"><option value="{{ o.v }}">{{ o.l }}</option></sc-for>
+            </select>
+            <select value="{{ repType }}" onChange="{{ onRepType }}" style="height:30px;padding:0 8px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8;cursor:pointer">
+              <sc-for list="{{ typeOptions }}" as="o" hint-placeholder-count="10"><option value="{{ o.v }}">{{ o.l }}</option></sc-for>
+            </select>
+            <div style="flex:1"></div>
+            <div style="font-size:11px;color:#5E7185">Meta de SLA 99,50% · janelas de manutenção excluídas da coluna SLA</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px;margin-bottom:12px">
+            <sc-for list="{{ repSummary }}" as="s" hint-placeholder-count="7">
+              <div style="background:#0F161E;border:1px solid #1E2A36;border-top:2px solid {{ s.accent }};border-radius:4px;padding:9px 11px">
+                <div style="font-size:9.5px;letter-spacing:.11em;color:#63768A;font-weight:600">{{ s.label }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;margin-top:2px;color:{{ s.color }}">{{ s.value }}</div>
+                <div style="font-size:10.5px;color:#5F7286">{{ s.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;overflow:hidden">
+            <table style="width:100%;font-size:12px">
+              <thead>
+                <tr style="font-size:9.5px;letter-spacing:.1em;color:#54657A;background:#0B1118;border-bottom:1px solid #1A242F">
+                  <th style="text-align:left;padding:8px 14px;font-weight:600">UNIDADE</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">DISPONIBILIDADE</th>
+                  <th style="text-align:left;padding:8px 8px;font-weight:600;width:170px">SLA</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">EXCL. MANUTENÇÃO</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">INDISPONIBILIDADE</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">MANUT. DECLARADA</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">INCIDENTES</th>
+                  <th style="text-align:right;padding:8px 8px;font-weight:600">MAIOR INCIDENTE</th>
+                  <th style="text-align:right;padding:8px 14px;font-weight:600">LATÊNCIA MÉDIA</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ repRows }}" as="r" hint-placeholder-count="11">
+                  <tr onClick="{{ r.go }}" style="cursor:pointer;border-bottom:1px solid #131C25" style-hover="background:#121B24">
+                    <td style="padding:8px 14px"><span style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:{{ r.color }}"></span><span style="color:#DBE7F3">{{ r.unit }}</span><span style="font-size:11px;color:#5E7185">{{ r.city }}</span></span></td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:{{ r.availColor }}">{{ r.availRaw }}</td>
+                    <td style="padding:8px 8px"><div style="height:6px;background:#161F29;border-radius:3px;overflow:hidden"><div style="height:100%;background:{{ r.barColor }};width:{{ r.bar }}"></div></div></td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#B7C7D8">{{ r.availSla }}</td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ r.down }}</td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#6C8098">{{ r.maint }}</td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#B7C7D8">{{ r.inc }}</td>
+                    <td style="padding:8px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ r.largest }}</td>
+                    <td style="padding:8px 14px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#8397AA">{{ r.lat }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+              <tfoot>
+                <tr style="background:#0B1118;border-top:1px solid #1F2A36;font-weight:600">
+                  <td style="padding:9px 14px;color:#C9D8E7">Consolidado · 11 unidades</td>
+                  <td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#34C77B">{{ repTotalAvail }}</td>
+                  <td></td>
+                  <td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#B7C7D8">{{ repTotalSla }}</td>
+                  <td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#B7C7D8">{{ repTotalDown }}</td>
+                  <td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#6C8098">{{ repTotalMaint }}</td>
+                  <td style="padding:9px 8px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#B7C7D8">{{ repTotalInc }}</td>
+                  <td></td>
+                  <td style="padding:9px 14px;text-align:right;font-family:'IBM Plex Mono',monospace;color:#B7C7D8">{{ repTotalLat }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isAdminScreen }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:18px 22px 40px;min-width:1280px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">{{ ad.title }}</h1>
+              <div style="font-size:11.5px;color:#6C7F93;margin-top:3px">{{ ad.sub }}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <sc-if value="{{ ad.hasPrimary }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ ad.primary }}" style="height:31px;padding:0 12px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">{{ ad.primaryLabel }}</button>
+              </sc-if>
+            </div>
+          </div>
+
+          <sc-if value="{{ ad.isTable }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+                <div style="display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;background:#0F161E;border:1px solid #1F2A36;border-radius:4px;width:260px">
+                  <span style="color:#5B6C7F;font-size:12px">⌕</span>
+                  <input value="{{ adminQ }}" onChange="{{ onAdminQ }}" placeholder="{{ ad.searchPlaceholder }}" style="flex:1;background:transparent;border:0;font-size:12px">
+                </div>
+                <div style="flex:1"></div>
+                <div style="font-size:11.5px;color:#63768A;font-family:'IBM Plex Mono',monospace">{{ ad.count }}</div>
+              </div>
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;overflow:hidden">
+                <table style="width:100%;font-size:12px">
+                  <thead>
+                    <tr style="font-size:9.5px;letter-spacing:.1em;color:#54657A;background:#0B1118;border-bottom:1px solid #1A242F">
+                      <sc-for list="{{ ad.cols }}" as="c" hint-placeholder-count="6">
+                        <th style="padding:8px 12px;font-weight:600;text-align:{{ c.align }}">{{ c.label }}</th>
+                      </sc-for>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ ad.rows }}" as="r" hint-placeholder-count="8">
+                      <tr onClick="{{ r.go }}" style="cursor:{{ r.cursor }};border-bottom:1px solid #131C25" style-hover="background:#121B24">
+                        <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+                          <td style="padding:8px 12px;text-align:{{ c.align }}">
+                            <sc-if value="{{ c.isBadge }}" hint-placeholder-val="{{ false }}">
+                              <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.06em;padding:2px 6px;border-radius:3px;color:{{ c.color }};background:{{ c.bg }};border:1px solid {{ c.bd }}">{{ c.text }}</span>
+                            </sc-if>
+                            <sc-if value="{{ c.isText }}" hint-placeholder-val="{{ true }}">
+                              <span style="font-family:{{ c.font }};color:{{ c.color }};font-size:{{ c.size }}">{{ c.text }}</span>
+                            </sc-if>
+                            <sc-if value="{{ c.isActions }}" hint-placeholder-val="{{ false }}">
+                              <span style="display:inline-flex;gap:6px;justify-content:flex-end">
+                                <sc-for list="{{ c.actions }}" as="a" hint-placeholder-count="2">
+                                  <button onClick="{{ a.go }}" style="height:24px;padding:0 9px;background:#131C26;border:1px solid #22303E;border-radius:3px;cursor:pointer;font-size:11px;color:{{ a.color }}" style-hover="background:#1B2836">{{ a.label }}</button>
+                                </sc-for>
+                              </span>
+                            </sc-if>
+                          </td>
+                        </sc-for>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;font-size:11.5px;color:#6C7F93">
+                <span>{{ ad.count }}</span>
+                <div style="display:flex;gap:4px">
+                  <button style="height:26px;min-width:26px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:3px;color:#5E7185;font-size:11px">‹</button>
+                  <button style="height:26px;min-width:26px;padding:0 8px;background:#1B2836;border:1px solid #2A3D50;border-radius:3px;color:#DCE9F8;font-size:11px">1</button>
+                  <button style="height:26px;min-width:26px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:3px;color:#8FA2B5;font-size:11px">2</button>
+                  <button style="height:26px;min-width:26px;padding:0 8px;background:#0F161E;border:1px solid #1F2A36;border-radius:3px;color:#8FA2B5;font-size:11px">›</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ad.isTelegram }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:14px;max-width:1180px">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div>
+                      <div style="font-size:14px;font-weight:600;color:#E7F0F9">Telegram Bot</div>
+                      <div style="font-size:11.5px;color:#6C7F93;margin-top:2px;font-family:'IBM Plex Mono',monospace">@infra_monitor_sesc_bot · webhook ativo</div>
+                    </div>
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.07em;color:#34C77B;background:rgba(52,199,123,.10);border:1px solid rgba(52,199,123,.32)">● CONECTADO</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px">
+                    <div>
+                      <div style="font-size:10px;letter-spacing:.09em;color:#5A6B7E;font-weight:600;margin-bottom:5px">IDENTIFICAÇÃO DO BOT</div>
+                      <div style="height:31px;display:flex;align-items:center;padding:0 10px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#B7C7D8">infra-monitor-bot · id 78••••31</div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;letter-spacing:.09em;color:#5A6B7E;font-weight:600;margin-bottom:5px">DESTINO PADRÃO</div>
+                      <div style="height:31px;display:flex;align-items:center;padding:0 10px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#B7C7D8">Grupo «TI · Alertas Infraestrutura»</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:11px;margin-top:14px;padding-top:13px;border-top:1px solid #1A242F">
+                    <button onClick="{{ ad.toggleTg }}" style="width:38px;height:21px;border-radius:11px;border:1px solid {{ ad.tgBd }};background:{{ ad.tgBg }};cursor:pointer;position:relative;padding:0">
+                      <span style="position:absolute;top:2px;left:{{ ad.tgX }};width:15px;height:15px;border-radius:50%;background:{{ ad.tgKnob }};transition:left .14s"></span>
+                    </button>
+                    <span style="font-size:12.5px;color:#C9D8E7">Integração {{ ad.tgState }}</span>
+                    <div style="flex:1"></div>
+                    <button onClick="{{ ad.testTg }}" style="height:30px;padding:0 13px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">Testar integração</button>
+                  </div>
+                  <div style="font-size:11px;color:#5E7185;margin-top:10px">O token do bot é armazenado no servidor e nunca exibido na interface.</div>
+                </div>
+
+                <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px">
+                  <div style="padding:10px 16px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">EVENTOS NOTIFICADOS</div>
+                  <sc-for list="{{ ad.tgEvents }}" as="e" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #141D26">
+                      <span style="width:8px;height:8px;border-radius:50%;background:{{ e.dot }}"></span>
+                      <div style="flex:1">
+                        <div style="font-size:12.5px;color:#C9D8E7">{{ e.label }}</div>
+                        <div style="font-size:11px;color:#5E7185">{{ e.desc }}</div>
+                      </div>
+                      <button onClick="{{ e.toggle }}" style="width:38px;height:21px;border-radius:11px;border:1px solid {{ e.bd }};background:{{ e.bg }};cursor:pointer;position:relative;padding:0">
+                        <span style="position:absolute;top:2px;left:{{ e.x }};width:15px;height:15px;border-radius:50%;background:{{ e.knob }};transition:left .14s"></span>
+                      </button>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px;height:fit-content">
+                <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:12px">PRÉVIA DA MENSAGEM</div>
+                <div style="background:#0B1118;border:1px solid #1F2A36;border-left:3px solid #E5484D;border-radius:4px;padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.85;color:#B7C7D8">
+                  <div style="color:#F2999C;font-weight:600;letter-spacing:.05em">🔴 EQUIPAMENTO OFFLINE</div>
+                  <div>Unidade: Sesc Centro</div>
+                  <div>Equipamento: SW-CORE</div>
+                  <div>IP: 10.79.25.1</div>
+                  <div>Falhas consecutivas: 3</div>
+                  <div>Início: 08:42:31</div>
+                </div>
+                <div style="background:#0B1118;border:1px solid #1F2A36;border-left:3px solid #34C77B;border-radius:4px;padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.85;color:#B7C7D8;margin-top:11px">
+                  <div style="color:#5FD69A;font-weight:600;letter-spacing:.05em">🟢 EQUIPAMENTO RECUPERADO</div>
+                  <div>Unidade: Sesc Centro</div>
+                  <div>Equipamento: SW-CORE</div>
+                  <div>Indisponibilidade: 4 min 32 s</div>
+                  <div>Recuperado: 08:47:03</div>
+                </div>
+                <div style="font-size:11px;color:#5E7185;margin-top:12px">As mensagens são limitadas a uma por equipamento por mudança de estado. Mensagens de recuperação sempre referenciam o incidente de origem.</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ad.isMonitoring }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:1000px">
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px">
+                <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:13px">PADRÕES DE MONITORAMENTO ICMP</div>
+                <sc-for list="{{ ad.cfgFields }}" as="f" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #141D26">
+                    <div style="flex:1">
+                      <div style="font-size:12.5px;color:#C9D8E7">{{ f.label }}</div>
+                      <div style="font-size:11px;color:#5E7185">{{ f.hint }}</div>
+                    </div>
+                    <input value="{{ f.value }}" onChange="{{ f.onChange }}" style="width:92px;height:29px;padding:0 9px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;color:#DCE9F8">
+                    <span style="font-size:11px;color:#5E7185;width:34px">{{ f.unit }}</span>
+                  </div>
+                </sc-for>
+                <button onClick="{{ ad.saveCfg }}" style="margin-top:14px;height:31px;padding:0 13px;background:rgba(76,141,255,.14);border:1px solid rgba(76,141,255,.36);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.24)">Salvar configuração</button>
+              </div>
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px;height:fit-content">
+                <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:12px">MÁQUINA DE ESTADOS</div>
+                <div style="font-size:12px;color:#8FA2B5;line-height:1.8">
+                  Um dispositivo só passa para <span style="color:#F2999C;font-family:'IBM Plex Mono',monospace">OFFLINE</span> após {{ ad.cfgFails }} falhas ICMP consecutivas. Um timeout isolado mantém o dispositivo <span style="color:#5FD69A;font-family:'IBM Plex Mono',monospace">ONLINE</span> e incrementa o contador de falhas. Latência acima de {{ ad.cfgLatency }} ms sustentada por dois ciclos marca o dispositivo como <span style="color:#E8A33D;font-family:'IBM Plex Mono',monospace">DEGRADADO</span>. Dispositivos dentro de uma janela de manutenção ativa reportam <span style="color:#7FADFF;font-family:'IBM Plex Mono',monospace">MANUTENÇÃO</span> e ficam fora do SLA.
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ ad.isSettings }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:16px 18px;max-width:620px">
+              <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:13px">SISTEMA</div>
+              <sc-for list="{{ ad.sysFields }}" as="f" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #141D26">
+                  <span style="font-size:11.5px;color:#6C7F93;width:190px">{{ f.label }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#C9D8E7">{{ f.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+      <!--S-->
+</main>
+  </div>
+
+  <sc-if value="{{ hasToasts }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:20px;bottom:20px;z-index:400;display:flex;flex-direction:column;gap:9px;align-items:flex-end">
+      <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="1">
+        <div style="display:flex;align-items:flex-start;gap:10px;min-width:290px;max-width:400px;padding:11px 13px;background:#0F1720;border:1px solid #26343F;border-left:3px solid {{ t.color }};border-radius:4px;box-shadow:0 14px 34px rgba(0,0,0,.55);animation:din .18s ease-out">
+          <span style="color:{{ t.color }};font-size:12px;margin-top:1px">{{ t.icon }}</span>
+          <div style="flex:1">
+            <div style="font-size:12.5px;font-weight:600;color:#DEE9F4">{{ t.title }}</div>
+            <div style="font-size:11.5px;color:#8598AB;margin-top:2px">{{ t.body }}</div>
+          </div>
+          <button onClick="{{ t.close }}" style="background:transparent;border:0;color:#5B6C7F;cursor:pointer;font-size:13px;line-height:1">✕</button>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasDialog }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDialog }}" style="position:fixed;inset:0;z-index:300;background:rgba(4,7,11,.74);display:flex;align-items:center;justify-content:center;animation:fin .12s ease-out">
+      <div onClick="{{ stop }}" style="width:{{ dlg.width }};max-width:92vw;background:#0E151D;border:1px solid #26343F;border-radius:5px;box-shadow:0 26px 70px rgba(0,0,0,.65);animation:tin .14s ease-out">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 18px;border-bottom:1px solid #1A242F">
+          <div>
+            <div style="font-size:14.5px;font-weight:600;color:#E7F0F9">{{ dlg.title }}</div>
+            <div style="font-size:11.5px;color:#6C7F93;margin-top:2px">{{ dlg.sub }}</div>
+          </div>
+          <button onClick="{{ closeDialog }}" style="background:transparent;border:0;color:#5B6C7F;cursor:pointer;font-size:14px;line-height:1" style-hover="color:#B7C7D8">✕</button>
+        </div>
+
+        <sc-if value="{{ dlg.isConfirm }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 18px;display:flex;gap:13px;align-items:flex-start">
+            <span style="width:26px;height:26px;flex:0 0 26px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;color:{{ dlg.iconColor }};background:{{ dlg.iconBg }};border:1px solid {{ dlg.iconBd }}">{{ dlg.icon }}</span>
+            <div style="font-size:12.5px;color:#A9BACB;line-height:1.65">{{ dlg.body }}</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ dlg.isForm }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <sc-for list="{{ dlg.fields }}" as="f" hint-placeholder-count="6">
+              <div style="grid-column:{{ f.span }}">
+                <div style="font-size:10px;letter-spacing:.09em;color:#5A6B7E;font-weight:600;margin-bottom:5px">{{ f.label }}</div>
+                <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
+                  <select value="{{ f.value }}" onChange="{{ f.onChange }}" style="width:100%;height:31px;padding:0 9px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-size:12px;color:#DCE9F8;cursor:pointer">
+                    <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for>
+                  </select>
+                </sc-if>
+                <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ true }}">
+                  <input value="{{ f.value }}" onChange="{{ f.onChange }}" placeholder="{{ f.ph }}" style="width:100%;height:31px;padding:0 9px;background:#0B1118;border:1px solid #1F2A36;border-radius:4px;font-family:{{ f.font }};font-size:12px;color:#DCE9F8">
+                </sc-if>
+                <div style="font-size:10.5px;color:#55677A;margin-top:4px">{{ f.hint }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;align-items:center;gap:9px;padding:13px 18px;border-top:1px solid #1A242F;background:#0B1118">
+          <div style="flex:1;font-size:11px;color:#55677A">{{ dlg.note }}</div>
+          <button onClick="{{ closeDialog }}" style="height:31px;padding:0 13px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Cancelar</button>
+          <button onClick="{{ dlg.confirm }}" style="height:31px;padding:0 14px;background:{{ dlg.ctaBg }};border:1px solid {{ dlg.ctaBd }};border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:{{ dlg.ctaFg }}" style-hover="filter:brightness(1.25)">{{ dlg.cta }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasEquip }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;z-index:280;display:flex;justify-content:flex-end;background:rgba(4,7,11,.58);animation:fin .12s ease-out">
+      <div onClick="{{ stop }}" style="width:660px;max-width:94vw;height:100%;background:#0B1119;border-left:1px solid #26343F;box-shadow:-24px 0 60px rgba(0,0,0,.55);display:flex;flex-direction:column;animation:din .16s ease-out">
+        <div style="padding:15px 20px;border-bottom:1px solid #1A242F">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+            <div style="min-width:0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <h2 style="margin:0;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#E7F0F9">{{ eq.name }}</h2>
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;color:{{ eq.color }};background:{{ eq.bg }};border:1px solid {{ eq.bd }}">{{ eq.icon }} {{ eq.label }}</span>
+              </div>
+              <div style="font-size:11.5px;color:#6C7F93;margin-top:4px">{{ eq.type }} · <a href="#" onClick="{{ eq.goUnit }}">{{ eq.unitName }}</a> · {{ eq.rack }}</div>
+            </div>
+            <button onClick="{{ closeDrawer }}" style="background:transparent;border:0;color:#5B6C7F;cursor:pointer;font-size:15px;line-height:1" style-hover="color:#B7C7D8">✕</button>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:16px 20px 26px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:15px">
+            <sc-for list="{{ eq.stats }}" as="s" hint-placeholder-count="8">
+              <div style="background:#0F161E;border:1px solid #1E2A36;border-top:2px solid {{ s.accent }};border-radius:4px;padding:8px 10px">
+                <div style="font-size:9px;letter-spacing:.09em;color:#5A6B7E;font-weight:600">{{ s.label }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;margin-top:2px;color:{{ s.color }}">{{ s.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:13px 15px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+              <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">LATÊNCIA ICMP · ÚLTIMOS 26 MINUTOS</div>
+              <div style="display:flex;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#5E7185">
+                <span><span style="color:#34C77B">▬</span> latência</span>
+                <span><span style="color:#4C8DFF">▬</span> média móvel</span>
+                <span>pico {{ eq.chart.peak }}</span>
+                <span>{{ eq.chart.loss }}</span>
+              </div>
+            </div>
+            <div style="height:96px">
+              <svg viewBox="0 0 520 96" preserveAspectRatio="none" style="width:100%;height:96px;display:block">
+                <defs>
+                  <linearGradient id="latFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#34C77B" stop-opacity="0.40"></stop>
+                    <stop offset="100%" stop-color="#34C77B" stop-opacity="0.02"></stop>
+                  </linearGradient>
+                </defs>
+                <polygon points="{{ eq.chart.area }}" fill="url(#latFill)"></polygon>
+                <polyline points="{{ eq.chart.pts }}" fill="none" stroke="#34C77B" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+                <polyline points="{{ eq.chart.avgPts }}" fill="none" stroke="#4C8DFF" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+              </svg>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#55677A">
+              <span>08:18</span><span>08:26</span><span>08:35</span><span>08:44</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px">
+              <div style="padding:10px 15px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">INVENTÁRIO</div>
+              <div style="padding:4px 15px 10px">
+                <sc-for list="{{ eq.fields }}" as="f" hint-placeholder-count="9">
+                  <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #141D26">
+                    <span style="font-size:11.5px;color:#6C7F93;width:118px;flex:0 0 118px">{{ f.label }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#C9D8E7;word-break:break-all">{{ f.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px">
+                <div style="padding:10px 15px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">MONITORAMENTO</div>
+                <div style="padding:4px 15px 10px">
+                  <sc-for list="{{ eq.mon }}" as="f" hint-placeholder-count="6">
+                    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #141D26">
+                      <span style="font-size:11.5px;color:#6C7F93;width:118px;flex:0 0 118px">{{ f.label }}</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:{{ f.color }}">{{ f.value }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="display:flex;align-items:center;gap:11px;padding:10px 0 4px">
+                    <button onClick="{{ eq.toggleMon }}" style="width:38px;height:21px;border-radius:11px;border:1px solid {{ eq.monBd }};background:{{ eq.monBg }};cursor:pointer;position:relative;padding:0">
+                      <span style="position:absolute;top:2px;left:{{ eq.monX }};width:15px;height:15px;border-radius:50%;background:{{ eq.monKnob }};transition:left .14s"></span>
+                    </button>
+                    <span style="font-size:12px;color:#A9BACB">Monitoramento ICMP {{ eq.monState }}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;flex:1">
+                <div style="padding:10px 15px;border-bottom:1px solid #1A242F;font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600">INCIDENTES RECENTES</div>
+                <sc-for list="{{ eq.incidents }}" as="i" hint-placeholder-count="2">
+                  <button onClick="{{ i.go }}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 15px;background:transparent;border:0;border-bottom:1px solid #141D26;cursor:pointer" style-hover="background:#121B24">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9CC1FF;width:118px">{{ i.id }}</span>
+                    <span style="flex:1;font-size:11.5px;color:#B7C7D8">{{ i.event }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:{{ i.color }}">{{ i.dur }}</span>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ eq.noIncidents }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:20px 15px;font-size:11.5px;color:#5E7185;text-align:center">Nenhum incidente nos últimos 30 dias.</div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid #1A242F;background:#080D13">
+          
+          <button onClick="{{ eq.edit }}" style="height: 31px; padding: 0 13px; background: rgba(76,141,255,.14); border: 1px solid rgba(76,141,255,.36); border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: 600; color: #9CC1FF" style-hover="background:rgba(76,141,255,.24)">Editar equipamento</button><button onClick="{{ eq.transfer }}" style="height:31px;padding:0 13px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Transferir para outra unidade</button>
+          <button onClick="{{ eq.history }}" style="height:31px;padding:0 13px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Abrir histórico</button>
+          <div style="flex:1"></div>
+          <button onClick="{{ eq.disable }}" style="height: 31px; padding: 0 13px; background: rgba(229,72,77,.10); border: 1px solid rgba(229,72,77,.32); border-radius: 4px; cursor: pointer; font-size: 10px; color: #F2999C" style-hover="background:rgba(229,72,77,.20)">Desativar monitoramento</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasInc }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;z-index:290;display:flex;justify-content:flex-end;background:rgba(4,7,11,.58);animation:fin .12s ease-out">
+      <div onClick="{{ stop }}" style="width:560px;max-width:94vw;height:100%;background:#0B1119;border-left:1px solid #26343F;box-shadow:-24px 0 60px rgba(0,0,0,.55);display:flex;flex-direction:column;animation:din .16s ease-out">
+        <div style="padding:15px 20px;border-bottom:1px solid #1A242F;border-top:3px solid {{ ic.sevColor }}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <h2 style="margin:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#E7F0F9">{{ ic.id }}</h2>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;padding:2px 7px;border-radius:3px;color:{{ ic.sevColor }};background:{{ ic.sevBg }};border:1px solid {{ ic.sevBd }}">{{ ic.sev }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.07em;padding:2px 7px;border-radius:3px;color:{{ ic.color }};background:{{ ic.bg }};border:1px solid {{ ic.bd }}">{{ ic.status }}</span>
+              </div>
+              <div style="font-size:13.5px;color:#DDE8F3;margin-top:6px;font-weight:500">{{ ic.event }}</div>
+            </div>
+            <button onClick="{{ closeDrawer }}" style="background:transparent;border:0;color:#5B6C7F;cursor:pointer;font-size:15px;line-height:1" style-hover="color:#B7C7D8">✕</button>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:15px 20px 26px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:15px">
+            <sc-for list="{{ ic.facts }}" as="f" hint-placeholder-count="6">
+              <div style="background:#0F161E;border:1px solid #1E2A36;border-radius:4px;padding:8px 11px">
+                <div style="font-size:9px;letter-spacing:.09em;color:#5A6B7E;font-weight:600">{{ f.label }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;margin-top:2px;color:{{ f.color }}">{{ f.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:13px 16px">
+            <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:13px">LINHA DO TEMPO</div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ ic.timeline }}" as="t" hint-placeholder-count="6">
+                <div style="display:flex;gap:12px;align-items:flex-start">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6C7F93;width:62px;flex:0 0 62px;padding-top:1px">{{ t.t }}</span>
+                  <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 9px;align-self:stretch">
+                    <span style="width:9px;height:9px;border-radius:50%;background:{{ t.c }};margin-top:4px;flex:0 0 9px"></span>
+                    <span style="width:1px;flex:1;background:#1F2A36;min-height:14px"></span>
+                  </div>
+                  <span style="font-size:12px;color:#B7C7D8;padding-bottom:11px">{{ t.txt }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#0E151D;border:1px solid #1C2733;border-radius:4px;padding:13px 16px;margin-top:14px">
+            <div style="font-size:10px;letter-spacing:.11em;color:#5A6B7E;font-weight:600;margin-bottom:9px">NOTIFICAÇÃO</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#4C8DFF"></span>
+              <div style="flex:1;font-size:12px;color:#A9BACB">Telegram · «TI · Alertas Infraestrutura»</div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6C7F93">{{ ic.notifiedAt }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid #1A242F;background:#080D13">
+          <sc-if value="{{ ic.canAck }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ ic.ack }}" style="height:31px;padding:0 14px;background:rgba(76,141,255,.16);border:1px solid rgba(76,141,255,.38);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#9CC1FF" style-hover="background:rgba(76,141,255,.26)">Reconhecer incidente</button>
+          </sc-if>
+          <sc-if value="{{ ic.canResolve }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ ic.resolve }}" style="height:31px;padding:0 14px;background:rgba(52,199,123,.13);border:1px solid rgba(52,199,123,.34);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;color:#6FD9A2" style-hover="background:rgba(52,199,123,.22)">Marcar como resolvido</button>
+          </sc-if>
+          <button onClick="{{ ic.goEquip }}" style="height:31px;padding:0 13px;background:#0F161E;border:1px solid #22303E;border-radius:4px;cursor:pointer;font-size:12px;color:#A9BACB" style-hover="background:#16202B">Abrir equipamento</button>
+          <div style="flex:1"></div>
+          <sc-if value="{{ ic.ackedBy }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px;color:#5E7185">Reconhecido por {{ ic.ackedBy }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1680,&quot;height&quot;:1000}}">
+const SC={
+  online:{label:'ONLINE',color:'#34C77B',bg:'rgba(52,199,123,.10)',bd:'rgba(52,199,123,.32)',icon:'●'},
+  degraded:{label:'DEGRADADO',color:'#E8A33D',bg:'rgba(232,163,61,.10)',bd:'rgba(232,163,61,.34)',icon:'▲'},
+  offline:{label:'OFFLINE',color:'#E5484D',bg:'rgba(229,72,77,.11)',bd:'rgba(229,72,77,.38)',icon:'✕'},
+  unknown:{label:'DESCONHECIDO',color:'#7C8FA3',bg:'rgba(124,143,163,.10)',bd:'rgba(124,143,163,.28)',icon:'?'},
+  maintenance:{label:'MANUTENÇÃO',color:'#4C8DFF',bg:'rgba(76,141,255,.10)',bd:'rgba(76,141,255,.34)',icon:'⚙'},
+  disabled:{label:'DESATIVADO',color:'#55636F',bg:'rgba(85,99,111,.08)',bd:'rgba(85,99,111,.26)',icon:'⊘'}
+};
+const st=k=>SC[k]||SC.unknown;
+const pct=n=>n.toFixed(2).replace('.',',')+'%';
+const IST={open:'ABERTO',ack:'RECONHECIDO',resolved:'RESOLVIDO'};
+const SEVL={critical:'CRÍTICO',warning:'ALERTA',info:'INFORMATIVO'};
+const MST={active:'ATIVA',scheduled:'AGENDADA',finished:'CONCLUÍDA'};
+const CL={online:'online',degraded:'degradados',offline:'offline',maintenance:'em manutenção',unknown:'desconhecidos',disabled:'desativados'};
+const TYPES=['Servidor','Switch','Access Point','Controladora Wi-Fi','Dispositivo Biométrico','Impressora','Router','Firewall','UPS','Outros'];
+const TMETA={
+  'Servidor':{mfr:'Dell',model:'PowerEdge R650',base:1},
+  'Switch':{mfr:'Cisco',model:'Catalyst 9200-24T',base:1},
+  'Access Point':{mfr:'Ubiquiti',model:'U6-Pro',base:3},
+  'Controladora Wi-Fi':{mfr:'Ubiquiti',model:'UDM-Pro-SE',base:2},
+  'Dispositivo Biométrico':{mfr:'Control iD',model:'iDFlex',base:5},
+  'Impressora':{mfr:'HP',model:'LaserJet M428fdw',base:4},
+  'Router':{mfr:'MikroTik',model:'CCR2004-1G-12S',base:11},
+  'Firewall':{mfr:'Fortinet',model:'FortiGate 60F',base:2},
+  'UPS':{mfr:'APC',model:'Smart-UPS SRT 3000',base:2},
+  'Outros':{mfr:'Intelbras',model:'NVD 3316-P',base:3}
+};
+const POOL=[
+  ['SW-CORE','Switch',1],['LINK-WAN','Router',254],['FW-EDGE','Firewall',253],['SRV-AD01','Servidor',10],
+  ['CTRL-WIFI','Controladora Wi-Fi',20],['AP-RECEPCAO','Access Point',51],['SW-ACCESS-01','Switch',2],
+  ['IMP-RECEPCAO','Impressora',81],['BIO-ENTRADA','Dispositivo Biométrico',101],['UPS-RACK-01','UPS',30],
+  ['SRV-FILE01','Servidor',11],['AP-ADMIN','Access Point',52],['SW-ACCESS-02','Switch',3],
+  ['AP-CORREDOR','Access Point',53],['IMP-ADMIN','Impressora',82],['NVR-CFTV','Outros',40],
+  ['AP-AUDITORIO','Access Point',54],['SRV-BKP01','Servidor',12],['SW-ACCESS-03','Switch',4],
+  ['BIO-CATRACA','Dispositivo Biométrico',102],['AP-EXTERNO','Access Point',55],['IMP-SETOR','Impressora',83],
+  ['AP-PAVILHAO','Access Point',56],['SW-ACCESS-04','Switch',5],['AP-QUADRA','Access Point',57],
+  ['UPS-RACK-02','UPS',31]
+];
+const UDEF=[
+  {id:'cis',name:'Centro Integrado de Saúde',code:'CIS-01',city:'Aracaju',addr:'Av. Ivo do Prado, 1120 — Centro',lat:-10.9290,lng:-37.0715,oct:10,count:24,bad:{'SW-CORE':'offline'}},
+  {id:'escola',name:'Escola Sesc',code:'ESC-02',city:'Aracaju',addr:'Rua Boquim, 340 — São José',lat:-10.9455,lng:-37.0662,oct:15,count:22,bad:{'AP-RECEPCAO':'degraded'}},
+  {id:'galeria',name:'Galeria do Sesc',code:'GAL-03',city:'Aracaju',addr:'Rua João Pessoa, 88 — Centro',lat:-10.9068,lng:-37.0478,oct:20,count:9,bad:{}},
+  {id:'hotel',name:'Hotel Sesc Atalaia',code:'HOT-04',city:'Aracaju',addr:'Av. Santos Dumont, 2200 — Atalaia',lat:-10.9885,lng:-37.0472,oct:30,count:19,bad:{'AP-AUDITORIO':'degraded'}},
+  {id:'sede',name:'Sede Administrativa',code:'SED-05',city:'Aracaju',addr:'Av. Ministro Geraldo Barreto Sobral, 215',lat:-10.9205,lng:-37.0625,oct:5,count:26,bad:{}},
+  {id:'centro',name:'Sesc Centro',code:'CEN-06',city:'Aracaju',addr:'Rua Itabaianinha, 45 — Centro',lat:-10.9110,lng:-37.0500,oct:25,count:18,bad:{'LINK-WAN':'degraded'}},
+  {id:'comercio',name:'Sesc Comércio',code:'COM-07',city:'Aracaju',addr:'Rua Laranjeiras, 512 — Centro',lat:-10.9165,lng:-37.0552,oct:35,count:12,bad:{}},
+  {id:'indiaroba',name:'Sesc Indiaroba',code:'IND-08',city:'Indiaroba',addr:'Rod. SE-100, km 12 — Zona Rural',lat:-11.5148,lng:-37.5152,oct:40,count:11,bad:{'LINK-WAN':'degraded'}},
+  {id:'itabaiana',name:'Sesc Itabaiana',code:'ITA-09',city:'Itabaiana',addr:'Av. Ivo do Prado, 780 — Centro',lat:-10.6852,lng:-37.4248,oct:45,count:16,bad:{'LINK-WAN':'offline'}},
+  {id:'siqueira',name:'Sesc Siqueira Campos',code:'SIQ-10',city:'Aracaju',addr:'Av. Gonçalo Rollemberg Leite, 940',lat:-10.9345,lng:-37.0862,oct:50,count:16,bad:{},maint:true},
+  {id:'socorro',name:'Sesc Socorro',code:'SOC-11',city:'Nossa Senhora do Socorro',addr:'Av. Cel. Stanley Silveira, 60',lat:-10.8552,lng:-37.1262,oct:55,count:14,bad:{}}
+];
+function rng(seed){let s=(seed*2654435761)>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294967296);}
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function hexmac(seed){const r=rng(seed);const p=n=>('0'+Math.floor(r()*n).toString(16)).slice(-2).toUpperCase();return['B8','27','EB',p(256),p(256),p(256)].join(':');}
+function buildData(){
+  const units=[],equip=[];
+  UDEF.forEach((u,ui)=>{
+    const list=POOL.slice(0,u.count);
+    const cnt={online:0,degraded:0,offline:0};
+    let latSum=0,latN=0;
+    list.forEach((p,i)=>{
+      const [name,type,off]=p;
+      const seed=hash(u.id+name);
+      const r=rng(seed);
+      const state=u.bad[name]||'online';
+      const base=TMETA[type].base+(u.city==='Aracaju'?0:2);
+      const lat=state==='offline'?null:state==='degraded'?Math.round(180+r()*240):Math.round(base+r()*4);
+      const av=state==='offline'?(97.1+r()*0.9):state==='degraded'?(99.31+r()*0.4):(99.90+r()*0.09);
+      cnt[state]++;
+      if(lat!=null){latSum+=lat;latN++;}
+      equip.push({
+        id:u.id+'/'+name,unitId:u.id,unitName:u.name,name:name+(u.count>20&&i<3?'':''),type,state,
+        host:(name+'-'+u.code).toLowerCase(),ip:'10.79.'+u.oct+'.'+(off+(i>24?1:0)),
+        mac:hexmac(seed),mfr:TMETA[type].mfr,model:TMETA[type].model,
+        serial:'SN'+String(seed).slice(0,8),asset:'PAT-'+String(100000+(seed%89999)),
+        latency:lat,avgLatency:lat==null?null:Math.round(lat*(0.82+r()*0.2)),
+        availability:av,monitored:true,
+        lastOk:state==='offline'?'14/08/2026 08:32:19':'14/08/2026 08:44:0'+(i%9),
+        lastFail:state==='online'?'—':'14/08/2026 08:44:01',
+        lastCheck:state==='offline'?'há 12 min':'há '+(8+(i*7)%42)+' s',
+        desc:type+' — '+u.name,
+        rack:'Rack '+(1+(i%3))+' / U'+(4+i%20)
+      });
+    });
+    const status=u.maint?'maintenance':cnt.offline?'offline':cnt.degraded?'degraded':'online';
+    const avail=u.maint?99.97:cnt.offline?99.42+ui*0.01:cnt.degraded?99.86+ui*0.01:99.96+ui*0.004;
+    units.push(Object.assign({},u,{status,cnt,count:u.count,availability:Number(avail.toFixed(2)),avgLatency:Math.round(latSum/Math.max(1,latN)),active:true}));
+  });
+  const tl=(t,txt,c)=>({t,txt,c});
+  const incidents=[
+    {id:'INC-2026-00192',unitId:'cis',equipId:'cis/SW-CORE',equip:'SW-CORE',ip:'10.79.10.1',event:'Equipamento offline',sev:'critical',start:'08:32',startFull:'14/08/2026 08:32:21',dur:'12 min',status:'open',
+     timeline:[tl('08:31:21','Timeout ICMP — tentativa 1/3','#E8A33D'),tl('08:31:51','Timeout ICMP — tentativa 2/3','#E8A33D'),tl('08:32:21','Timeout ICMP — tentativa 3/3','#E5484D'),tl('08:32:21','Estado alterado: ONLINE → OFFLINE','#E5484D'),tl('08:32:21','Incidente INC-2026-00192 criado','#4C8DFF'),tl('08:32:22','Notificação Telegram enviada para «TI · Alertas»','#4C8DFF')]},
+    {id:'INC-2026-00193',unitId:'itabaiana',equipId:'itabaiana/LINK-WAN',equip:'LINK-WAN',ip:'10.79.45.254',event:'Link WAN offline',sev:'critical',start:'07:58',startFull:'14/08/2026 07:58:04',dur:'46 min',status:'open',
+     timeline:[tl('07:57:04','Timeout ICMP — tentativa 1/3','#E8A33D'),tl('07:57:34','Timeout ICMP — tentativa 2/3','#E8A33D'),tl('07:58:04','Timeout ICMP — tentativa 3/3','#E5484D'),tl('07:58:04','Estado alterado: ONLINE → OFFLINE','#E5484D'),tl('07:58:04','Incidente INC-2026-00193 criado','#4C8DFF'),tl('07:58:05','Notificação Telegram enviada para «TI · Alertas»','#4C8DFF'),tl('08:05:12','Nota do operador: ticket 884213 aberto na operadora','#7C8FA3')]},
+    {id:'INC-2026-00194',unitId:'centro',equipId:'centro/LINK-WAN',equip:'LINK-WAN',ip:'10.79.25.254',event:'Latência alta',sev:'warning',start:'08:40',startFull:'14/08/2026 08:40:11',dur:'4 min',status:'open',
+     timeline:[tl('08:39:41','Latência 268 ms — acima do limite de 150 ms','#E8A33D'),tl('08:40:11','Latência 380 ms — sustentada por 2 ciclos','#E8A33D'),tl('08:40:11','Estado alterado: ONLINE → DEGRADADO','#E8A33D'),tl('08:40:11','Incidente INC-2026-00194 criado','#4C8DFF'),tl('08:40:12','Notificação Telegram enviada para «TI · Alertas»','#4C8DFF')]},
+    {id:'INC-2026-00191',unitId:'escola',equipId:'escola/AP-RECEPCAO',equip:'AP-RECEPCAO',ip:'10.79.15.51',event:'Latência alta',sev:'warning',start:'08:12',startFull:'14/08/2026 08:12:44',dur:'32 min',status:'ack',ackBy:'C. Andrade',
+     timeline:[tl('08:12:14','Latência 212 ms — acima do limite de 150 ms','#E8A33D'),tl('08:12:44','Estado alterado: ONLINE → DEGRADADO','#E8A33D'),tl('08:12:44','Incidente criado','#4C8DFF'),tl('08:12:45','Notificação Telegram enviada','#4C8DFF'),tl('08:19:02','Reconhecido por C. Andrade','#34C77B')]},
+    {id:'INC-2026-00190',unitId:'hotel',equipId:'hotel/AP-AUDITORIO',equip:'AP-AUDITORIO',ip:'10.79.30.54',event:'Latência alta',sev:'warning',start:'07:41',startFull:'14/08/2026 07:41:09',dur:'63 min',status:'ack',ackBy:'R. Menezes',
+     timeline:[tl('07:40:39','Latência 305 ms — acima do limite','#E8A33D'),tl('07:41:09','Estado alterado: ONLINE → DEGRADADO','#E8A33D'),tl('07:41:09','Incidente criado','#4C8DFF'),tl('07:52:30','Reconhecido por R. Menezes','#34C77B')]},
+    {id:'INC-2026-00189',unitId:'indiaroba',equipId:'indiaroba/LINK-WAN',equip:'LINK-WAN',ip:'10.79.40.254',event:'Latência alta',sev:'warning',start:'06:55',startFull:'14/08/2026 06:55:31',dur:'109 min',status:'ack',ackBy:'C. Andrade',
+     timeline:[tl('06:55:01','Latência 340 ms — enlace de rádio','#E8A33D'),tl('06:55:31','Estado alterado: ONLINE → DEGRADADO','#E8A33D'),tl('06:55:31','Incidente criado','#4C8DFF'),tl('07:10:44','Reconhecido por C. Andrade','#34C77B')]},
+    {id:'INC-2026-00188',unitId:'centro',equipId:'centro/SW-ACCESS-01',equip:'SW-ACCESS-01',ip:'10.79.25.2',event:'Equipamento offline',sev:'critical',start:'13/08 22:14',startFull:'13/08/2026 22:14:02',dur:'8 min',status:'resolved',
+     timeline:[tl('22:14:02','Estado alterado: ONLINE → OFFLINE','#E5484D'),tl('22:14:03','Notificação Telegram enviada','#4C8DFF'),tl('22:21:40','Resposta ICMP recebida — 2 ms','#34C77B'),tl('22:22:10','Estado alterado: OFFLINE → ONLINE','#34C77B'),tl('22:22:10','Incidente resolvido automaticamente','#34C77B'),tl('22:22:11','Notificação de recuperação enviada via Telegram','#4C8DFF')]},
+    {id:'INC-2026-00187',unitId:'sede',equipId:'sede/IMP-ADMIN',equip:'IMP-ADMIN',ip:'10.79.5.82',event:'Equipamento offline',sev:'info',start:'13/08 18:02',startFull:'13/08/2026 18:02:55',dur:'14 h 02 min',status:'resolved',
+     timeline:[tl('18:02:55','Estado alterado: ONLINE → OFFLINE','#E5484D'),tl('18:02:56','Notificação Telegram suprimida — fora do horário comercial','#7C8FA3'),tl('08:05:11','Resposta ICMP recebida','#34C77B'),tl('08:05:41','Estado alterado: OFFLINE → ONLINE','#34C77B'),tl('08:05:41','Incidente resolvido automaticamente','#34C77B')]},
+    {id:'INC-2026-00186',unitId:'socorro',equipId:'socorro/LINK-WAN',equip:'LINK-WAN',ip:'10.79.55.254',event:'Perda de pacotes 22%',sev:'warning',start:'13/08 15:31',startFull:'13/08/2026 15:31:18',dur:'27 min',status:'resolved',
+     timeline:[tl('15:31:18','Perda de pacotes 22% em 5 ciclos','#E8A33D'),tl('15:31:18','Estado alterado: ONLINE → DEGRADADO','#E8A33D'),tl('15:58:02','Perda normalizada — 0%','#34C77B'),tl('15:58:32','Estado alterado: DEGRADADO → ONLINE','#34C77B'),tl('15:58:32','Incidente resolvido automaticamente','#34C77B')]},
+    {id:'INC-2026-00185',unitId:'itabaiana',equipId:'itabaiana/SRV-AD01',equip:'SRV-AD01',ip:'10.79.45.10',event:'Equipamento offline',sev:'critical',start:'12/08 09:12',startFull:'12/08/2026 09:12:40',dur:'52 min',status:'resolved',
+     timeline:[tl('09:12:40','Estado alterado: ONLINE → OFFLINE','#E5484D'),tl('09:12:41','Notificação Telegram enviada','#4C8DFF'),tl('10:04:20','Estado alterado: OFFLINE → ONLINE','#34C77B'),tl('10:04:20','Incidente resolvido por A. Barros','#34C77B')]}
+  ];
+  const users=[
+    {name:'Rafael Menezes',email:'rafael.menezes@sesc.local',role:'Administrador de Rede',unit:'Todas as unidades',active:true,last:'14/08/2026 08:41'},
+    {name:'Carla Andrade',email:'carla.andrade@sesc.local',role:'Operador',unit:'Todas as unidades',active:true,last:'14/08/2026 08:22'},
+    {name:'Alan Barros',email:'alan.barros@sesc.local',role:'Administrador',unit:'Todas as unidades',active:true,last:'13/08/2026 17:58'},
+    {name:'Tiago Nunes',email:'tiago.nunes@sesc.local',role:'Operador',unit:'Sesc Itabaiana',active:true,last:'14/08/2026 07:30'},
+    {name:'Luana Prado',email:'luana.prado@sesc.local',role:'Visualizador',unit:'Hotel Sesc Atalaia',active:true,last:'12/08/2026 14:02'},
+    {name:'Marcos Vieira',email:'marcos.vieira@sesc.local',role:'Auditor',unit:'Todas as unidades',active:true,last:'11/08/2026 09:44'},
+    {name:'Bianca Rocha',email:'bianca.rocha@sesc.local',role:'Operador',unit:'Sesc Socorro',active:false,last:'02/07/2026 16:19'}
+  ];
+  const audit=[
+    {ts:'14/08/2026 08:32',user:'Rafael Menezes',role:'Administrador de Rede',action:'UPDATE_EQUIPMENT',target:'SW-CORE · Centro Integrado de Saúde',detail:'Monitoramento: Desativado → Ativado'},
+    {ts:'14/08/2026 08:19',user:'Carla Andrade',role:'Operador',action:'ACKNOWLEDGE_INCIDENT',target:'INC-2026-00191',detail:'Status: Aberto → Reconhecido'},
+    {ts:'14/08/2026 07:58',user:'system',role:'Mecanismo de monitoramento',action:'CHANGE_MONITORING_CONFIG',target:'LINK-WAN · Sesc Itabaiana',detail:'Estado: ONLINE → OFFLINE após 3 falhas consecutivas'},
+    {ts:'13/08/2026 18:44',user:'Alan Barros',role:'Administrador',action:'CREATE_MAINTENANCE',target:'Sesc Siqueira Campos',detail:'Janela 14/08 08:00 → 14/08 12:00 · Troca do switch core'},
+    {ts:'13/08/2026 16:12',user:'Rafael Menezes',role:'Administrador de Rede',action:'TRANSFER_EQUIPMENT',target:'AP-QUADRA',detail:'Unidade: Sesc Comércio → Escola Sesc'},
+    {ts:'13/08/2026 11:07',user:'Alan Barros',role:'Administrador',action:'UPDATE_USER',target:'Bianca Rocha',detail:'Ativo: sim → não'},
+    {ts:'12/08/2026 15:40',user:'Rafael Menezes',role:'Administrador de Rede',action:'CREATE_EQUIPMENT',target:'AP-PAVILHAO · Sesc Socorro',detail:'IP 10.79.55.56 · Access Point'},
+    {ts:'12/08/2026 09:31',user:'Carla Andrade',role:'Operador',action:'DISABLE_EQUIPMENT',target:'IMP-SETOR · Galeria do Sesc',detail:'Monitoramento: Ativado → Desativado'},
+    {ts:'11/08/2026 10:02',user:'Alan Barros',role:'Administrador',action:'CREATE_UNIT',target:'Sesc Indiaroba',detail:'Código IND-08 · Indiaroba/SE'},
+    {ts:'10/08/2026 08:15',user:'Rafael Menezes',role:'Administrador de Rede',action:'UPDATE_UNIT',target:'Hotel Sesc Atalaia',detail:'Coordenadas atualizadas'}
+  ];
+  const maint=[
+    {id:'MW-0041',unitId:'siqueira',unit:'Sesc Siqueira Campos',scope:'Unidade inteira',start:'14/08/2026 08:00',end:'14/08/2026 12:00',reason:'Troca do switch core',state:'active',by:'Alan Barros'},
+    {id:'MW-0042',unitId:'hotel',unit:'Hotel Sesc Atalaia',scope:'CTRL-WIFI',start:'16/08/2026 22:00',end:'17/08/2026 02:00',reason:'Atualização de firmware da controladora',state:'scheduled',by:'Rafael Menezes'},
+    {id:'MW-0043',unitId:'cis',unit:'Centro Integrado de Saúde',scope:'Unidade inteira',start:'20/08/2026 19:00',end:'20/08/2026 23:00',reason:'Manutenção do quadro elétrico',state:'scheduled',by:'Alan Barros'},
+    {id:'MW-0039',unitId:'sede',unit:'Sede Administrativa',scope:'SRV-BKP01',start:'09/08/2026 23:00',end:'10/08/2026 03:00',reason:'Migração do servidor de backup',state:'finished',by:'Rafael Menezes'}
+  ];
+  return {units,equip,incidents,users,audit,maint};
+}
+
+/* ---------- tema claro: reescreve a paleta escura das inline styles ---------- */
+const SURF={
+ '#080C12':'#EEF1F5','#080D13':'#E9EDF2','#0A1017':'#FFFFFF','#0B1118':'#F5F7FA','#0B1119':'#FFFFFF',
+ '#0C1219':'#EFF2F6','#0E151D':'#FFFFFF','#0F161E':'#F6F8FB','#0F1720':'#FFFFFF','#111A23':'#EDF1F6',
+ '#121B24':'#EDF1F6','#131C25':'#E4E9F0','#131C26':'#E9EEF4','#141D26':'#E6EBF1','#141E28':'#E9EEF4',
+ '#16202B':'#E4EAF1','#16212C':'#E2E9F1','#16222F':'#E2E8F0','#161F29':'#E4E9F0','#18222E':'#DEE4EB',
+ '#182029':'#E4E9F0','#1A242F':'#E0E6ED','#1A2733':'#DDE4EC','#1B2531':'#E0E6ED','#1B2836':'#DCE4EE',
+ '#1C2733':'#DFE5EC','#1E2A36':'#DFE5EC','#1F2A36':'#D8DFE8','#20303F':'#C7D0DA','#22303E':'#D6DEE7',
+ '#24313F':'#D6DEE7','#26343F':'#D3DBE5','#2A3D50':'#B8C6D6','#2C4055':'#B6C2D0','#2C3B4C':'#C0CAD6',
+ '#2E5C8A':'#4C7FB5','#3A2126':'#EFD6D8','#2D7A57':'#57B389','#2E6B4E':'#79BC9C','#3B4A5A':'#B9C3CE'
+};
+const TEXT={
+ '#E4EBF3':'#1B222A','#E7F0F9':'#101820','#DEE9F4':'#1B222A','#DFEAF5':'#1B222A','#DDE8F3':'#1F2730',
+ '#DCE9F8':'#1F2730','#DCE7F2':'#1F2730','#DBE7F3':'#1F2730','#D9E5F1':'#1F2730','#D6E3EF':'#1F2730',
+ '#D5E2EF':'#1F2730','#D3DFEB':'#1F2730','#CFDDEB':'#252E38','#CBD9E7':'#252E38','#C9D8E7':'#2B3540',
+ '#C6D5E4':'#2B3540','#B9CFEE':'#22496F','#B7C7D8':'#3A4653','#B6C6D6':'#3A4653','#A9BACB':'#44515F',
+ '#9DB0C3':'#4E5B69','#9DB2C6':'#4E5B69','#9FB2C5':'#4E5B69','#93A5B8':'#54626F','#93A7BA':'#54626F',
+ '#94A6B8':'#54626F','#8FA2B5':'#586572','#8598AB':'#5C6875','#8397AA':'#5C6875','#7D91A5':'#616E7B',
+ '#7E90A3':'#616E7B','#7C8FA3':'#616E7B','#7889A0':'#616E7B','#6C7F93':'#66737F','#6B7D91':'#66737F',
+ '#6C8098':'#5C7186','#657889':'#6B7783','#63768A':'#6B7783','#5E7185':'#6E7A86','#5F7286':'#6E7A86',
+ '#5A6B7E':'#6E7A86','#5B6C7F':'#6E7A86','#59697A':'#8A949E','#55677A':'#78838E','#54657A':'#78838E',
+ '#4E5F72':'#6E7A86','#57697D':'#78838E','#3F4E5E':'#AEB7C0','#5E7387':'#6E7A86','#F0DADB':'#7A1F23',
+ '#A78E90':'#8C4B4E','#9CC1FF':'#1B5AC6','#7FADFF':'#2560C9','#7FA8DE':'#2560C9','#5FD69A':'#177C4B',
+ '#6FD9A2':'#177C4B','#8FBFA2':'#25714C','#F2999C':'#C0272C','#F2777B':'#C0272C','#C98E90':'#B03F43',
+ '#34C77B':'#16814B','#E8A33D':'#96620F','#E5484D':'#CC2A2F','#4C8DFF':'#1B5AC6','#2E6B4E':'#2A7F55'
+};
+const rgbOf=h=>{const n=parseInt(h.slice(1),16);return 'rgb('+((n>>16)&255)+', '+((n>>8)&255)+', '+(n&255)+')';};
+function lightCss(){
+  const out=['html,body{background:#EEF1F5 !important;color:#1B222A !important}',
+    '::-webkit-scrollbar-track{background:#EDF0F4}',
+    '::-webkit-scrollbar-thumb{background:#C7D0DA;border-color:#EDF0F4}',
+    '::-webkit-scrollbar-thumb:hover{background:#AEBAC8}',
+    'input::placeholder,textarea::placeholder{color:#8A949E}',
+    'a{color:#1B5AC6}a:hover{color:#3D7AE0}',
+    '#login-aside{background-color:#F3F6FA !important;border-right-color:#DEE4EB !important}',
+    '[style*="background: rgba(10, 16, 23, 0.9)"]{background-color:rgba(255, 255, 255, 0.92) !important}',
+    '[style*="background: rgba(4, 7, 11, 0.74)"]{background-color:rgba(26, 36, 48, 0.42) !important}',
+    '[style*="background: rgba(4, 7, 11, 0.58)"]{background-color:rgba(26, 36, 48, 0.34) !important}'];
+  const sides=['top','right','bottom','left'], widths=['1px','2px','3px'];
+  Object.keys(SURF).forEach(h=>{
+    const v=rgbOf(h), L=SURF[h];
+    out.push('[style*="background: '+v+'"],[style*="background-color: '+v+'"]{background-color:'+L+' !important}');
+    widths.forEach(w=>{
+      out.push('[style*="border: '+w+' solid '+v+'"]{border-color:'+L+' !important}');
+      sides.forEach(s=>out.push('[style*="border-'+s+': '+w+' solid '+v+'"]{border-'+s+'-color:'+L+' !important}'));
+    });
+  });
+  Object.keys(TEXT).forEach(h=>out.push('[style*="color: '+rgbOf(h)+'"]{color:'+TEXT[h]+' !important}'));
+  // acentos em bordas laterais/superiores voltam a valer depois das regras neutras
+  ['#4C8DFF','#34C77B','#E8A33D','#E5484D','#7C8FA3','#55636F','#2C3B4C'].forEach(h=>{
+    const v=rgbOf(h);
+    widths.forEach(w=>sides.forEach(s=>out.push('[style*="border-'+s+': '+w+' solid '+v+'"]{border-'+s+'-color:'+h+' !important}')));
+  });
+  return out.join('\n');
+}
+
+class Component extends DCLogic {
+  data = buildData();
+  state = {
+    screen:'dashboard', adminSection:'units', q:'', focus:false,
+    expanded:{centro:true}, dashType:'All', dashStatus:'All', dashQ:'',
+    unitId:null, unitTab:'overview', ueType:'All', ueStatus:'All', ueQ:'',
+    mapUnit:'cis',
+    incFilter:'open', incUnit:'All', incSev:'All',
+    equipId:null, incId:null,
+    repRange:'Mês atual', repUnit:'All', repType:'All',
+    telegram:{enabled:true,events:{'Equipamento offline':true,'Equipamento recuperado':true,'Latência alta':true,'Manutenção iniciada':true,'Manutenção concluída':false}},
+    cfg:{interval:30,timeout:1200,fails:3,latency:150},
+    dialog:null, form:{}, toasts:[], sweep:'08:44:12', adminQ:'',
+    theme:(()=>{try{return localStorage.getItem('infra-monitor-theme')==='light'?'light':'dark';}catch(e){return 'dark';}})(),
+    auth:false, lgMode:'login', lgUser:'', lgPass:'', lgMail:'', lgRemember:true, lgError:'', lgSent:false, lgBusy:false
+  };
+
+  login(){
+    const S=this.state, u=(S.lgUser||'').trim().toLowerCase(), p=S.lgPass||'';
+    if(S.lgBusy) return;
+    if(!u||!p){ this.setState({lgError:'Informe usuário e senha.'}); return; }
+    this.setState({lgError:'',lgBusy:true});
+    setTimeout(()=>this.finishLogin(u,p),620);
+  }
+  finishLogin(u,p){
+    this.setState({lgBusy:false});
+    const acc=this.data.users.filter(x=>x.active).some(x=>x.email.toLowerCase()===u||x.email.split('@')[0].toLowerCase()===u);
+    if(!acc){ this.setState({lgError:'Usuário não encontrado ou sem acesso ativo.'}); return; }
+    if(p!=='infra2026'){ this.setState({lgError:'Senha inválida. Verifique e tente novamente.'}); return; }
+    this.setState({auth:true,lgError:'',lgPass:''});
+    this.toast('Sessão iniciada','Monitoramento ICMP ativo · 187 dispositivos','ok');
+  }
+  logout(){ this.setState({auth:false,lgMode:'login',lgPass:'',lgError:'',lgSent:false,screen:'dashboard',equipId:null,incId:null,dialog:null}); }
+  sendRecover(){
+    const m=(this.state.lgMail||'').trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){ this.setState({lgError:'Informe um e-mail corporativo válido.',lgSent:false}); return; }
+    this.setState({lgError:'',lgSent:true});
+  }
+  loginVals(){
+    const S=this.state, err=!!S.lgError;
+    const bd=on=>on?'rgba(229,72,77,.5)':'#1F2A36';
+    return {
+      isLogin:!S.auth, isAuthed:S.auth, logout:()=>this.logout(),
+      lg:{
+        isLogin:S.lgMode==='login', isRecover:S.lgMode==='recover',
+        user:S.lgUser, pass:S.lgPass, mail:S.lgMail,
+        onUser:e=>this.setState({lgUser:e.target.value,lgError:''}),
+        onPass:e=>this.setState({lgPass:e.target.value,lgError:''}),
+        onMail:e=>this.setState({lgMail:e.target.value,lgError:'',lgSent:false}),
+        onKey:e=>{ if(e.key==='Enter') this.login(); },
+        onKeyRec:e=>{ if(e.key==='Enter') this.sendRecover(); },
+        submit:()=>this.login(),
+        sendLink:()=>this.sendRecover(),
+        goRecover:()=>this.setState({lgMode:'recover',lgError:'',lgSent:false,lgMail:S.lgUser.includes('@')?S.lgUser:''}),
+        backLogin:()=>this.setState({lgMode:'login',lgError:'',lgSent:false}),
+        toggleRemember:()=>this.setState({lgRemember:!S.lgRemember}),
+        rmMark:S.lgRemember?'✓':'', rmBg:S.lgRemember?'rgba(76,141,255,.18)':'#0B1118', rmBd:S.lgRemember?'rgba(76,141,255,.45)':'#26343F',
+        busy:S.lgBusy, cta:S.lgBusy?'Autenticando…':'Entrar', cursor:S.lgBusy?'progress':'pointer',
+        hasError:err, error:S.lgError, sent:S.lgSent,
+        sentMsg:'Link enviado para '+S.lgMail+' · válido por 30 minutos.',
+        bdUser:bd(err&&S.lgMode==='login'), bdPass:bd(err&&S.lgMode==='login'), bdMail:bd(err&&S.lgMode==='recover'),
+        hint:'acesso local · rafael.menezes / infra2026'
+      }
+    };
+  }
+
+  tick(){
+    const d=new Date(), p=n=>String(n).padStart(2,'0');
+    const c=document.getElementById('im-clock'), dt=document.getElementById('im-date');
+    if(c) c.textContent=p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+    if(dt) dt.textContent=p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();
+  }
+  componentDidUpdate(){ this.tick(); }
+  applyTheme(t){
+    let el=document.getElementById('im-light-theme');
+    if(t==='light'){
+      if(!el){el=document.createElement('style');el.id='im-light-theme';document.head.appendChild(el);}
+      el.textContent=lightCss();
+    } else if(el){ el.remove(); }
+    this.toMap({type:'theme',theme:t});
+  }
+  toggleTheme(){
+    const t=this.state.theme==='light'?'dark':'light';
+    try{localStorage.setItem('infra-monitor-theme',t);}catch(e){}
+    this.setState({theme:t});
+    this.applyTheme(t);
+  }
+
+  componentDidMount(){
+    this.applyTheme(this.state.theme);
+    this.tick(); this.clockTimer=setInterval(()=>this.tick(),1000);
+    this.onMsg = e => {
+      const d = e.data||{};
+      if(d.source==='infra-map'){
+        if(d.type==='select') this.setState({mapUnit:d.id});
+        if(d.type==='ready'){ this.mapReady=true; this.sendMapStats(); }
+      }
+    };
+    window.addEventListener('message', this.onMsg);
+  }
+  componentWillUnmount(){ window.removeEventListener('message', this.onMsg); clearInterval(this.clockTimer); }
+
+  sendMapStats(){
+    const units=this.data.units.map(u=>({id:u.id,status:u.status,count:u.count,availability:u.availability,
+      avgLatency:u.avgLatency,online:u.cnt.online,degraded:u.cnt.degraded,offline:u.cnt.offline,
+      incidents:this.data.incidents.filter(i=>i.unitId===u.id&&i.status!=='resolved').length}));
+    this.toMap({type:'stats',units});
+    this.toMap({type:'select',id:this.state.mapUnit});
+    this.toMap({type:'theme',theme:this.state.theme});
+  }
+
+  toMap(msg){ const f=document.getElementById('infra-map-frame'); if(f&&f.contentWindow) f.contentWindow.postMessage(Object.assign({target:'infra-map'},msg),'*'); }
+
+  toast(title,body,kind){
+    const id=Math.random().toString(36).slice(2);
+    const c=kind==='warn'?'#E8A33D':kind==='err'?'#E5484D':kind==='info'?'#4C8DFF':'#34C77B';
+    const icon=kind==='warn'?'▲':kind==='err'?'✕':kind==='info'?'⚙':'✓';
+    this.setState(s=>({toasts:s.toasts.concat([{id,title,body,color:c,icon}])}));
+    setTimeout(()=>this.setState(s=>({toasts:s.toasts.filter(t=>t.id!==id)})),4200);
+  }
+  unit(id){ return this.data.units.find(u=>u.id===id); }
+  equipOf(id){ return this.data.equip.filter(e=>e.unitId===id); }
+  openUnit(id){ this.setState({screen:'unit',unitId:id,unitTab:'overview',ueType:'All',ueStatus:'All',ueQ:'',q:'',focus:false,equipId:null,incId:null}); }
+  openEquip(id){ this.setState({equipId:id,q:'',focus:false}); }
+  openInc(id){ this.setState({incId:id,q:'',focus:false}); }
+  ack(id){
+    const i=this.data.incidents.find(x=>x.id===id); if(!i||i.status!=='open') return;
+    i.status='ack'; i.ackBy='R. Menezes';
+    i.timeline=i.timeline.concat([{t:'08:44:31',txt:'Reconhecido por R. Menezes',c:'#34C77B'}]);
+    this.forceUpdate(); this.toast('Incidente reconhecido',id+' atribuído a R. Menezes','ok');
+  }
+  resolve(id){
+    const i=this.data.incidents.find(x=>x.id===id); if(!i||i.status==='resolved') return;
+    i.status='resolved';
+    i.timeline=i.timeline.concat([
+      {t:'08:47:10',txt:'Resposta ICMP recebida — 2 ms',c:'#34C77B'},
+      {t:'08:47:40',txt:'Resposta ICMP recebida — 1 ms',c:'#34C77B'},
+      {t:'08:47:40',txt:'Estado alterado: OFFLINE → ONLINE',c:'#34C77B'},
+      {t:'08:47:40',txt:'Incidente resolvido',c:'#34C77B'},
+      {t:'08:47:41',txt:'Notificação de recuperação enviada via Telegram',c:'#4C8DFF'}
+    ]);
+    const eq=this.data.equip.find(e=>e.id===i.equipId);
+    if(eq){eq.state='online';eq.latency=2;eq.lastCheck='há 1 s';}
+    this.forceUpdate(); this.toast('Incidente resolvido',id+' encerrado · notificação de recuperação enviada','ok');
+  }
+  chart(eq){
+    const r=rng(hash(eq.id));const vals=[];
+    for(let i=0;i<64;i++){
+      let v;
+      if(eq.state==='offline') v = i>54?0:Math.round(1+r()*3);
+      else if(eq.state==='degraded') v = i>44?Math.round(180+r()*220):Math.round(4+r()*8);
+      else v = Math.round((TMETA[eq.type].base||2)+r()*5);
+      vals.push(v);
+    }
+    const W=520,H=96,n=vals.length;
+    const peak=Math.max.apply(null,vals.concat([12]))*1.18;
+    const X=i=>(i/(n-1))*W, Y=v=>+(H-Math.max(1.5,(v/peak)*(H-8))).toFixed(1);
+    const pts=vals.map((v,i)=>X(i).toFixed(1)+','+Y(v)).join(' ');
+    const avg=vals.map((v,i)=>{const s=vals.slice(Math.max(0,i-5),i+1);return s.reduce((a,b)=>a+b,0)/s.length;});
+    const avgPts=avg.map((v,i)=>X(i).toFixed(1)+','+Y(v)).join(' ');
+    const lost=vals.filter(v=>v===0).length;
+    return {pts,avgPts,area:'0,'+H+' '+pts+' '+W+','+H,
+      peak:Math.round(Math.max.apply(null,vals))+' ms',
+      mid:Math.round(vals.reduce((a,b)=>a+b,0)/n)+' ms',
+      loss:lost?lost+' timeouts':'sem perdas'};
+  }
+  csv(){
+    const rows=[['Unidade','Disponibilidade','Disponibilidade excl. manutenção','Indisponibilidade','Manutenção declarada','Incidentes','Maior incidente','Latência média']];
+    this.reportRows().forEach(r=>rows.push([r.unit,r.availRaw,r.availSla,r.down,r.maint,r.inc,r.largest,r.lat]));
+    const csv=rows.map(r=>r.join(';')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download='disponibilidade-2026-08.csv'; a.click();
+    this.toast('CSV exportado','disponibilidade-2026-08.csv · 11 unidades','ok');
+  }
+  reportRows(){
+    return this.data.units.map((u,i)=>{
+      const inc=this.data.incidents.filter(x=>x.unitId===u.id).length;
+      const down=(100-u.availability)/100*30*24*60;
+      return {id:u.id,unit:u.name,city:u.city,availNum:u.availability,availRaw:pct(u.availability),
+        availSla:pct(Math.min(99.99,u.availability+(u.maint?0.03:0.01))),
+        down:Math.round(down)+' min',maint:u.maint?'240 min':(i%3===0?'120 min':'0 min'),
+        inc:inc,largest:inc?['46 min','32 min','12 min','27 min','8 min'][i%5]:'—',
+        lat:u.avgLatency+' ms',status:u.status};
+    });
+  }
+
+  setForm(k,v){ this.setState(s=>({form:Object.assign({},s.form,{[k]:v})})); }
+
+  runConfirm(){
+    const f=this.state.form;
+    if(f.action==='disable-unit'){
+      const u=this.unit(f.id); if(u){u.active=false;u.status='disabled';}
+      this.toast('Unidade desativada',(u?u.name:'Unidade')+' · monitoramento interrompido para '+(u?u.count:0)+' dispositivos','warn');
+    } else if(f.action==='cancel-maint'){
+      this.data.maint=this.data.maint.filter(m=>m.id!==f.id);
+      this.toast('Janela de manutenção cancelada',f.id+' removida','warn');
+    } else if(f.action==='reset'){
+      this.toast('Link de redefinição enviado',f.id+' · válido por 30 minutos','ok');
+    } else if(f.action==='disable-monitor'){
+      const e=this.data.equip.filter(x=>x.id===f.id)[0];
+      if(e){e.monitored=false;e.state='disabled';e.latency=null;}
+      this.toast('Monitoramento desativado',(e?e.name:'Dispositivo')+' não será mais verificado','warn');
+    }
+    this.setState({dialog:null,form:{}});
+  }
+
+  saveForm(){
+    const S=this.state,f=S.form;
+    if(S.dialog==='unit'){
+      if(!f.name||!f.code){ this.toast('Campos obrigatórios','Nome e código interno são obrigatórios','err'); return; }
+      const u={id:'new-'+Date.now(),name:f.name,code:f.code,city:f.city||'Aracaju',addr:f.addr||'—',
+        lat:parseFloat(f.lat)||-10.91,lng:parseFloat(f.lng)||-37.05,oct:99,count:0,bad:{},
+        status:'unknown',cnt:{online:0,degraded:0,offline:0},availability:0,avgLatency:0,active:true};
+      this.data.units.push(u);
+      this.toast('Unidade criada',f.name+' · '+f.code+' — aguardando o primeiro equipamento','ok');
+    } else if(S.dialog==='equip'){
+      if(!f.name||!f.ip){ this.toast('Campos obrigatórios','Nome e endereço IP são obrigatórios','err'); return; }
+      const u=this.data.units.filter(x=>x.name===f.unit)[0]||this.data.units[0];
+      this.data.equip.push({id:u.id+'/'+f.name,unitId:u.id,unitName:u.name,name:f.name,type:f.type,state:'unknown',
+        host:f.host||f.name.toLowerCase(),ip:f.ip,mac:'—',mfr:TMETA[f.type].mfr,model:TMETA[f.type].model,
+        serial:'—',asset:'—',latency:null,avgLatency:null,availability:0,monitored:true,
+        lastOk:'—',lastFail:'—',lastCheck:'aguardando primeira verificação',desc:f.type+' — '+u.name,rack:'Não alocado'});
+      u.count++;
+      this.toast('Equipamento criado',f.name+' · '+f.ip+' — primeira verificação em até 30 s','ok');
+    } else if(S.dialog==='maint'){
+      if(!f.reason){ this.toast('Campos obrigatórios','Informe o motivo da janela de manutenção','err'); return; }
+      const u=this.data.units.filter(x=>x.name===f.unit)[0];
+      this.data.maint.unshift({id:'MW-00'+(44+this.data.maint.length),unitId:u?u.id:'',unit:f.unit,scope:f.scope,
+        start:f.start,end:f.end,reason:f.reason,state:'scheduled',by:'R. Menezes'});
+      this.toast('Manutenção agendada',f.unit+' · '+f.start+' → '+f.end,'info');
+    }
+    this.setState({dialog:null,form:{}});
+  }
+
+  overlayVals(){
+    const S=this.state,D=this.data,f=S.form;
+    const sw=on=>({bg:on?'rgba(76,141,255,.28)':'#141D26',bd:on?'rgba(76,141,255,.5)':'#26343F',x:on?'19px':'2px',knob:on?'#7FADFF':'#4E5F72'});
+    const field=(k,label,o)=>Object.assign({label,hint:'',span:'auto',ph:'',font:'inherit',isInput:true,isSelect:false,
+      value:f[k]||'',onChange:e=>this.setForm(k,e.target.value)},o||{});
+
+    let dlg={width:'520px',title:'',sub:'',note:'',isConfirm:false,isForm:false,fields:[],cta:'Confirmar',
+      ctaBg:'rgba(76,141,255,.16)',ctaBd:'rgba(76,141,255,.38)',ctaFg:'#9CC1FF',confirm:()=>this.saveForm()};
+    if(S.dialog==='confirm'){
+      const danger=f.kind==='danger';
+      dlg=Object.assign(dlg,{width:'470px',title:f.title,sub:'Esta ação é registrada no log de auditoria.',isConfirm:true,
+        body:f.body,cta:f.label,icon:danger?'✕':'⚙',
+        iconColor:danger?'#E5484D':'#4C8DFF',iconBg:danger?'rgba(229,72,77,.11)':'rgba(76,141,255,.11)',
+        iconBd:danger?'rgba(229,72,77,.34)':'rgba(76,141,255,.34)',
+        ctaBg:danger?'rgba(229,72,77,.16)':'rgba(76,141,255,.16)',
+        ctaBd:danger?'rgba(229,72,77,.4)':'rgba(76,141,255,.38)',
+        ctaFg:danger?'#F2999C':'#9CC1FF',
+        confirm:()=>this.runConfirm()});
+    } else if(S.dialog==='unit'){
+      dlg=Object.assign(dlg,{width:'620px',title:'Nova unidade',sub:'A unidade é um local físico. Os equipamentos são vinculados a ela depois.',
+        isForm:true,cta:'Criar unidade',note:'As coordenadas posicionam a unidade no mapa operacional.',
+        fields:[field('name','NOME *',{span:'span 2',ph:'Sesc Aracaju Norte'}),
+          field('code','CÓDIGO INTERNO *',{ph:'ARN-12',font:"'IBM Plex Mono',monospace"}),
+          field('city','CIDADE',{ph:'Aracaju'}),
+          field('addr','ENDEREÇO',{span:'span 2',ph:'Av. Beira Mar, 1200 — Treze de Julho'}),
+          field('lat','LATITUDE',{ph:'-10.9110',font:"'IBM Plex Mono',monospace",hint:'Graus decimais'}),
+          field('lng','LONGITUDE',{ph:'-37.0500',font:"'IBM Plex Mono',monospace",hint:'Graus decimais'})]});
+    } else if(S.dialog==='equip'){
+      dlg=Object.assign(dlg,{width:'620px',title:'Novo equipamento',sub:'O monitoramento ICMP começa na próxima varredura após a criação.',
+        isForm:true,cta:'Criar equipamento',note:'O monitoramento herda os padrões globais de ICMP.',
+        fields:[field('name','NOME *',{ph:'SW-ACCESS-05',font:"'IBM Plex Mono',monospace"}),
+          field('type','TIPO',{isSelect:true,isInput:false,options:TYPES,value:f.type||'Switch'}),
+          field('unit','UNIDADE',{isSelect:true,isInput:false,options:D.units.map(u=>u.name),value:f.unit||D.units[0].name,span:'span 2'}),
+          field('host','HOSTNAME',{ph:'sw-access-05-cen',font:"'IBM Plex Mono',monospace"}),
+          field('ip','ENDEREÇO IP *',{ph:'10.79.25.6',font:"'IBM Plex Mono',monospace",hint:'IPv4 · faixa privada'})]});
+    } else if(S.dialog==='maint'){
+      dlg=Object.assign(dlg,{width:'620px',title:'Agendar manutenção',sub:'A disponibilidade dentro da janela é excluída do cálculo de SLA.',
+        isForm:true,cta:'Agendar janela',note:'Um aviso é enviado no Telegram no início e no fim da janela.',
+        fields:[field('unit','UNIDADE',{isSelect:true,isInput:false,options:D.units.map(u=>u.name),value:f.unit||D.units[0].name}),
+          field('scope','ESCOPO',{isSelect:true,isInput:false,options:['Unidade inteira','SW-CORE','LINK-WAN','CTRL-WIFI','SRV-AD01'],value:f.scope||'Unidade inteira'}),
+          field('start','INÍCIO',{font:"'IBM Plex Mono',monospace"}),
+          field('end','FIM',{font:"'IBM Plex Mono',monospace"}),
+          field('reason','MOTIVO *',{span:'span 2',ph:'Atualização de firmware do switch core'})]});
+    }
+
+    const e=S.equipId?D.equip.filter(x=>x.id===S.equipId)[0]:null;
+    let eq={};
+    if(e){
+      const m=st(e.state);
+      const inc=D.incidents.filter(i=>i.equipId===e.id);
+      const s2=sw(e.monitored);
+      eq={
+        name:e.name,type:e.type,unitName:e.unitName,rack:e.rack,label:m.label,icon:m.icon,color:m.color,bg:m.bg,bd:m.bd,
+        goUnit:ev=>{ev.preventDefault();this.setState({equipId:null});this.openUnit(e.unitId);},
+        chart:this.chart(e),
+        stats:[
+          {label:'STATUS',value:m.label,color:m.color,accent:m.color},
+          {label:'LATÊNCIA',value:e.latency==null?'timeout':e.latency+' ms',color:e.latency==null?'#E5484D':e.latency>150?'#E8A33D':'#E4EBF3',accent:'#4C8DFF'},
+          {label:'LATÊNCIA MÉDIA',value:e.avgLatency==null?'—':e.avgLatency+' ms',color:'#E4EBF3',accent:'#4C8DFF'},
+          {label:'DISPONIBILIDADE',value:e.availability?pct(e.availability):'—',color:'#E4EBF3',accent:'#34C77B'},
+          {label:'PERDA DE PACOTES',value:e.state==='offline'?'100%':e.state==='degraded'?'6%':'0%',color:e.state==='online'?'#E4EBF3':'#E8A33D',accent:'#E8A33D'},
+          {label:'INCIDENTES 30D',value:String(inc.length),color:inc.length?'#F2777B':'#4E5F72',accent:'#E5484D'},
+          {label:'INTERVALO',value:S.cfg.interval+' s',color:'#93A7BA',accent:'#2C3B4C'},
+          {label:'ÚLTIMA VERIFICAÇÃO',value:e.lastCheck,color:'#93A7BA',accent:'#2C3B4C'}
+        ],
+        fields:[{label:'Unidade',value:e.unitName},{label:'Tipo de equipamento',value:e.type},{label:'Hostname',value:e.host},
+          {label:'Endereço IP',value:e.ip},{label:'Endereço MAC',value:e.mac},{label:'Fabricante',value:e.mfr},
+          {label:'Modelo',value:e.model},{label:'Número de série',value:e.serial},{label:'Patrimônio',value:e.asset},
+          {label:'Descrição',value:e.desc}],
+        mon:[{label:'Tipo de monitor',value:'ICMP echo',color:'#C9D8E7'},
+          {label:'Estado atual',value:m.label,color:m.color},
+          {label:'Contador de falhas',value:e.state==='offline'?'3 / '+S.cfg.fails:'0 / '+S.cfg.fails,color:e.state==='offline'?'#F2999C':'#C9D8E7'},
+          {label:'Último sucesso',value:e.lastOk,color:'#C9D8E7'},
+          {label:'Última falha',value:e.lastFail,color:e.lastFail==='—'?'#5E7185':'#E8A33D'},
+          {label:'Limite',value:S.cfg.latency+' ms',color:'#C9D8E7'}],
+        monState:e.monitored?'ativado':'desativado',monBg:s2.bg,monBd:s2.bd,monX:s2.x,monKnob:s2.knob,
+        toggleMon:()=>{e.monitored=!e.monitored;if(!e.monitored){e.state='disabled';e.latency=null;}else{e.state='online';e.latency=2;}
+          this.forceUpdate();this.toast('Monitoramento '+(e.monitored?'ativado':'desativado'),e.name+' · '+e.unitName,e.monitored?'ok':'warn');},
+        incidents:inc.map(i=>({id:i.id,event:i.event,dur:i.dur,color:i.status==='open'?'#F2999C':'#8397AA',go:()=>{this.setState({equipId:null});this.openInc(i.id);}})),
+        noIncidents:inc.length===0,
+        edit:()=>this.toast('Editar equipamento','Abrindo editor de '+e.name,'info'),
+        transfer:()=>this.toast('Transferir equipamento','Escolha a unidade de destino para '+e.name,'info'),
+        history:()=>{this.setState({equipId:null});this.openUnit(e.unitId);this.setState({unitTab:'history'});},
+        disable:()=>this.setState({dialog:'confirm',form:{title:'Desativar o monitoramento de '+e.name+'?',
+          body:'As verificações ICMP são interrompidas e nenhum incidente ou alerta do Telegram será gerado para este dispositivo. Os dados de inventário são preservados.',
+          label:'Desativar monitoramento',kind:'danger',action:'disable-monitor',id:e.id}})
+      };
+    }
+
+    const i=S.incId?D.incidents.filter(x=>x.id===S.incId)[0]:null;
+    let ic={};
+    if(i){
+      const c=i.status==='open'?st('offline'):i.status==='ack'?st('degraded'):st('online');
+      const sc={critical:st('offline'),warning:st('degraded'),info:st('maintenance')}[i.sev];
+      ic={
+        id:i.id,event:i.event,sev:SEVL[i.sev],sevColor:sc.color,sevBg:sc.bg,sevBd:sc.bd,
+        status:IST[i.status],color:c.color,bg:c.bg,bd:c.bd,
+        timeline:i.timeline,notifiedAt:i.startFull.slice(11),
+        facts:[{label:'EQUIPAMENTO',value:i.equip,color:'#DDE8F3'},
+          {label:'UNIDADE',value:this.unit(i.unitId).name,color:'#DDE8F3'},
+          {label:'ENDEREÇO IP',value:i.ip,color:'#B7C7D8'},
+          {label:'INÍCIO',value:i.startFull,color:'#B7C7D8'},
+          {label:'DURAÇÃO',value:i.dur,color:i.status==='open'?'#F2999C':'#B7C7D8'},
+          {label:'SEVERIDADE',value:SEVL[i.sev],color:sc.color}],
+        canAck:i.status==='open',canResolve:i.status!=='resolved',ackedBy:i.ackBy||'',
+        ack:()=>this.ack(i.id),resolve:()=>this.resolve(i.id),
+        goEquip:()=>{this.setState({incId:null});this.openEquip(i.equipId);}
+      };
+    }
+
+    return {
+      hasDialog:!!S.dialog,closeDialog:()=>this.setState({dialog:null,form:{}}),
+      stop:ev=>ev.stopPropagation(),dlg,
+      hasEquip:!!e,hasInc:!!i,eq,ic,
+      closeDrawer:()=>this.setState({equipId:null,incId:null})
+    };
+  }
+
+  adminVals(){
+    const S=this.state,D=this.data,sec=S.adminSection;
+    const q=S.adminQ.trim().toLowerCase();
+    const MONO="'IBM Plex Mono',monospace";
+    const T=(text,o)=>Object.assign({isText:true,isBadge:false,isActions:false,text:text,align:'left',color:'#B7C7D8',font:'inherit',size:'12px'},o||{});
+    const B=(text,k)=>{const m=st(k);return{isText:false,isBadge:true,isActions:false,text:m.icon+' '+text,align:'left',color:m.color,bg:m.bg,bd:m.bd};};
+    const A=(actions)=>({isText:false,isBadge:false,isActions:true,align:'right',actions});
+    const cols=a=>a.map(c=>typeof c==='string'?{label:c,align:'left'}:c);
+    let title='',sub='',isTable=true,rows=[],colDefs=[],primaryLabel='',primary=null,hasPrimary=false,searchPlaceholder='Buscar…',count='';
+
+    if(sec==='units'){
+      title='Unidades';sub='Locais físicos monitorados pela plataforma. Todo equipamento pertence a exatamente uma unidade.';
+      primaryLabel='+ Nova unidade';hasPrimary=true;searchPlaceholder='Buscar unidades por nome, código ou cidade…';
+      primary=()=>this.setState({dialog:'unit',form:{name:'',code:'',addr:'',city:'',lat:'',lng:''}});
+      colDefs=cols(['UNIDADE','CÓDIGO','CIDADE','ENDEREÇO','STATUS',{label:'EQUIPAMENTOS',align:'right'},{label:'DISPONIBILIDADE',align:'right'},{label:'INCIDENTES',align:'right'},{label:'AÇÕES',align:'right'}]);
+      const list=D.units.filter(u=>!q||u.name.toLowerCase().includes(q)||u.code.toLowerCase().includes(q)||u.city.toLowerCase().includes(q));
+      count=list.length+' de '+D.units.length+' unidades';
+      rows=list.map(u=>({cursor:'pointer',go:()=>this.openUnit(u.id),cells:[
+        T(u.name,{color:'#DBE7F3'}),T(u.code,{font:MONO,color:'#8397AA'}),T(u.city),T(u.addr,{color:'#7D91A5',size:'11.5px'}),
+        B(st(u.status).label,u.status),T(String(u.count),{align:'right',font:MONO}),
+        T(pct(u.availability),{align:'right',font:MONO}),
+        T(String(D.incidents.filter(i=>i.unitId===u.id&&i.status!=='resolved').length),{align:'right',font:MONO}),
+        A([{label:'Ver',color:'#9FB2C5',go:e=>{e.stopPropagation();this.openUnit(u.id);}},
+           {label:'Desativar',color:'#C98E90',go:e=>{e.stopPropagation();this.setState({dialog:'confirm',form:{title:'Desativar '+u.name+'?',body:'O monitoramento é interrompido para '+u.count+' dispositivos. O histórico é preservado.',label:'Desativar unidade',kind:'danger',action:'disable-unit',id:u.id}});}}])
+      ]}));
+    } else if(sec==='equipment'){
+      title='Equipamentos';sub='Inventário completo de todas as unidades. O tipo de equipamento é um atributo, não um módulo separado.';
+      primaryLabel='+ Novo equipamento';hasPrimary=true;searchPlaceholder='Buscar nome, hostname, IP, MAC, patrimônio…';
+      primary=()=>this.setState({dialog:'equip',form:{name:'',type:'Switch',host:'',ip:'10.79.',unit:D.units[0].name}});
+      colDefs=cols(['NOME','TIPO','UNIDADE','HOSTNAME','ENDEREÇO IP','STATUS',{label:'LATÊNCIA',align:'right'},'MONITORAMENTO',{label:'AÇÕES',align:'right'}]);
+      let list=D.equip.filter(e=>!q||e.name.toLowerCase().includes(q)||e.host.includes(q)||e.ip.includes(q)||e.mac.toLowerCase().includes(q)||e.asset.toLowerCase().includes(q)||e.unitName.toLowerCase().includes(q));
+      count=list.length+' de '+D.equip.length+' dispositivos';
+      list=list.slice(0,40);
+      rows=list.map(e=>({cursor:'pointer',go:()=>this.openEquip(e.id),cells:[
+        T(e.name,{font:MONO,color:'#DBE7F3'}),T(e.type),T(e.unitName,{color:'#8FA2B5'}),
+        T(e.host,{font:MONO,color:'#7D91A5',size:'11.5px'}),T(e.ip,{font:MONO,color:'#7D91A5'}),
+        B(st(e.state).label,e.state),
+        T(e.latency==null?'timeout':e.latency+' ms',{align:'right',font:MONO,color:e.latency==null?'#E5484D':e.latency>150?'#E8A33D':'#9DB0C3'}),
+        T(e.monitored?'Ativado':'Desativado',{color:e.monitored?'#8FA2B5':'#5E7185'}),
+        A([{label:e.monitored?'Desativar':'Ativar',color:'#9FB2C5',go:ev=>{ev.stopPropagation();e.monitored=!e.monitored;this.forceUpdate();this.toast('Monitoramento '+(e.monitored?'ativado':'desativado'),e.name+' · '+e.unitName,e.monitored?'ok':'warn');}}])
+      ]}));
+    } else if(sec==='types'){
+      title='Tipos de Equipamento';sub='Classificação usada em filtros, modelos de monitoramento e relatórios.';
+      searchPlaceholder='Buscar tipos…';
+      colDefs=cols(['TIPO','REFERÊNCIA DE FABRICANTE',{label:'DISPOSITIVOS',align:'right'},{label:'ONLINE',align:'right'},{label:'DEGRADADOS',align:'right'},{label:'OFFLINE',align:'right'},'MODELO DE MONITOR']);
+      const map={};D.equip.forEach(e=>{const m=map[e.type]||(map[e.type]={n:0,online:0,degraded:0,offline:0});m.n++;m[e.state]++;});
+      const list=Object.keys(map).filter(k=>!q||k.toLowerCase().includes(q));
+      count=list.length+' tipos';
+      rows=list.map(k=>({cursor:'default',go:null,cells:[
+        T(k,{color:'#DBE7F3'}),T(TMETA[k].mfr+' '+TMETA[k].model,{color:'#7D91A5',size:'11.5px'}),
+        T(String(map[k].n),{align:'right',font:MONO}),
+        T(String(map[k].online),{align:'right',font:MONO,color:'#34C77B'}),
+        T(String(map[k].degraded||0),{align:'right',font:MONO,color:map[k].degraded?'#E8A33D':'#4E5F72'}),
+        T(String(map[k].offline||0),{align:'right',font:MONO,color:map[k].offline?'#E5484D':'#4E5F72'}),
+        T('ICMP · 30 s · 3 falhas',{font:MONO,color:'#6C8098',size:'11.5px'})
+      ]}));
+    } else if(sec==='maintenance'){
+      title='Janelas de Manutenção';sub='Intervenções planejadas. A disponibilidade dentro da janela é excluída do cálculo de SLA.';
+      primaryLabel='+ Agendar manutenção';hasPrimary=true;searchPlaceholder='Buscar janelas…';
+      primary=()=>this.setState({dialog:'maint',form:{unit:D.units[0].name,scope:'Unidade inteira',start:'16/08/2026 22:00',end:'17/08/2026 02:00',reason:''}});
+      colDefs=cols(['ID','UNIDADE','ESCOPO','INÍCIO','FIM','MOTIVO','CRIADO POR','SITUAÇÃO',{label:'AÇÕES',align:'right'}]);
+      const list=D.maint.filter(m=>!q||m.unit.toLowerCase().includes(q)||m.reason.toLowerCase().includes(q));
+      count=list.length+' janelas';
+      rows=list.map(m=>({cursor:'default',go:null,cells:[
+        T(m.id,{font:MONO,color:'#9CC1FF'}),T(m.unit,{color:'#DBE7F3'}),T(m.scope),
+        T(m.start,{font:MONO,color:'#8397AA',size:'11.5px'}),T(m.end,{font:MONO,color:'#8397AA',size:'11.5px'}),
+        T(m.reason),T(m.by,{color:'#7D91A5'}),
+        B(MST[m.state],m.state==='active'?'maintenance':m.state==='scheduled'?'unknown':'disabled'),
+        A([{label:'Cancelar',color:'#C98E90',go:e=>{e.stopPropagation();this.setState({dialog:'confirm',form:{title:'Cancelar '+m.id+'?',body:'A janela de '+m.unit+' será removida e o período passará a contar para o SLA.',label:'Cancelar janela',kind:'danger',action:'cancel-maint',id:m.id}});}}])
+      ]}));
+    } else if(sec==='users'){
+      title='Usuários';sub='Acesso à plataforma de monitoramento. O perfil define quais ações estão disponíveis.';
+      primaryLabel='+ Novo usuário';hasPrimary=true;searchPlaceholder='Buscar usuários…';
+      primary=()=>this.toast('Novo usuário','Formulário de convite aberto','info');
+      colDefs=cols(['NOME','E-MAIL','PERFIL','ESCOPO','STATUS','ÚLTIMO ACESSO',{label:'AÇÕES',align:'right'}]);
+      const list=D.users.filter(u=>!q||u.name.toLowerCase().includes(q)||u.email.includes(q)||u.role.toLowerCase().includes(q));
+      count=list.length+' de '+D.users.length+' usuários';
+      rows=list.map(u=>({cursor:'default',go:null,cells:[
+        T(u.name,{color:'#DBE7F3'}),T(u.email,{font:MONO,color:'#7D91A5',size:'11.5px'}),T(u.role),T(u.unit,{color:'#8FA2B5'}),
+        B(u.active?'ATIVO':'DESATIVADO',u.active?'online':'disabled'),
+        T(u.last,{font:MONO,color:'#7D91A5',size:'11.5px'}),
+        A([{label:'Redefinir senha',color:'#9FB2C5',go:e=>{e.stopPropagation();this.setState({dialog:'confirm',form:{title:'Redefinir a senha de '+u.name+'?',body:'Um link de uso único será enviado para '+u.email+' e expira em 30 minutos.',label:'Enviar link',kind:'primary',action:'reset',id:u.email}});}},
+           {label:u.active?'Desativar':'Ativar',color:u.active?'#C98E90':'#8FBFA2',go:e=>{e.stopPropagation();u.active=!u.active;this.forceUpdate();this.toast('Usuário '+(u.active?'ativado':'desativado'),u.name,u.active?'ok':'warn');}}])
+      ]}));
+    } else if(sec==='audit'){
+      title='Log de Auditoria';sub='Toda alteração de configuração é registrada com autor, alvo e valor anterior.';
+      searchPlaceholder='Buscar usuário, ação, alvo…';
+      colDefs=cols(['DATA/HORA','USUÁRIO','PERFIL','AÇÃO','ALVO','DETALHE']);
+      const list=D.audit.filter(a=>!q||a.user.toLowerCase().includes(q)||a.action.toLowerCase().includes(q)||a.target.toLowerCase().includes(q));
+      count=list.length+' registros';
+      rows=list.map(a=>({cursor:'default',go:null,cells:[
+        T(a.ts,{font:MONO,color:'#8397AA',size:'11.5px'}),T(a.user,{color:'#DBE7F3'}),T(a.role,{color:'#7D91A5',size:'11.5px'}),
+        T(a.action,{font:MONO,color:'#9CC1FF',size:'11.5px'}),T(a.target),T(a.detail,{color:'#8FA2B5',size:'11.5px'})
+      ]}));
+    } else { isTable=false; }
+
+    const secTitles={monitoring:['Configuração de Monitoramento','Padrões globais aplicados a todos os monitores, salvo exceção por equipamento.'],
+      telegram:['Integração com Telegram','Envio de alertas para mudanças de estado e eventos de manutenção.'],
+      settings:['Configurações do Sistema','Informações da instalação e política de retenção.']};
+    if(!isTable){ title=secTitles[sec][0]; sub=secTitles[sec][1]; }
+
+    const tg=S.telegram;
+    const sw=(on)=>({bg:on?'rgba(76,141,255,.28)':'#141D26',bd:on?'rgba(76,141,255,.5)':'#26343F',x:on?'19px':'2px',knob:on?'#7FADFF':'#4E5F72'});
+    const evDesc={'Equipamento offline':'Enviado após 3 falhas ICMP consecutivas','Equipamento recuperado':'Enviado quando o dispositivo volta a ficar ONLINE','Latência alta':'Enviado quando a latência excede o limite por 2 ciclos','Manutenção iniciada':'Enviado quando a janela se torna ativa','Manutenção concluída':'Enviado quando a janela é encerrada'};
+    const evDot={'Equipamento offline':'#E5484D','Equipamento recuperado':'#34C77B','Latência alta':'#E8A33D','Manutenção iniciada':'#4C8DFF','Manutenção concluída':'#4C8DFF'};
+    const cfgF=(k,label,hint,unit)=>({label,hint,unit,value:String(S.cfg[k]),
+      onChange:e=>{const v=e.target.value;this.setState(s=>({cfg:Object.assign({},s.cfg,{[k]:v})}));}});
+
+    return {
+      adminQ:S.adminQ,onAdminQ:e=>this.setState({adminQ:e.target.value}),
+      ad:{
+        title,sub,isTable,cols:colDefs,rows,count,searchPlaceholder,hasPrimary,primaryLabel,primary,
+        isTelegram:sec==='telegram',isMonitoring:sec==='monitoring',isSettings:sec==='settings',
+        tgState:tg.enabled?'ativada':'desativada',
+        tgBg:sw(tg.enabled).bg,tgBd:sw(tg.enabled).bd,tgX:sw(tg.enabled).x,tgKnob:sw(tg.enabled).knob,
+        toggleTg:()=>{this.setState(s=>({telegram:Object.assign({},s.telegram,{enabled:!s.telegram.enabled})}));this.toast('Telegram '+(tg.enabled?'desativado':'ativado'),tg.enabled?'Os alertas não serão mais entregues':'Entrega de alertas retomada',tg.enabled?'warn':'ok');},
+        testTg:()=>this.toast('Mensagem de teste entregue','Enviada para «TI · Alertas Infraestrutura» às 08:44:52','ok'),
+        tgEvents:Object.keys(tg.events).map(k=>{const on=tg.events[k];const s2=sw(on);return Object.assign({label:k,desc:evDesc[k],dot:on?evDot[k]:'#3B4A5A',
+          toggle:()=>{this.setState(st2=>({telegram:Object.assign({},st2.telegram,{events:Object.assign({},st2.telegram.events,{[k]:!on})})}));this.toast(k,(!on?'Notificações ativadas':'Notificações desativadas'),!on?'ok':'warn');}},s2);}),
+        cfgFields:[cfgF('interval','Intervalo de verificação','Frequência com que cada monitor é consultado','s'),
+          cfgF('timeout','Timeout ICMP','Tempo de espera pela resposta do echo','ms'),
+          cfgF('fails','Falhas consecutivas','Falhas necessárias para marcar OFFLINE','×'),
+          cfgF('latency','Limite de latência','Acima deste valor o dispositivo fica DEGRADADO','ms')],
+        cfgFails:S.cfg.fails,cfgLatency:S.cfg.latency,
+        saveCfg:()=>this.toast('Configuração salva','Aplicada a 187 monitores na próxima varredura','ok'),
+        sysFields:[{label:'Versão',value:'0.9.0-protótipo'},{label:'Mecanismo de monitoramento',value:'ICMP · 187 monitores'},
+          {label:'Retenção de medições',value:'90 dias brutos · 24 meses agregados'},{label:'Retenção de incidentes',value:'36 meses'},
+          {label:'Fuso horário',value:'America/Maceio (UTC−03:00)'},{label:'Idioma',value:'pt-BR · dd/MM/aaaa'},
+          {label:'Meta de SLA',value:'99,50%'}]
+      }
+    };
+  }
+
+  incVals(){
+    const S=this.state,D=this.data;
+    const n=k=>D.incidents.filter(i=>k==='all'||i.status===k).length;
+    const incTabs=[['open','Abertos'],['ack','Reconhecidos'],['resolved','Resolvidos'],['all','Todos']].map(([v,l])=>({
+      label:l,n:n(v),go:()=>this.setState({incFilter:v}),
+      bg:S.incFilter===v?'#1B2836':'transparent',fg:S.incFilter===v?'#DCE9F8':'#7E90A3',
+      nc:S.incFilter===v?'#7FA8DE':'#57697D'}));
+    let list=D.incidents.filter(i=>S.incFilter==='all'||i.status===S.incFilter);
+    if(S.incUnit!=='All') list=list.filter(i=>this.unit(i.unitId).name===S.incUnit);
+    if(S.incSev!=='All') list=list.filter(i=>i.sev===S.incSev);
+    const sevC={critical:'#E5484D',warning:'#E8A33D',info:'#4C8DFF'};
+    const sevI={critical:'✕',warning:'▲',info:'●'};
+    const incRows=list.map(i=>{
+      const c=i.status==='open'?st('offline'):i.status==='ack'?st('degraded'):st('online');
+      return {id:i.id,unit:this.unit(i.unitId).name,equip:i.equip,event:i.event,start:i.startFull.slice(11)||i.start,
+        dur:i.dur,durColor:i.status==='open'?'#F2999C':'#8397AA',
+        sevColor:sevC[i.sev],sevIcon:sevI[i.sev],
+        notified:'Telegram '+(i.status==='resolved'?'· recuperação':'· enviado'),
+        status:IST[i.status],color:c.color,bg:c.bg,bd:c.bd,
+        canAck:i.status==='open',
+        ack:e=>{e.stopPropagation();this.ack(i.id);},
+        go:()=>this.openInc(i.id)};
+    });
+    const rows=this.reportRows();
+    const filtered=S.repUnit==='All'?rows:rows.filter(r=>r.unit===S.repUnit);
+    const avg=filtered.reduce((a,r)=>a+r.availNum,0)/Math.max(1,filtered.length);
+    const down=filtered.reduce((a,r)=>a+parseInt(r.down),0);
+    const mnt=filtered.reduce((a,r)=>a+parseInt(r.maint),0);
+    const incT=filtered.reduce((a,r)=>a+r.inc,0);
+    const latT=Math.round(filtered.reduce((a,r)=>a+parseInt(r.lat),0)/Math.max(1,filtered.length));
+    const ranges=['Mês atual','Mês anterior','Últimos 7 dias','Últimos 30 dias'];
+    const rmap={'Mês atual':['01/08/2026','14/08/2026'],'Mês anterior':['01/07/2026','31/07/2026'],'Últimos 7 dias':['08/08/2026','14/08/2026'],'Últimos 30 dias':['16/07/2026','14/08/2026']};
+    return {
+      incTabs,incRows,incEmpty:incRows.length===0,incCount:incRows.length+' incidentes',
+      incSummary:n('open')+' abertos · '+n('ack')+' reconhecidos · '+n('resolved')+' resolvidos nas últimas 72 horas',
+      incUnit:S.incUnit,incSev:S.incSev,
+      unitOptions:[{v:'All',l:'Unidade: todas'}].concat(D.units.map(u=>({v:u.name,l:u.name}))),
+      sevOptions:[{v:'All',l:'Severidade: todas'},{v:'critical',l:'Crítico'},{v:'warning',l:'Alerta'},{v:'info',l:'Informativo'}],
+      onIncUnit:e=>this.setState({incUnit:e.target.value}),
+      onIncSev:e=>this.setState({incSev:e.target.value}),
+      repRanges:ranges.map(r=>({label:r,go:()=>this.setState({repRange:r}),
+        bg:S.repRange===r?'#1B2836':'transparent',fg:S.repRange===r?'#DCE9F8':'#7E90A3'})),
+      repPeriod:S.repRange+' · '+rmap[S.repRange][0]+' — '+rmap[S.repRange][1],
+      repStart:rmap[S.repRange][0],repEnd:rmap[S.repRange][1],
+      repUnit:S.repUnit,repType:S.repType,
+      onRepUnit:e=>this.setState({repUnit:e.target.value}),
+      onRepType:e=>this.setState({repType:e.target.value}),
+      exportCsv:()=>this.csv(),
+      exportPdf:()=>this.toast('PDF na fila','Relatório consolidado de disponibilidade · '+S.repRange,'info'),
+      repRows:filtered.map(r=>{const a=r.availNum;return Object.assign({},r,{
+        color:st(r.status).color,availColor:a<99.5?'#E8A33D':'#CBD9E7',
+        bar:Math.max(2,(a-98.5)/1.5*100)+'%',barColor:a<99.5?'#E8A33D':'#34C77B',
+        go:()=>this.openUnit(r.id)});}),
+      repTotalAvail:pct(avg),repTotalSla:pct(Math.min(99.99,avg+0.02)),
+      repTotalDown:down+' min',repTotalMaint:mnt+' min',repTotalInc:String(incT),repTotalLat:latT+' ms',
+      repSummary:[
+        {label:'DISPONIBILIDADE BRUTA',value:pct(avg),sub:'alcance ICMP',accent:'#34C77B',color:'#E4EBF3'},
+        {label:'DISPONIBILIDADE SLA',value:pct(Math.min(99.99,avg+0.02)),sub:'excl. manutenção',accent:'#34C77B',color:'#34C77B'},
+        {label:'INDISPONIBILIDADE',value:down+' min',sub:'acumulada',accent:'#E5484D',color:'#E4EBF3'},
+        {label:'INCIDENTES',value:String(incT),sub:'2 críticos',accent:'#E5484D',color:'#E4EBF3'},
+        {label:'LATÊNCIA MÉDIA',value:latT+' ms',sub:'todos os monitores',accent:'#4C8DFF',color:'#E4EBF3'},
+        {label:'UNIDADES',value:String(filtered.length),sub:'no escopo',accent:'#2C3B4C',color:'#E4EBF3'},
+        {label:'EQUIPAMENTOS',value:S.repUnit==='All'?'187':String((this.data.units.filter(u=>u.name===S.repUnit)[0]||{count:0}).count),sub:'monitorados',accent:'#2C3B4C',color:'#E4EBF3'}
+      ]
+    };
+  }
+
+  unitVals(){
+    const S=this.state,D=this.data;
+    const u=this.unit(S.unitId)||D.units[0];
+    const m=st(u.status);
+    const all=this.equipOf(u.id);
+    const inc=D.incidents.filter(i=>i.unitId===u.id);
+    const openI=inc.filter(i=>i.status!=='resolved').length;
+    const q=S.ueQ.trim().toLowerCase();
+    let eq=all.filter(e=>(S.ueType==='All'||e.type===S.ueType)&&(S.ueStatus==='All'||e.state===S.ueStatus));
+    if(q) eq=eq.filter(e=>e.name.toLowerCase().includes(q)||e.host.includes(q)||e.ip.includes(q)||e.mac.toLowerCase().includes(q));
+    const eo={offline:0,degraded:1,maintenance:2,online:3};
+    eq=eq.slice().sort((a,b)=>eo[a.state]-eo[b.state]||a.name.localeCompare(b.name));
+    const row=e=>{const em=st(e.state);return{
+      id:e.id,name:e.name,type:e.type,host:e.host,ip:e.ip,label:em.label,icon:em.icon,color:em.color,bg:em.bg,bd:em.bd,
+      lat:e.latency==null?'timeout':e.latency+' ms',latColor:e.latency==null?'#E5484D':e.latency>150?'#E8A33D':'#9DB0C3',
+      avail:pct(e.availability),check:e.lastCheck,go:()=>this.openEquip(e.id)};};
+    const types={};all.forEach(e=>types[e.type]=(types[e.type]||0)+1);
+    const maxT=Math.max.apply(null,Object.keys(types).map(k=>types[k]));
+    const topLat=all.slice().sort((a,b)=>(b.latency==null?9999:b.latency)-(a.latency==null?9999:a.latency)).slice(0,6);
+    const maxL=Math.max.apply(null,topLat.map(e=>e.latency||600));
+    const incRow=i=>{const c=i.status==='open'?st('offline'):i.status==='ack'?st('degraded'):st('online');return{
+      id:i.id,event:i.event,equip:i.equip,start:i.startFull,dur:i.dur,
+      status:IST[i.status],color:c.color,bg:c.bg,bd:c.bd,go:()=>this.openInc(i.id)};};
+    const mw=D.maint.filter(x=>x.unitId===u.id&&x.state==='active')[0];
+    const hr=rng(hash(u.id+'hist'));
+    const tab=k=>({label:k[1],go:()=>this.setState({unitTab:k[0]}),
+      bd:S.unitTab===k[0]?'#4C8DFF':'transparent',fg:S.unitTab===k[0]?'#DCE9F8':'#7E90A3',w:S.unitTab===k[0]?'600':'500'});
+    return {
+      backDash:()=>this.setState({screen:'dashboard',equipId:null,incId:null}),
+      typeOptions:[{v:'All',l:'Tipo: todos'}].concat(TYPES.map(t=>({v:t,l:t}))),
+      statusOptions:[{v:'All',l:'Status: todos'},{v:'online',l:'Online'},{v:'degraded',l:'Degradado'},{v:'offline',l:'Offline'},{v:'maintenance',l:'Manutenção'}],
+      ueQ:S.ueQ,ueType:S.ueType,ueStatus:S.ueStatus,
+      onUeQ:e=>this.setState({ueQ:e.target.value}),
+      onUeType:e=>this.setState({ueType:e.target.value}),
+      onUeStatus:e=>this.setState({ueStatus:e.target.value}),
+      ud:{
+        name:u.name,city:u.city,code:u.code,addr:u.addr,count:u.count,
+        coords:u.lat.toFixed(4)+', '+u.lng.toFixed(4),
+        label:m.label,icon:m.icon,color:m.color,bg:m.bg,bd:m.bd,
+        maintActive:!!mw,maintText:mw?(mw.start+' → '+mw.end+' · '+mw.reason):'',
+        tabs:[['overview','Visão geral'],['equipment','Equipamentos'],['incidents','Incidentes'],['history','Histórico'],['settings','Configurações']].map(tab),
+        tabOverview:S.unitTab==='overview',tabEquip:S.unitTab==='equipment',tabIncidents:S.unitTab==='incidents',
+        tabHistory:S.unitTab==='history',tabSettings:S.unitTab==='settings',
+        stats:[
+          {label:'DISPONIBILIDADE',value:pct(u.availability),color:'#E4EBF3',accent:'#34C77B'},
+          {label:'EQUIPAMENTOS',value:String(u.count),color:'#E4EBF3',accent:'#2C3B4C'},
+          {label:'ONLINE',value:String(u.cnt.online),color:'#34C77B',accent:'#34C77B'},
+          {label:'DEGRADADOS',value:String(u.cnt.degraded),color:u.cnt.degraded?'#E8A33D':'#4E5F72',accent:'#E8A33D'},
+          {label:'OFFLINE',value:String(u.cnt.offline),color:u.cnt.offline?'#E5484D':'#4E5F72',accent:'#E5484D'},
+          {label:'INCIDENTES ABERTOS',value:String(openI),color:openI?'#F2777B':'#4E5F72',accent:'#E5484D'},
+          {label:'LATÊNCIA MÉDIA',value:u.avgLatency+' ms',color:'#E4EBF3',accent:'#4C8DFF'}
+        ],
+        equip:eq.map(row),equipCount:eq.length+' de '+u.count+' dispositivos',equipEmpty:eq.length===0,
+        clearFilters:()=>this.setState({ueQ:'',ueType:'All',ueStatus:'All'}),
+        byType:Object.keys(types).sort((a,b)=>types[b]-types[a]).map(k=>({label:k,n:types[k],pct:(types[k]/maxT*100)+'%'})),
+        topLat:topLat.map(e=>{const em=st(e.state);return{name:e.name,type:e.type,color:em.color,
+          lat:e.latency==null?'timeout':e.latency+' ms',pct:((e.latency||maxL)/maxL*100)+'%',go:()=>this.openEquip(e.id)};}),
+        incidents:inc.slice(0,4).map(incRow),incFull:inc.map(incRow),noIncidents:inc.length===0,
+        history:Array.from({length:30},(_,i)=>{const v=i===29&&u.status!=='online'?99.1+hr()*0.3:99.6+hr()*0.4;
+          return {h:Math.round((v-98.8)/1.2*100)+'%',color:v<99.5?'#E8A33D':v<99.9?'#2D7A57':'#34C77B',title:pct(v)};}),
+        fields:[{label:'Nome',value:u.name},{label:'Código interno',value:u.code},{label:'Endereço',value:u.addr},
+          {label:'Cidade',value:u.city},{label:'UF',value:'SE'},{label:'Latitude',value:u.lat.toFixed(6)},
+          {label:'Longitude',value:u.lng.toFixed(6)},{label:'Ativa',value:'sim'}],
+        newEquip:()=>this.setState({dialog:'equip',form:{name:'',type:'Switch',host:'',ip:'10.79.'+u.oct+'.',unit:u.name}}),
+        schedule:()=>this.setState({dialog:'maint',form:{unit:u.name,scope:'Unidade inteira',start:'16/08/2026 22:00',end:'17/08/2026 02:00',reason:''}}),
+        edit:()=>this.toast('Editar unidade','Abrindo editor de '+u.name,'info'),
+        disable:()=>this.setState({dialog:'confirm',form:{title:'Desativar '+u.name+'?',
+          body:'O monitoramento será interrompido para '+u.count+' dispositivos e os alertas do Telegram desta unidade serão suprimidos. O histórico de disponibilidade é preservado.',
+          label:'Desativar unidade',kind:'danger',action:'disable-unit',id:u.id}})
+      }
+    };
+  }
+
+  mapVals(){
+    const S=this.state,D=this.data;
+    const u=this.unit(S.mapUnit)||D.units[0];
+    const m=st(u.status);
+    const inc=D.incidents.filter(i=>i.unitId===u.id&&i.status!=='resolved').length;
+    const problems=this.equipOf(u.id).filter(e=>e.state!=='online').map(e=>{const em=st(e.state);return{
+      name:e.name,type:e.type,ip:e.ip,color:em.color,check:e.lastCheck,
+      lat:e.latency==null?'timeout':e.latency+' ms',go:()=>this.openEquip(e.id)};});
+    const counts={};D.units.forEach(x=>counts[x.status]=(counts[x.status]||0)+1);
+    return {
+      mapCounts:Object.keys(counts).map(k=>({label:counts[k]+' '+(CL[k]||k),color:st(k).color})),
+      fitMap:()=>this.toMap({type:'fit'}),
+      mapUnits:D.units.map(x=>({name:x.name,color:st(x.status).color,avail:pct(x.availability),
+        bg2:x.id===u.id?'#131C26':'transparent',selBd:x.id===u.id?'#4C8DFF':'transparent',
+        go:()=>{this.setState({mapUnit:x.id});this.toMap({type:'select',id:x.id});}})),
+      mu:{
+        name:u.name,city:u.city,addr:u.addr,label:m.label,icon:m.icon,color:m.color,bg:m.bg,bd:m.bd,
+        healthy:problems.length===0,problems,
+        openUnit:()=>this.openUnit(u.id),
+        openInc:()=>this.setState({screen:'incidents',incFilter:'all',incUnit:u.name}),
+        stats:[
+          {label:'EQUIPAMENTOS',value:String(u.count),color:'#DDE8F3'},
+          {label:'ONLINE',value:String(u.cnt.online),color:'#34C77B'},
+          {label:'DEGRADADOS',value:String(u.cnt.degraded),color:u.cnt.degraded?'#E8A33D':'#4E5F72'},
+          {label:'OFFLINE',value:String(u.cnt.offline),color:u.cnt.offline?'#E5484D':'#4E5F72'},
+          {label:'DISPONIBILIDADE',value:pct(u.availability),color:'#DDE8F3'},
+          {label:'LATÊNCIA MÉDIA',value:u.avgLatency+' ms',color:u.avgLatency>60?'#E8A33D':'#DDE8F3'},
+          {label:'INCIDENTES ABERTOS',value:String(inc),color:inc?'#F2777B':'#4E5F72'},
+          {label:'CÓDIGO',value:u.code,color:'#93A7BA'},
+          {label:'MONITORES',value:String(u.count),color:'#93A7BA'}
+        ]
+      }
+    };
+  }
+
+  dashVals(){
+    const S=this.state, D=this.data;
+    const totals=D.units.reduce((a,u)=>{a.online+=u.cnt.online;a.degraded+=u.cnt.degraded;a.offline+=u.cnt.offline;return a;},{online:0,degraded:0,offline:0});
+    const openInc=D.incidents.filter(i=>i.status==='open').length;
+    const avgAvail=(D.units.reduce((a,u)=>a+u.availability,0)/D.units.length);
+    const avgLat=Math.round(D.units.reduce((a,u)=>a+u.avgLatency,0)/D.units.length);
+    const metrics=[
+      {label:'UNIDADES',value:'11',sub:'1 em manutenção',accent:'#2C3B4C',color:'#E4EBF3'},
+      {label:'EQUIPAMENTOS',value:'187',sub:'187 monitorados',accent:'#2C3B4C',color:'#E4EBF3'},
+      {label:'ONLINE',value:String(totals.online),sub:(totals.online/187*100).toFixed(1).replace('.',',')+'% da frota',accent:'#34C77B',color:'#34C77B'},
+      {label:'DEGRADADOS',value:String(totals.degraded),sub:'latência acima de 150 ms',accent:'#E8A33D',color:'#E8A33D'},
+      {label:'OFFLINE',value:String(totals.offline),sub:'3+ falhas consecutivas',accent:'#E5484D',color:'#E5484D'},
+      {label:'DISPONIBILIDADE',value:pct(avgAvail),sub:'janela de 30 dias · SLA 99,50%',accent:'#34C77B',color:'#E4EBF3'},
+      {label:'LATÊNCIA MÉDIA',value:avgLat+' ms',sub:'ICMP · todas as unidades',accent:'#4C8DFF',color:'#E4EBF3'},
+      {label:'INCIDENTES ABERTOS',value:String(openInc),sub:'3 reconhecidos',accent:'#E5484D',color:'#F2777B'}
+    ];
+    const chip=(on,label,go,dot)=>({label,go,dot,bg:on?'#1B2836':'transparent',fg:on?'#DCE9F8':'#7E90A3'});
+    const tf=[['All','Todos'],['Servidor','Servidores'],['Switch','Switches'],['Access Point','Access Points'],['Controladora Wi-Fi','Controladoras'],['Dispositivo Biométrico','Biometria'],['Impressora','Impressoras'],['Outros','Outros']];
+    const typeChips=tf.map(([v,l])=>chip(S.dashType===v,l,()=>this.setState({dashType:v})));
+    const sf=[['All','Todos',' #7C8FA3'],['online','Online','#34C77B'],['degraded','Degradado','#E8A33D'],['offline','Offline','#E5484D'],['maintenance','Manutenção','#4C8DFF']];
+    const statusChips=sf.map(([v,l,d])=>chip(S.dashStatus===v,l,()=>this.setState({dashStatus:v}),d));
+    const dq=S.dashQ.trim().toLowerCase();
+    const typeOk=e=>S.dashType==='All'||(S.dashType==='Outros'?['Outros','UPS','Firewall','Router'].indexOf(e.type)>=0:e.type===S.dashType);
+    let units=D.units.slice();
+    if(S.dashStatus!=='All') units=units.filter(u=>u.status===S.dashStatus);
+    if(dq) units=units.filter(u=>u.name.toLowerCase().includes(dq)||u.city.toLowerCase().includes(dq)||this.equipOf(u.id).some(e=>e.name.toLowerCase().includes(dq)||e.ip.includes(dq)));
+    const order={offline:0,degraded:1,maintenance:2,unknown:3,online:4};
+    units.sort((a,b)=>order[a.status]-order[b.status]||a.name.localeCompare(b.name));
+    const unitRows=units.map(u=>{
+      const m=st(u.status);
+      let eq=this.equipOf(u.id).filter(typeOk);
+      if(dq) eq=eq.filter(e=>e.name.toLowerCase().includes(dq)||e.ip.includes(dq)||u.name.toLowerCase().includes(dq));
+      const eorder={offline:0,degraded:1,maintenance:2,online:3};
+      eq=eq.slice().sort((a,b)=>eorder[a.state]-eorder[b.state]);
+      const inc=D.incidents.filter(i=>i.unitId===u.id&&i.status!=='resolved').length;
+      return {
+        id:u.id,name:u.name,meta:u.code+' · '+u.city,label:m.label,icon:m.icon,color:m.color,bg:m.bg,bd:m.bd,
+        count:u.count,online:u.cnt.online,degraded:u.cnt.degraded,offline:u.cnt.offline,
+        degColor:u.cnt.degraded?'#E8A33D':'#3F4E5E',offColor:u.cnt.offline?'#E5484D':'#3F4E5E',
+        pOn:(u.cnt.online/u.count*100).toFixed(1)+'%',pDeg:(u.cnt.degraded/u.count*100).toFixed(1)+'%',pOff:(u.cnt.offline/u.count*100).toFixed(1)+'%',
+        avail:pct(u.availability),availColor:u.availability<99.5?'#E8A33D':'#CBD9E7',
+        latency:u.avgLatency+' ms',latColor:u.avgLatency>60?'#E8A33D':'#CBD9E7',
+        inc:inc||'—',incColor:inc?'#F2777B':'#4E5F72',
+        open:!!S.expanded[u.id],chev:S.expanded[u.id]?'▾':'▸',
+        toggle:()=>this.setState(s=>({expanded:Object.assign({},s.expanded,{[u.id]:!s.expanded[u.id]})})),
+        open2:e=>{e.stopPropagation();this.openUnit(u.id);},
+        shownLabel:eq.length+' de '+u.count+' exibidos',
+        equip:eq.map(e=>{const em=st(e.state);return {
+          id:e.id,name:e.name,type:e.type,ip:e.ip,label:em.label,icon:em.icon,color:em.color,bg:em.bg,bd:em.bd,
+          lat:e.latency==null?'timeout':e.latency+' ms',latColor:e.latency==null?'#E5484D':e.latency>150?'#E8A33D':'#9DB0C3',
+          avail:pct(e.availability),check:e.lastCheck,
+          open:ev=>{ev.stopPropagation();this.openEquip(e.id);}
+        };})
+      };
+    });
+    const allOpen=D.units.every(u=>S.expanded[u.id]);
+    return {
+      metrics, typeChips, statusChips, unitRows, dashQ:S.dashQ,
+      onDashQ:e=>this.setState({dashQ:e.target.value}),
+      dashCountLabel:units.length+' de 11 unidades',
+      expandLabel:allOpen?'Recolher todas':'Expandir todas',
+      expandAll:()=>{const m={};if(!allOpen)D.units.forEach(u=>m[u.id]=true);this.setState({expanded:m});},
+      hasAlert:totals.offline>0,
+      alertTitle:totals.offline+' dispositivos offline em 2 unidades · '+openInc+' incidentes abertos',
+      alertBody:'SW-CORE no Centro Integrado de Saúde offline há 12 min · LINK-WAN no Sesc Itabaiana offline há 46 min. Equipe de TI notificada via Telegram.'
+    };
+  }
+
+  renderVals(){
+    const S=this.state, D=this.data;
+    const R=React.createElement;
+    const totals=D.units.reduce((a,u)=>{a.online+=u.cnt.online;a.degraded+=u.cnt.degraded;a.offline+=u.cnt.offline;a.eq+=u.count;return a;},{online:0,degraded:0,offline:0,eq:0});
+    const openInc=D.incidents.filter(i=>i.status==='open').length;
+
+    const nav=[['map','Mapa','◈'],['dashboard','Painel','▤'],['incidents','Incidentes','⚠'],['reports','Relatórios','▦']];
+    const navOps=nav.map(([id,label,glyph])=>{
+      const on=S.screen===id||(id==='dashboard'&&S.screen==='unit');
+      return {id,label,glyph,go:()=>this.setState({screen:id,q:'',focus:false,equipId:null,incId:null}),
+        bg:on?'rgba(76,141,255,.12)':'transparent',fg:on?'#DCE9F8':'#93A5B8',
+        bd:on?'rgba(76,141,255,.28)':'transparent',ic:on?'#4C8DFF':'#5E7387',
+        badge:id==='incidents'?openInc:0};
+    });
+    const isAdmin=S.screen==='admin';
+    const adminNav={bg:isAdmin?'rgba(76,141,255,.12)':'transparent',fg:isAdmin?'#DCE9F8':'#93A5B8',bd:isAdmin?'rgba(76,141,255,.28)':'transparent',ic:isAdmin?'#4C8DFF':'#5E7387'};
+    const asecs=[['units','Unidades'],['equipment','Equipamentos'],['types','Tipos de equipamento'],['monitoring','Monitoramento'],['maintenance','Janelas de manutenção'],['users','Usuários'],['telegram','Telegram'],['audit','Log de auditoria'],['settings','Configurações do sistema']];
+    const adminSections=asecs.map(([id,label])=>({id,label,go:()=>this.setState({screen:'admin',adminSection:id,equipId:null,incId:null}),
+      bg:S.adminSection===id&&isAdmin?'#16212C':'transparent',fg:S.adminSection===id&&isAdmin?'#CFDDEB':'#7E90A3'}));
+
+    // global search
+    const q=S.q.trim().toLowerCase();
+    let results=[];
+    if(q.length>0){
+      results=D.equip.filter(e=>e.name.toLowerCase().includes(q)||e.host.includes(q)||e.ip.includes(q)||e.mac.toLowerCase().includes(q)||e.asset.toLowerCase().includes(q)||e.unitName.toLowerCase().includes(q))
+        .slice(0,7).map(e=>({id:e.id,name:e.name,type:e.type,unitName:e.unitName,ip:e.ip,color:st(e.state).color,go:()=>this.openEquip(e.id)}));
+    }
+
+    const crumbMap={map:['Operações','Mapa'],dashboard:['Operações','Painel'],incidents:['Operações','Incidentes'],reports:['Operações','Relatórios de disponibilidade'],admin:['Administração',asecs.filter(a=>a[0]===S.adminSection)[0][1]],unit:['Operações','Painel',S.unitId?this.unit(S.unitId).name:'Unidade']};
+    const cl=crumbMap[S.screen]||['Operações'];
+    const crumbs=[];
+    cl.forEach((c,i)=>{ if(i) crumbs.push({label:'/',color:'#3B4A5A',weight:'400'}); crumbs.push({label:c,color:i===cl.length-1?'#C6D5E4':'#6B7D91',weight:i===cl.length-1?'600':'400'}); });
+
+    const vals={
+      navOps, adminNav, isAdmin, adminSections, goAdmin:()=>this.setState({screen:'admin',equipId:null,incId:null}),
+      sweepTime:S.sweep, crumbs, q:S.q,
+      themeIcon:S.theme==='light'?'☾':'☀',
+      themeTitle:S.theme==='light'?'Mudar para tema escuro':'Mudar para tema claro',
+      toggleTheme:()=>this.toggleTheme(),
+      onSearch:e=>this.setState({q:e.target.value,focus:true}),
+      showResults:q.length>0&&results.length>0, results, resultCount:results.length,
+      healthPills:[{label:totals.online+' online',color:'#34C77B'},{label:totals.degraded+' degradados',color:'#E8A33D'},{label:totals.offline+' offline',color:'#E5484D'}],
+      refresh:()=>{const d=new Date();this.setState({sweep:'08:'+(44+(d.getSeconds()%9))+':'+String(10+d.getSeconds()%40)});this.toast('Varredura concluída','187 dispositivos verificados · 2 offline · 4 degradados','info');},
+      toasts:S.toasts.map(t=>Object.assign({},t,{close:()=>this.setState(s=>({toasts:s.toasts.filter(x=>x.id!==t.id)}))})),
+      hasToasts:S.toasts.length>0,
+      dialog:null, drawer:null,
+      totals, openInc,
+      isDash:S.screen==='dashboard', isMap:S.screen==='map', isUnit:S.screen==='unit',
+      isInc:S.screen==='incidents', isRep:S.screen==='reports', isAdminScreen:isAdmin,
+      goReports:()=>this.setState({screen:'reports',equipId:null,incId:null}),
+      goIncidents:()=>this.setState({screen:'incidents',incFilter:'open',equipId:null,incId:null})
+    };
+    Object.assign(vals, this.dashVals(), this.mapVals(), this.unitVals(), this.incVals(), this.adminVals(), this.overlayVals(), this.loginVals());
+    return vals;
+  }
+}
+
+</script>
+</body>
+</html>

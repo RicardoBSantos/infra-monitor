@@ -1,0 +1,150 @@
+@if (aberto()) {
+  <div class="gaveta__fundo" (click)="tentarFechar()"></div>
+  <section
+    class="gaveta"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="gaveta-titulo"
+    (keydown)="aoTeclar($event)"
+  >
+    <header class="gaveta__topo">
+      <div>
+        <p class="eyebrow">{{ editando() ? 'EDITAR' : 'CADASTRO' }}</p>
+        <h2 id="gaveta-titulo">{{ editando() ? 'Editar unidade' : 'Nova unidade' }}</h2>
+      </div>
+      <button class="botao botao--discreto" type="button" (click)="tentarFechar()" [disabled]="salvando()">Fechar</button>
+    </header>
+
+    <form class="gaveta__corpo" [formGroup]="form" (ngSubmit)="submeter()">
+      @if (erro()) {
+        <p class="gaveta__erro" role="alert">{{ erro() }}</p>
+      }
+
+      <label class="campo">
+        <span>Nome *</span>
+        <input #primeiroCampo formControlName="nome" maxlength="150" autocomplete="off">
+      </label>
+      @if (form.controls.nome.touched && form.controls.nome.errors) {
+        <small class="field-error">{{ form.controls.nome.errors['backend'] || 'Informe o nome (máximo de 150 caracteres).' }}</small>
+      }
+
+      <label class="campo">
+        <span>Sigla *</span>
+        <input formControlName="sigla" maxlength="30" autocomplete="off">
+      </label>
+      @if (form.controls.sigla.touched && form.controls.sigla.errors) {
+        <small class="field-error">{{ form.controls.sigla.errors['backend'] || 'Informe a sigla (máximo de 30 caracteres).' }}</small>
+      }
+
+      <label class="campo">
+        <span>Descrição</span>
+        <textarea formControlName="descricao" rows="3"></textarea>
+      </label>
+
+      <label class="campo">
+        <span>Município</span>
+        <span class="campo-select">
+          <select formControlName="codigoIbge" (change)="aoTrocarMunicipio()">
+            <option value="">Sem município associado</option>
+            @if (municipioInvalido()) {
+              <option [value]="form.controls.codigoIbge.value">Não encontrado no mapa ({{ form.controls.codigoIbge.value }})</option>
+            }
+            @for (municipio of municipios(); track municipio.codigoIbge) {
+              <option [value]="municipio.codigoIbge">{{ municipio.nome }}</option>
+            }
+          </select>
+        </span>
+      </label>
+      @if (municipiosErro()) {
+        <small class="field-error">{{ municipiosErro() }}</small>
+      } @else if (municipioInvalido()) {
+        <small class="field-error">O código geográfico salvo não foi encontrado no mapa. Escolha outro município ou remova a associação.</small>
+      }
+
+      <label class="campo">
+        <span>Endereço</span>
+        <input formControlName="endereco" maxlength="255" autocomplete="off">
+      </label>
+      @if (form.controls.endereco.touched && form.controls.endereco.errors) {
+        <small class="field-error">{{ form.controls.endereco.errors['backend'] || 'Máximo de 255 caracteres.' }}</small>
+      }
+
+      <div class="gaveta__par">
+        <label class="campo">
+          <span>Cidade</span>
+          <input formControlName="cidade" maxlength="100" autocomplete="off">
+        </label>
+        <label class="campo">
+          <span>UF</span>
+          @if (ufDerivada()) {
+            <input formControlName="uf" readonly>
+          } @else {
+            <span class="campo-select">
+              <select formControlName="uf">
+                <option value="">—</option>
+                @for (uf of ufs; track uf) {
+                  <option [value]="uf">{{ uf }}</option>
+                }
+              </select>
+            </span>
+          }
+        </label>
+      </div>
+      @if (ufDerivada()) {
+        <small class="gaveta__dica">UF definida pelo município selecionado.</small>
+      } @else if (form.controls.uf.touched && form.controls.uf.errors) {
+        <small class="field-error">{{ form.controls.uf.errors['backend'] || 'Informe uma sigla de UF brasileira.' }}</small>
+      }
+
+      <div class="gaveta__par">
+        <label class="campo">
+          <span>Latitude</span>
+          <input formControlName="latitude" inputmode="decimal" autocomplete="off">
+        </label>
+        <label class="campo">
+          <span>Longitude</span>
+          <input formControlName="longitude" inputmode="decimal" autocomplete="off">
+        </label>
+      </div>
+      @if (form.controls.latitude.touched && form.controls.latitude.errors) {
+        <small class="field-error">{{ form.controls.latitude.errors['backend'] || form.controls.latitude.errors['faixa'] }}</small>
+      }
+      @if (form.controls.longitude.touched && form.controls.longitude.errors) {
+        <small class="field-error">{{ form.controls.longitude.errors['backend'] || form.controls.longitude.errors['faixa'] }}</small>
+      }
+      @if (form.errors?.['coordenadas']) {
+        <small class="field-error">Latitude e longitude devem ser informadas juntas ou ambas em branco.</small>
+      }
+
+      <label class="campo">
+        <span>Conecta a</span>
+        <span class="campo-select">
+          <select formControlName="conectaAUnidadeId">
+            <option value="">Nenhuma (unidade raiz)</option>
+            @for (destino of destinosDisponiveis(); track destino.id) {
+              <option [value]="destino.id">{{ destino.nome }}</option>
+            }
+          </select>
+        </span>
+      </label>
+      <small class="gaveta__dica">A unidade raiz é o ponto de chegada dos enlaces; as demais apontam para ela.</small>
+      @if (form.controls.conectaAUnidadeId.touched && form.controls.conectaAUnidadeId.errors) {
+        <small class="field-error">{{ form.controls.conectaAUnidadeId.errors['backend'] || 'Não foi possível definir a conexão.' }}</small>
+      }
+
+      <div class="gaveta__acoes">
+        <button class="botao" type="button" (click)="tentarFechar()" [disabled]="salvando()">Cancelar</button>
+        <button class="botao botao--primario" type="submit" [disabled]="salvando()">{{ salvando() ? 'Salvando…' : 'Salvar unidade' }}</button>
+      </div>
+    </form>
+  </section>
+
+  <app-confirm-dialog
+    [open]="descartando()"
+    title="Descartar alterações?"
+    message="Há alterações não salvas neste cadastro. Fechar agora perde o que foi digitado."
+    confirmLabel="Descartar"
+    (cancel)="descartando.set(false)"
+    (confirm)="descartar()"
+  />
+}

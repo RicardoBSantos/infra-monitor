@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface EquipamentoRepository extends JpaRepository<Equipamento, Long>, JpaSpecificationExecutor<Equipamento> {
 
@@ -23,4 +24,11 @@ public interface EquipamentoRepository extends JpaRepository<Equipamento, Long>,
     @Override
     @EntityGraph(attributePaths = {"unidade", "tipoEquipamento"})
     Page<Equipamento> findAll(Specification<Equipamento> specification, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"unidade", "tipoEquipamento"})
+    List<Equipamento> findAllByUnidadeId(Long unidadeId);
+
+    @Override
+    @EntityGraph(attributePaths = {"unidade", "tipoEquipamento"})
+    List<Equipamento> findAll();
 }

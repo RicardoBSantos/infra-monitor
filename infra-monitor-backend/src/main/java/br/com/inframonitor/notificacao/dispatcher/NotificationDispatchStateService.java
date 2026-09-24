@@ -5,6 +5,7 @@ import br.com.inframonitor.notificacao.entity.StatusNotificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
 import br.com.inframonitor.notificacao.sender.SendResult;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -13,7 +14,7 @@ import java.time.Instant;
 @Service
 class NotificationDispatchStateService {
     private final NotificacaoRepository repository; private final Clock clock; private final NotificationDispatcherProperties properties;
-    NotificationDispatchStateService(NotificacaoRepository repository, Clock notificationClock, NotificationDispatcherProperties properties) { this.repository = repository; this.clock = notificationClock; this.properties = properties; }
+    NotificationDispatchStateService(NotificacaoRepository repository, @Qualifier("notificationClock") Clock notificationClock, NotificationDispatcherProperties properties) { this.repository = repository; this.clock = notificationClock; this.properties = properties; }
     @Transactional boolean reserve(Long id) { return repository.reserveForDispatch(id, Instant.now(clock)) == 1; }
     @Transactional int releaseStaleReservations(Instant limite) { return repository.releaseStaleSending(limite); }
     @Transactional Notificacao loadSending(Long id) { return repository.findById(id).filter(n -> n.getStatus() == StatusNotificacao.ENVIANDO).orElse(null); }
@@ -28,5 +29,11 @@ class NotificationDispatchStateService {
         long delay = result.retryAfter() == null ? configured : Math.max(configured, result.retryAfter().toSeconds());
         n.agendarRetry(Instant.now(clock).plusSeconds(delay), error);
     }
-    private String sanitize(String value) { if (value == null || value.isBlank()) return "Falha no envio Telegram"; String clean = value.replaceAll("[\\r\\n]", " "); return clean.substring(0, Math.min(clean.length(), 1000)); }
+    private String sanitize(String value) {
+        if (value == null || value.isBlank()) return "Falha no envio Telegram";
+        String clean = value.replaceAll("[\\r\\n]", " ")
+                .replaceAll("(?i)https?://[^\\s]*api\\.telegram\\.org[^\\s]*", "Telegram API")
+                .replaceAll("(?i)bot[A-Za-z0-9:_-]{10,}", "bot[REDACTED]");
+        return clean.substring(0, Math.min(clean.length(), 1000));
+    }
 }

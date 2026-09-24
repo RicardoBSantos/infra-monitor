@@ -1,0 +1,49 @@
+@use '../medicoes/medicao-list.component.scss';
+
+// .abas, .aba e .aba--ativa são primitivas de _ui.scss — aqui só o contador da aba.
+.abas { margin-bottom: 12px; }
+.aba__contador { min-width: 18px; padding: 0 5px; border-radius: var(--im-radius-pill); background: var(--im-surface-hover); color: var(--im-text-dim); font: 600 10px var(--im-mono); text-align: center; }
+.aba--ativa .aba__contador { color: var(--im-text); }
+
+// O período virou um chip: a coluna acompanha o conteúdo em vez de reservar 2fr para
+// uma fileira de botões que não existe mais.
+.filters { grid-template-columns: repeat(3, minmax(130px, 1fr)) auto; align-items: end; }
+.filters__periodo { display: grid; gap: 5px; justify-items: start; }
+.filters__rotulo { color: var(--im-text-secondary); font: 600 10px 'IBM Plex Mono', monospace; letter-spacing: .05em; }
+
+// `.numerico` é a utilitária global de _ui.scss. Reafirmada aqui porque o `th` herdado de
+// medicao-list traz `text-align: left` e, com a encapsulação, empata em especificidade com
+// a classe global — sem esta linha o cabeçalho ficaria à esquerda e só o valor à direita.
+.right, .actions, .numerico { text-align: right; }
+.actions { white-space: nowrap; display: flex; gap: 6px; justify-content: flex-end; }
+/* `.actions` não estiliza mais botão nenhum: "Ver" e "Reconhecer" usam `.botao--discreto`,
+   que já traz borda, estado desabilitado e foco. Sobrou só `.link`, que é o código da
+   ocorrência na primeira coluna — texto, não botão. */
+.link { border: 0; background: transparent; color: var(--im-link); cursor: pointer; font-size: 12px; }
+.link { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+// Severidade é barra, não badge: STATUS já é badge com dot na mesma linha, e um segundo
+// badge disputaria a leitura. Formato e cores vêm do mockup — âmbar para latência,
+// vermelho para indisponibilidade. O rótulo ("Crítico"/"Alerta") vai em aria-label e
+// title: a cor sozinha não pode ser a única portadora da informação.
+.sev { width: 1px; padding-right: 0; }
+.severidade { display: block; width: 3px; height: 20px; border-radius: 2px; background: var(--im-warning); }
+.severidade--alta { background: var(--im-danger); }
+/* Coluna própria: o reconhecedor deixou de ser subtexto do badge de status para não
+   misturar estado da ocorrência com quem agiu sobre ela. */
+.reconhecido { color: var(--im-text-secondary); white-space: nowrap; }
+
+@media (max-width: 1150px) { .filters { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .filters { grid-template-columns: 1fr; } }
+
+// EVENTO é ícone + texto: o ícone repete o par já usado na navegação (triângulo para
+// indisponibilidade, onda para latência) e serve de leitura rápida na varredura vertical;
+// o texto é quem carrega a informação, porque o ícone sozinho não a carrega.
+.evento { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.evento app-icon { flex: none; width: 14px; height: 14px; color: var(--im-text-secondary); }
+
+// Duração de ocorrência em curso ainda está crescendo — mesma marcação da gaveta.
+.duracao--em-curso { color: var(--im-danger); font-weight: 600; }
+
+.notificado { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.notificado__canal { color: var(--im-text-secondary); font: 600 10px var(--im-mono); letter-spacing: .04em; }

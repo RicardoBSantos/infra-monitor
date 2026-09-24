@@ -1,0 +1,153 @@
+<section class="painel" aria-labelledby="painel-titulo">
+  <header class="painel__header">
+    <div>
+      <h1 id="painel-titulo">Visão Geral da Infraestrutura</h1>
+      @if (resumo(); as data) {
+        <p class="painel__meta">{{ data.unidades.total }} unidades · {{ monitorados() }} dispositivos monitorados · última varredura {{ ultimaVarredura() }}</p>
+      } @else {
+        <p class="painel__meta">carregando leitura operacional…</p>
+      }
+    </div>
+    <div class="painel__acoes">
+      <button class="botao" type="button" (click)="alternarTodas()" [attr.aria-pressed]="todasExpandidas()">{{ todasExpandidas() ? 'Recolher todas' : 'Expandir todas' }}</button>
+      <a class="botao" routerLink="/relatorios">Relatório de disponibilidade</a>
+    </div>
+  </header>
+
+  @if (resumoState() === 'loading') {
+    <div class="kpis" aria-label="Carregando indicadores">@for (card of [1,2,3,4,5,6,7,8,9]; track card) { <div class="kpi kpi--carregando"><span></span><strong></strong><small></small></div> }</div>
+  } @else if (resumoState() === 'error') {
+    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar os indicadores.</strong><p>{{ resumoError()?.message }}</p></div><button class="botao" type="button" (click)="atualizar()">Tentar novamente</button></div>
+  } @else if (resumo(); as data) {
+    <div class="kpis">
+      <article class="kpi"><span>UNIDADES</span><strong>{{ data.unidades.total }}</strong><small>cadastradas e ativas</small></article>
+      <article class="kpi"><span>EQUIPAMENTOS</span><strong>{{ data.equipamentos.total }}</strong><small>{{ monitorados() }} monitorados</small></article>
+      <article class="kpi kpi--ok"><span>ONLINE</span><strong>{{ data.equipamentos.disponiveis }}</strong><small>de {{ data.equipamentos.ativos }} ativos</small></article>
+      <article class="kpi kpi--warn"><span>DEGRADADOS</span><strong>{{ data.equipamentos.degradados }}</strong><small>acima de {{ data.limiarLatenciaDegradadaMs }} ms</small></article>
+      <article class="kpi kpi--warn"><span>EM MANUTENÇÃO</span><strong>{{ data.equipamentos.emManutencao }}</strong><small>fora da leitura ICMP</small></article>
+      <article class="kpi kpi--down"><span>OFFLINE</span><strong>{{ data.equipamentos.indisponiveis }}</strong><small>{{ unidadesOffline() }} unidades afetadas</small></article>
+      <article class="kpi" [class.kpi--carregando]="disponibilidadeGlobalCarregando()"><span>DISPONIBILIDADE</span><strong [class.kpi__vazio]="disponibilidadeGlobalTexto() === '—'">{{ disponibilidadeGlobalTexto() }}</strong><small>janela de 30 dias</small></article>
+      <article class="kpi" [class.kpi--carregando]="latenciaGlobalCarregando()"><span>LATÊNCIA MÉDIA</span><strong [class.kpi__vazio]="latenciaGlobalTexto() === '—'">{{ latenciaGlobalTexto() }}@if (latenciaGlobalTexto() !== '—') { <span class="kpi__unidade">ms</span> }</strong><small>ICMP · todas as unidades</small></article>
+      <article class="kpi kpi--down"><span>INCIDENTES ABERTOS</span><strong>{{ data.incidentes.abertos }}</strong><small>{{ unidadesComIncidente() }} unidades com incidente</small></article>
+    </div>
+  }
+
+  @if (resumo(); as data) {
+    @if (data.equipamentos.indisponiveis > 0 || data.incidentes.abertos > 0) {
+      <div class="alerta" role="status">
+        <span class="alerta__marca" aria-hidden="true"><app-icon name="close" /></span>
+        <div class="alerta__texto">
+          <p class="alerta__linha">{{ data.equipamentos.indisponiveis }} dispositivos offline em {{ unidadesOffline() }} unidades · {{ data.incidentes.abertos }} incidentes abertos</p>
+          @if (descricaoIncidentes(); as descricao) { <p class="alerta__detalhe">{{ descricao }}</p> }
+        </div>
+        <a class="botao" routerLink="/incidentes">Incidentes abertos</a>
+      </div>
+    }
+  }
+
+  <div class="filtros">
+    <label class="filtros__busca"><app-icon name="search" /><input type="search" placeholder="Filtrar unidades ou equipamentos…" [value]="filtroTexto()" (input)="aoDigitar($event)" aria-label="Filtrar por nome, código, hostname ou endereço IP" /></label>
+    <div class="abas" role="group" aria-label="Filtrar por tipo de equipamento">
+      <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === null" (click)="selecionarTipo(null)">Todos</button>
+      @for (tipo of tipos(); track tipo.id) { <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === tipo.id" (click)="selecionarTipo(tipo.id)">{{ tipo.nome }}</button> }
+    </div>
+    <div class="pills" role="group" aria-label="Filtrar unidades por status">
+      <button class="pill" type="button" [class.pill--ativa]="filtroStatus() === null" (click)="selecionarStatus(null)">Todos</button>
+      @for (pill of pills; track pill.valor) {
+        <button class="pill" type="button" [class.pill--ativa]="filtroStatus() === pill.valor" (click)="selecionarStatus(pill.valor)"><i class="ponto" [class]="'ponto ponto--' + pill.tom"></i>{{ pill.rotulo }}</button>
+      }
+    </div>
+  </div>
+
+  <p class="contagem">{{ unidades().length }} de {{ painel.unidades().length }} unidades</p>
+
+  @if (unidadesState() === 'loading') {
+    <div class="lista" aria-label="Carregando unidades">@for (linha of [1,2,3,4]; track linha) { <div class="linha linha--carregando"></div> }</div>
+  } @else if (unidadesState() === 'empty') {
+    <div class="aviso"><app-icon name="unit" /><div><strong>Nenhuma unidade para exibir.</strong><p>A Dashboard API não retornou unidades ativas.</p></div></div>
+  } @else if (unidadesState() === 'error') {
+    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar as unidades.</strong><p>{{ unidadesError()?.message }}</p></div><button class="botao" type="button" (click)="atualizar()">Tentar novamente</button></div>
+  } @else {
+    <div class="tabela">
+      <div class="tabela__cabecalho" aria-hidden="true">
+        <span>UNIDADE</span><span>STATUS</span><span class="col-composicao">COMPOSIÇÃO</span><span class="numerico col-dispositivos">DISPOSITIVOS</span><span class="numerico col-disponibilidade">DISPONIBILIDADE</span><span class="numerico col-latencia">LATÊNCIA MÉDIA</span><span class="numerico">INCIDENTES</span><span></span>
+      </div>
+
+      @for (unidade of unidades(); track trackUnidade($index, unidade)) {
+        <div class="unidade" [class.unidade--critica]="severidade(unidade) === 'down'" [class.unidade--atencao]="severidade(unidade) === 'warn'">
+          <button class="linha" type="button" (click)="alternarUnidade(unidade)" [attr.aria-expanded]="expandida(unidade.id)">
+            <span class="linha__identidade">
+              <span class="marca" [class]="'marca marca--' + severidade(unidade)" aria-hidden="true">
+                @switch (severidade(unidade)) {
+                  @case ('down') { <app-icon name="close" /> }
+                  @case ('warn') { <app-icon name="incident" /> }
+                  @default { <app-icon name="circle" /> }
+                }
+              </span>
+              <span class="linha__nome">
+                <strong>{{ unidade.nome }}</strong>
+                <small>{{ identidade(unidade.id)?.sigla ?? '—' }}@if (identidade(unidade.id)?.municipio) { · {{ identidade(unidade.id)?.municipio }} }</small>
+              </span>
+            </span>
+            <span class="linha__estado">
+              <app-status-badge [status]="unidade.status" />
+              @if (manutencaoParcial(unidade)) {
+                <span class="chip-manutencao" [title]="rotuloManutencao(unidade)" [attr.aria-label]="rotuloManutencao(unidade)"><app-icon name="circle" />{{ unidade.equipamentosEmManutencao }}</span>
+              }
+            </span>
+            <span class="faixa col-composicao" [attr.aria-label]="unidade.equipamentosDisponiveis + ' online, ' + unidade.equipamentosDegradados + ' degradados, ' + unidade.equipamentosEmManutencao + ' em manutenção, ' + unidade.equipamentosIndisponiveis + ' offline'">
+              <i class="faixa__ok" [style.width]="larguraFaixa(unidade.equipamentosDisponiveis, unidade.equipamentosTotal)"></i>
+              <i class="faixa__warn" [style.width]="larguraFaixa(unidade.equipamentosDegradados + unidade.equipamentosEmManutencao, unidade.equipamentosTotal)"></i>
+              <i class="faixa__down" [style.width]="larguraFaixa(unidade.equipamentosIndisponiveis, unidade.equipamentosTotal)"></i>
+            </span>
+            <span class="numerico contagens col-dispositivos">
+              <b class="ok">{{ unidade.equipamentosDisponiveis }}</b><b class="warn">{{ unidade.equipamentosDegradados + unidade.equipamentosEmManutencao }}</b><b class="down">{{ unidade.equipamentosIndisponiveis }}</b><em>/ {{ unidade.equipamentosTotal }}</em>
+            </span>
+            <span class="numerico mono col-disponibilidade">{{ disponibilidadeDaUnidade(unidade.id) }}</span>
+            <span class="numerico mono col-latencia">{{ latenciaDaUnidade(unidade.id) }}</span>
+            <span class="numerico mono" [class.down]="unidade.incidentesAbertos > 0">{{ unidade.incidentesAbertos }}</span>
+            <span class="linha__seta" [class.linha__seta--aberta]="expandida(unidade.id)"><app-icon name="chevron-down" /></span>
+          </button>
+
+          @if (expandida(unidade.id)) {
+            <div class="detalhe">
+              @if (detalhe(unidade.id); as dados) {
+                <div class="detalhe__cabecalho">
+                  <span>EQUIPAMENTOS · {{ equipamentosVisiveis(unidade).length }} de {{ dados.total }} exibidos</span>
+                  <a class="botao botao--discreto" [routerLink]="['/unidades', unidade.id]">Abrir unidade <app-icon name="external" /></a>
+                </div>
+
+                @if (dados.estado === 'loading') {
+                  <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+                }
+                @else if (dados.estado === 'error') { <p class="detalhe__estado detalhe__estado--erro">não foi possível carregar os equipamentos desta unidade.</p> }
+                @else if (dados.estado === 'empty') { <p class="detalhe__estado">esta unidade não possui equipamentos.</p> }
+                @else if (equipamentosVisiveis(unidade).length === 0) { <p class="detalhe__estado">nenhum equipamento para o filtro atual.</p> }
+                @else {
+                  <table class="equipamentos">
+                    <thead><tr><th>NOME</th><th>TIPO</th><th>ENDEREÇO IP</th><th>STATUS</th><th class="numerico">LATÊNCIA</th><th class="numerico">DISPONIBILIDADE</th><th class="numerico">ÚLTIMA VERIFICAÇÃO</th></tr></thead>
+                    <tbody>
+                      @for (equipamento of equipamentosVisiveis(unidade); track trackEquipamento($index, equipamento)) {
+                        <tr>
+                          <td class="mono forte"><i class="ponto" [class]="'ponto ponto--' + severidadeDoEquipamento(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}</td>
+                          <td>{{ equipamento.tipoEquipamento.nome }}</td>
+                          <td class="mono">{{ equipamento.ip ?? '—' }}</td>
+                          <td><app-status-badge [status]="equipamento.status" /></td>
+                          <td class="numerico mono">{{ latencia(equipamento) }}</td>
+                          <td class="numerico mono">{{ disponibilidadeDoEquipamento(unidade.id, equipamento.id) }}</td>
+                          <td class="numerico mono apagado">{{ desdeUltimaVerificacao(equipamento) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (semDisponibilidade()) { <p class="rodape-nota">Disponibilidade indisponível: a API de relatórios não respondeu para a janela de 30 dias.</p> }
+</section>

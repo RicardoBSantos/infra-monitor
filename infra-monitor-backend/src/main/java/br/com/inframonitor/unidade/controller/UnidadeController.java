@@ -1,5 +1,6 @@
 package br.com.inframonitor.unidade.controller;
 
+import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UnidadeResponse;
 import br.com.inframonitor.unidade.dto.UpdateUnidadeRequest;
@@ -59,6 +60,17 @@ public class UnidadeController {
     public UnidadeResponse atualizar(@PathVariable Long id,
                                      @Valid @RequestBody UpdateUnidadeRequest requisicao) {
         return unidadeService.atualizar(id, requisicao);
+    }
+
+    @PutMapping("/{id}/conexao")
+    public UnidadeResponse definirConexao(@PathVariable Long id,
+                                          @Valid @RequestBody ConexaoUnidadeRequest requisicao) {
+        return unidadeService.definirConexao(id, requisicao);
+    }
+
+    @DeleteMapping("/{id}/conexao")
+    public UnidadeResponse removerConexao(@PathVariable Long id) {
+        return unidadeService.removerConexao(id);
     }
 
     @PatchMapping("/{id}/ativar")

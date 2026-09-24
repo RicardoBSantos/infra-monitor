@@ -1,0 +1,205 @@
+/* Primitivas de leitura operacional compartilhadas entre painel, detalhe de unidade
+   e páginas de autenticação. Globais de propósito: são as mesmas em toda a aplicação e
+   assim não pesam no budget de SCSS de cada componente. Nomes já eram únicos por classe. */
+
+.eyebrow { display: block; color: var(--im-link); font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: .12em; }
+.field-error { display: block; margin-top: 5px; color: var(--im-danger-text); }
+
+/* Botões. `.botao` sozinho É o padrão secundário da aplicação — contorno fino, sem
+   preenchimento próprio, texto simples: o estilo do "Ver". Toda ação de navegação,
+   consulta, cancelamento, limpeza de filtro e paginação usa ele (com `--discreto`
+   dentro de linha de tabela). Ação de confirmação/criação recebe um modificador
+   sólido: `--primario`, `--sucesso` ou `--perigo`.
+   Não criar `.button` local de novo: as telas de Relatórios, Medições, Notificações,
+   Mapa e Usuários tinham três definições divergentes desse nome, com aparências
+   diferentes para a mesma ação. Foram consolidadas aqui e o nome não existe mais. */
+.botao { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-soft); font-size: 12px; text-decoration: none; cursor: pointer; }
+.botao:hover { border-color: var(--im-border-muted); color: var(--im-text); }
+.botao--perigo { border-color: rgba(229, 83, 75, .38); color: var(--im-danger); background: rgba(229, 83, 75, .10); }
+.botao--discreto { height: 26px; font-size: 11px; }
+
+.kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kpi { display: grid; align-content: start; gap: 4px; padding: 14px; border: 1px solid var(--im-border); border-top: 2px solid var(--im-border-muted); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.kpi span { color: var(--im-text-dim); font-size: 10px; font-weight: 600; letter-spacing: .12em; }
+.kpi strong { color: var(--im-text); font: 600 30px/1 var(--im-mono); letter-spacing: -.02em; }
+.kpi small { color: var(--im-text-secondary); font-size: 11px; }
+.kpi__vazio { color: var(--im-text-dim); }
+.kpi__unidade { margin-left: 4px; color: var(--im-text-dim); font: 600 14px/1 var(--im-mono); }
+.kpi--ok { border-top-color: var(--im-success); } .kpi--ok strong { color: var(--im-success); }
+.kpi--warn { border-top-color: var(--im-warning); } .kpi--warn strong { color: var(--im-warning); }
+.kpi--down { border-top-color: var(--im-danger); } .kpi--down strong { color: var(--im-danger); }
+/* Azul fixo de métrica de referência — latência —, que não é severidade nenhuma: nem boa,
+   nem ruim, só a leitura. Reusa --im-primary, o mesmo azul do login e do painel. Vive aqui
+   desde que as gavetas de equipamento e de ocorrência passaram a pintar a mesma métrica. */
+.kpi--info { border-top-color: var(--im-primary); }
+.kpi--info strong, .kpi--info .kpi__valor { color: var(--im-primary); }
+/* Bloco de dado que não respondeu. Nunca é número: "0" afirmaria uma contagem que
+   ninguém mediu. Fica em cinza mesmo dentro de um card colorido. */
+.kpi__falha { color: var(--im-text-dim); font-size: 12px; font-weight: 500; }
+.kpi--carregando span, .kpi--carregando strong, .kpi--carregando small { border-radius: 3px; background: var(--im-surface-hover); color: transparent; }
+.kpi--carregando span, .kpi--carregando small { height: 10px; } .kpi--carregando strong { height: 26px; }
+
+.abas { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface); flex-wrap: wrap; }
+.pills { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.aba, .pill { display: inline-flex; height: 26px; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; border-radius: var(--im-radius-pill); background: transparent; color: var(--im-text-secondary); font-size: 11.5px; cursor: pointer; }
+.aba { height: 24px; border-radius: calc(var(--im-radius-lg) - 2px); }
+.aba:hover, .pill:hover { color: var(--im-text); background: var(--im-surface-hover); }
+.aba--ativa, .pill--ativa { border-color: var(--im-border-strong); background: var(--im-surface-raised); color: var(--im-text); }
+
+.ponto { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--im-text-dim); }
+.ponto--ok { background: var(--im-success); }
+.ponto--warn { background: var(--im-warning); }
+.ponto--down { background: var(--im-danger); }
+.ponto--info { background: var(--im-info-soft); }
+
+.marca { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: var(--im-radius); }
+.marca app-icon { width: 13px; height: 13px; }
+.marca--ok { background: rgba(52, 199, 123, .12); color: var(--im-success); }
+.marca--warn { background: rgba(232, 163, 61, .14); color: var(--im-warning); }
+.marca--down { background: rgba(229, 72, 77, .14); color: var(--im-danger); }
+
+.faixa { display: flex; height: 6px; overflow: hidden; border-radius: 3px; background: var(--im-surface-active); }
+.faixa i { display: block; height: 100%; }
+.faixa__ok { background: var(--im-success); } .faixa__warn { background: var(--im-warning); } .faixa__down { background: var(--im-danger); }
+
+/* Manutenção parcial: a unidade não está EM_MANUTENCAO, mas tem equipamentos fora da leitura ICMP. */
+.chip-manutencao { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-pill); background: var(--im-surface); color: var(--im-info-soft); font: 10px var(--im-mono); }
+.chip-manutencao app-icon { width: 9px; height: 9px; }
+
+.aviso { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.aviso p { margin: 3px 0 0; color: var(--im-text-secondary); font-size: 12px; }
+.aviso app-icon { width: 16px; height: 16px; color: var(--im-text-dim); }
+.aviso--erro { border-color: rgba(229, 83, 75, .32); }
+.aviso--erro app-icon { color: var(--im-danger); }
+.aviso div { flex: 1; }
+
+.esqueleto { display: grid; gap: 6px; padding: 0 14px 14px; }
+.esqueleto span { display: block; height: 26px; border-radius: 4px; background: var(--im-surface-hover); }
+
+.numerico { text-align: right; justify-self: end; }
+.mono { font: 12px var(--im-mono); }
+.apagado { color: var(--im-text-dim); }
+.forte { font-weight: 600; }
+.contagem { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
+.contagens { display: inline-flex; gap: 7px; align-items: baseline; font: 12px var(--im-mono); }
+.contagens b { font-weight: 600; } .contagens em { color: var(--im-text-dim); font-style: normal; }
+.ok { color: var(--im-success); } .warn { color: var(--im-warning); } .down { color: var(--im-danger); }
+
+/* Select estilizado. O <select> nativo do SO renderiza fundo branco e seta clara,
+   quebrando o tema escuro. appearance:none + seta própria resolve o visual sem
+   abrir mão de teclado, leitor de tela e do picker nativo no mobile. */
+.campo-select { position: relative; display: inline-flex; align-items: center; }
+.campo-select select {
+  /* A seta é o ::after do wrapper, ancorada em `right: 10px` dele. Sem esta largura o
+     select mede o próprio conteúdo enquanto o wrapper é esticado pelo grid ou flex da
+     tela (`stretch` é o padrão), e a seta fica boiando longe da caixa. Em wrapper de
+     largura automática o percentual resolve como `auto` e nada muda. */
+  width: 100%;
+  appearance: none; height: 28px; padding: 0 26px 0 10px; border: 1px solid var(--im-border-strong);
+  border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text);
+  font-size: 11.5px; font-family: inherit; cursor: pointer;
+}
+.campo-select select:hover { border-color: var(--im-border-muted); }
+.campo-select select:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+/* Firefox/Windows pintam a lista com as cores do SO se não forem declaradas. */
+.campo-select select option { background: var(--im-surface-raised); color: var(--im-text); }
+.campo-select::after {
+  position: absolute; right: 10px; width: 7px; height: 7px; border-right: 1.5px solid var(--im-text-dim);
+  border-bottom: 1.5px solid var(--im-text-dim); transform: translateY(-2px) rotate(45deg);
+  content: ''; pointer-events: none;
+}
+
+/* Barra proporcional horizontal (latência por dispositivo, equipamentos por tipo). */
+.barra { position: relative; height: 6px; flex: 1; overflow: hidden; border-radius: 3px; background: var(--im-surface-active); }
+.barra i { display: block; height: 100%; border-radius: 3px; background: var(--im-info-soft); }
+.barra--down i { background: var(--im-danger); }
+
+/* Tabela de dados densa, compartilhada pelas abas e pela lista administrativa. */
+.tabela { width: 100%; border-collapse: collapse; }
+.tabela th { padding: 0 14px 8px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-align: left; white-space: nowrap; }
+.tabela td { padding: 8px 14px; border-top: 1px solid var(--im-border); font-size: 12px; }
+.tabela th.numerico, .tabela td.numerico { text-align: right; }
+.tabela tbody tr:hover { background: var(--im-surface-hover); }
+.tabela .ponto { margin-right: 6px; }
+
+/* Estado vazio: mensagem específica, nunca um "sem dados" genérico. */
+.vazio { display: grid; gap: 8px; justify-items: center; padding: 28px 14px; color: var(--im-text-secondary); font-size: 12px; text-align: center; }
+.vazio strong { color: var(--im-text); font-size: 13px; }
+.vazio p { margin: 0; max-width: 46ch; }
+
+/* Cartão de conteúdo das abas. */
+.cartao { border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.cartao__titulo { padding: 13px 14px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .12em; }
+
+/* Semântica de ação, reutilizável em qualquer tela:
+   --primario  = ação principal (azul, --im-primary)
+   --sucesso   = confirmação positiva, ex.: resolver incidente (verde, --im-success)
+   --perigo    = ação destrutiva (vermelho, --im-danger) */
+.botao--primario { border-color: var(--im-primary-border); background: var(--im-primary-soft); color: var(--im-text); }
+.botao--primario:hover { border-color: var(--im-primary); background: var(--im-primary-hover); }
+.botao--sucesso { border-color: var(--im-success-border); background: var(--im-success-bg); color: var(--im-success); }
+.botao--sucesso:hover { border-color: var(--im-success); background: var(--im-success-hover); color: var(--im-success); }
+.botao:disabled { opacity: .45; cursor: not-allowed; }
+
+.campo-busca { height: 28px; padding: 0 10px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface); color: var(--im-text); font-size: 11.5px; font-family: inherit; }
+.campo-busca::placeholder { color: var(--im-text-dim); }
+.campo-busca:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+
+.visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Chip de monitoramento (Ativado/Desativado). Somente leitura em toda parte: diz o
+   estado da flag `ativo`, nunca é o controle que a altera. Vive aqui porque a coluna
+   MONITORAMENTO da lista de equipamentos e o card do drawer de detalhe precisam do
+   mesmo tom — se um dos dois divergir, o mesmo dado passa a ter duas aparências. */
+.chip-monitoramento {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 8px;
+  border: 1px solid rgba(63, 185, 80, .4); border-radius: var(--im-radius-pill);
+  color: var(--im-success); font: 10px var(--im-mono);
+}
+.chip-monitoramento--off { border-color: var(--im-border-strong); color: var(--im-text-muted); }
+
+/* Severidade em valores soltos de listas de definição, onde a primitiva .kpi não cabe. */
+.valor--alerta { color: var(--im-warning); }
+.valor--critico { color: var(--im-danger); }
+
+/* Barra de rolagem ------------------------------------------------------------
+   Global de proposito: vale para o corpo da pagina (.shell__main), a navegacao da
+   sidebar, o corpo das duas gavetas, os wrappers de tabela, os modais longos e a
+   lista do menu de acoes. Nao muda nenhuma regra de overflow existente — so a
+   aparencia da barra em cima do que ja esta la.
+
+   Firefox aceita apenas `scrollbar-width` e `scrollbar-color`: nao ha raio, nem
+   estado :hover, nem trilho transparente de verdade (ele pinta a cor informada).
+   Isso e limitacao do proprio motor e nao tem contorno — no Firefox a barra fica
+   fina e na cor certa, sem cantos arredondados. Nao tentar emular com JS.
+
+   O trilho fica transparente e mostra o fundo do cartao que contem o scroll, em
+   vez de um cinza generico que brigaria com --im-surface / --im-surface-raised. */
+/* Isolado no @supports por um detalhe do Blink: com scrollbar-width ou
+   scrollbar-color definidos, o Chromium usa as propriedades padrao e IGNORA todo
+   o bloco ::-webkit-scrollbar — some o raio e o :hover. Assim a regra padrao so
+   alcanca quem nao entende os pseudo-elementos, ou seja, o Firefox. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--im-scrollbar-thumb) var(--im-scrollbar-track);
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--im-scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  border-radius: var(--im-radius-pill);
+  background: var(--im-scrollbar-thumb);
+  /* A borda transparente com background-clip afina o polegar sem estreitar a area
+     de arraste — o alvo do mouse continua com os 10px. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--im-scrollbar-thumb-hover); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* Utilitaria opcional, em cima do global: blocos estreitos como a tabela de
+   monitores embutida na gaveta, onde 10px de barra horizontal comem altura util. */
+.barra-fina::-webkit-scrollbar { width: 6px; height: 6px; }
+.barra-fina::-webkit-scrollbar-thumb { border-width: 1px; }

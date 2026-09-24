@@ -1,0 +1,65 @@
+<div class="configuracoes">
+  <section class="cartao" aria-labelledby="titulo-cadastro">
+    <h2 class="cartao__titulo" id="titulo-cadastro">CADASTRO DA UNIDADE</h2>
+    @if (campos().length === 0) {
+      <div class="esqueleto" aria-label="Carregando cadastro">@for (linha of [1,2,3,4]; track linha) { <span></span> }</div>
+    } @else {
+      <dl class="cadastro">
+        @for (campo of campos(); track campo.rotulo) {
+          <div class="cadastro__linha">
+            <dt>{{ campo.rotulo }}</dt>
+            <dd class="mono" [class.apagado]="campo.valor === '—'">{{ campo.valor }}</dd>
+          </div>
+        }
+      </dl>
+    }
+  </section>
+
+  <section class="cartao zona-risco" aria-labelledby="titulo-zona-risco">
+    <h2 class="cartao__titulo" id="titulo-zona-risco">ZONA DE RISCO</h2>
+    <div class="zona-risco__corpo">
+      @if (ativa()) {
+        <p>
+          Desativar a unidade interrompe o monitoramento ICMP dos
+          {{ totalEquipamentos() }} {{ totalEquipamentos() === 1 ? 'dispositivo' : 'dispositivos' }}
+          e suprime os alertas do Telegram. O histórico é preservado.
+        </p>
+        <button class="botao" type="button" [disabled]="processando()" (click)="abrir('desativar')">
+          Desativar unidade
+        </button>
+      } @else {
+        <p>
+          Esta unidade está inativa: o monitoramento ICMP dos
+          {{ totalEquipamentos() }} {{ totalEquipamentos() === 1 ? 'dispositivo' : 'dispositivos' }}
+          está interrompido e os alertas do Telegram, suprimidos.
+        </p>
+        <button class="botao" type="button" [disabled]="processando()" (click)="ativar()">
+          Ativar unidade
+        </button>
+      }
+
+      <hr class="zona-risco__divisor" />
+
+      <p>
+        Excluir remove a unidade em definitivo. Unidades com equipamentos vinculados
+        não podem ser excluídas.
+      </p>
+      <button class="botao botao--perigo" type="button" [disabled]="processando()" (click)="abrir('excluir')">
+        Excluir unidade
+      </button>
+
+      @if (aviso()) { <p class="zona-risco__aviso" role="status">{{ aviso() }}</p> }
+    </div>
+  </section>
+</div>
+
+<app-confirm-dialog
+  [open]="acao() !== null"
+  [title]="tituloConfirmacao()"
+  [message]="mensagemConfirmacao()"
+  [confirmLabel]="rotuloConfirmacao()"
+  [busy]="processando()"
+  [erro]="erroAcao()"
+  (cancel)="fechar()"
+  (confirm)="confirmar()"
+/>

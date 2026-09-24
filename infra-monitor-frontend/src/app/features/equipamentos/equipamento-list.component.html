@@ -1,0 +1,306 @@
+<section class="equipamentos" aria-labelledby="equipamentos-titulo">
+  <header class="equipamentos__topo">
+    <div>
+      <h1 id="equipamentos-titulo">Equipamentos</h1>
+      <p>Inventário completo de todas as unidades. O tipo de equipamento é um atributo, não um módulo separado.</p>
+    </div>
+    @if (authState.canManageInventory()) {
+      <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Novo equipamento</button>
+    }
+  </header>
+
+  @if (aviso()) { <p class="equipamentos__aviso" role="status">{{ aviso() }}</p> }
+
+  @if (erro() && estado() !== 'error') {
+    <div class="aviso aviso--erro" role="alert">
+      <div><strong>Não foi possível concluir a operação.</strong><p>{{ erro() }}</p></div>
+    </div>
+  }
+
+  <div class="equipamentos__busca">
+    <label class="visualmente-oculto" for="busca-equipamentos">Buscar equipamentos</label>
+    <input
+      id="busca-equipamentos"
+      class="campo-busca"
+      type="search"
+      placeholder="Buscar nome, hostname, IP, unidade, tipo, localização, número de série"
+      [value]="busca()"
+      (input)="buscar($any($event.target).value)"
+    >
+    <button
+      class="botao botao--discreto equipamentos__filtros-gatilho"
+      type="button"
+      [attr.aria-expanded]="filtrosAbertos()"
+      aria-controls="painel-filtros"
+      (click)="alternarFiltros()"
+    >
+      Filtros
+      @if (filtrosAtivos() > 0) { <span class="equipamentos__contador-filtros">{{ filtrosAtivos() }}</span> }
+    </button>
+    <p class="contagem">{{ filtradas().length }} de {{ total() }} dispositivos</p>
+  </div>
+
+  @if (filtrosAbertos()) {
+    <div class="equipamentos__filtros" id="painel-filtros">
+      <label>UNIDADE
+        <span class="campo-select">
+          <select [value]="filtroUnidade() ?? ''" (change)="mudarUnidade($any($event.target).value)">
+            <option value="">Todas</option>
+            @for (unidade of unidadesDoInventario(); track unidade.id) {
+              <option [value]="unidade.id">{{ unidade.nome }}</option>
+            }
+          </select>
+        </span>
+      </label>
+      <label>TIPO
+        <span class="campo-select">
+          <select [value]="filtroTipo() ?? ''" (change)="mudarTipo($any($event.target).value)">
+            <option value="">Todos</option>
+            @for (tipo of tiposDoInventario(); track tipo) { <option [value]="tipo">{{ tipo }}</option> }
+          </select>
+        </span>
+      </label>
+      <label>STATUS
+        <span class="campo-select">
+          <select [value]="filtroStatus() ?? ''" (change)="mudarStatus($any($event.target).value)">
+            <option value="">Todos</option>
+            @for (opcao of statusDoInventario(); track opcao.status) {
+              <option [value]="opcao.status">{{ opcao.rotulo }}</option>
+            }
+          </select>
+        </span>
+      </label>
+      <label>ORDENAR
+        <span class="campo-select">
+          <select [value]="ordenacao()" (change)="mudarOrdenacao($any($event.target).value)">
+            <option value="nome,asc">Nome (A–Z)</option>
+            <option value="nome,desc">Nome (Z–A)</option>
+            <option value="status">Status (mais grave primeiro)</option>
+            <option value="latencia">Latência (maior primeiro)</option>
+          </select>
+        </span>
+      </label>
+      @if (filtrosAtivos() > 0) {
+        <button class="botao botao--discreto" type="button" (click)="limparFiltros()">Limpar filtros</button>
+      }
+    </div>
+  }
+
+  <div class="cartao">
+    @if (estado() === 'loading') {
+      <div class="esqueleto" aria-label="Carregando equipamentos">
+        @for (linha of [1,2,3,4,5]; track linha) { <span></span> }
+      </div>
+    } @else if (estado() === 'error') {
+      <div class="vazio" role="alert">
+        <strong>Não foi possível carregar o inventário.</strong>
+        <p>{{ erro() }}</p>
+        <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+      </div>
+    } @else if (estado() === 'empty') {
+      <div class="vazio">
+        <strong>Nenhum equipamento cadastrado.</strong>
+        <p>Cadastre o primeiro equipamento para começar a monitorar a rede.</p>
+        @if (authState.canManageInventory()) {
+          <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Novo equipamento</button>
+        }
+      </div>
+    } @else if (semResultadoPorFiltro()) {
+      <div class="vazio">
+        <strong>Nenhum equipamento corresponde aos critérios.</strong>
+        @if (busca()) { <p>Nenhum resultado para “{{ busca() }}”.</p> }
+        @if (filtrosAtivos() > 0) {
+          <button class="botao" type="button" (click)="limparFiltros()">Limpar filtros</button>
+        }
+      </div>
+    } @else {
+      <div class="equipamentos__rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>NOME</th>
+              <th>TIPO</th>
+              <th>UNIDADE</th>
+              <th>HOSTNAME</th>
+              <th>ENDEREÇO IP</th>
+              <th>STATUS</th>
+              <th class="numerico">LATÊNCIA</th>
+              <th>MONITORAMENTO</th>
+              <th class="numerico">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (linha of visiveis(); track linha.id) {
+              <tr>
+                <td><span class="mono forte">{{ linha.nome }}</span></td>
+                <td>{{ linha.tipoNome }}</td>
+                <td>
+                  <button class="link" type="button" (click)="abrirUnidade(linha)">{{ linha.unidadeNome }}</button>
+                </td>
+                <td class="mono">{{ linha.hostname || '—' }}</td>
+                <td class="mono">{{ linha.ip || '—' }}</td>
+                <td><app-status-badge [status]="linha.status" /></td>
+                <td class="numerico mono">
+                  @if (linha.latenciaMs !== null) {
+                    {{ linha.latenciaMs }}<span class="apagado"> ms</span>
+                  } @else if (linha.status === 'INDISPONIVEL') {
+                    <span class="down">timeout</span>
+                  } @else {
+                    <span class="apagado">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="chip-monitoramento" [class.chip-monitoramento--off]="!linha.ativo">
+                    {{ linha.ativo ? 'Ativado' : 'Desativado' }}
+                  </span>
+                </td>
+                <td class="numerico">
+                  <app-action-menu
+                    [itens]="itensDoMenu(linha)"
+                    [rotuloContexto]="linha.nome"
+                    (selecionar)="executarAcao(linha, $event)"
+                  />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalPaginas() > 1) {
+        <app-paginacao
+          [paginaAtual]="paginaAtual()"
+          [totalPaginas]="totalPaginas()"
+          [contagem]="visiveis().length + ' de ' + filtradas().length + ' dispositivos'"
+          rotulo="Paginação de equipamentos"
+          (mudarPagina)="irParaPagina($event)" />
+      }
+    }
+  </div>
+
+  @if (formAberto()) {
+    <div class="dialog-backdrop" (click)="fecharFormulario()">
+      <section
+        class="equipamento-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="equipamento-form-titulo"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="fecharFormulario()"
+      >
+        <header class="equipamento-modal__topo">
+          <div>
+            <h2 id="equipamento-form-titulo">{{ emEdicao() ? 'Editar equipamento' : 'Novo equipamento' }}</h2>
+            <p>
+              {{ emEdicao()
+                ? 'As alterações valem a partir da próxima varredura ICMP.'
+                : 'O monitoramento ICMP começa na próxima varredura após a criação.' }}
+            </p>
+          </div>
+          <button class="equipamento-modal__fechar" type="button" aria-label="Fechar" (click)="fecharFormulario()">✕</button>
+        </header>
+
+        @if (carregandoEdicao()) {
+          <p class="equipamento-modal__carregando" role="status">Carregando os dados atuais do equipamento…</p>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="salvar()">
+          <div class="equipamento-modal__linha">
+            <label>NOME *
+              <input formControlName="nome" maxlength="150" autocomplete="off">
+            </label>
+            <label>TIPO
+              <span class="campo-select">
+                <select formControlName="tipoEquipamentoId">
+                  <option [ngValue]="0">Selecione</option>
+                  @for (tipo of tipos(); track tipo.id) { <option [ngValue]="tipo.id">{{ tipo.nome }}</option> }
+                </select>
+              </span>
+            </label>
+          </div>
+
+          <label>UNIDADE
+            <span class="campo-select">
+              <select formControlName="unidadeId">
+                <option [ngValue]="0">Selecione</option>
+                @for (unidade of unidades(); track unidade.id) { <option [ngValue]="unidade.id">{{ unidade.nome }}</option> }
+              </select>
+            </span>
+          </label>
+
+          <div class="equipamento-modal__linha">
+            <label>HOSTNAME
+              <input formControlName="hostname" maxlength="255" autocomplete="off">
+            </label>
+            <label>ENDEREÇO IP *
+              <input formControlName="ip" maxlength="45" autocomplete="off" (blur)="avaliarIp($any($event.target).value)" (input)="avaliarIp($any($event.target).value)">
+              @if (dicaIp()) { <small class="equipamento-modal__dica">{{ dicaIp() }}</small> }
+            </label>
+          </div>
+
+          <div class="equipamento-modal__linha">
+            <label>FABRICANTE
+              <input formControlName="fabricante" maxlength="100" autocomplete="off">
+            </label>
+            <label>MODELO
+              <input formControlName="modelo" maxlength="150" autocomplete="off">
+            </label>
+          </div>
+
+          <label>NÚMERO DE SÉRIE
+            <input formControlName="numeroSerie" maxlength="150" autocomplete="off">
+          </label>
+
+          <label>LOCALIZAÇÃO
+            <input formControlName="localizacao" maxlength="255" autocomplete="off">
+          </label>
+
+          <label>DESCRIÇÃO
+            <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
+          </label>
+
+          @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','ip','fabricante','modelo','numeroSerie','localizacao','descricao']; track campo) {
+            @if (form.get(campo)?.touched && form.get(campo)?.errors) {
+              <small class="campo-erro">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
+            }
+          }
+
+          <footer class="equipamento-modal__rodape">
+            <p>O monitoramento herda os padrões globais de ICMP.</p>
+            <div>
+              <button class="botao" type="button" (click)="fecharFormulario()" [disabled]="salvando()">Cancelar</button>
+              <button class="botao botao--primario" type="submit" [disabled]="salvando() || carregandoEdicao()">
+                {{ salvando() ? 'Salvando…' : emEdicao() ? 'Salvar alterações' : 'Criar equipamento' }}
+              </button>
+            </div>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (detalheId(); as id) {
+    <!-- Com o modal de edicao (ou a confirmacao) aberto por cima, a gaveta continua
+         visivel mas fora de alcance: inert tira foco, Tab e clique do que esta atras
+         do backdrop, e o effect de foco do painel deixa de disputar com o formulario. -->
+    <app-equipamento-detalhe-drawer
+      [attr.inert]="formAberto() || acao() !== null ? '' : null"
+      [equipamentoId]="id"
+      [linha]="detalheLinha()"
+      (fechar)="fecharDetalhe()"
+      (editar)="editarDoDetalhe()"
+      (alternarEquipamento)="alternarDoDetalhe()"
+    />
+  }
+
+  <app-confirm-dialog
+    [open]="acao() !== null"
+    [title]="tituloConfirmacao()"
+    [message]="mensagemConfirmacao()"
+    [confirmLabel]="rotuloConfirmacao()"
+    [busy]="processando()"
+    [erro]="erroAcao()"
+    (cancel)="cancelarAcao()"
+    (confirm)="confirmarAcao()"
+  />
+</section>

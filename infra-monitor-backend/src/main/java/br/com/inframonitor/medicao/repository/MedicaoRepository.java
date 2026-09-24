@@ -42,4 +42,5 @@ public interface MedicaoRepository extends JpaRepository<Medicao, Long>, JpaSpec
               )
             """)
     List<Medicao> findLatestByMonitorIds(@Param("monitorIds") Collection<Long> monitorIds);
+    @Query("select md from Medicao md where md.monitor.id in :ids and md.executadoEm >= :inicio and md.executadoEm < :fim") List<Medicao> noPeriodo(@Param("ids") Collection<Long> ids,@Param("inicio") java.time.Instant inicio,@Param("fim") java.time.Instant fim);
 }

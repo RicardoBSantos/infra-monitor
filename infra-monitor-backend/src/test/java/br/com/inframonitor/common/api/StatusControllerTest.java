@@ -1,9 +1,16 @@
 package br.com.inframonitor.common.api;
 
+import br.com.inframonitor.monitoring.icmp.CargaNativa;
+import br.com.inframonitor.monitoring.icmp.IcmpAmbiente;
+import br.com.inframonitor.monitoring.icmp.IcmpImplementacao;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,7 +18,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(StatusController.class)
+@Import(StatusControllerTest.AmbienteDeTeste.class)
 class StatusControllerTest {
+
+    @TestConfiguration
+    static class AmbienteDeTeste {
+        @Bean
+        IcmpAmbiente icmpAmbiente() {
+            return new IcmpAmbiente(IcmpImplementacao.AUTO, IcmpImplementacao.NATIVO_WINDOWS,
+                    CargaNativa.FALHOU, "java.lang.UnsatisfiedLinkError: C:\\Users\\alguem\\...", false, null);
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -33,5 +50,24 @@ class StatusControllerTest {
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.path").value("/api/v1/inexistente"));
+    }
+
+    @Test
+    @DisplayName("o bloco icmp mostra a implementacao ativa e o estado da carga nativa")
+    void exibeAImplementacaoIcmp() throws Exception {
+        mockMvc.perform(get("/api/v1/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.icmp.ativa").value("NATIVO_WINDOWS"))
+                .andExpect(jsonPath("$.icmp.pedida").value("AUTO"))
+                .andExpect(jsonPath("$.icmp.cargaNativa").value("FALHOU"))
+                .andExpect(jsonPath("$.icmp.motorLigado").value(false));
+    }
+
+    @Test
+    @DisplayName("detalheFalha nao sai no payload: vazaria caminho do sistema de arquivos a qualquer role autenticada")
+    void naoExpoeDetalheFalhaNoPayload() throws Exception {
+        mockMvc.perform(get("/api/v1/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.icmp.detalheFalha").doesNotExist());
     }
 }

@@ -17,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import br.com.inframonitor.relatorio.service.CicloJanelaMonitoramentoService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -28,32 +30,45 @@ public class MonitorService {
     private final EquipamentoRepository equipamentoRepository;
     private final MedicaoRepository medicaoRepository;
     private final IncidenteRepository incidenteRepository;
+    private final CicloJanelaMonitoramentoService cicloJanela;
 
+    @Autowired
     public MonitorService(MonitorRepository monitorRepository, EquipamentoRepository equipamentoRepository,
-                          MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository) {
+                          MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository, CicloJanelaMonitoramentoService cicloJanela) {
         this.monitorRepository = monitorRepository;
         this.equipamentoRepository = equipamentoRepository;
         this.medicaoRepository = medicaoRepository;
         this.incidenteRepository = incidenteRepository;
+        this.cicloJanela = cicloJanela;
     }
+    /** Mantem construtores de testes legados; o ciclo e exercitado no contexto Spring. */
+    public MonitorService(MonitorRepository a, EquipamentoRepository b, MedicaoRepository c, IncidenteRepository d) { this(a,b,c,d,null); }
 
     @Transactional
     public MonitorResponse criar(CreateMonitorRequest requisicao) {
         validarIntervaloTimeout(requisicao.intervaloSegundos(), requisicao.timeoutMs());
         Equipamento equipamento = obterEquipamentoAtivo(requisicao.equipamentoId());
-        return paraResposta(monitorRepository.save(new Monitor(equipamento, requisicao.tipo(), normalizarNome(requisicao.nome()),
+        Monitor monitor=monitorRepository.save(new Monitor(equipamento, requisicao.tipo(), normalizarNome(requisicao.nome()),
                 requisicao.intervaloSegundos(), requisicao.timeoutMs(),
                 valorOuDefault(requisicao.falhasParaIncidente(), Monitor.DEFAULT_FALHAS_PARA_INCIDENTE),
-                valorOuDefault(requisicao.sucessosParaRecovery(), Monitor.DEFAULT_SUCESSOS_PARA_RECOVERY))));
+                valorOuDefault(requisicao.sucessosParaRecovery(), Monitor.DEFAULT_SUCESSOS_PARA_RECOVERY)));
+        if (monitor.isAtivo() && cicloJanela != null) cicloJanela.abrir(monitor);
+        return paraResposta(monitor);
     }
 
     public MonitorResponse buscarPorId(Long id) { return paraResposta(obterMonitor(id)); }
 
     public Page<MonitorResponse> listar(Long equipamentoId, TipoMonitor tipo, Boolean ativo, Pageable pageable) {
-        Specification<Monitor> filtro = Specification.allOf(
-                equipamentoId == null ? null : (root, query, cb) -> cb.equal(root.get("equipamento").get("id"), equipamentoId),
-                tipo == null ? null : (root, query, cb) -> cb.equal(root.get("tipo"), tipo),
-                ativo == null ? null : (root, query, cb) -> cb.equal(root.get("ativo"), ativo));
+        Specification<Monitor> filtro = Specification.unrestricted();
+        if (equipamentoId != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("equipamento").get("id"), equipamentoId));
+        }
+        if (tipo != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("tipo"), tipo));
+        }
+        if (ativo != null) {
+            filtro = filtro.and((root, query, cb) -> cb.equal(root.get("ativo"), ativo));
+        }
         return monitorRepository.findAll(filtro, pageable).map(this::paraResposta);
     }
 
@@ -85,6 +100,7 @@ public class MonitorService {
         }
         validarIntervaloTimeout(monitor.getIntervaloSegundos(), monitor.getTimeoutMs());
         monitor.setAtivo(true);
+        if (cicloJanela != null) cicloJanela.abrir(monitor);
         return paraResposta(monitor);
     }
 
@@ -92,6 +108,7 @@ public class MonitorService {
     public MonitorResponse desativar(Long id) {
         Monitor monitor = obterMonitor(id);
         monitor.setAtivo(false);
+        if (cicloJanela != null) cicloJanela.fechar(monitor);
         return paraResposta(monitor);
     }
 

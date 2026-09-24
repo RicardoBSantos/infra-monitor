@@ -20,6 +20,12 @@
     <properties>
         <java.version>21</java.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <jna.version>5.19.0</jna.version>
+        <!-- rede-real toca a rede corporativa; bench segura threads de proposito e leva
+             minutos. Os dois ficam fora da execucao padrao. Para rodar sob demanda:
+             ./mvnw -o test -Dexcluded.groups= -Dgroups=rede-real
+             ./mvnw -o test -Dexcluded.groups=rede-real -Dgroups=bench -->
+        <excluded.groups>rede-real,bench</excluded.groups>
     </properties>
 
     <dependencyManagement>
@@ -51,6 +57,27 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -65,6 +92,20 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- ICMP nativo no Windows: IcmpSendEcho via IPHLPAPI. O ping.exe nao
+             distingue TTL expirado nem host inacessivel pelo codigo de saida. -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
         </dependency>
 
         <dependency>
@@ -99,6 +140,13 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${excluded.groups}</excludedGroups>
+                </configuration>
             </plugin>
         </plugins>
     </build>

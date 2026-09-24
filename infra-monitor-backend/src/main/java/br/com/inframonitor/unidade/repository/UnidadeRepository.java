@@ -14,4 +14,7 @@ public interface UnidadeRepository extends JpaRepository<Unidade, Long> {
     List<Unidade> findAllByOrderByNomeAsc();
 
     List<Unidade> findAllByAtivoOrderByNomeAsc(boolean ativo);
+
+    /** Unidades que apontam para esta. Usado para recusar a exclusao de um hub com filhos. */
+    boolean existsByConectaAUnidadeId(Long conectaAUnidadeId);
 }

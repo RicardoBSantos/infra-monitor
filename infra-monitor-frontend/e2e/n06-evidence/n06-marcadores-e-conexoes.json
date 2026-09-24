@@ -1,0 +1,138 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "um marcador por unidade com coordenada",
+      "ok": true,
+      "detalhe": "11 marcador(es)"
+    },
+    {
+      "caso": 1,
+      "nome": "marcadores não colapsam no mesmo pixel",
+      "ok": true,
+      "detalhe": "11 posição(ões) distintas para 11 marcadores"
+    },
+    {
+      "caso": 1,
+      "nome": "as 4 unidades de Aracaju aparecem separadas",
+      "ok": true,
+      "detalhe": "4 em Aracaju, espalhamento 30px"
+    },
+    {
+      "caso": 1,
+      "nome": "rótulo traz nome e status por extenso",
+      "ok": true,
+      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamento(s)"
+    },
+    {
+      "caso": 2,
+      "nome": "camada de conexões declarada no estilo",
+      "ok": true,
+      "detalhe": "verificado por captura + unitário"
+    },
+    {
+      "caso": 3,
+      "nome": "marcador de unidade é alcançável por Tab",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Centro Integrado de Saúde: Disponível, 16 equipamento(s)\",\"unidade\":\"7\",\"deUnidade\":true}"
+    },
+    {
+      "caso": 3,
+      "nome": "Enter no marcador abre o painel da unidade",
+      "ok": true,
+      "detalhe": "painel: Centro Integrado de Saúde | marcador: Centro Integrado de Saúde: Disponível, 16 equipamento(s)"
+    },
+    {
+      "caso": 3,
+      "nome": "exatamente um marcador fica aria-pressed",
+      "ok": true,
+      "detalhe": "[\"7\"]"
+    },
+    {
+      "caso": 3,
+      "nome": "Espaço ativa o mesmo marcador",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 4,
+      "nome": "nenhum marcador é recriado em pan/zoom",
+      "ok": true,
+      "detalhe": "11 nós antes, 11 depois"
+    },
+    {
+      "caso": 4,
+      "nome": "marcadores acompanham a câmera",
+      "ok": true,
+      "detalhe": "posições mudaram sem troca de nó"
+    },
+    {
+      "caso": 4,
+      "nome": "seleção sobrevive ao pan/zoom",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 5,
+      "nome": "área principal do shell não rola",
+      "ok": true,
+      "detalhe": "excedente 0px"
+    },
+    {
+      "caso": 5,
+      "nome": "documento não rola",
+      "ok": true,
+      "detalhe": "excedente 0px"
+    },
+    {
+      "caso": 5,
+      "nome": "painel lateral com a largura nova",
+      "ok": true,
+      "detalhe": "320px"
+    },
+    {
+      "caso": 5,
+      "nome": "enquadramento equilibrado entre topo e base",
+      "ok": true,
+      "detalhe": "topo 3.6% · base 8.2% · desequilíbrio 4.6 p.p."
+    },
+    {
+      "caso": 5,
+      "nome": "desenho ocupa a maior parte da altura do cartão",
+      "ok": true,
+      "detalhe": "sobra total 11.8%"
+    },
+    {
+      "caso": 6,
+      "nome": "só os 4 status operacionais visíveis por padrão",
+      "ok": true,
+      "detalhe": "4 item(ns)"
+    },
+    {
+      "caso": 6,
+      "nome": "notas fechadas por padrão",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 6,
+      "nome": "botão de informação abre as notas",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 6,
+      "nome": "disclosure revela os 4 estados sem leitura",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "falhas": 0,
+  "fatal": null
+}

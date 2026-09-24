@@ -4,3 +4,28 @@ target/
 .idea/
 *.iml
 .vscode/
+
+# Credenciais efêmeras de homologação nunca pertencem ao worktree.
+*.token
+
+# Logs locais de execução são transitórios; evidências estruturadas permanecem explícitas.
+*.log
+
+
+.arquivos-Claude-Design/
+
+# Dependencias e artefatos de build do frontend Angular.
+node_modules/
+dist/
+.angular/
+
+# Evidencias de homologacao geradas localmente.
+r0332-evidence/
+e2e/n04-evidence/
+infra-monitor-frontend/e2e/n04-evidence/
+
+# Artefatos transitorios de smoke test e execucao local.
+tmp/
+
+# Workspace efemero do subagent-driven-development
+.superpowers/

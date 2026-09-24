@@ -55,6 +55,17 @@ class NotificationDispatchStateServiceTest {
         assertThat(last.getProximaTentativaEm()).isNull();
     }
 
+    @Test
+    void sanitizaUrlETokenDaFalhaPersistida() {
+        Notificacao notification = sending(2);
+        when(repository.findById(3L)).thenReturn(Optional.of(notification));
+
+        service.complete(3L, SendResult.failure("https://api.telegram.org/bot1234567890:token/sendMessage", null));
+
+        assertThat(notification.getStatus()).isEqualTo(StatusNotificacao.FALHA);
+        assertThat(notification.getErro()).isEqualTo("Telegram API");
+    }
+
     private Notificacao sending(int attempts) {
         Notificacao notification = new Notificacao(mock(Incidente.class), CanalNotificacao.TELEGRAM,
                 TipoEventoNotificacao.INCIDENTE_ABERTO, "mensagem persistida");

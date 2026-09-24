@@ -38,6 +38,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,6 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @EnabledIf("dockerDisponivel")
 @SpringBootTest(properties = {
+        "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
+        "app.auth.jwt.issuer=infra-monitor-test",
+        "app.auth.jwt.access-token-minutes=15",
         "monitoring.engine.enabled=false",
         "notification.telegram.enabled=true",
         "notification.telegram.bot-token=test-token",
@@ -84,10 +88,10 @@ class BackendEndToEndIntegrationTest {
 
     @Test
     void percorreInventarioIncidenteNotificacaoTelegramFalsoERecovery() throws Exception {
-        Long unidadeId = unidadeService.criar(new CreateUnidadeRequest("Matriz E2E", "E2E", null)).id();
+        Long unidadeId = unidadeService.criar(new CreateUnidadeRequest("Matriz E2E", "E2E", null, "2800308", null, null, null, null, null)).id();
         Long tipoId = tipoEquipamentoService.criar(new CreateTipoEquipamentoRequest("Switch E2E", null)).id();
         Long equipamentoId = equipamentoService.criar(new CreateEquipamentoRequest(
-                unidadeId, tipoId, "SW-CORE-E2E", "10.0.0.1", null, null, null)).id();
+                unidadeId, tipoId, "SW-CORE-E2E", "10.0.0.1", null, null, null, null, null, null)).id();
         Long monitorId = monitorService.criar(new CreateMonitorRequest(
                 equipamentoId, TipoMonitor.ICMP, "ICMP principal", 60, 2_000, 3, 2)).id();
 
@@ -96,8 +100,8 @@ class BackendEndToEndIntegrationTest {
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(60));
         registrar(monitorId, StatusMedicao.FALHA, inicio.plusSeconds(120));
 
-        var incidenteAberto = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(
-                monitorId, StatusIncidente.ABERTO).orElseThrow();
+        var incidenteAberto = incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
+                monitorId, StatusIncidente.EM_ABERTO).orElseThrow();
         assertThat(incidenteAberto.getIniciadoEm()).isEqualTo(inicio);
         var resumoDuranteIncidente = dashboardService.resumo();
         assertThat(resumoDuranteIncidente.equipamentos().indisponiveis()).isEqualTo(1);
@@ -113,8 +117,8 @@ class BackendEndToEndIntegrationTest {
         registrar(monitorId, StatusMedicao.SUCESSO, inicio.plusSeconds(180));
         registrar(monitorId, StatusMedicao.SUCESSO, inicio.plusSeconds(240));
 
-        var incidenteFechado = incidenteRepository.findFirstByMonitorIdAndStatusOrderByIniciadoEmDescIdDesc(
-                monitorId, StatusIncidente.FECHADO).orElseThrow();
+        var incidenteFechado = incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
+                monitorId, Set.of(StatusIncidente.FECHADO)).orElseThrow();
         assertThat(incidenteFechado.getEncerradoEm()).isEqualTo(inicio.plusSeconds(240));
         Notificacao recovery = notificacao(incidenteFechado.getId(), TipoEventoNotificacao.INCIDENTE_FECHADO);
         assertThat(recovery.getStatus()).isEqualTo(StatusNotificacao.PENDENTE);
@@ -158,6 +162,9 @@ class BackendEndToEndIntegrationTest {
     }
 
     static class FakeTelegramClient implements TelegramClient {
+        @Override public br.com.inframonitor.notificacao.telegram.TelegramBotInfo getMe() {
+            return new br.com.inframonitor.notificacao.telegram.TelegramBotInfo(true, "infra_monitor_bot", 1L);
+        }
         private final List<String> messages = new ArrayList<>();
 
         @Override

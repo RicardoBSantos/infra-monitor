@@ -14,6 +14,12 @@ Unidade -> Equipamento -> Monitor -> Medição -> Incidente -> Notificação -> 
 
 ## Requisitos
 
+## Autenticação A02
+
+A API usa JWT bearer stateless: todas as rotas `/api/v1/**`, exceto `POST /api/v1/auth/login`, exigem token. `GET /actuator/health` permanece público. Tokens HS256 expiram em 15 minutos por padrão, CSRF é desabilitado e CORS usa origens explícitas, sem credentials. O frontend anterior à A03 receberá `401` nas APIs protegidas, intencionalmente.
+
+Configure externamente `JWT_SECRET` (mínimo 32 bytes), `JWT_ISSUER`, `JWT_ACCESS_TOKEN_MINUTES` e, opcionalmente, `BOOTSTRAP_ADMIN_ENABLED`, `BOOTSTRAP_ADMIN_NAME`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`. Não há senha bootstrap default. O bootstrap é idempotente. E-mails são normalizados para lowercase e também têm unicidade PostgreSQL em `LOWER(email)`; senhas são BCrypt cost 12, 12–128 caracteres.
+
 | Item       | Versão                                   |
 |------------|------------------------------------------|
 | Java       | 21 (JDK)                                 |
@@ -187,9 +193,11 @@ como strings e timestamps ISO-8601 em UTC. As listas paginadas possuem o
 envelope estável `content`, `page`, `size`, `totalElements`, `totalPages`,
 `first` e `last` (`page` começa em zero; `size` máximo é 100).
 
-CORS é centralizado para `/api/**`. A origem padrão de desenvolvimento é
-`http://localhost:4200`; em outro ambiente, defina `CORS_ALLOWED_ORIGINS` sem
-recompilar. Não há origem wildcard nem cookies/credentials nesta etapa.
+CORS é centralizado para `/api/**`. As origens padrão de desenvolvimento são
+`http://localhost:4200` e `http://127.0.0.1:4200`. Em outro ambiente, defina
+`CORS_ALLOWED_ORIGINS` com uma lista separada por vírgulas, por exemplo
+`CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200`, sem recompilar.
+Não há origem wildcard nem cookies/credentials nesta etapa.
 
 Erros têm `code` estável para o frontend e `fields` em erros de validação.
 O contrato completo, incluindo rotas, filtros, payloads e Dashboard, está em
@@ -258,12 +266,15 @@ O dispatcher fica desabilitado por padrao. Para habilitar o envio na unica insta
 responsavel pelos alertas, configure valores reais fora do repositorio e ative ambos:
 
 ```bash
-TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... \
-NOTIFICATION_TELEGRAM_ENABLED=true NOTIFICATION_DISPATCHER_ENABLED=true ./mvnw spring-boot:run
+TELEGRAM_ENABLED=true TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... \
+NOTIFICATION_DISPATCHER_ENABLED=true ./mvnw spring-boot:run
 ```
 
-`TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` nao possuem valores default. Com Telegram
-habilitado, ambos sao obrigatorios; a aplicacao falha no startup sem revelar valores.
+`TELEGRAM_ENABLED` e `NOTIFICATION_DISPATCHER_ENABLED` podem ser definidos como
+`false` para desabilitar completamente o envio. `TELEGRAM_BOT_TOKEN` e
+`TELEGRAM_CHAT_ID` nao possuem valores default. Com Telegram habilitado, ambos sao
+obrigatorios; a aplicacao falha no startup sem revelar valores. O nome legado
+`NOTIFICATION_TELEGRAM_ENABLED` continua aceito quando `TELEGRAM_ENABLED` nao foi definido.
 Com Telegram ou dispatcher desabilitado, nao ocorre chamada externa e notificacoes
 TELEGRAM ficam PENDENTE.
 
@@ -273,3 +284,8 @@ Propriedades configuraveis: `notification.telegram.connect-timeout-ms`,
 `base-delay-seconds`. O backoff e 30s, 60s por padrao (configuravel), sem espera de
 thread. A entrega e **at-least-once**: em uma queda apos Telegram aceitar a mensagem
 e antes do banco gravar `ENVIADA`, um retry pode duplicar o alerta.
+
+Para validar, gere uma abertura e um fechamento de incidente em um ambiente controlado,
+consulte `GET /api/v1/notificacoes` e confirme que cada evento evoluiu de `PENDENTE`
+para `ENVIADA`, com `tentativas` e `enviadoEm` preenchidos. O frontend consulta apenas
+esses endpoints; ele nao recebe token, chat id ou executa chamadas ao Telegram.

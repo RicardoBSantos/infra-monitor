@@ -2,6 +2,7 @@ package br.com.inframonitor.unidade.controller;
 
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
+import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UnidadeResponse;
 import br.com.inframonitor.unidade.dto.UpdateUnidadeRequest;
@@ -13,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -33,8 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UnidadeControllerTest {
 
     private static final UnidadeResponse UNIDADE = new UnidadeResponse(
-            1L, "Matriz", "MTZ", "Unidade principal", true,
-            Instant.parse("2026-08-18T10:00:00Z"), Instant.parse("2026-08-18T10:00:00Z"));
+            1L, "Matriz", "MTZ", "Unidade principal", "2800308", true,
+            Instant.parse("2026-08-18T10:00:00Z"), Instant.parse("2026-08-18T10:00:00Z"),
+            "Av. Central, 100", "Aracaju", "SE", new BigDecimal("-10.947200"), new BigDecimal("-37.073500"), null);
 
     @Autowired
     private MockMvc mockMvc;
@@ -48,11 +51,12 @@ class UnidadeControllerTest {
 
         mockMvc.perform(post("/api/v1/unidades")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Unidade principal\"}"))
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Unidade principal\",\"codigoIbge\":\"2800308\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/v1/unidades/1"))
                 .andExpect(jsonPath("$.nome").value("Matriz"))
                 .andExpect(jsonPath("$.sigla").value("MTZ"))
+                .andExpect(jsonPath("$.codigoIbge").value("2800308"))
                 .andExpect(jsonPath("$.ativo").value(true));
     }
 
@@ -64,6 +68,43 @@ class UnidadeControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.fields.nome").exists());
+
+        mockMvc.perform(post("/api/v1/unidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"codigoIbge\":\"28003\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.codigoIbge").exists());
+    }
+
+    @Test
+    void rejeitaUfDesconhecida() throws Exception {
+        mockMvc.perform(post("/api/v1/unidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"uf\":\"XX\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.ufValida").exists());
+    }
+
+    @Test
+    void rejeitaCoordenadaPelaMetade() throws Exception {
+        mockMvc.perform(post("/api/v1/unidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"latitude\":-10.9472}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.coordenadasCompletas").exists());
+    }
+
+    @Test
+    void rejeitaLatitudeForaDaFaixa() throws Exception {
+        mockMvc.perform(post("/api/v1/unidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"latitude\":91,\"longitude\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.latitude").exists());
     }
 
     @Test
@@ -93,13 +134,20 @@ class UnidadeControllerTest {
 
         mockMvc.perform(get("/api/v1/unidades/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.codigoIbge").value("2800308"))
+                .andExpect(jsonPath("$.endereco").value("Av. Central, 100"))
+                .andExpect(jsonPath("$.cidade").value("Aracaju"))
+                .andExpect(jsonPath("$.uf").value("SE"))
+                .andExpect(jsonPath("$.latitude").value(-10.9472))
+                .andExpect(jsonPath("$.longitude").value(-37.0735));
         mockMvc.perform(get("/api/v1/unidades?ativo=true"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nome").value("Matriz"));
+                .andExpect(jsonPath("$[0].nome").value("Matriz"))
+                .andExpect(jsonPath("$[0].codigoIbge").value("2800308"));
         mockMvc.perform(put("/api/v1/unidades/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Nova\"}"))
+                        .content("{\"nome\":\"Matriz\",\"sigla\":\"MTZ\",\"descricao\":\"Nova\",\"codigoIbge\":null}"))
                 .andExpect(status().isOk());
         mockMvc.perform(patch("/api/v1/unidades/1/ativar"))
                 .andExpect(status().isOk())
@@ -110,5 +158,29 @@ class UnidadeControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(unidadeService).excluir(1L);
+    }
+
+    @Test
+    void defineERemoveConexao() throws Exception {
+        when(unidadeService.definirConexao(eq(2L), any(ConexaoUnidadeRequest.class))).thenReturn(UNIDADE);
+        when(unidadeService.removerConexao(2L)).thenReturn(UNIDADE);
+
+        mockMvc.perform(put("/api/v1/unidades/2/conexao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"conectaAUnidadeId\":1}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/v1/unidades/2/conexao"))
+                .andExpect(status().isOk());
+
+        verify(unidadeService).removerConexao(2L);
+    }
+
+    /** Corpo sem destino nao e "desconectar": desconectar e DELETE. Aqui e requisicao invalida. */
+    @Test
+    void rejeitaConexaoSemDestino() throws Exception {
+        mockMvc.perform(put("/api/v1/unidades/2/conexao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"conectaAUnidadeId\":null}"))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -1,6 +1,10 @@
 package br.com.inframonitor.common.exception;
 
 import br.com.inframonitor.common.api.ErroResposta;
+import br.com.inframonitor.auth.AccountDisabledException;
+import br.com.inframonitor.auth.AuthenticationFailedException;
+import br.com.inframonitor.relatorio.exportacao.ExportLimitExceededException;
+import br.com.inframonitor.relatorio.exportacao.ExportTimeoutException;
 import tools.jackson.databind.exc.InvalidFormatException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -65,7 +69,7 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResposta> tratarInesperado(Exception ex, WebRequest request) {
-        log.error("Erro nao tratado em {}", caminho(request), ex);
+        log.error("Erro nao tratado em {} tipo={}", caminho(request), ex.getClass().getSimpleName());
         return ResponseEntity.internalServerError().body(ErroResposta.de(500, "Internal Server Error", "INTERNAL_ERROR",
                 "Erro interno do servidor", caminho(request)));
     }
@@ -85,6 +89,26 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErroResposta> tratarRequisicaoInvalida(IllegalArgumentException ex, WebRequest request) {
         return respostaDeErro(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ExportLimitExceededException.class)
+    public ResponseEntity<ErroResposta> tratarLimiteExportacao(ExportLimitExceededException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.UNPROCESSABLE_ENTITY, "EXPORT_LIMIT_EXCEEDED", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ExportTimeoutException.class)
+    public ResponseEntity<ErroResposta> tratarTimeoutExportacao(ExportTimeoutException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.SERVICE_UNAVAILABLE, "EXPORT_TIMEOUT", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<ErroResposta> tratarFalhaAutenticacao(AuthenticationFailedException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "Credenciais invalidas", request);
+    }
+
+    @ExceptionHandler(AccountDisabledException.class)
+    public ResponseEntity<ErroResposta> tratarContaDesativada(AccountDisabledException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.UNAUTHORIZED, "ACCOUNT_DISABLED", "Conta desativada", request);
     }
 
     private ResponseEntity<ErroResposta> respostaDeErro(HttpStatus status, String code, String message, WebRequest request) {

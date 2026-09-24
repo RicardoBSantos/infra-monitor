@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EquipamentoControllerTest {
 
     private static final EquipamentoResponse EQUIPAMENTO = new EquipamentoResponse(
-            1L, "SW-CORE-01", "10.0.0.10", "sw-core", "Switch core", "Rack 01", true,
+            1L, "SW-CORE-01", "10.0.0.10", "sw-core", "Switch core", "Rack 01", "SN-0001", "Cisco", "Catalyst 9200-24T", true, false,
             new ReferenciaResponse(1L, "Matriz"), new ReferenciaResponse(2L, "Switch"),
             Instant.parse("2026-08-18T10:00:00Z"), Instant.parse("2026-08-18T10:00:00Z"));
 
@@ -60,6 +60,7 @@ class EquipamentoControllerTest {
         mockMvc.perform(get("/api/v1/equipamentos/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tipoEquipamento.nome").value("Switch"))
+                .andExpect(jsonPath("$.numeroSerie").value("SN-0001"))
                 .andExpect(jsonPath("$.createdAt").value("2026-08-18T10:00:00Z"));
     }
 
@@ -108,7 +109,7 @@ class EquipamentoControllerTest {
     private String corpoValido() {
         return """
                 {"unidadeId":1,"tipoEquipamentoId":2,"nome":"SW-CORE-01",
-                 "ip":"10.0.0.10","hostname":"sw-core","descricao":"Switch core","localizacao":"Rack 01"}
+                 "ip":"10.0.0.10","hostname":"sw-core","descricao":"Switch core","localizacao":"Rack 01","numeroSerie":"SN-0001"}
                 """;
     }
 }

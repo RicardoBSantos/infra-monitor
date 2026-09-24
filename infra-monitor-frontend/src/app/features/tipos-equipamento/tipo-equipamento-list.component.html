@@ -1,0 +1,209 @@
+<section class="tipos" aria-labelledby="tipos-titulo">
+  <header class="tipos__topo">
+    <div>
+      <h1 id="tipos-titulo">Tipos de equipamento</h1>
+      <p>Classificação administrativa do inventário. Todo equipamento pertence a exatamente um tipo.</p>
+    </div>
+    @if (authState.canManageInventory()) {
+      <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Novo tipo</button>
+    }
+  </header>
+
+  @if (aviso()) { <p class="tipos__aviso" role="status">{{ aviso() }}</p> }
+
+  @if (erro() && estado() !== 'error') {
+    <div class="aviso aviso--erro" role="alert">
+      <div><strong>Não foi possível concluir a operação.</strong><p>{{ erro() }}</p></div>
+    </div>
+  }
+
+  @if (agregacaoIndisponivel()) {
+    <div class="aviso aviso--erro" role="status">
+      <div>
+        <strong>Contagens operacionais indisponíveis.</strong>
+        <p>O cadastro dos tipos continua editável; as colunas de dispositivos ficam em “—”.</p>
+      </div>
+      <button class="botao" type="button" (click)="carregarContagens()">Tentar novamente</button>
+    </div>
+  }
+
+  <div class="tipos__abas" role="group" aria-label="Status administrativo">
+    <span>STATUS ADMINISTRATIVO</span>
+    @for (opcao of abas; track opcao.id) {
+      <button
+        type="button"
+        [class.ativa]="aba() === opcao.id"
+        [attr.aria-pressed]="aba() === opcao.id"
+        (click)="mudarAba(opcao.id)"
+      >{{ opcao.rotulo }}</button>
+    }
+  </div>
+
+  <div class="tipos__busca">
+    <label class="visualmente-oculto" for="busca-tipos">Buscar tipos</label>
+    <input
+      id="busca-tipos"
+      class="campo-busca"
+      type="search"
+      placeholder="Buscar tipos por nome ou descrição"
+      [value]="busca()"
+      (input)="buscar($any($event.target).value)"
+    >
+    <p class="contagem">{{ filtrados().length }} de {{ total() }} tipos</p>
+  </div>
+
+  <div class="cartao">
+    @if (estado() === 'loading') {
+      <div class="esqueleto" aria-label="Carregando tipos de equipamento">
+        @for (linha of [1,2,3,4,5]; track linha) { <span></span> }
+      </div>
+    } @else if (estado() === 'error') {
+      <div class="vazio" role="alert">
+        <strong>Não foi possível carregar os tipos de equipamento.</strong>
+        <p>{{ erro() }}</p>
+        <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+      </div>
+    } @else if (estado() === 'empty') {
+      <div class="vazio">
+        <strong>Nenhum tipo neste filtro.</strong>
+        <p>Altere o status administrativo ou cadastre o primeiro tipo de equipamento.</p>
+        @if (authState.canManageInventory()) {
+          <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Novo tipo</button>
+        }
+      </div>
+    } @else if (semResultadoPorBusca()) {
+      <div class="vazio">
+        <strong>Nenhum tipo corresponde à busca.</strong>
+        <p>Nenhum resultado para “{{ busca() }}”.</p>
+        <button class="botao" type="button" (click)="limparBusca()">Limpar busca</button>
+      </div>
+    } @else {
+      <div class="tipos__rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>TIPO</th>
+              <th>DESCRIÇÃO</th>
+              <th class="numerico">DISPOSITIVOS</th>
+              <th class="numerico">ONLINE</th>
+              <th class="numerico">DEGRADADOS</th>
+              <th class="numerico">OFFLINE</th>
+              <th>STATUS</th>
+              <th class="numerico">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tipo of visiveis(); track tipo.id) {
+              @let contagem = contagemDe(tipo);
+              <tr>
+                <td><span class="forte">{{ tipo.nome }}</span></td>
+                <td class="tipos__descricao">{{ tipo.descricao || '—' }}</td>
+                <td class="numerico mono">
+                  @if (contagem) { {{ contagem.dispositivos }} } @else { <span class="apagado">—</span> }
+                </td>
+                <td class="numerico mono">
+                  @if (contagem) {
+                    <span [class.ok]="contagem.online > 0" [class.apagado]="contagem.online === 0">{{ contagem.online }}</span>
+                  } @else { <span class="apagado">—</span> }
+                </td>
+                <td class="numerico mono">
+                  @if (contagem) {
+                    <span [class.warn]="contagem.degradados > 0" [class.apagado]="contagem.degradados === 0">{{ contagem.degradados }}</span>
+                  } @else { <span class="apagado">—</span> }
+                </td>
+                <td class="numerico mono">
+                  @if (contagem) {
+                    <span [class.down]="contagem.offline > 0" [class.apagado]="contagem.offline === 0">{{ contagem.offline }}</span>
+                  } @else { <span class="apagado">—</span> }
+                </td>
+                <td>
+                  <span class="chip-status" [class.chip-status--off]="!tipo.ativo">
+                    {{ tipo.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="numerico">
+                  <app-action-menu
+                    [itens]="itensDoMenu(tipo)"
+                    [rotuloContexto]="tipo.nome"
+                    (selecionar)="executarAcao(tipo, $event)"
+                  />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalPaginas() > 1) {
+        <app-paginacao
+          [paginaAtual]="paginaAtual()"
+          [totalPaginas]="totalPaginas()"
+          [contagem]="visiveis().length + ' de ' + filtrados().length + ' tipos'"
+          rotulo="Paginação de tipos de equipamento"
+          (mudarPagina)="irParaPagina($event)" />
+      }
+    }
+  </div>
+
+  @if (formAberto()) {
+    <div class="dialog-backdrop" (click)="fecharFormulario()">
+      <section
+        class="tipo-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tipo-form-titulo"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="fecharFormulario()"
+      >
+        <header class="tipo-modal__topo">
+          <div>
+            <h2 id="tipo-form-titulo">{{ emEdicao() ? 'Editar tipo' : 'Novo tipo' }}</h2>
+            <p>
+              {{ emEdicao()
+                ? 'O nome é usado na classificação de todo o inventário.'
+                : 'O tipo fica disponível para novos equipamentos assim que for criado.' }}
+            </p>
+          </div>
+          <button class="tipo-modal__fechar" type="button" aria-label="Fechar" (click)="fecharFormulario()">✕</button>
+        </header>
+
+        <form [formGroup]="form" (ngSubmit)="salvar()">
+          <label>NOME *
+            <input formControlName="nome" maxlength="150" autocomplete="off">
+          </label>
+
+          <label>DESCRIÇÃO
+            <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
+          </label>
+
+          @for (campo of ['nome','descricao']; track campo) {
+            @if (form.get(campo)?.touched && form.get(campo)?.errors) {
+              <small class="campo-erro">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
+            }
+          }
+
+          <footer class="tipo-modal__rodape">
+            <p>Nomes de tipo não se repetem.</p>
+            <div>
+              <button class="botao" type="button" (click)="fecharFormulario()" [disabled]="salvando()">Cancelar</button>
+              <button class="botao botao--primario" type="submit" [disabled]="salvando()">
+                {{ salvando() ? 'Salvando…' : emEdicao() ? 'Salvar alterações' : 'Criar tipo' }}
+              </button>
+            </div>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  <app-confirm-dialog
+    [open]="acao() !== null"
+    [title]="tituloConfirmacao()"
+    [message]="mensagemConfirmacao()"
+    [confirmLabel]="rotuloConfirmacao()"
+    [busy]="processando()"
+    [erro]="erroAcao()"
+    (cancel)="cancelarAcao()"
+    (confirm)="confirmarAcao()"
+  />
+</section>

@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await (await b.newContext({viewport:{width:1440,height:900}})).newPage();
+await p.goto('http://localhost:4200/login');
+await p.fill('#login-email','admin@inframonitor.local');
+await p.fill('#login-senha','Demo@12345');
+await p.click('button[type=submit]');
+await p.waitForTimeout(4000);
+console.log('URL:', p.url());
+console.log('BODY:', (await p.innerText('body')).slice(0,500));
+await p.screenshot({path: process.argv[2]+'/dbg-after-login.png'});
+await b.close();

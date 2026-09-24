@@ -1,5 +1,11 @@
 # Prompt 09 — Monitoring Engine Base + Execução ICMP
 
+> **Revertido em 2026-09-21.** A orientação abaixo de decidir pelo código de saída do processo
+> `ping` foi revertida: no Windows o `ping.exe` devolve exit 0 tanto para sucesso quanto para
+> TTL expirado em trânsito e host de destino inacessível. Ver
+> `Docs/validacao-producao/icmp-falsos-positivos.md` para a evidência e a decisão que substituiu
+> essa orientação. Quem seguir só este documento reimplementa o bug.
+
 ## 1. Contexto
 
 Com base no contexto permanente definido em:

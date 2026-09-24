@@ -1,6 +1,7 @@
 package br.com.inframonitor.notificacao.entity;
 
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,9 +26,18 @@ public class Notificacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "incidente_id", nullable = false)
+    /**
+     * Uma das duas ancoras da notificacao, nunca as duas: eventos de incidente usam
+     * esta, eventos de latencia usam {@link #episodioLatencia}. O banco garante a
+     * exclusividade em ck_notificacao_ancora_exclusiva.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "incidente_id")
     private Incidente incidente;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "episodio_latencia_id")
+    private MonitorEpisodioLatencia episodioLatencia;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -66,7 +76,17 @@ public class Notificacao {
     }
 
     public Notificacao(Incidente incidente, CanalNotificacao canal, TipoEventoNotificacao tipoEvento, String mensagem) {
+        this(canal, tipoEvento, mensagem);
         this.incidente = incidente;
+    }
+
+    public Notificacao(MonitorEpisodioLatencia episodioLatencia, CanalNotificacao canal,
+                       TipoEventoNotificacao tipoEvento, String mensagem) {
+        this(canal, tipoEvento, mensagem);
+        this.episodioLatencia = episodioLatencia;
+    }
+
+    private Notificacao(CanalNotificacao canal, TipoEventoNotificacao tipoEvento, String mensagem) {
         this.canal = canal;
         this.tipoEvento = tipoEvento;
         this.status = StatusNotificacao.PENDENTE;
@@ -88,6 +108,7 @@ public class Notificacao {
 
     public Long getId() { return id; }
     public Incidente getIncidente() { return incidente; }
+    public MonitorEpisodioLatencia getEpisodioLatencia() { return episodioLatencia; }
     public CanalNotificacao getCanal() { return canal; }
     public TipoEventoNotificacao getTipoEvento() { return tipoEvento; }
     public StatusNotificacao getStatus() { return status; }
