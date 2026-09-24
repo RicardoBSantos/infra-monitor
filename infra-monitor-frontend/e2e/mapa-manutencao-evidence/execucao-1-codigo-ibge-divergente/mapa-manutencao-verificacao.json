@@ -1,0 +1,116 @@
+{
+  "executadoEm": "2026-09-24T13:47:17.101Z",
+  "base": "http://127.0.0.1:4300",
+  "esperado": {
+    "manutencao": {
+      "status": "EM_MANUTENCAO",
+      "hex": "#7fadff",
+      "rgb": "rgb(127, 173, 255)"
+    },
+    "contraste": {
+      "status": "INDISPONIVEL",
+      "hex": "#e5484d",
+      "rgb": "rgb(229, 72, 77)"
+    }
+  },
+  "obtido": {
+    "manutencao": {
+      "corUnidadeInline": "#7fadff",
+      "backgroundColor": "rgb(127, 173, 255)",
+      "pulsoBorderColor": "rgb(127, 173, 255)",
+      "ariaLabel": "Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)",
+      "ariaPressed": "false"
+    },
+    "contraste": {
+      "corUnidadeInline": "#e5484d",
+      "backgroundColor": "rgb(229, 72, 77)",
+      "pulsoBorderColor": "rgb(229, 72, 77)",
+      "ariaLabel": "Unidade E2E Mapa Contraste: Indisponível, 1 equipamento(s), 1 incidente(s) aberto(s)",
+      "ariaPressed": "false"
+    }
+  },
+  "resumo": "10/11",
+  "fatal": "Error: clique no marcador não abriu o painel da unidade — ver checagem clique-abre-painel-unidade\n    at C:\\Users\\rbfilho\\Documents\\infra-monitor\\infra-monitor-frontend\\e2e\\mapa-manutencao-verificacao.cjs:146:13",
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído, fora de /login",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4300/dashboard"
+    },
+    {
+      "caso": "mapa-url",
+      "nome": "navegação por clique chegou a /mapa",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4300/mapa"
+    },
+    {
+      "caso": "sem-localizacao-vazia",
+      "nome": "nenhuma unidade de teste caiu em \"Unidades sem localização\"",
+      "ok": true,
+      "detalhe": "blocos=0"
+    },
+    {
+      "caso": "marcador-manutencao-existe",
+      "nome": "marcador da unidade em manutenção existe no DOM",
+      "ok": true,
+      "detalhe": "{\"corUnidadeInline\":\"#7fadff\",\"backgroundColor\":\"rgb(127, 173, 255)\",\"pulsoBorderColor\":\"rgb(127, 173, 255)\",\"ariaLabel\":\"Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)\",\"ariaPressed\":\"false\"}"
+    },
+    {
+      "caso": "marcador-manutencao-rotulo",
+      "nome": "aria-label do marcador diz o status \"Em manutenção\"",
+      "ok": true,
+      "detalhe": "Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)"
+    },
+    {
+      "caso": "marcador-manutencao-variavel",
+      "nome": "--cor-unidade inline = #7fadff",
+      "ok": true,
+      "detalhe": "esperado=#7fadff obtido=#7fadff"
+    },
+    {
+      "caso": "marcador-manutencao-cor",
+      "nome": "cor computada do miolo = rgb(127, 173, 255)",
+      "ok": true,
+      "detalhe": "esperado=rgb(127, 173, 255) obtido=rgb(127, 173, 255)"
+    },
+    {
+      "caso": "marcador-manutencao-pulso",
+      "nome": "cor do anel de pulso (::after) = rgb(127, 173, 255)",
+      "ok": true,
+      "detalhe": "esperado=rgb(127, 173, 255) obtido=rgb(127, 173, 255)"
+    },
+    {
+      "caso": "marcador-contraste-cor",
+      "nome": "unidade de contraste (.10, incidente aberto) = rgb(229, 72, 77)",
+      "ok": true,
+      "detalhe": "esperado=rgb(229, 72, 77) obtido=rgb(229, 72, 77)"
+    },
+    {
+      "caso": "marcador-visivel",
+      "nome": "marcador tem caixa na tela",
+      "ok": true,
+      "detalhe": "{\"x\":636.4075927734375,\"y\":543.4342041015625,\"width\":13,\"height\":13}"
+    },
+    {
+      "caso": "clique-abre-painel-unidade",
+      "nome": "clique no marcador abre o painel da unidade",
+      "ok": false,
+      "detalhe": "só o painel do município apareceu: \"Itabaiana Nenhuma unidade cadastrada neste município.\""
+    }
+  ],
+  "erros": [],
+  "rede": [
+    "2026-09-24T13:47:12.175Z POST /auth/login -> 200",
+    "2026-09-24T13:47:12.252Z GET /dashboard/resumo -> 200",
+    "2026-09-24T13:47:12.252Z GET /dashboard/unidades -> 200",
+    "2026-09-24T13:47:12.252Z GET /relatorios/latencia/unidades?inicio=2026-08-25T13:47:12.211Z&fim=2026-09-24T13:47:12.211Z&size=500 -> 200",
+    "2026-09-24T13:47:12.253Z GET /unidades?ativo=true -> 200",
+    "2026-09-24T13:47:12.254Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-25T13:47:12.210Z&fim=2026-09-24T13:47:12.210Z&size=200 -> 200",
+    "2026-09-24T13:47:12.273Z GET /equipamentos?size=500&sort=nome,asc -> 200",
+    "2026-09-24T13:47:12.284Z GET /incidentes?status=ABERTO&size=20&sort=iniciadoEm,desc -> 200",
+    "2026-09-24T13:47:12.412Z GET /dashboard/unidades -> 200",
+    "2026-09-24T13:47:15.650Z GET /dashboard/unidades/1/equipamentos?size=200&sort=nome -> 200",
+    "2026-09-24T13:47:15.653Z GET /dashboard/unidades/1/equipamentos?size=200&sort=nome -> 200"
+  ]
+}
