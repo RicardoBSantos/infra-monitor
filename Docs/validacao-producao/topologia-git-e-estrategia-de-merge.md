@@ -261,3 +261,36 @@ apoiar o corte por frente:
 branch foi rodado para produzi-lo. A `main` local segue exatamente como estava (a atualização por
 fast-forward descrita na seção 1 é uma recomendação para outro passo, não algo que esta tarefa
 executou). A decisão de qual estratégia seguir — e quando — é do humano responsável pelo branch.
+
+## 7. Execução (2026-09-24)
+
+Executada depois do fechamento dos riscos de execução (`riscos-execucao-correcoes.md`) e da evidência
+do mapa refeita. **Sem push**: a `main` local ficou à frente de `origin/main`, e o push é decisão do
+responsável pelo branch.
+
+Forma executada da opção B: um merge `--no-ff` por frente que **já existe como branch**, na ordem de
+dependência. O recorte mais fino (Auth, Mapa, Relatórios em PRs separados) exigiria cherry-pick sobre
+histórico intercalado, que a seção 5 já marcou como sujeito a erro — não foi feito. Merge feito num
+worktree separado (`../infra-monitor-merge`), porque a árvore principal tinha mudanças locais que não
+eram desta rodada e bloqueariam o `checkout main`.
+
+```
+$ git fetch origin
+$ git worktree add ../infra-monitor-merge main
+$ git merge --ff-only origin/main          # a838c5d -> c7bbe66
+$ git merge --no-ff fix/icmp-nativo-windows
+$ git merge --no-ff feat/manutencao-equipamento   # -> c5f845b
+$ git diff feat/manutencao-equipamento HEAD      # vazio: a árvore da main é a do branch
+$ git status -sb
+## main...origin/main [ahead 117]
+```
+
+Conflitos: **nenhum** nos dois merges (`origin/main` é ancestral dos dois branches).
+
+| Suíte | Antes (ponta de `feat/manutencao-equipamento`, `9d6a6b3`) | Depois (`main`, `c5f845b`) |
+|---|---|---|
+| Backend `./mvnw test` | Tests run: 449, Failures: 0, Errors: 0, Skipped: 0 | Tests run: 449, Failures: 0, Errors: 0, Skipped: 0 |
+| Frontend `npx ng test --watch=false` | 47 arquivos, 371 testes, todos passando | 47 arquivos, 371 testes, todos passando |
+| `npx ng build` | — | sucesso; Initial total 349.97 kB (96.34 kB transferidos); 1 WARNING: `mapa.component.scss` excede o budget de 6.00 kB (95.64 kB) — pré-existente, a árvore é idêntica à do branch |
+
+Este registro existe só na `main` (o commit precisa dos hashes do próprio merge).
