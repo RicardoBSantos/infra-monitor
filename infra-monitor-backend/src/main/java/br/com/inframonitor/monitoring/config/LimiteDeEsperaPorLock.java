@@ -5,8 +5,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * lock_timeout das transacoes do motor que disputam a linha de equipamento com a
- * manutencao (FOR UPDATE OF e em inserirSeElegivel, e os CAS de fechamento).
+ * lock_timeout das transacoes do motor que disputam linhas com a manutencao: o
+ * FOR UPDATE OF e em inserirSeElegivel (incidente e episodio de latencia), o CAS de
+ * fechamento do incidente (fecharAutomaticamenteSeEmAberto) e o saveAndFlush que
+ * normaliza o episodio de latencia (ainda sem CAS).
  *
  * <p>set_config(..., true) e SET LOCAL: vale so para a transacao corrente e morre no
  * commit/rollback, nao vaza para a conexao devolvida ao pool. Por isso precisa ser a

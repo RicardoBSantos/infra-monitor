@@ -113,11 +113,70 @@ class LockTimeoutMotorPostgresIntegrationTest {
         assertThat(jdbc.queryForObject("select count(*) from notificacao", Integer.class)).isZero();
 
         detentor.join(SEGURA_LOCK.plusSeconds(5).toMillis());
+        assertThat(detentor.isAlive()).isFalse();
 
         medicaoService.criar(new CreateMedicaoRequest(monitorId, StatusMedicao.FALHA, null, "timeout",
                 agora.plusSeconds(10)));
         assertThat(jdbc.queryForObject("select count(*) from incidente where status = 'ABERTO'", Integer.class))
                 .as("a proxima medicao reavalia a cauda e abre").isEqualTo(1);
+    }
+
+    /**
+     * Mesmo cenario pelo caminho de latencia. Com medicoes SUCESSO e nenhum incidente
+     * aberto, o IncidentProcessor nao trava nada (a cauda nao e de FALHA, ele retorna
+     * antes de inserirSeElegivel), entao a unica espera possivel e a do
+     * LatencyEpisodeProcessor: a medicao degradada fecha a cauda de
+     * monitoring.latencia-ciclos (2) medicoes SUCESSO com latencia acima de
+     * monitoring.latencia-degradada-ms (250), e inserirSeElegivel faz FOR UPDATE OF e
+     * na linha de equipamento. Sem o lock_timeout desse processor, a chamada espera o
+     * lock inteiro.
+     */
+    @Test
+    void lockEstouradoNoProcessorDeLatenciaPulaOCicloSemPerderMedicaoEAProximaAbreOEpisodio() throws Exception {
+        long equipamentoId = montarEquipamento();
+        long monitorId = montarMonitor(equipamentoId);
+        Instant agora = Instant.now();
+        jdbc.update("insert into janela_monitoramento (monitor_id, inicio_em, origem) values (?, ?, 'PRECISA')",
+                monitorId, Timestamp.from(agora.minusSeconds(3600)));
+        jdbc.update("insert into medicao (monitor_id, status, latencia_ms, executado_em) values (?, 'SUCESSO', 400, ?)",
+                monitorId, Timestamp.from(agora.minusSeconds(20)));
+        jdbc.update("insert into medicao (monitor_id, status, latencia_ms, executado_em) values (?, 'SUCESSO', 400, ?)",
+                monitorId, Timestamp.from(agora.minusSeconds(10)));
+
+        CountDownLatch lockTomado = new CountDownLatch(1);
+        Thread detentor = new Thread(() -> new TransactionTemplate(transactionManager).executeWithoutResult(s -> {
+            jdbc.queryForObject("select id from equipamento where id = ? for update", Long.class, equipamentoId);
+            lockTomado.countDown();
+            try {
+                Thread.sleep(SEGURA_LOCK.toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }), "detentor-do-lock-latencia");
+        detentor.start();
+        assertThat(lockTomado.await(5, TimeUnit.SECONDS)).isTrue();
+
+        long inicio = System.nanoTime();
+        medicaoService.criar(new CreateMedicaoRequest(monitorId, StatusMedicao.SUCESSO, 400, null, agora));
+        Duration espera = Duration.ofNanos(System.nanoTime() - inicio);
+        System.out.println("[lock-timeout-latencia] chamada voltou em " + espera.toMillis() + " ms");
+
+        assertThat(espera).as("o processor de latencia nao pode esperar o lock inteiro")
+                .isLessThan(Duration.ofSeconds(4));
+        assertThat(jdbc.queryForObject("select count(*) from medicao where monitor_id = ?", Integer.class, monitorId))
+                .as("a medicao e o dado primario e nao se perde").isEqualTo(3);
+        assertThat(jdbc.queryForObject("select count(*) from monitor_episodio_latencia", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from notificacao", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from incidente", Integer.class)).isZero();
+
+        detentor.join(SEGURA_LOCK.plusSeconds(5).toMillis());
+        assertThat(detentor.isAlive()).isFalse();
+
+        medicaoService.criar(new CreateMedicaoRequest(monitorId, StatusMedicao.SUCESSO, 400, null,
+                agora.plusSeconds(10)));
+        assertThat(jdbc.queryForObject(
+                "select count(*) from monitor_episodio_latencia where encerrado_em is null", Integer.class))
+                .as("a proxima medicao degradada reavalia a cauda e abre o episodio").isEqualTo(1);
     }
 
     private long montarEquipamento() {
