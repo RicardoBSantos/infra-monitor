@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { IncidentStatus } from '../../core/models/api-enums';
+import { IncidentClosureReason, IncidentStatus } from '../../core/models/api-enums';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { IncidenteUnificadoListComponent } from './incidente-unificado-list.component';
 
@@ -12,7 +12,7 @@ import { DashboardIncidenteResponse, IncidentKind, IncidentSeverity } from '../.
 const linhaIncidente: DashboardIncidenteResponse = {
   tipo: IncidentKind.Incident, severidade: IncidentSeverity.High,  id: 1, status: IncidentStatus.Open,
   iniciadoEm: '2026-09-01T08:00:00Z', encerradoEm: null, motivo: 'Falhas consecutivas', limiarMs: null,
-  reconhecidoEm: null, reconhecidoPorNome: null,
+  reconhecidoEm: null, reconhecidoPorNome: null, motivoEncerramento: null,
   monitorId: 1, monitorNome: 'ICMP CORE', equipamentoId: 31, equipamentoNome: 'SW-CORE', unidadeId: 7, unidadeNome: 'Centro',
   notificacaoCanal: 'TELEGRAM', notificacaoStatus: 'ENVIADA', notificacaoEnviadoEm: '2026-09-01T08:00:05Z',
 };
@@ -86,6 +86,24 @@ describe('IncidenteUnificadoListComponent', () => {
     expect(barras[0].getAttribute('aria-label')).toBe('Crítico');
     expect(barras[1].classList.contains('severidade--alta')).toBe(false);
     expect(barras[1].getAttribute('aria-label')).toBe('Alerta');
+  });
+
+  /**
+   * A marca de manutenção depende do backend projetar `motivo_encerramento` na leitura
+   * unificada — o read-model já vem tipado como campo obrigatório (podendo ser nulo), e
+   * `NULL` é o caso comum: incidente fechado antes da V19 nunca foi classificado, e a
+   * marca simplesmente não aparece, sem virar erro.
+   */
+  it('mostra a marca de manutenção só na linha encerrada por motivoEncerramento MANUTENCAO', () => {
+    responderCargaInicial([
+      { ...linhaIncidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T09:00:00Z',
+        motivoEncerramento: IncidentClosureReason.Maintenance },
+      linhaLatencia,
+    ]);
+
+    const linhas = Array.from(fixture.nativeElement.querySelectorAll('tbody tr')) as HTMLElement[];
+    expect(linhas[0].querySelector('.marca-manutencao')).not.toBeNull();
+    expect(linhas[1].querySelector('.marca-manutencao')).toBeNull();
   });
 
   /**

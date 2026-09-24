@@ -8,6 +8,7 @@ import br.com.inframonitor.incidente.dto.CreateIncidenteRequest;
 import br.com.inframonitor.incidente.dto.IncidenteResponse;
 import br.com.inframonitor.incidente.dto.MonitorIncidenteResponse;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -63,21 +65,36 @@ public class IncidenteService {
     }
 
     /**
-     * Entrada de dominio usada pelo Incident Engine. A verificacao de incidente
-     * aberto e feita pelo processor; o indice parcial continua sendo a garantia
-     * final em caso de corrida concorrente.
+     * Entrada de dominio usada pelo Incident Engine.
+     *
+     * <p>Abertura condicional via INSERT ... SELECT ... WHERE: o WHERE carrega o
+     * predicado inteiro de "este monitor deveria estar sendo observado agora"
+     * (monitor ativo, equipamento ativo, equipamento fora de manutencao), e o
+     * ON CONFLICT DO NOTHING absorve o indice parcial uq_incidente_monitor_aberto
+     * contra a corrida concorrente. Ver IncidenteRepository.inserirSeElegivel.
+     *
+     * <p>Retorno vazio significa que nada foi inserido — manutencao ganhou a
+     * corrida, monitor/equipamento saiu do ar, ou ja havia incidente aberto — e,
+     * principalmente, que NENHUMA notificacao nasce. O caminho antigo chamava
+     * notificacaoService logo depois do save, sem olhar se algo tinha sido
+     * inserido; e esse o defeito que a corrida com a manutencao expunha.
      */
     @Transactional
-    public Incidente abrirAutomaticamente(Monitor monitor, Instant iniciadoEm, int falhasConsecutivas) {
+    public Optional<Incidente> abrirAutomaticamente(Monitor monitor, Instant iniciadoEm, int falhasConsecutivas) {
         String motivo = "Indisponibilidade detectada automaticamente apos " + falhasConsecutivas
                 + " falhas consecutivas.";
-        try {
-            Incidente incidente = incidenteRepository.saveAndFlush(new Incidente(monitor, iniciadoEm, motivo, null));
-            notificacaoService.criarParaIncidenteAberto(incidente);
-            return incidente;
-        } catch (DataIntegrityViolationException ex) {
-            throw new ConflitoException(MENSAGEM_INCIDENTE_ABERTO);
+        if (incidenteRepository.inserirSeElegivel(monitor.getId(), iniciadoEm, motivo, Instant.now()) == 0) {
+            // Manutencao ganhou a corrida, monitor/equipamento saiu do ar, ou ja havia
+            // incidente aberto. Sem insercao, sem notificacao.
+            return Optional.empty();
         }
+        Incidente aberto = incidenteRepository
+                .findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(monitor.getId(), StatusIncidente.EM_ABERTO)
+                .orElseThrow(() -> new IllegalStateException(
+                        "insercao reportou 1 linha mas nenhum incidente aberto foi encontrado para o monitor "
+                                + monitor.getId()));
+        notificacaoService.criarParaIncidenteAberto(aberto);
+        return Optional.of(aberto);
     }
 
     @Transactional
@@ -89,9 +106,17 @@ public class IncidenteService {
             throw new IllegalArgumentException("encerradoEm deve ser maior ou igual a iniciadoEm");
         }
         // Sem autor: quem fechou foi o motor. E o unico caminho que deixa fechado_por nulo.
-        incidente.fechar(encerradoEm, "Recuperacao detectada automaticamente apos " + sucessosConsecutivos
-                + " sucessos consecutivos.", null);
-        Incidente fechado = incidenteRepository.saveAndFlush(incidente);
+        // CAS: se a manutencao, um humano ou outro ciclo fechou entre a leitura do
+        // processor e aqui, nao ha o que fechar nem o que notificar.
+        String observacao = "Recuperacao detectada automaticamente apos " + sucessosConsecutivos
+                + " sucessos consecutivos.";
+        if (incidenteRepository.fecharAutomaticamenteSeEmAberto(incidente.getId(), encerradoEm, observacao,
+                Instant.now()) == 0) {
+            return obterIncidente(incidente.getId());
+        }
+        // O bulk update nao atualiza a instancia carregada; releitura antes de notificar,
+        // senao a mensagem sai com encerradoEm nulo.
+        Incidente fechado = obterIncidente(incidente.getId());
         notificacaoService.criarParaIncidenteFechado(fechado);
         return fechado;
     }
@@ -138,7 +163,8 @@ public class IncidenteService {
         if (requisicao.encerradoEm().isBefore(incidente.getIniciadoEm())) {
             throw new IllegalArgumentException("encerradoEm deve ser maior ou igual a iniciadoEm");
         }
-        incidente.fechar(requisicao.encerradoEm(), normalizar(requisicao.observacao()), autor(usuarioId));
+        incidente.fechar(requisicao.encerradoEm(), normalizar(requisicao.observacao()), autor(usuarioId),
+                MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
         Incidente fechado = incidenteRepository.saveAndFlush(incidente);
         notificacaoService.criarParaIncidenteFechado(fechado);
         return paraResposta(fechado);
@@ -206,6 +232,6 @@ public class IncidenteService {
                 new MonitorIncidenteResponse(monitor.getId(), monitor.getNome(), monitor.getTipo(),
                         equipamento.getId(), equipamento.getNome(), equipamento.getUnidade().getId(),
                         equipamento.getUnidade().getNome()),
-                incidente.getCreatedAt(), incidente.getUpdatedAt());
+                incidente.getCreatedAt(), incidente.getUpdatedAt(), incidente.getMotivoEncerramento());
     }
 }

@@ -32,7 +32,7 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long>, JpaSpec
             from Monitor m
             join m.equipamento e
             left join Medicao md on md.monitor = m
-            where m.ativo = true and e.ativo = true
+            where m.ativo = true and e.ativo = true and e.emManutencao = false
             group by m.id, m.tipo, m.intervaloSegundos, m.timeoutMs, e.ip
             """)
     java.util.List<MonitorCandidate> findActiveExecutionCandidates();

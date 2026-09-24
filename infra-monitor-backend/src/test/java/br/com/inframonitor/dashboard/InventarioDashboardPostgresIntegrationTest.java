@@ -79,6 +79,7 @@ class InventarioDashboardPostgresIntegrationTest {
     @Autowired private DashboardService dashboard;
 
     private final List<Long> unidadeIds = new ArrayList<>();
+    private Long operadorId;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -91,8 +92,11 @@ class InventarioDashboardPostgresIntegrationTest {
     @BeforeEach
     void montarInventario() {
         jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, "
-                + "equipamento, tipo_equipamento, unidade restart identity cascade");
+                + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
         unidadeIds.clear();
+        operadorId = jdbc.queryForObject("insert into usuarios (nome, email, senha_hash, papel, "
+                + "troca_senha_obrigatoria) values ('Operador', 'operador@teste.local', 'hash', "
+                + "'OPERADOR', false) returning id", Long.class);
         long tipo = tipos.criar(new CreateTipoEquipamentoRequest("Switch", null)).id();
 
         for (int u = 0; u < UNIDADES; u++) {
@@ -124,7 +128,7 @@ class InventarioDashboardPostgresIntegrationTest {
             case 4 -> { }                                                                // SEM_MONITORAMENTO
             case 5 -> {                                                                  // EM_MANUTENCAO
                 medicao(monitor(equipamentoId), 12);
-                equipamentos.entrarEmManutencao(equipamentoId);
+                equipamentos.entrarEmManutencao(equipamentoId, operadorId);
             }
             case 6 -> {                                                                  // DESABILITADO
                 medicao(monitor(equipamentoId), 12);

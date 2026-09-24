@@ -61,6 +61,10 @@ public class Incidente {
     @JoinColumn(name = "fechado_por")
     private Usuario fechadoPor;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motivo_encerramento", length = 24)
+    private MotivoEncerramentoIncidente motivoEncerramento;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -92,12 +96,17 @@ public class Incidente {
 
     /**
      * Fecha a partir de ABERTO ou de RECONHECIDO: os dois sao estados em aberto.
-     * {@code fechadoPor} nulo e o fechamento do motor; preenchido, o do operador.
+     * {@code fechadoPor} nulo e o fechamento do motor; preenchido, o do operador ou
+     * o da entrada em manutencao. Com tres caminhos de fechamento a ausencia de autor
+     * deixou de ser informativa sozinha: dai {@code motivoEncerramento} obrigatorio
+     * na assinatura, e nao opcional.
      */
-    public void fechar(Instant encerradoEm, String observacao, Usuario fechadoPor) {
+    public void fechar(Instant encerradoEm, String observacao, Usuario fechadoPor,
+                       MotivoEncerramentoIncidente motivoEncerramento) {
         this.status = StatusIncidente.FECHADO;
         this.encerradoEm = encerradoEm;
         this.fechadoPor = fechadoPor;
+        this.motivoEncerramento = motivoEncerramento;
         if (observacao != null) {
             this.observacao = observacao;
         }
@@ -125,6 +134,7 @@ public class Incidente {
     public Instant getReconhecidoEm() { return reconhecidoEm; }
     public Usuario getReconhecidoPor() { return reconhecidoPor; }
     public Usuario getFechadoPor() { return fechadoPor; }
+    public MotivoEncerramentoIncidente getMotivoEncerramento() { return motivoEncerramento; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

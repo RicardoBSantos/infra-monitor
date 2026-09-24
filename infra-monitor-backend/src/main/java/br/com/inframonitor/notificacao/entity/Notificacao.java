@@ -44,7 +44,7 @@ public class Notificacao {
     private CanalNotificacao canal;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_evento", nullable = false, length = 30)
+    @Column(name = "tipo_evento", nullable = false, length = 40)
     private TipoEventoNotificacao tipoEvento;
 
     @Enumerated(EnumType.STRING)
@@ -140,5 +140,13 @@ public class Notificacao {
         tentativas++;
         erro = mensagemErro;
         proximaTentativaEm = null;
+    }
+
+    /** CANCELADA e terminal: nenhuma transicao sai dela. So PENDENTE entra aqui. */
+    public void cancelar() {
+        if (status != StatusNotificacao.PENDENTE) {
+            throw new IllegalStateException("So notificacao PENDENTE pode ser cancelada; estava " + status);
+        }
+        status = StatusNotificacao.CANCELADA;
     }
 }

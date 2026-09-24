@@ -55,6 +55,40 @@ public class NotificacaoService {
     }
 
     /**
+     * Matriz por estado da notificacao de ABERTURA, nao por tipo de evento:
+     * PENDENTE  -> cancela, nenhum aviso (a mensagem nunca saiu)
+     * ENVIANDO  -> intocada, cria aviso (tratamos como "vai sair")
+     * ENVIADA   -> intocada, cria aviso
+     * FALHA     -> intocada, nenhum aviso (nao chegou ao grupo)
+     * inexistente -> nada
+     */
+    /**
+     * `agora` vem de {@code EquipamentoService.entrarEmManutencao}, nao de um novo
+     * {@code Instant.now()} aqui: a transacao inteira se define como "um instante so", e
+     * `incidente.encerrado_em`/`episodio.encerrado_em` ja foram gravados com esse mesmo
+     * `agora` pelos bulk updates que rodam antes desta chamada. Um relogio proprio deixaria
+     * `notificacao.updated_at` alguns milissegundos depois do encerramento dentro da mesma
+     * transacao.
+     */
+    @Transactional
+    public void tratarEncerramentoPorManutencao(Incidente incidente, Instant agora) {
+        boolean despachada = notificacaoRepository.existeAberturaJaDespachada(incidente.getId());
+        notificacaoRepository.cancelarPendentesDoIncidente(incidente.getId(), agora);
+        if (despachada) {
+            criarPendente(incidente, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO, agora);
+        }
+    }
+
+    @Transactional
+    public void tratarEncerramentoPorManutencao(MonitorEpisodioLatencia episodio, Instant agora) {
+        boolean despachada = notificacaoRepository.existeAberturaJaDespachadaDoEpisodio(episodio.getId());
+        notificacaoRepository.cancelarPendentesDoEpisodio(episodio.getId(), agora);
+        if (despachada) {
+            criarPendente(episodio, TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO, agora);
+        }
+    }
+
+    /**
      * A idempotencia mora no ON CONFLICT DO NOTHING de
      * {@link NotificacaoRepository#inserirPendenteSeAusente}, nao aqui. O par
      * SELECT-de-verificacao + catch de DataIntegrityViolationException que existia antes
@@ -65,15 +99,23 @@ public class NotificacaoService {
      * NotificacaoConcorrenciaPostgresIntegrationTest.
      */
     private void criarPendente(Incidente incidente, TipoEventoNotificacao tipoEvento) {
+        criarPendente(incidente, tipoEvento, Instant.now());
+    }
+
+    private void criarPendente(Incidente incidente, TipoEventoNotificacao tipoEvento, Instant agora) {
         CanalNotificacao canal = CanalNotificacao.TELEGRAM;
         notificacaoRepository.inserirPendenteSeAusente(incidente.getId(), null, canal.name(), tipoEvento.name(),
-                messageBuilder.construir(incidente, tipoEvento), Instant.now());
+                messageBuilder.construir(incidente, tipoEvento), agora);
     }
 
     private void criarPendente(MonitorEpisodioLatencia episodio, TipoEventoNotificacao tipoEvento) {
+        criarPendente(episodio, tipoEvento, Instant.now());
+    }
+
+    private void criarPendente(MonitorEpisodioLatencia episodio, TipoEventoNotificacao tipoEvento, Instant agora) {
         CanalNotificacao canal = CanalNotificacao.TELEGRAM;
         notificacaoRepository.inserirPendenteSeAusente(null, episodio.getId(), canal.name(), tipoEvento.name(),
-                messageBuilder.construirParaEpisodio(episodio, tipoEvento), Instant.now());
+                messageBuilder.construirParaEpisodio(episodio, tipoEvento), agora);
     }
 
     public NotificacaoResponse buscarPorId(Long id) {

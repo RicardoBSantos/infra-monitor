@@ -14,6 +14,8 @@ const ROTULOS_EVENTO: Record<NotificationEventType, string> = {
   [NotificationEventType.IncidentClosed]: 'Incidente fechado',
   [NotificationEventType.HighLatency]: 'Latência alta',
   [NotificationEventType.LatencyNormalized]: 'Latência normalizada',
+  [NotificationEventType.IncidentClosedByMaintenance]: 'Incidente encerrado por manutenção',
+  [NotificationEventType.LatencyClosedByMaintenance]: 'Latência encerrada por manutenção',
 };
 type State = 'loading' | 'success' | 'empty' | 'error'; type Sort = 'createdAt,desc' | 'createdAt,asc' | 'enviadoEm,desc' | 'status,asc' | 'tentativas,desc' | 'id,desc';
 @Component({ selector: 'app-notificacao-list', imports: [DatePipe, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './notificacao-list.component.html', styleUrl: './notificacao-list.component.scss' })

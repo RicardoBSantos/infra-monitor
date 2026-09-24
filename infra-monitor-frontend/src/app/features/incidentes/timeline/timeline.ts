@@ -1,4 +1,4 @@
-import { MeasurementStatus, NotificationEventType } from '../../../core/models/api-enums';
+import { IncidentClosureReason, MeasurementStatus, NotificationEventType } from '../../../core/models/api-enums';
 import { IncidentKind } from '../../../core/models/dashboard-incidente';
 import { NotificacaoResponse } from '../../../core/models/notificacao';
 import { HistoricoMedicaoResponse } from '../../../core/models/relatorio';
@@ -40,6 +40,8 @@ export interface OcorrenciaTimeline {
   ciclosParaEpisodio: number | null;
   reconhecidoEm: string | null;
   reconhecidoPorNome: string | null;
+  /** Só o incidente tem. Ausente é fechamento antes da V19, ou episódio de latência. */
+  motivoEncerramento: IncidentClosureReason | null;
 }
 
 /** Vem de `GET /monitores/{id}`; nulo quando a carga do monitor falhou. */
@@ -140,15 +142,25 @@ function eventosDeIncidente(ocorrencia: OcorrenciaTimeline, medicoes: HistoricoM
 
   if (ocorrencia.encerradoEm) {
     eventos.push(...eventosDeRecuperacao(ocorrencia.encerradoEm, medicoes, limiares.sucessosParaRecovery));
+    // O rotulo fixo "Incidente fechado" com o detalhe de N respostas consecutivas
+    // e falso para um fechamento por manutencao: nao houve sequencia de recuperacao.
+    // Os eventos de recuperacao ja somem sozinhos (sequenciaDeFechamento procura a
+    // medicao cujo executadoEm e exatamente encerradoEm, e o fechamento por
+    // manutencao usa o instante do clique), mas esta frase continuava sendo impressa.
+    const fechamentoPorManutencao = ocorrencia.motivoEncerramento === IncidentClosureReason.Maintenance;
+    const titulo = fechamentoPorManutencao ? 'Encerrado por manutenção' : 'Incidente fechado';
+    const detalhe = fechamentoPorManutencao
+      ? 'O equipamento entrou em manutenção e saiu da observação. Nenhuma recuperação foi medida.'
+      : limiares.sucessosParaRecovery !== null
+        ? `${limiares.sucessosParaRecovery} respostas consecutivas restabeleceram o monitor`
+        : null;
     eventos.push({
       chave: 'fechamento',
       instante: ocorrencia.encerradoEm,
       tipo: 'fechamento',
       severidade: 'ok',
-      rotulo: 'Incidente fechado',
-      detalhe: limiares.sucessosParaRecovery !== null
-        ? `${limiares.sucessosParaRecovery} respostas consecutivas restabeleceram o monitor`
-        : null,
+      rotulo: titulo,
+      detalhe,
     });
   }
   return eventos;
@@ -316,6 +328,8 @@ export function rotuloDaNotificacao(tipo: NotificationEventType): string {
     case NotificationEventType.IncidentClosed: return 'Notificação: incidente fechado';
     case NotificationEventType.HighLatency: return 'Notificação: latência alta';
     case NotificationEventType.LatencyNormalized: return 'Notificação: latência normalizada';
+    case NotificationEventType.IncidentClosedByMaintenance: return 'Notificação: incidente encerrado por manutenção';
+    case NotificationEventType.LatencyClosedByMaintenance: return 'Notificação: latência encerrada por manutenção';
     default: return `Notificação: ${tipo}`;
   }
 }

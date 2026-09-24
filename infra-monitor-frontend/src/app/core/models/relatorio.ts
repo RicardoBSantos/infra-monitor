@@ -1,5 +1,6 @@
 import {
   AnalyticState,
+  IncidentClosureReason,
   IncidentStatus,
   MeasurementStatus,
   MonitoringWindowQuality,
@@ -154,6 +155,8 @@ export interface HistoricoIncidenteResponse {
   duracaoSegundosNoPeriodo: number;
   motivo: string;
   observacao: string | null;
+  /** Ausente na maioria dos incidentes fechados: só existe para quem encerrou depois da V19. */
+  motivoEncerramento: IncidentClosureReason | null;
 }
 
 export interface HistoricoMedicaoResponse {

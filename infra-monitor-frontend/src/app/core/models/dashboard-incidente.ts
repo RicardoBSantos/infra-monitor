@@ -1,4 +1,4 @@
-import { IncidentStatus } from './api-enums';
+import { IncidentClosureReason, IncidentStatus } from './api-enums';
 import { PageQuery } from './page-query';
 
 /**
@@ -32,6 +32,12 @@ export interface DashboardIncidenteResponse {
   limiarMs: number | null;
   reconhecidoEm: string | null;
   reconhecidoPorNome: string | null;
+  /**
+   * Só em linhas de incidente; episódio de latência tem coluna própria no banco mas
+   * este read-model não a projeta. Nulo é o caso comum, não exceção: a maior parte do
+   * histórico foi fechada antes da V19 e nunca foi classificada.
+   */
+  motivoEncerramento: IncidentClosureReason | null;
   monitorId: number; monitorNome: string;
   equipamentoId: number; equipamentoNome: string;
   unidadeId: number; unidadeNome: string;

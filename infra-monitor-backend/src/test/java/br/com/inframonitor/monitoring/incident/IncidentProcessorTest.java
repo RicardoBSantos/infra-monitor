@@ -10,6 +10,10 @@ import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
+import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
+import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
+import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
 import org.junit.jupiter.api.Test;
@@ -39,6 +43,8 @@ class IncidentProcessorTest {
     @Mock private MedicaoRepository medicaoRepository;
     @Mock private IncidenteRepository incidenteRepository;
     @Mock private IncidenteService incidenteService;
+    @Mock private JanelaMonitoramentoRepository janelaRepository;
+    @Mock private LimiteDeEsperaPorLock limiteDeEsperaPorLock;
     @InjectMocks private IncidentProcessor processor;
 
     @Test void abreSomenteNaTerceiraFalhaConsecutivaComInicioCorreto() {
@@ -49,7 +55,8 @@ class IncidentProcessorTest {
         prepararAtual(terceira);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(terceira, segunda, primeira));
-        when(incidenteService.abrirAutomaticamente(any(), any(), eq(3))).thenReturn(incidente(monitor));
+        when(janelaRepository.aberta(1L)).thenReturn(Optional.of(janela(monitor, T0.minusSeconds(3600))));
+        when(incidenteService.abrirAutomaticamente(any(), any(), eq(3))).thenReturn(Optional.of(incidente(monitor)));
 
         processor.process(terceira);
 
@@ -76,7 +83,8 @@ class IncidentProcessorTest {
         Medicao falha = medicao(monitor, 1L, StatusMedicao.FALHA, T0);
         prepararAtual(falha);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class))).thenReturn(List.of(falha));
-        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(incidente(monitor));
+        when(janelaRepository.aberta(1L)).thenReturn(Optional.of(janela(monitor, T0.minusSeconds(3600))));
+        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(Optional.of(incidente(monitor)));
 
         processor.process(falha);
 
@@ -142,7 +150,8 @@ class IncidentProcessorTest {
 
         when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.empty());
-        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(incidente(monitor));
+        when(janelaRepository.aberta(1L)).thenReturn(Optional.of(janela(monitor, T0.minusSeconds(3600))));
+        when(incidenteService.abrirAutomaticamente(any(), any(), eq(1))).thenReturn(Optional.of(incidente(monitor)));
         processor.process(falha);
         verify(incidenteService).abrirAutomaticamente(monitor, falha.getExecutadoEm(), 1);
     }
@@ -166,5 +175,8 @@ class IncidentProcessorTest {
         Incidente incidente = new Incidente(monitor, T0, "motivo", null);
         ReflectionTestUtils.setField(incidente, "id", 10L);
         return incidente;
+    }
+    private JanelaMonitoramento janela(Monitor monitor, Instant inicio) {
+        return new JanelaMonitoramento(monitor, inicio, OrigemJanelaMonitoramento.PRECISA);
     }
 }

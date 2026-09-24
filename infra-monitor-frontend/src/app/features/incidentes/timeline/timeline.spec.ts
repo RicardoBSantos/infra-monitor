@@ -1,4 +1,4 @@
-import { MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../../core/models/api-enums';
+import { IncidentClosureReason, MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../../core/models/api-enums';
 import { IncidentKind } from '../../../core/models/dashboard-incidente';
 import { NotificacaoResponse } from '../../../core/models/notificacao';
 import { HistoricoMedicaoResponse } from '../../../core/models/relatorio';
@@ -38,6 +38,7 @@ const entradaDeIncidente: EntradaTimeline = {
     limiarMs: null, ciclosParaEpisodio: null,
     reconhecidoEm: '2026-09-01T08:01:50Z',
     reconhecidoPorNome: 'Ricardo',
+    motivoEncerramento: IncidentClosureReason.AutomaticRecovery,
   },
   medicoes: medicoesDoIncidente,
   limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 2 },
@@ -115,6 +116,7 @@ describe('derivarTimeline', () => {
       encerradoEm: '2026-09-01T09:02:00Z',
       motivo: null, limiarMs: 250, ciclosParaEpisodio: 2,
       reconhecidoEm: null, reconhecidoPorNome: null,
+      motivoEncerramento: null,
     },
     medicoes: medicoesDoEpisodio,
     limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 2 },
@@ -169,5 +171,26 @@ describe('derivarTimeline', () => {
     });
     expect(eventos.some(e => e.tipo === 'fechamento')).toBe(false);
     expect(eventos.some(e => e.tipo === 'recuperacao')).toBe(false);
+  });
+
+  it('não afirma recuperação quando o incidente foi encerrado por manutenção', () => {
+    const eventos = derivarTimeline({
+      ...entradaDeIncidente,
+      ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: IncidentClosureReason.Maintenance },
+    });
+    const fim = eventos.at(-1)!;
+    expect(fim.rotulo).toBe('Encerrado por manutenção');
+    // Hoje a timeline imprime "N respostas consecutivas restabeleceram o monitor"
+    // com rotulo fixo. Para um fechamento por manutencao isso e falso: nao houve
+    // sequencia de recuperacao nenhuma.
+    expect(fim.detalhe).not.toContain('restabeleceram');
+  });
+
+  it('mantém o texto de recuperação quando o motor fechou', () => {
+    const eventos = derivarTimeline({
+      ...entradaDeIncidente,
+      ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: IncidentClosureReason.AutomaticRecovery },
+    });
+    expect(eventos.at(-1)!.detalhe).toContain('restabeleceram o monitor');
   });
 });

@@ -234,7 +234,12 @@
           @for (incidente of incidentes(); track incidente.id) {
             <li>
               <a class="mono" [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a>
-              <span class="incidentes-recentes__evento">{{ incidente.motivo ?? 'Indisponibilidade consolidada' }}</span>
+              <span class="incidentes-recentes__evento">
+                {{ incidente.motivo ?? 'Indisponibilidade consolidada' }}
+                @if (rotuloEncerramento(incidente); as encerramento) {
+                  <span class="apagado"> · {{ encerramento }}</span>
+                }
+              </span>
               <app-status-badge [status]="incidente.status" />
               <span class="mono apagado">{{ relativo(incidente.iniciadoEm) }}</span>
             </li>
