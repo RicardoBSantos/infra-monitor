@@ -42,49 +42,77 @@ inclusive o que o motor fechou.
 2. `EquipamentoService.entrarEmManutencao`: a releitura só notifica incidentes com
    `motivoEncerramento == MANUTENCAO`, isto é, os que **esta** manutenção fechou.
 
-### Distribuição (30 repetições por teste, `ManutencaoPostgresIntegrationTest`)
+### Prova
 
-Saídas completas em `.superpowers/sdd/2026-09-24-fechamento-dois-branches/`: `1a-antes.txt`,
-`1a-reversao-so-cas.txt`, `1a-depois.txt`, `1a-suite.txt`. A rodada intermediária não ficou em
-arquivo (o `1a-depois.txt` foi sobrescrito); a contagem dela foi colada do console.
+Em `ManutencaoPostgresIntegrationTest`, quatro testes:
 
-**Antes — código antigo (`saveAndFlush`, sem filtro na manutenção):** `Tests run: 94, Failures: 30`
+- **Duas corridas** (`@RepeatedTest(30)`, `CyclicBarrier`): manutenção × fechamento automático e
+  reconhecer × fechamento automático. A instância que o motor fecha é carregada antes da barreira, como
+  no `IncidentProcessor`. Depois da barreira o motor dorme um atraso aleatório de 0..12 ms (manutenção)
+  ou 0..4 ms (reconhecer). Sem o atraso, o `UPDATE` único do motor commitava sempre primeiro e só um
+  desfecho legítimo aparecia (30 R e 30 F). Os limites foram calibrados até os dois desfechos
+  aparecerem.
+- **Duas ordens fixas, sem corrida:** motor carrega → manutenção roda inteira (ou `reconhecer` responde
+  sucesso) → motor fecha com a instância velha. É a intercalação que discrimina o CAS de forma
+  determinística: `fecharAutomaticamenteComInstanciaVelhaNaoSobrescreveFechamentoPorManutencao` exige
+  MANUTENCAO/operador, uma `INCIDENTE_ENCERRADO_MANUTENCAO` e nenhuma `INCIDENTE_FECHADO`;
+  `fecharAutomaticamenteComInstanciaVelhaNaoApagaReconhecimento` exige `reconhecido_em`/`reconhecido_por`
+  preenchidos.
+
+As saídas completas ficaram só na máquina local de quem executou (diretório de trabalho fora do git).
+As contagens abaixo foram coladas delas.
+
+### Distribuição
+
+**Código antigo (`saveAndFlush`, sem filtro na manutenção), corridas ainda sem atraso:**
+`Tests run: 94, Failures: 30`
 
 ```
      30 [corrida-fechamento-manutencao] desfecho=ILEGITIMO motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=1 fechadas=1
      30 [corrida-fechamento-reconhecer] desfecho=F-fechamento-ganhou recusado=true reconhecidoPor=null
 ```
 
-**Intermediário — só o CAS, sem o filtro da manutenção:** 30/30 continuou `ILEGITIMO` com a mesma
-forma (`motivo=RECUPERACAO_AUTOMATICA ... encerradasPorManutencao=1 fechadas=1`) — é o segundo
-defeito acima, e também a prova de reversão do filtro.
+**Só o CAS, sem o filtro da manutenção, corridas sem atraso:** as 30 da manutenção continuaram
+`ILEGITIMO`, com a mesma forma (`motivo=RECUPERACAO_AUTOMATICA ... encerradasPorManutencao=1 fechadas=1`).
+É o segundo defeito acima e também a prova de reversão do filtro.
 
-**Reversão só do CAS — `saveAndFlush` antigo restaurado, filtro mantido:** `Tests run: 94, Failures: 1`
-
-```
-      1 [corrida-fechamento-manutencao] desfecho=ILEGITIMO motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=1 fechadas=1
-     29 [corrida-fechamento-manutencao] desfecho=R-recuperacao-ganhou motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=0 fechadas=1
-     30 [corrida-fechamento-reconhecer] desfecho=F-fechamento-ganhou recusado=true reconhecidoPor=null
-```
-
-Aqui o ilegítimo é o sobrescrito original: a manutenção fechou e notificou, o motor gravou por cima.
-
-**Depois — CAS + filtro:** classe verde
+**Reversão só do CAS (`saveAndFlush` antigo restaurado, filtro mantido), versão final dos testes:**
+`Tests run: 96, Failures: 41`
 
 ```
-     30 [corrida-fechamento-manutencao] desfecho=R-recuperacao-ganhou motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=0 fechadas=1
-     30 [corrida-fechamento-reconhecer] desfecho=F-fechamento-ganhou recusado=true reconhecidoPor=null
+     18 [corrida-fechamento-manutencao] desfecho=ILEGITIMO motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=1 fechadas=1
+     12 [corrida-fechamento-manutencao] desfecho=R-recuperacao-ganhou motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=0 fechadas=1
+      9 [corrida-fechamento-reconhecer] desfecho=F-fechamento-ganhou recusado=true reconhecidoPor=null
+     21 [corrida-fechamento-reconhecer] desfecho=ILEGITIMO recusado=false reconhecidoPor=null
 ```
 
-Zero ilegítimo em 30/30 nos dois testes.
+Os dois testes de ordem fixa também falharam:
+
+```
+fecharAutomaticamenteComInstanciaVelhaNaoApagaReconhecimento
+  {"reconhecido_em"=null, "reconhecido_por"=null, "status"="FECHADO"}
+fecharAutomaticamenteComInstanciaVelhaNaoSobrescreveFechamentoPorManutencao
+  {"fechado_por"=null, "motivo_encerramento"="RECUPERACAO_AUTOMATICA", "status"="FECHADO"}
+```
+
+41 = 18 + 21 + 2. Sem o CAS, a manutenção fecha e notifica e o motor grava por cima. `reconhecer`
+responde sucesso e o motor apaga o reconhecimento.
+
+**Depois (CAS + filtro), versão final dos testes:** `Tests run: 96, Failures: 0`
+
+```
+     23 [corrida-fechamento-manutencao] desfecho=M-manutencao-ganhou motivo=MANUTENCAO fechadoPor=1 encerradasPorManutencao=1 fechadas=0
+      7 [corrida-fechamento-manutencao] desfecho=R-recuperacao-ganhou motivo=RECUPERACAO_AUTOMATICA fechadoPor=null encerradasPorManutencao=0 fechadas=1
+     14 [corrida-fechamento-reconhecer] desfecho=F-fechamento-ganhou recusado=true reconhecidoPor=null
+     16 [corrida-fechamento-reconhecer] desfecho=RF-reconhecido-e-fechado recusado=false reconhecidoPor=1
+```
+
+Zero ilegítimo em 30/30 nas duas corridas. Os dois desfechos legítimos aparecem em cada uma. Durante a
+calibração, com o código corrigido: 12/4 ms deu 15 M / 15 R e 9 F / 21 RF; 25/8 ms deu 24 M / 6 R e
+5 F / 25 RF. Com 40 ms nas duas corridas, deu 24 M / 6 R e 30 RF / 0 F.
 
 ### Limites da prova
 
-- **O teste de reconhecer não discriminou.** No código antigo deu 0 ilegítimos em 30 — sempre
-  `F-fechamento-ganhou` (o motor, com a instância já carregada, fecha antes de `reconhecer` chegar ao
-  CAS). Ele fica como guarda de regressão, mas não prova que o CAS preserva `reconhecido_*` sob corrida;
-  essa propriedade está coberta só pela construção do `UPDATE` (não toca `reconhecido_*`) e pelo teste
-  de unidade `fechaAutomaticamenteAPartirDeReconhecido`.
-- **Intercalação enviesada no teste de manutenção.** Com as duas correções, as 30 caíram em (R); o
-  desfecho (M) não apareceu nesta rodada. A reversão só do CAS pegou o sobrescrito em 1/30 — o
-  discriminador do CAS é fraco nesta bancada; o do filtro é 30/30.
+- A proporção entre os desfechos depende da máquina, porque o atraso foi calibrado contra a latência
+  local. O que discrimina o CAS de forma determinística são os dois testes de ordem fixa. As corridas
+  ficam como guarda contra intercalações que a ordem fixa não cobre.

@@ -30,7 +30,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,6 +65,13 @@ class ManutencaoPostgresIntegrationTest {
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
     private static final Instant T0 = Instant.parse("2026-09-01T08:00:00Z");
     private static final Duration LIMITE = Duration.ofSeconds(10);
+    // Atraso aleatorio (0..N ms) do motor depois da barreira nas corridas de fechamento.
+    // Sem ele o UPDATE unico do motor commita sempre antes de a manutencao (ou reconhecer)
+    // chegar a escrever, e so um desfecho legitimo aparece; N calibrado pela latencia
+    // de cada caminho concorrente, para que os dois desfechos legitimos ocorram.
+    private static final long ATRASO_MAX_MOTOR_MANUTENCAO_MS = 12;
+    // reconhecer e um UPDATE so, bem mais curto que a manutencao: janela menor.
+    private static final long ATRASO_MAX_MOTOR_RECONHECER_MS = 4;
 
     static boolean dockerDisponivel() {
         return DockerClientFactory.instance().isDockerAvailable();
@@ -322,6 +331,7 @@ class ManutencaoPostgresIntegrationTest {
         Thread recuperacao = new Thread(() -> {
             try {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                Thread.sleep(ThreadLocalRandom.current().nextLong(ATRASO_MAX_MOTOR_MANUTENCAO_MS + 1));
                 incidenteService.fecharAutomaticamente(carregadoPeloMotor, T0.plusSeconds(300), 2);
             } catch (Throwable erro) {
                 falhas.add(erro);
@@ -377,7 +387,7 @@ class ManutencaoPostgresIntegrationTest {
 
         CyclicBarrier partida = new CyclicBarrier(2);
         List<Throwable> falhas = new CopyOnWriteArrayList<>();
-        java.util.concurrent.atomic.AtomicBoolean reconhecimentoRecusado = new java.util.concurrent.atomic.AtomicBoolean();
+        AtomicBoolean reconhecimentoRecusado = new AtomicBoolean();
         Thread reconhecimento = new Thread(() -> {
             try {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
@@ -391,6 +401,7 @@ class ManutencaoPostgresIntegrationTest {
         Thread recuperacao = new Thread(() -> {
             try {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                Thread.sleep(ThreadLocalRandom.current().nextLong(ATRASO_MAX_MOTOR_RECONHECER_MS + 1));
                 incidenteService.fecharAutomaticamente(carregadoPeloMotor, T0.plusSeconds(300), 2);
             } catch (Throwable erro) {
                 falhas.add(erro);
@@ -416,6 +427,60 @@ class ManutencaoPostgresIntegrationTest {
         assertThat(fechamentoGanhou || reconhecerGanhou)
                 .as("reconhecer que respondeu sucesso nao pode ter o reconhecimento apagado pelo motor")
                 .isTrue();
+    }
+
+    /**
+     * Ordem fixa, sem corrida: o motor carrega o incidente, a manutencao roda inteira e
+     * so entao o motor fecha com a instancia velha. E a intercalacao que a corrida quase
+     * nunca produz, e a que discrimina o CAS: sem ele, o UPDATE de todas as colunas
+     * sobrescreve MANUTENCAO/operador e soma INCIDENTE_FECHADO.
+     */
+    @Test
+    void fecharAutomaticamenteComInstanciaVelhaNaoSobrescreveFechamentoPorManutencao() {
+        long equipamentoId = montarEquipamento(false);
+        long monitorId = montarMonitor(equipamentoId);
+        long incidenteId = insert("insert into incidente (monitor_id, status, iniciado_em, motivo) "
+                + "values (?, 'ABERTO', ?, 'Indisponibilidade') returning id", monitorId, Timestamp.from(T0));
+        insert("insert into janela_monitoramento (monitor_id, inicio_em, origem) values (?, ?, 'PRECISA') "
+                + "returning id", monitorId, Timestamp.from(T0));
+        insert("insert into notificacao (incidente_id, canal, tipo_evento, status, mensagem, enviado_em) "
+                + "values (?, 'TELEGRAM', 'INCIDENTE_ABERTO', 'ENVIADA', 'msg', ?) returning id",
+                incidenteId, Timestamp.from(T0));
+        Incidente carregadoPeloMotor = incidenteRepository.findById(incidenteId).orElseThrow();
+
+        equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
+        incidenteService.fecharAutomaticamente(carregadoPeloMotor, T0.plusSeconds(300), 2);
+
+        assertThat(jdbc.queryForMap("select status, motivo_encerramento, fechado_por from incidente where id = ?",
+                incidenteId))
+                .containsEntry("status", "FECHADO")
+                .containsEntry("motivo_encerramento", "MANUTENCAO")
+                .containsEntry("fechado_por", operadorId);
+        assertThat(jdbc.queryForObject("select count(*) from notificacao where incidente_id = ? "
+                + "and tipo_evento = 'INCIDENTE_ENCERRADO_MANUTENCAO'", Integer.class, incidenteId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from notificacao where incidente_id = ? "
+                + "and tipo_evento = 'INCIDENTE_FECHADO'", Integer.class, incidenteId)).isZero();
+    }
+
+    /**
+     * Ordem fixa: o motor carrega o incidente, reconhecer responde sucesso e so entao o
+     * motor fecha com a instancia velha. Sem CAS, reconhecido_em/reconhecido_por voltam
+     * a NULL a partir da instancia carregada antes do reconhecimento.
+     */
+    @Test
+    void fecharAutomaticamenteComInstanciaVelhaNaoApagaReconhecimento() {
+        long monitorId = montarEquipamentoEMonitor(false);
+        long incidenteId = insert("insert into incidente (monitor_id, status, iniciado_em, motivo) "
+                + "values (?, 'ABERTO', ?, 'Indisponibilidade') returning id", monitorId, Timestamp.from(T0));
+        Incidente carregadoPeloMotor = incidenteRepository.findById(incidenteId).orElseThrow();
+
+        incidenteService.reconhecer(incidenteId, operadorId);
+        incidenteService.fecharAutomaticamente(carregadoPeloMotor, T0.plusSeconds(300), 2);
+
+        var linha = jdbc.queryForMap("select status, reconhecido_em, reconhecido_por from incidente where id = ?",
+                incidenteId);
+        assertThat(linha).containsEntry("status", "FECHADO").containsEntry("reconhecido_por", operadorId);
+        assertThat(linha.get("reconhecido_em")).isNotNull();
     }
 
     // ---------------------------------------------------------------------------
