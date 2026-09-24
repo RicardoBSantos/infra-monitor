@@ -1,6 +1,6 @@
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, arcoEntre, camadasDeConexao, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { agruparUnidades, arcoEntre, camadasDeConexao, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
@@ -226,5 +226,25 @@ describe('camada de conexao (D18)',()=>{
       'SEM_EQUIPAMENTOS', '#667b8b',
       'EM_MANUTENCAO', '#7fadff',
       '#8797a6']);
+  });
+});
+
+/*
+ * O `click` de camada do MapLibre deriva do mesmo `click` DOM que acionou o marcador: o alvo
+ * original é o que separa "clique na unidade" de "clique no polígono". Comportamento real (a ordem
+ * dos dois handlers, o painel) está em `e2e/mapa-marcador-ibge-divergente.cjs`.
+ */
+describe('cliqueVeioDeMarcador',()=>{
+  it('botão de unidade, filho dele e alvo de município contam como marcador',()=>{
+    const unidade=document.createElement('button'); unidade.className='map__unidade';
+    const dica=document.createElement('span'); unidade.appendChild(dica);
+    const municipio=document.createElement('button'); municipio.className='map__alvo';
+    expect(cliqueVeioDeMarcador(unidade)).toBe(true);
+    expect(cliqueVeioDeMarcador(dica)).toBe(true);
+    expect(cliqueVeioDeMarcador(municipio)).toBe(true);
+  });
+  it('canvas e null não são marcador',()=>{
+    expect(cliqueVeioDeMarcador(document.createElement('canvas'))).toBe(false);
+    expect(cliqueVeioDeMarcador(null)).toBe(false);
   });
 });

@@ -188,3 +188,121 @@ independentemente do polígono sob o pixel e do IBGE cadastrado.
   também não verem esse clique.
 - A correção precisa cobrir o caso de IBGE **coerente** com várias unidades (Aracaju), não só o de
   IBGE divergente.
+
+## Aviso no detalhe da unidade
+
+Task 4: a mesma divergência (`divergenciaIbge`, de `geo-municipio.service.ts`, Task 2) agora também
+aparece na aba **Visão geral** do detalhe da unidade
+(`infra-monitor-frontend/src/app/features/unidades/detalhe/visao-geral.component.ts/.html/.scss`),
+no topo, acima dos três cartões — mesmo texto e mesma classe `.aviso-ibge` do painel do mapa (Task 3),
+para as duas telas lerem igual:
+
+```html
+<p class="aviso-ibge" role="note"><strong>Localização divergente.</strong> A coordenada cai em {{ d.nomeCoordenada }}, mas o código IBGE aponta {{ d.nomeCadastro ?? 'um município fora do mapa' }} ({{ d.codigoCadastro }}). O mapa posiciona pela coordenada.</p>
+```
+
+`divergencia` é um `computed` sobre `UnidadeDetalheStore.cadastro` e um `toSignal` de
+`GeoMunicipioService.getMunicipios()` com `catchError(() => of(null))`: falha ao carregar a
+cartografia apenas apaga o aviso (`municipios` fica `null`, o `computed` devolve `null`), nunca
+derruba a Visão geral. Sem primitiva nova: a regra CSS de `.aviso-ibge` é duplicada localmente no
+`visao-geral.component.scss` (3 linhas), usando só tokens existentes (`--im-warning`,
+`--im-surface-raised`, `--im-radius-lg`, `--im-text-secondary`) — mesma decisão do `.skeleton`
+duplicado em 6 telas (ver memória do projeto): não é primitiva global.
+
+### Prova por reversão
+
+Editando `divergencia` para sempre devolver `null` (em vez de `divergenciaIbge(cadastro, municipios)`):
+
+- `npx ng test --watch=false --include ".../abas.spec.ts"` — o teste
+  "mostra o aviso de IBGE divergente quando a coordenada cai em outro município (ITA-09)" falha:
+  `AssertionError: expected null not to be null` (o `querySelector('.aviso-ibge')` não encontra nada).
+- `node e2e/unidade-detalhe-aviso-ibge.cjs` — falha com `exitCode 1`:
+  `locator.waitFor: Timeout 10000ms exceeded` esperando `.aviso-ibge` visível na ITA-09.
+
+Restaurando a chamada a `divergenciaIbge(cadastro, municipios)` (confirmado com `git diff` — nenhum
+resíduo do trecho temporário), o mesmo teste unitário volta a passar (suíte completa: 47 arquivos,
+387 testes verdes) e o e2e volta a passar (ITA-09 mostra o aviso citando "Itabaiana" e "2803005";
+a unidade 1 de Aracaju, com IBGE coerente, não mostra `.aviso-ibge`).
+
+### Testes
+
+- Spec: `infra-monitor-frontend/src/app/features/unidades/detalhe/abas.spec.ts` — três casos novos na
+  descrição "Visão geral": ITA-09 com aviso (Itabaiana/2803005), IBGE coerente sem aviso, e falha no
+  `getMunicipios()` (erro) sem aviso e sem derrubar a tela (incidentes recentes continuam renderizando).
+  Usa as mesmas geometrias sintéticas de `geo-municipio.service.spec.ts` (Itabaiana/Itabaianinha) via
+  um `GeoMunicipioService` falso injetado por teste.
+- E2E: `infra-monitor-frontend/e2e/unidade-detalhe-aviso-ibge.cjs` (arquivo próprio, não anexado ao
+  roteiro da Task 3) — login por clique, depois lista de unidades → link "Ver" da linha → Visão geral,
+  para a unidade 5 (ITA-09, espera aviso) e a unidade 1 (Aracaju, IBGE coerente, espera ausência de
+  aviso). Evidência em `infra-monitor-frontend/e2e/unidade-detalhe-evidence/` (duas screenshots e um
+  JSON com os dois casos). Base `MAPA_BASE` (padrão `http://127.0.0.1:4300`), senha via `MAPA_SENHA`.
+
+## Correção (Task 3)
+
+Mecanismo escolhido: o sustentado pela investigação — `evento.originalEvent.target` no handler de
+camada é o `<button>` do marcador. Em
+`infra-monitor-frontend/src/app/features/mapa/mapa.component.ts`:
+
+- `export function cliqueVeioDeMarcador(alvo: EventTarget | null): boolean` —
+  `alvo instanceof Element && alvo.closest('.map__unidade, .map__alvo') !== null`. Cobre o botão, um
+  descendente dele (a dica) e também o alvo invisível de município (`.map__alvo`), cujo clique já
+  seleciona o município pelo próprio listener e não precisa que o polígono sob o centróide opine.
+- `map.on('click', 'municipios-fill', ...)` começa com
+  `if (cliqueVeioDeMarcador(evento.originalEvent.target)) return;`. Clique no canvas (área do
+  polígono sem marcador) continua selecionando o município.
+- `stopPropagation` no botão foi descartado: tiraria o clique também do `Marker._onMapClick` e de
+  qualquer outro `map.on('click')` futuro. A guarda no handler de camada só tira o polígono da decisão.
+
+Aviso no painel: `divergencia = computed(...)` sobre `unidadeSelecionada()` e a cartografia carregada
+(o antigo campo `sourceMunicipios` virou o sinal `fonteMunicipios`, porque o `computed` precisa
+reagir a ele). No painel da unidade, logo abaixo do nome e do status, `<p class="aviso-ibge"
+role="note">` com o mesmo texto do detalhe da unidade (Task 4). Estilo: régua lateral de 3px em
+`--im-warning` (a mesma linguagem do `.map-feedback`), texto `--im-text-secondary` 11px — só tokens,
+nenhum hex novo. Legível nos dois temas: `e2e/mapa-marcador-evidence/correcao/01-painel-aviso-escuro.png`
+e `01-painel-aviso-claro.png`.
+
+Observação: ao clicar no ITA-09, o município marcado (`aria-pressed`) é o do **código IBGE**
+(2803005 Itabaianinha), porque `selecionarPeloMarcador` escolhe o município pelo cadastro. O painel
+de município não aparece (1 unidade) e o aviso diz exatamente essa divergência. Não mudado nesta rodada.
+
+## Aviso: por que não silêncio
+
+A coordenada prevalece — é ela que posiciona o marcador e é sobre a unidade que o clique fala. Mas
+calar a divergência esconderia um cadastro errado: na carga real, uma unidade com IBGE trocado
+apareceria no lugar certo do mapa e contada no município errado da lista/relatório, sem nenhum sinal.
+O aviso não bloqueia nada, não corrige nada sozinho e diz qual dado o mapa usou ("O mapa posiciona
+pela coordenada"), para que quem mantém o cadastro decida qual dos dois está errado.
+
+## Testes (Task 3)
+
+- `mapa.component.spec.ts`: `cliqueVeioDeMarcador` (botão, filho e `.map__alvo` → `true`; canvas e
+  `null` → `false`). RED antes da implementação (`TS2305: ... no exported member`), GREEN depois.
+- `npx ng test --watch=false`: **47 arquivos, 387 testes, todos verdes** (inclui o que havia no
+  disco da Task 4 no mesmo momento).
+- E2E `infra-monitor-frontend/e2e/mapa-marcador-ibge-divergente.cjs`
+  (`MAPA_SENHA=<senha> node e2e/mapa-marcador-ibge-divergente.cjs`), evidência em
+  `e2e/mapa-marcador-evidence/correcao/` (`resultados.json` + capturas). **5/5 ok**:
+  1. clique no marcador ITA-09 → painel "Sesc Itabaiana", `aria-pressed="true"`, aviso com
+     "Itabaiana" e "2803005";
+  2. clique no marcador 7 de Aracaju (câmera em zoom 12, ver sobreposição acima) → painel dessa
+     unidade, `aria-pressed="true"`;
+  3. clique no canvas dentro de município sem unidade, num pixel sem nenhum elemento DOM por cima
+     (Amparo de São Francisco) → município selecionado, nenhuma unidade;
+  4. foco no marcador ITA-09 + Enter → igual ao caso 1;
+  5. unidade 1 de Aracaju (IBGE coerente) → painel dela, sem `.aviso-ibge`.
+
+## Reversão (Task 3)
+
+Por edição do arquivo (sem `git stash`), `ng serve` recompilando a cada passo. Saídas em
+`infra-monitor-frontend/e2e/mapa-marcador-evidence/reversao/`:
+
+| Passo | Saída | Resultado |
+|---|---|---|
+| Guarda comentada no handler de camada | `1-e2e-sem-correcao.txt` (+ `sem-correcao/`) | **2/5** — casos 1, 2 e 5 FALHAM (painel "Itabaiana — Nenhuma unidade cadastrada" / "Aracaju — 4 unidades", `aria-pressed="false"`); 3 e 4 passam |
+| Guarda restaurada | `2-e2e-restaurada.txt` (+ `restaurada/`) | **5/5**, exit 0 |
+| `cliqueVeioDeMarcador` devolvendo `false` | `3-spec-sem-funcao.txt` | spec do mapa: 1 falha (`expected false to be true`), 21 passam |
+| Função restaurada | `4-spec-restaurado.txt` | 47 arquivos, 387 testes verdes |
+
+O caso de teclado (4) passa mesmo sem a correção: o `click` sintetizado pelo Enter não reproduziu a
+troca de seleção. O defeito era só do clique de ponteiro; o caso 4 fica como guarda de regressão do
+caminho por teclado, não como prova da correção — quem prova são 1, 2 e 5.

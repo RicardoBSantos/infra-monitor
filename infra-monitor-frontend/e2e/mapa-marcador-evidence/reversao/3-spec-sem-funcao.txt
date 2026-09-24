@@ -1,0 +1,46 @@
+❯ Building...
+✔ Building...
+Initial chunk files                      | Names                                 |  Raw size
+spec-app-features-mapa-mapa.component.js | spec-app-features-mapa-mapa.component | 501.70 kB | 
+styles.css                               | styles                                |  36.94 kB | 
+chunk-RSTWSNOR.js                        | -                                     |   4.75 kB | 
+init-testbed.js                          | init-testbed                          |   1.21 kB | 
+vitest-mock-patch.js                     | vitest-mock-patch                     | 974 bytes | 
+
+                                         | Initial total                         | 545.58 kB
+
+Application bundle generation complete. [9.555 seconds] - 2026-09-24T18:32:43.501Z
+
+
+ RUN  v4.1.11 C:/Users/rbfilho/Documents/infra-monitor-merge/infra-monitor-frontend
+
+ ❯  infra-monitor-frontend  src/app/features/mapa/mapa.component.spec.ts (22 tests | 1 failed) 43ms
+     × botão de unidade, filho dele e alvo de município contam como marcador 27ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/mapa/mapa.component.spec.ts > cliqueVeioDeMarcador > botão de unidade, filho dele e alvo de município contam como marcador
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/app/features/mapa/mapa.component.spec.ts:242:43
+    240|     const dica=document.createElement('span'); unidade.appendChild(dic…
+    241|     const municipio=document.createElement('button'); municipio.classN…
+    242|     expect(cliqueVeioDeMarcador(unidade)).toBe(true);
+       |                                           ^
+    243|     expect(cliqueVeioDeMarcador(dica)).toBe(true);
+    244|     expect(cliqueVeioDeMarcador(municipio)).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 passed (22)
+   Start at  15:32:45
+   Duration  17.91s (transform 491ms, setup 717ms, import 625ms, tests 43ms, environment 16.07s)
+

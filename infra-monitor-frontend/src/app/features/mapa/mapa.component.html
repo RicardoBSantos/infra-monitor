@@ -27,6 +27,9 @@
       <div class="unit-panel"><p class="panel-label">UNIDADE SELECIONADA</p>
         <strong class="unit-panel__nome">{{ unidade.nome }}</strong>
         <app-status-badge [status]="unidade.status" />
+        @if (divergencia(); as d) {
+          <p class="aviso-ibge" role="note"><strong>Localização divergente.</strong> A coordenada cai em {{ d.nomeCoordenada }}, mas o código IBGE aponta {{ d.nomeCadastro ?? 'um município fora do mapa' }} ({{ d.codigoCadastro }}). O mapa posiciona pela coordenada.</p>
+        }
         <dl class="unit-kpis">
           <div><dt>EQUIPAMENTOS</dt><dd>{{ unidade.equipamentosTotal }}</dd></div>
           <div><dt>DISPONÍVEIS</dt><dd>{{ unidade.equipamentosDisponiveis }}</dd></div>

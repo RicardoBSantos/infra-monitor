@@ -260,6 +260,8 @@
 .unit-panel__acoes { display:flex; flex-wrap:wrap; gap:7px; width:100%; }
 .unit-panel__vazio { margin:0; color:var(--im-text-secondary); font-size:11px; line-height:1.5; }
 .unit-panel__vazio .botao { margin-top:8px; }
+/* Mesma régua lateral de alerta do `.map-feedback`, sem a caixa: é nota do cadastro, não bloqueio. */
+.aviso-ibge { margin:0; padding-left:9px; border-left:3px solid var(--im-warning); color:var(--im-text-secondary); font-size:11px; line-height:1.5; }
 .afetados { display:grid; gap:6px; width:100%; margin:0; padding:0; list-style:none; }
 /* O item inteiro e o alvo do clique: area grande e um so stop de teclado por equipamento. */
 .afetados__item { display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%; padding:7px 8px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface); color:inherit; font:inherit; text-align:left; cursor:pointer; }

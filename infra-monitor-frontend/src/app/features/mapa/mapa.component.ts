@@ -8,7 +8,7 @@ import { take } from 'rxjs';
 
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
-import { GeoMunicipioService, Municipio, normalizeCodigoIbge } from '../../core/services/geo-municipio.service';
+import { GeoMunicipioService, Municipio, divergenciaIbge, normalizeCodigoIbge } from '../../core/services/geo-municipio.service';
 import { DashboardApiService } from '../../core/services/dashboard-api.service';
 import { LABELS as ROTULO_STATUS, StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent, EquipamentoResumo } from '../equipamentos/equipamento-detalhe-drawer.component';
@@ -450,6 +450,16 @@ export function centroideAproximado(geometria: { coordinates: unknown }): [numbe
   return Number.isFinite(minX) ? [(minX + maxX) / 2, (minY + maxY) / 2] : null;
 }
 
+/**
+ * O marcador vive dentro do container do MapLibre: o mesmo clique físico chega ao botão E ao
+ * `click` de camada, que consulta o polígono sob o pixel — o município da COORDENADA. Com código
+ * IBGE divergente (ou município de várias unidades) esse segundo caminho trocava o município e
+ * limpava a unidade recém-escolhida. O clique no marcador é sobre a unidade; o polígono não opina.
+ */
+export function cliqueVeioDeMarcador(alvo: EventTarget | null): boolean {
+  return alvo instanceof Element && alvo.closest('.map__unidade, .map__alvo') !== null;
+}
+
 @Component({ selector: 'app-mapa', imports: [StatusBadgeComponent, EquipamentoDetalheDrawerComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './mapa.component.html', styleUrl: './mapa.component.scss' })
 export class MapaComponent implements OnDestroy {
   private readonly geoMunicipio = inject(GeoMunicipioService);
@@ -479,7 +489,14 @@ export class MapaComponent implements OnDestroy {
   protected readonly statusGeografico = computed(() => contarPorStatus(this.municipios().flatMap(municipio => municipio.units)));
   protected readonly totalUnidades = computed(() => this.municipios().reduce((soma, municipio) => soma + municipio.units.length, 0));
   private readonly host = viewChild<ElementRef<HTMLDivElement>>('host');
-  private sourceMunicipios: Municipio[] | null = null;
+  /** Cartografia carregada. Sinal, e não campo, porque o aviso de IBGE divergente deriva dela. */
+  private readonly fonteMunicipios = signal<Municipio[] | null>(null);
+  /** Coordenada × código IBGE da unidade em foco. A coordenada prevalece; isto só torna a divergência visível. */
+  protected readonly divergencia = computed(() => {
+    const unidade = this.unidadeSelecionada();
+    const fonte = this.fonteMunicipios();
+    return unidade && fonte ? divergenciaIbge(unidade, fonte) : null;
+  });
   private units: DashboardUnidade[] | null = null;
 
   private map: MaplibreMap | null = null;
@@ -518,8 +535,8 @@ export class MapaComponent implements OnDestroy {
   ngOnDestroy(): void { this.destruirMapa(); }
 
   protected load(): void {
-    this.state.set('loading'); this.error.set(null); this.selected.set(null); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.sourceMunicipios = null; this.units = null;
-    this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { this.sourceMunicipios = municipios; this.resolve(); }, error: () => this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.') });
+    this.state.set('loading'); this.error.set(null); this.selected.set(null); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
+    this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { this.fonteMunicipios.set(municipios); this.resolve(); }, error: () => this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.') });
     this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { this.units = units; this.resolve(); }, error: () => this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.') });
   }
 
@@ -581,8 +598,9 @@ export class MapaComponent implements OnDestroy {
   private limparUnidade(): void { this.unidadeSelecionada.set(null); this.afetados.set([]); this.afetadosState.set('idle'); this.fecharEquipamento(); }
 
   private resolve(): void {
-    if (!this.sourceMunicipios || !this.units || this.state() === 'error') return;
-    const agrupado = agruparUnidades(this.sourceMunicipios, this.units);
+    const fonte = this.fonteMunicipios();
+    if (!fonte || !this.units || this.state() === 'error') return;
+    const agrupado = agruparUnidades(fonte, this.units);
     this.semLocalizacao.set(agrupado.semLocalizacao);
     this.semCorrespondencia.set(agrupado.semCorrespondencia);
     this.municipios.set(agrupado.municipios);
@@ -665,6 +683,7 @@ export class MapaComponent implements OnDestroy {
     map.easeTo({ zoom: map.getZoom() + ZOOM_AO_INCLINAR, offset: OFFSET_CAMERA, duration: 0 });
 
     map.on('click', 'municipios-fill', evento => {
+      if (cliqueVeioDeMarcador(evento.originalEvent.target)) return;
       const codigo = normalizeCodigoIbge(evento.features?.[0]?.properties?.['id'] as string);
       const municipio = municipios.find(candidato => candidato.codigoIbge === codigo);
       if (municipio) this.selectMunicipio(municipio);

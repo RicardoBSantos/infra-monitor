@@ -1,0 +1,143 @@
+❯ Building...
+✔ Building...
+Initial chunk files                                                    | Names                                                               |  Raw size
+chunk-TRK4IOQ3.js                                                      | -                                                                   | 273.79 kB | 
+chunk-KUWCWUF3.js                                                      | -                                                                   | 183.72 kB | 
+chunk-TYQDGV5P.js                                                      | -                                                                   | 122.51 kB | 
+chunk-EQAQ27DC.js                                                      | -                                                                   |  95.65 kB | 
+chunk-PBM2DWJI.js                                                      | -                                                                   |  91.20 kB | 
+chunk-7AMZTLWZ.js                                                      | -                                                                   |  85.60 kB | 
+chunk-52GWDEEN.js                                                      | -                                                                   |  76.65 kB | 
+chunk-LXAZXNXR.js                                                      | -                                                                   |  64.59 kB | 
+chunk-FFHAGQZG.js                                                      | -                                                                   |  62.68 kB | 
+spec-app-features-relatorios-relatorios.component.js                   | spec-app-features-relatorios-relatorios.component                   |  55.89 kB | 
+chunk-2JDNHEOK.js                                                      | -                                                                   |  45.82 kB | 
+chunk-OUXCWD6M.js                                                      | -                                                                   |  44.84 kB | 
+chunk-F3GQLCQJ.js                                                      | -                                                                   |  43.44 kB | 
+chunk-MUAUITDS.js                                                      | -                                                                   |  39.53 kB | 
+chunk-GMQW4QU3.js                                                      | -                                                                   |  37.87 kB | 
+styles.css                                                             | styles                                                              |  36.94 kB | 
+chunk-GOWDPLPZ.js                                                      | -                                                                   |  32.60 kB | 
+chunk-BWXLCVTT.js                                                      | -                                                                   |  26.72 kB | 
+chunk-6ED7GGYF.js                                                      | -                                                                   |  25.79 kB | 
+chunk-OFMKRYWE.js                                                      | -                                                                   |  24.83 kB | 
+chunk-JEH27UPQ.js                                                      | -                                                                   |  23.15 kB | 
+chunk-PFCROABX.js                                                      | -                                                                   |  20.48 kB | 
+chunk-LADE5XTD.js                                                      | -                                                                   |  19.61 kB | 
+chunk-KPOFRWEO.js                                                      | -                                                                   |  19.27 kB | 
+chunk-JGU22JTA.js                                                      | -                                                                   |  18.40 kB | 
+spec-app-features-dashboard-dashboard.component.js                     | spec-app-features-dashboard-dashboard.component                     |  16.57 kB | 
+spec-app-features-incidentes-incidente-detalhe-drawer.component.js     | spec-app-features-incidentes-incidente-detalhe-drawer.component     |  16.22 kB | 
+spec-app-features-incidentes-incidente-unificado-list.component.js     | spec-app-features-incidentes-incidente-unificado-list.component     |  15.56 kB | 
+spec-app-features-unidades-detalhe-historico-configuracoes.js          | spec-app-features-unidades-detalhe-historico-configuracoes          |  13.72 kB | 
+spec-app-features-equipamentos-equipamento-detalhe-drawer.js           | spec-app-features-equipamentos-equipamento-detalhe-drawer           |  13.69 kB | 
+chunk-CKYBG4RC.js                                                      | -                                                                   |  13.32 kB | 
+spec-app-features-unidades-unidade-list.component.js                   | spec-app-features-unidades-unidade-list.component                   |  13.08 kB | 
+spec-app-features-equipamentos-equipamento-list.component.js           | spec-app-features-equipamentos-equipamento-list.component           |  12.72 kB | 
+spec-app-app.routes.js                                                 | spec-app-app.routes                                                 |  12.48 kB | 
+spec-app-features-unidades-detalhe-abas.js                             | spec-app-features-unidades-detalhe-abas                             |  11.49 kB | 
+spec-app-core-services-relatorio-api.service.js                        | spec-app-core-services-relatorio-api.service                        |  11.26 kB | 
+spec-app-features-mapa-mapa.component.js                               | spec-app-features-mapa-mapa.component                               |  11.14 kB | 
+spec-app-features-tipos-equipamento-tipo-equipamento-list.component.js | spec-app-features-tipos-equipamento-tipo-equipamento-list.component |  11.06 kB | 
+chunk-XZBBIDZ3.js                                                      | -                                                                   |  10.12 kB | 
+spec-app-features-unidades-unidade-detalhe.component.js                | spec-app-features-unidades-unidade-detalhe.component                |   9.37 kB | 
+chunk-OFND6PDV.js                                                      | -                                                                   |   9.32 kB | 
+spec-app-features-incidentes-timeline-timeline.js                      | spec-app-features-incidentes-timeline-timeline                      |   9.23 kB | 
+spec-app-features-notificacoes-configuracao-tab.component.js           | spec-app-features-notificacoes-configuracao-tab.component           |   8.83 kB | 
+spec-app-features-unidades-unidade-form-drawer.js                      | spec-app-features-unidades-unidade-form-drawer                      |   8.49 kB | 
+spec-app-core-interceptors-auth.interceptor.js                         | spec-app-core-interceptors-auth.interceptor                         |   8.17 kB | 
+spec-app-shared-action-menu-action-menu.component.js                   | spec-app-shared-action-menu-action-menu.component                   |   8.14 kB | 
+chunk-C43GW7Z7.js                                                      | -                                                                   |   7.86 kB | 
+chunk-ZEMFFPFX.js                                                      | -                                                                   |   7.68 kB | 
+spec-app-features-usuarios-usuario-list.component.js                   | spec-app-features-usuarios-usuario-list.component                   |   7.49 kB | 
+chunk-ISMMKG3Q.js                                                      | -                                                                   |   6.92 kB | 
+spec-app-features-notificacoes-notificacao-list.component.js           | spec-app-features-notificacoes-notificacao-list.component           |   6.59 kB | 
+chunk-D5T7BRRC.js                                                      | -                                                                   |   6.23 kB | 
+spec-app-core-services-geo-municipio.service.js                        | spec-app-core-services-geo-municipio.service                        |   6.11 kB | 
+chunk-C3JJFBU2.js                                                      | -                                                                   |   5.38 kB | 
+chunk-KFSYEP5J.js                                                      | -                                                                   |   5.21 kB | 
+chunk-RSTWSNOR.js                                                      | -                                                                   |   4.75 kB | 
+chunk-SE37TMAL.js                                                      | -                                                                   |   4.57 kB | 
+spec-app-features-monitores-monitor-management.component.js            | spec-app-features-monitores-monitor-management.component            |   4.23 kB | 
+spec-app-features-notificacoes-notificacao-detail.component.js         | spec-app-features-notificacoes-notificacao-detail.component         |   4.17 kB | 
+chunk-FTTAPN3V.js                                                      | -                                                                   |   4.11 kB | 
+spec-app-shared-status-badge-status-badge.component.js                 | spec-app-shared-status-badge-status-badge.component                 |   3.73 kB | 
+spec-app-shared-paginacao-paginacao.component.js                       | spec-app-shared-paginacao-paginacao.component                       |   3.69 kB | 
+chunk-KZ73CL2T.js                                                      | -                                                                   |   3.66 kB | 
+spec-app-features-relatorios-report-pdf-download.js                    | spec-app-features-relatorios-report-pdf-download                    |   3.62 kB | 
+spec-app-features-relatorios-report-csv-download.js                    | spec-app-features-relatorios-report-csv-download                    |   3.48 kB | 
+chunk-CU7BXYNN.js                                                      | -                                                                   |   3.46 kB | 
+spec-app-layout-sidebar-sidebar.component.js                           | spec-app-layout-sidebar-sidebar.component                           |   3.23 kB | 
+spec-app-core-interceptors-api-error.interceptor.js                    | spec-app-core-interceptors-api-error.interceptor                    |   3.14 kB | 
+spec-app-core-services-incidente-api.service.js                        | spec-app-core-services-incidente-api.service                        |   3.04 kB | 
+spec-app-core-services-monitor-api.service.js                          | spec-app-core-services-monitor-api.service                          |   2.94 kB | 
+chunk-ULUA5Z25.js                                                      | -                                                                   |   2.87 kB | 
+spec-app-core-services-equipamento-api.service.js                      | spec-app-core-services-equipamento-api.service                      |   2.75 kB | 
+spec-app-shared-breadcrumbs-breadcrumbs.component.js                   | spec-app-shared-breadcrumbs-breadcrumbs.component                   |   2.74 kB | 
+spec-app-core-services-notificacao-api.service.js                      | spec-app-core-services-notificacao-api.service                      |   2.67 kB | 
+chunk-6MMNVYVW.js                                                      | -                                                                   |   2.63 kB | 
+spec-app-core-services-usuario-api.service.js                          | spec-app-core-services-usuario-api.service                          |   2.57 kB | 
+spec-app-core-services-dashboard-incidente-api.service.js              | spec-app-core-services-dashboard-incidente-api.service              |   2.50 kB | 
+spec-app-core-services-tipo-equipamento-api.service.js                 | spec-app-core-services-tipo-equipamento-api.service                 |   2.36 kB | 
+spec-app-core-services-medicao-api.service.js                          | spec-app-core-services-medicao-api.service                          |   2.34 kB | 
+spec-app-core-services-unidade-api.service.js                          | spec-app-core-services-unidade-api.service                          |   2.27 kB | 
+spec-app-core-services-auth.service.js                                 | spec-app-core-services-auth.service                                 |   2.14 kB | 
+spec-app-core-services-dashboard-api.service.js                        | spec-app-core-services-dashboard-api.service                        |   2.13 kB | 
+spec-app-app.js                                                        | spec-app-app                                                        |   2.09 kB | 
+chunk-OXM7JDDE.js                                                      | -                                                                   |   2.09 kB | 
+spec-app-core-services-auth-state.service.js                           | spec-app-core-services-auth-state.service                           |   2.02 kB | 
+chunk-G2TB2SGR.js                                                      | -                                                                   |   1.96 kB | 
+chunk-VIVNPYMD.js                                                      | -                                                                   |   1.83 kB | 
+chunk-HBF4QUCH.js                                                      | -                                                                   |   1.81 kB | 
+chunk-HNGKPNUH.js                                                      | -                                                                   |   1.71 kB | 
+chunk-XBAB2J2G.js                                                      | -                                                                   |   1.70 kB | 
+chunk-J3YHUV7Y.js                                                      | -                                                                   |   1.68 kB | 
+chunk-JD2SQ5HT.js                                                      | -                                                                   |   1.59 kB | 
+chunk-4O6A2MIM.js                                                      | -                                                                   |   1.58 kB | 
+spec-app-layout-application-shell-application-shell.component.js       | spec-app-layout-application-shell-application-shell.component       |   1.51 kB | 
+chunk-DL7KDGKX.js                                                      | -                                                                   |   1.51 kB | 
+chunk-2VAWW2EC.js                                                      | -                                                                   |   1.50 kB | 
+chunk-YXOXOYOX.js                                                      | -                                                                   |   1.38 kB | 
+chunk-3NQO54N2.js                                                      | -                                                                   |   1.33 kB | 
+chunk-N27LP4JA.js                                                      | -                                                                   |   1.29 kB | 
+chunk-OVNFBR7R.js                                                      | -                                                                   |   1.23 kB | 
+init-testbed.js                                                        | init-testbed                                                        |   1.21 kB | 
+chunk-DW3VBZCG.js                                                      | -                                                                   | 978 bytes | 
+vitest-mock-patch.js                                                   | vitest-mock-patch                                                   | 974 bytes | 
+chunk-XWL6R6CW.js                                                      | -                                                                   | 685 bytes | 
+chunk-PRRYYNOX.js                                                      | -                                                                   | 488 bytes | 
+spec-app-features-relatorios-report-formatters.js                      | spec-app-features-relatorios-report-formatters                      | 482 bytes | 
+spec-app-core-models-page-response.js                                  | spec-app-core-models-page-response                                  | 468 bytes | 
+chunk-W7TQGGX6.js                                                      | -                                                                   | 190 bytes | 
+
+                                                                       | Initial total                                                       |   2.00 MB
+
+Lazy chunk files                                                       | Names                                                               |  Raw size
+chunk-5NNWKIJX.js                                                      | login-component                                                     |  34.21 kB | 
+chunk-Y4XQMIAF.js                                                      | medicao-list-component                                              |  30.86 kB | 
+chunk-6XTHHWIY.js                                                      | change-password-component                                           |  16.01 kB | 
+chunk-PXPDGYMU.js                                                      | notificacao-telegram-component                                      |   7.67 kB | 
+chunk-VQDJL67M.js                                                      | forbidden-component                                                 |   3.61 kB | 
+chunk-JLD5U23T.js                                                      | monitor-list-component                                              |   1.71 kB | 
+chunk-EEYWLRER.js                                                      | mapa-component                                                      |   1.36 kB | 
+chunk-D4MSRUWP.js                                                      | equipamento-list-component                                          | 808 bytes | 
+chunk-4IORGABD.js                                                      | incidente-unificado-list-component                                  | 732 bytes | 
+chunk-Y63XJNP5.js                                                      | relatorios-component                                                | 558 bytes | 
+chunk-ZQUQWWGJ.js                                                      | unidade-detalhe-component                                           | 536 bytes | 
+chunk-X5QIAXMC.js                                                      | unidade-list-component                                              | 530 bytes | 
+chunk-DGJRXTFF.js                                                      | dashboard-component                                                 | 526 bytes | 
+chunk-XQZUQ4UI.js                                                      | incidentes-tab-component                                            | 504 bytes | 
+chunk-E7AX6MST.js                                                      | tipo-equipamento-list-component                                     | 456 bytes | 
+...and 8 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation complete. [10.143 seconds] - 2026-09-24T18:33:22.210Z
+
+
+ RUN  v4.1.11 C:/Users/rbfilho/Documents/infra-monitor-merge/infra-monitor-frontend
+
+
+ Test Files  47 passed (47)
+      Tests  387 passed (387)
+   Start at  15:33:25
+   Duration  18.37s (transform 16.89s, setup 48.23s, import 32.58s, tests 38.35s, environment 424.88s)
+

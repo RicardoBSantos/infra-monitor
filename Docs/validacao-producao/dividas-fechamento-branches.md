@@ -198,7 +198,7 @@ em massa do arnês de capacidade, e comparar `jcmd <pid> VM.native_memory summar
 isolar o custo de memória nativa por thread parada do pool (threads ociosas ainda retêm sua pilha
 alocada mesmo sem CPU).
 
-### 7. Mapa: clique no marcador da unidade também seleciona o município debaixo dele
+### 7. Mapa: clique no marcador da unidade também seleciona o município debaixo dele — CORRIGIDO
 
 `infra-monitor-frontend/src/app/features/mapa/mapa.component.ts:667-671`: o clique no
 `<button class="map__unidade">` chama `selecionarPeloMarcador` (`:721`, `:804`; município do `codigo_ibge` da unidade +
@@ -215,7 +215,11 @@ unidade cadastrada neste município.") e o marcador fica com `aria-pressed="fals
   "Execução 1", e `infra-monitor-frontend/e2e/mapa-manutencao-evidence/execucao-1-codigo-ibge-divergente/`
   (`03-clique-no-marcador-sem-painel-da-unidade.png`).
 - `main` não tem `mapa.component.ts`: o defeito **entra no `main` com o merge** deste branch.
-- Não corrigido nesta rodada.
+- **Corrigido** no commit `fix(mapa): clique no marcador sempre abre a unidade; aviso de IBGE divergente`
+  (rodada final antes da carga real), ver [mapa-marcador-e-ibge.md](mapa-marcador-e-ibge.md), seções
+  "Correção" e "Reversão". A investigação provou que o defeito era mais largo que o descrito acima: também
+  atingia município de várias unidades com IBGE coerente (Aracaju), porque `selectMunicipio` com 2+
+  unidades chama `limparUnidade`. As linhas citadas acima são do estado anterior à correção.
 
 ### 8. Rodapé da navegação afirma "Monitoramento ICMP ativo" sem consultar o motor
 
