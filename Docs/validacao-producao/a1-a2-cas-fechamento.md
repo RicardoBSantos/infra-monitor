@@ -26,6 +26,10 @@ velha:
   bulk UPDATE `WHERE id = :id AND status IN (ABERTO, RECONHECIDO)`, só colunas de fechamento
   (`status`, `encerrado_em`, `observacao`, `motivo_encerramento = FECHAMENTO_MANUAL`, `fechado_por`,
   `updated_at`), irmão de `fecharAutomaticamenteSeEmAberto`. `reconhecido_*` não é tocado.
+  A observação é `coalesce(:observacao, i.observacao)` (correção da revisão, rodada 1): a primeira
+  versão do CAS gravava `observacao = :observacao` e apagava a observação de um incidente aberto
+  à mão quando o fechamento vinha sem observação. `Incidente.fechar` só sobrescrevia com valor
+  não nulo; o CAS agora repete essa regra.
 - `IncidenteService.fechar`: mantém o retorno idempotente para quem já lê FECHADO e a validação
   `encerradoEm >= iniciadoEm`; troca `fechar()` + `saveAndFlush` pelo CAS. Retorno 0 devolve o
   estado atual relido, sem notificação; retorno 1 relê (o bulk update não atualiza a instância
@@ -33,7 +37,9 @@ velha:
 - `Incidente.fechar(...)` continua na entidade: é usado por dezenas de fixtures de teste
   (relatórios, notificação) para montar incidentes fechados.
 - `IncidenteServiceTest.permiteNovoIncidenteAposFechamentoEBuscaExistente` passou a mockar o CAS
-  (retorno 1) e a releitura, em vez de `saveAndFlush`. O javadoc de
+  (retorno 1) e a releitura, em vez de `saveAndFlush`. Novo
+  `IncidenteServiceTest.fecharQuePerdeOCasNaoNotificaEDevolveEstadoRelido`: CAS devolvendo 0 →
+  `never().criarParaIncidenteFechado`, resposta vinda da releitura (RECUPERACAO_AUTOMATICA). O javadoc de
   `NotificacaoConcorrenciaPostgresIntegrationTest.doisFecharConcorrentes...`, que dizia "fechar()
   não tem CAS", foi atualizado.
 
@@ -49,9 +55,17 @@ incidente na sessão; outra thread executa e **commita** a ação concorrente (`
 
 | Teste | Esperado com CAS |
 |---|---|
-| `fecharManualComInstanciaVelhaNaoSobrescreveFechamentoAutomatico` | `RECUPERACAO_AUTOMATICA`, `fechado_por` NULL, 1 `INCIDENTE_FECHADO` |
-| `fecharManualComInstanciaVelhaNaoSobrescreveManutencao` | `MANUTENCAO`, 1 `INCIDENTE_ENCERRADO_MANUTENCAO`, 0 `INCIDENTE_FECHADO` |
+| `fecharManualComInstanciaVelhaNaoSobrescreveFechamentoAutomatico` | `RECUPERACAO_AUTOMATICA`, `fechado_por` NULL, 1 `INCIDENTE_FECHADO`; a resposta do `fechar` perdedor traz o estado atual (`RECUPERACAO_AUTOMATICA`, `encerradoEm` do motor) |
+| `fecharManualComInstanciaVelhaNaoSobrescreveManutencao` | `MANUTENCAO`, 1 `INCIDENTE_ENCERRADO_MANUTENCAO`, 0 `INCIDENTE_FECHADO`; a resposta do perdedor traz `MANUTENCAO` |
 | `fecharManualComInstanciaVelhaNaoApagaReconhecimento` | `FECHAMENTO_MANUAL` com `reconhecido_por` = operador e `reconhecido_em` preservados |
+
+Sem corrida: `fecharManualSemObservacaoPreservaObservacaoDaAbertura` — incidente aberto com
+observação "aberto pelo NOC", fechado à mão com observação nula: linha e resposta mantêm a
+observação. Contra a primeira versão do CAS (sem `coalesce`), falha com
+`expected: "aberto pelo NOC" but was: null` (verificado revertendo a linha por edição e restaurando).
+
+`correr` e `emOutraThread` falham o teste se uma thread continua viva depois de `LIMITE` (10 s): o
+`join` com prazo volta em silêncio, e sem isso um travamento seria lido como desfecho.
 
 Corridas reais (`@RepeatedTest(30)`, duas threads, `CyclicBarrier`, jitter aleatório 0..N ms num dos
 lados). Cada repetição imprime `[corrida-...] desfecho=`:
@@ -60,7 +74,7 @@ lados). Cada repetição imprime `[corrida-...] desfecho=`:
 |---|---|---|
 | `fecharManualEFecharAutomaticamenteConcorrentes` (jitter 0..8 ms no motor) | MAN: `FECHAMENTO_MANUAL`, `fechado_por` = operador, observação "manual". AUTO: `RECUPERACAO_AUTOMATICA`, `fechado_por` NULL, observação "Recuperacao detectada…" | exatamente 1 `INCIDENTE_FECHADO` e `Fim:` da mensagem = `encerrado_em` da linha |
 | `doisFechamentosManuaisConcorrentes` (jitter 0..6 ms no segundo operador) | OP1 / OP2: `fechado_por`, observação e `encerrado_em` do mesmo operador | idem |
-| `fecharManualEEntrarEmManutencaoConcorrentes` (jitter 0..4 ms no manual) | MANUTENCAO: só `INCIDENTE_ENCERRADO_MANUTENCAO`. MAN: `FECHAMENTO_MANUAL` e só `INCIDENTE_FECHADO` | nunca os dois avisos |
+| `fecharManualEEntrarEmManutencaoConcorrentes` (jitter 0..4 ms no manual) | MANUTENCAO: só `INCIDENTE_ENCERRADO_MANUTENCAO`. MAN: `FECHAMENTO_MANUAL`, `fechado_por` = operador, observação "manual" e só `INCIDENTE_FECHADO` | nunca os dois avisos; no MAN, `Fim:` da mensagem = `encerrado_em` da linha (reforçado na revisão, rodada 1) |
 
 O critério "`Fim:` da mensagem = `encerrado_em` da linha" foi necessário: sem ele, a regravação do
 manual sobre o motor (ou sobre outro operador) parece um desfecho legítimo, porque a linha fica
@@ -115,6 +129,16 @@ regravava por cima.
 `./mvnw test`: **Tests run: 542, Failures: 0, Errors: 0, Skipped: 0** — BUILD SUCCESS. Distribuição
 das corridas A1 nessa execução: MAN 19 / AUTO 11 · OP1 23 / OP2 7 · MANUTENCAO 26 / MAN 4, zero
 ILEGITIMO.
+
+Depois da rodada 1 da revisão (`coalesce`, teste da observação, resposta do perdedor, predicado
+MAN reforçado, prazo do `join`):
+
+- classes de cobertura (`-Dtest=FechamentoManualConcorrenciaPostgresIntegrationTest,IncidenteServiceTest`):
+  94 + 14 testes, 0 falhas; MAN 21 / AUTO 9 · OP1 27 / OP2 3 · MANUTENCAO 24 / MAN 6, zero ILEGITIMO;
+- `./mvnw test` (já com os testes da Task 6): **Tests run: 577, Failures: 0, Errors: 0, Skipped: 0**
+  — BUILD SUCCESS; MAN 28 / AUTO 2 · OP1 26 / OP2 4 · MANUTENCAO 24 / MAN 6, zero ILEGITIMO. AUTO
+  caiu para 2/30 nessa execução (9 e 11 nas anteriores, com o mesmo jitter): a distribuição
+  oscila com a carga da máquina, mas os dois desfechos continuaram aparecendo.
 
 ## A2 / A2b — encerramento do episódio de latência: normalização × manutenção
 

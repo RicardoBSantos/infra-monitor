@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -110,6 +111,24 @@ class IncidenteServiceTest {
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));
         assertThat(incidenteService.criar(criacao()).status()).isEqualTo(StatusIncidente.ABERTO);
         assertThatThrownBy(() -> incidenteService.buscarPorId(99L)).isInstanceOf(RecursoNaoEncontradoException.class);
+    }
+
+    @Test
+    void fecharQuePerdeOCasNaoNotificaEDevolveEstadoRelido() {
+        Incidente lidoAberto = incidente(StatusIncidente.ABERTO);
+        Incidente fechadoPeloMotor = incidente(StatusIncidente.ABERTO);
+        fechadoPeloMotor.fechar(INICIO.plusSeconds(30), "Recuperacao detectada", null,
+                MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(lidoAberto), Optional.of(fechadoPeloMotor));
+        when(usuarioRepository.findById(7L)).thenReturn(Optional.of(operador()));
+        when(incidenteRepository.fecharManualmenteSeEmAberto(eq(10L), any(), any(), any(), any())).thenReturn(0);
+
+        var resposta = incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.plusSeconds(60), "manual"), 7L);
+
+        verify(notificacaoService, never()).criarParaIncidenteFechado(any());
+        assertThat(resposta.motivoEncerramento()).isEqualTo(MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
+        assertThat(resposta.encerradoEm()).isEqualTo(INICIO.plusSeconds(30));
+        assertThat(resposta.fechadoPorNome()).isNull();
     }
 
     @Test

@@ -85,10 +85,13 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
      * Fechamento humano como CAS, irmao de fecharAutomaticamenteSeEmAberto: so colunas de
      * fechamento, entao reconhecido_* sobrevive, e 0 linhas quando motor, manutencao ou outro
      * operador ja fechou entre a leitura e aqui.
+     *
+     * <p>{@code coalesce} na observacao repete Incidente.fechar: fechar sem observacao nao
+     * apaga a que o incidente aberto a mao ja trazia.
      */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Incidente i set i.status = br.com.inframonitor.incidente.entity.StatusIncidente.FECHADO, "
-            + "i.encerradoEm = :encerradoEm, i.observacao = :observacao, "
+            + "i.encerradoEm = :encerradoEm, i.observacao = coalesce(:observacao, i.observacao), "
             + "i.motivoEncerramento = br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente.FECHAMENTO_MANUAL, "
             + "i.fechadoPor = :usuario, i.updatedAt = :agora "
             + "where i.id = :id and i.status in (br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO, "

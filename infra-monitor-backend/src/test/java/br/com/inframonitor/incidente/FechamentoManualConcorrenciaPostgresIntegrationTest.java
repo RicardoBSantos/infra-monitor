@@ -2,7 +2,9 @@ package br.com.inframonitor.incidente;
 
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.incidente.dto.CloseIncidenteRequest;
+import br.com.inframonitor.incidente.dto.IncidenteResponse;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -109,13 +112,18 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
     void fecharManualComInstanciaVelhaNaoSobrescreveFechamentoAutomatico() {
         long incidenteId = incidenteAberto(montarEquipamentoEMonitor());
 
+        AtomicReference<IncidenteResponse> resposta = new AtomicReference<>();
         emTransacao(() -> {
             incidenteRepository.findById(incidenteId).orElseThrow();
             emOutraThread(() -> incidenteService.fecharAutomaticamente(
                     incidenteRepository.findById(incidenteId).orElseThrow(), FIM_MOTOR, 2));
-            incidenteService.fechar(incidenteId, new CloseIncidenteRequest(FIM_MANUAL, "manual"), operadorId);
+            resposta.set(incidenteService.fechar(incidenteId, new CloseIncidenteRequest(FIM_MANUAL, "manual"),
+                    operadorId));
         });
 
+        // Quem perdeu o CAS responde com o estado atual, nao com o fechamento que tentou.
+        assertThat(resposta.get().motivoEncerramento()).isEqualTo(MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
+        assertThat(resposta.get().encerradoEm()).isEqualTo(FIM_MOTOR);
         Map<String, Object> linha = linha(incidenteId);
         assertThat(linha).containsEntry("status", "FECHADO")
                 .containsEntry("motivo_encerramento", "RECUPERACAO_AUTOMATICA");
@@ -132,12 +140,16 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
                 + "returning id", monitorId, Timestamp.from(T0));
         aberturaJaEnviada(incidenteId);
 
+        AtomicReference<IncidenteResponse> resposta = new AtomicReference<>();
         emTransacao(() -> {
             incidenteRepository.findById(incidenteId).orElseThrow();
             emOutraThread(() -> equipamentoService.entrarEmManutencao(equipamentoId, operadorId));
-            incidenteService.fechar(incidenteId, new CloseIncidenteRequest(FIM_MANUAL, "manual"), operadorId);
+            resposta.set(incidenteService.fechar(incidenteId, new CloseIncidenteRequest(FIM_MANUAL, "manual"),
+                    operadorId));
         });
 
+        assertThat(resposta.get().motivoEncerramento()).isEqualTo(MotivoEncerramentoIncidente.MANUTENCAO);
+        assertThat(resposta.get().encerradoEm()).isNotEqualTo(FIM_MANUAL);
         assertThat(linha(incidenteId)).containsEntry("status", "FECHADO")
                 .containsEntry("motivo_encerramento", "MANUTENCAO");
         assertThat(contar(incidenteId, "INCIDENTE_ENCERRADO_MANUTENCAO")).isEqualTo(1);
@@ -159,6 +171,25 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
                 .containsEntry("motivo_encerramento", "FECHAMENTO_MANUAL")
                 .containsEntry("reconhecido_por", operadorId);
         assertThat(linha.get("reconhecido_em")).isNotNull();
+    }
+
+    /**
+     * Incidente aberto a mao traz observacao; fechar sem observacao nao pode apaga-la.
+     * Mesma regra de Incidente.fechar, que so sobrescreve com valor nao nulo.
+     */
+    @Test
+    void fecharManualSemObservacaoPreservaObservacaoDaAbertura() {
+        long incidenteId = insert("insert into incidente (monitor_id, status, iniciado_em, motivo, observacao) "
+                + "values (?, 'ABERTO', ?, 'Indisponibilidade', 'aberto pelo NOC') returning id",
+                montarEquipamentoEMonitor(), Timestamp.from(T0));
+
+        IncidenteResponse resposta = incidenteService.fechar(incidenteId,
+                new CloseIncidenteRequest(FIM_MANUAL, null), operadorId);
+
+        assertThat(resposta.observacao()).isEqualTo("aberto pelo NOC");
+        assertThat(linha(incidenteId)).containsEntry("status", "FECHADO")
+                .containsEntry("motivo_encerramento", "FECHAMENTO_MANUAL")
+                .containsEntry("observacao", "aberto pelo NOC");
     }
 
     // ---------------------------------------------------------------------------
@@ -245,8 +276,9 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
     }
 
     /**
-     * Legitimos: MANUTENCAO — so INCIDENTE_ENCERRADO_MANUTENCAO; MAN — FECHAMENTO_MANUAL e
-     * so INCIDENTE_FECHADO. Nunca os dois avisos.
+     * Legitimos: MANUTENCAO — so INCIDENTE_ENCERRADO_MANUTENCAO; MAN — FECHAMENTO_MANUAL,
+     * fechado_por = operador, observacao do operador e so INCIDENTE_FECHADO, com o "Fim:"
+     * da mensagem igual ao encerrado_em da linha. Nunca os dois avisos.
      */
     @RepeatedTest(30)
     void fecharManualEEntrarEmManutencaoConcorrentes() throws Exception {
@@ -270,7 +302,9 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
         int encerradasPorManutencao = contar(incidenteId, "INCIDENTE_ENCERRADO_MANUTENCAO");
         int fechadas = contar(incidenteId, "INCIDENTE_FECHADO");
         boolean manutencao = "MANUTENCAO".equals(motivo) && encerradasPorManutencao == 1 && fechadas == 0;
-        boolean manual = "FECHAMENTO_MANUAL".equals(motivo) && fechadas == 1 && encerradasPorManutencao == 0;
+        boolean manual = "FECHAMENTO_MANUAL".equals(motivo) && fechadas == 1 && encerradasPorManutencao == 0
+                && Long.valueOf(operadorId).equals(linha.get("fechado_por")) && "manual".equals(linha.get("observacao"))
+                && mensagemFechamentoCoincideComLinha(incidenteId);
         System.out.println("[corrida-manual-manutencao] desfecho=" + (manutencao ? "MANUTENCAO"
                 : manual ? "MAN" : "ILEGITIMO") + " motivo=" + motivo + " encerradasPorManutencao="
                 + encerradasPorManutencao + " fechadas=" + fechadas);
@@ -297,6 +331,8 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
         b.start();
         a.join(LIMITE.toMillis());
         b.join(LIMITE.toMillis());
+        // join com prazo volta em silencio; thread viva aqui e travamento, nao desfecho.
+        assertThat(a.isAlive() || b.isAlive()).as("thread da corrida ainda viva apos " + LIMITE).isFalse();
         return falhas;
     }
 
@@ -326,6 +362,7 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(erro);
         }
+        assertThat(thread.isAlive()).as("acao concorrente ainda viva apos " + LIMITE).isFalse();
         assertThat(falhas.stream().map(Throwable::toString).toList()).isEmpty();
     }
 
