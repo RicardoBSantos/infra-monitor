@@ -13,6 +13,9 @@ pasta.
 |---|---|
 | [icmp-falsos-positivos.md](icmp-falsos-positivos.md) | Os falsos positivos do `ping.exe` no Windows, a decisão pela API nativa `IcmpSendEcho` via JNA, a evidência medida e o teste contra a rede real |
 | [manutencao-proposta.md](manutencao-proposta.md) | Proposta de desenho (sem código) para suprimir notificação e incidente durante a manutenção de um equipamento |
+| [manutencao-auditoria-enums.md](manutencao-auditoria-enums.md) | Auditoria dos três enums novos de manutenção — StatusNotificacao.CANCELADA, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO, LATENCIA_ENCERRADA_MANUTENCAO — e cada ponto de leitura/escrita no backend e frontend |
+| [manutencao-backfill-diagnostico.md](manutencao-backfill-diagnostico.md) | Diagnóstico do backfill de motivo_encerramento da V19 — contagens reais por faixa de 76 incidentes fechados no banco de dev |
+| [manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md) | Verificação ponta a ponta do módulo de manutenção com backend ICMP real, dispatcher de notificação, Postgres descartável e mock do Telegram |
 | [capacidade-pool-monitoramento.md](capacidade-pool-monitoramento.md) | Medição do pool de monitoramento numa queda em massa: 9 células de K caídos × workers, e a proposta de `worker-threads`/`queue-capacity` que sai dos números |
 | [icmp-revisao-branch-relatorio.md](icmp-revisao-branch-relatorio.md) | Relatório final da revisão do branch `fix/icmp-nativo-windows`: contradição do tipo de `equipamento.ip_address`, modo de falha da biblioteca nativa, exceções nos pools, e a seção A.1 com o `/status` verdadeiro de motor desligado |
 | [topologia-git-e-estrategia-de-merge.md](topologia-git-e-estrategia-de-merge.md) | Levantamento só de leitura da topologia de branches, distância até `main`/`origin/main` e proposta de estratégia de merge por frente de trabalho |
