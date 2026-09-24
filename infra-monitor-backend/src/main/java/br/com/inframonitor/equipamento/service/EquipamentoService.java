@@ -9,6 +9,7 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
@@ -166,7 +167,12 @@ public class EquipamentoService {
         //    responder. Sem reler, NotificacaoMessageBuilder monta a mensagem com
         //    encerradoEm ainda nulo ("Fim: null"), porque os objetos antigos continuam
         //    com status ABERTO e encerradoEm nulo em memoria.
-        incidenteRepository.findAllById(incidentesAfetadosIds)
+        //    So notifica o que ESTA manutencao fechou: um id lido no passo 2 pode ter
+        //    sido fechado pelo motor (fecharAutomaticamente, CAS) antes do bulk update,
+        //    que entao o pula; notificar esse incidente somaria INCIDENTE_ENCERRADO_MANUTENCAO
+        //    ao INCIDENTE_FECHADO do motor.
+        incidenteRepository.findAllById(incidentesAfetadosIds).stream()
+                .filter(incidente -> incidente.getMotivoEncerramento() == MotivoEncerramentoIncidente.MANUTENCAO)
                 .forEach(incidente -> notificacaoService.tratarEncerramentoPorManutencao(incidente, agora));
         episodioRepository.findAllById(episodiosAfetadosIds)
                 .forEach(episodio -> notificacaoService.tratarEncerramentoPorManutencao(episodio, agora));

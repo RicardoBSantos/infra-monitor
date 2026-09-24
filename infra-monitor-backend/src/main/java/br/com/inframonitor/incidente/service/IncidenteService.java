@@ -106,9 +106,17 @@ public class IncidenteService {
             throw new IllegalArgumentException("encerradoEm deve ser maior ou igual a iniciadoEm");
         }
         // Sem autor: quem fechou foi o motor. E o unico caminho que deixa fechado_por nulo.
-        incidente.fechar(encerradoEm, "Recuperacao detectada automaticamente apos " + sucessosConsecutivos
-                + " sucessos consecutivos.", null, MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
-        Incidente fechado = incidenteRepository.saveAndFlush(incidente);
+        // CAS: se a manutencao, um humano ou outro ciclo fechou entre a leitura do
+        // processor e aqui, nao ha o que fechar nem o que notificar.
+        String observacao = "Recuperacao detectada automaticamente apos " + sucessosConsecutivos
+                + " sucessos consecutivos.";
+        if (incidenteRepository.fecharAutomaticamenteSeEmAberto(incidente.getId(), encerradoEm, observacao,
+                Instant.now()) == 0) {
+            return obterIncidente(incidente.getId());
+        }
+        // O bulk update nao atualiza a instancia carregada; releitura antes de notificar,
+        // senao a mensagem sai com encerradoEm nulo.
+        Incidente fechado = obterIncidente(incidente.getId());
         notificacaoService.criarParaIncidenteFechado(fechado);
         return fechado;
     }

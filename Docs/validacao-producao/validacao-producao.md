@@ -19,6 +19,7 @@ pasta.
 | [capacidade-pool-monitoramento.md](capacidade-pool-monitoramento.md) | Medição do pool de monitoramento numa queda em massa: 9 células de K caídos × workers, e a proposta de `worker-threads`/`queue-capacity` que sai dos números |
 | [icmp-revisao-branch-relatorio.md](icmp-revisao-branch-relatorio.md) | Relatório final da revisão do branch `fix/icmp-nativo-windows`: contradição do tipo de `equipamento.ip_address`, modo de falha da biblioteca nativa, exceções nos pools, e a seção A.1 com o `/status` verdadeiro de motor desligado |
 | [topologia-git-e-estrategia-de-merge.md](topologia-git-e-estrategia-de-merge.md) | Levantamento só de leitura da topologia de branches, distância até `main`/`origin/main` e proposta de estratégia de merge por frente de trabalho |
+| [riscos-execucao-correcoes.md](riscos-execucao-correcoes.md) | Os três riscos de execução fechados antes do merge: CAS no fechamento automático, `lock_timeout` no motor e pool, janela na exclusão de monitor — com distribuição de desfechos das corridas reais e prova de reversão |
 | [evidencias/](evidencias/) | Capturas brutas (log de subida, respostas de `/api/v1/status`) que sustentam as seções resumidas dos relatórios acima |
 | [design — icmp-nativo-windows](../superpowers/specs/2026-09-21-icmp-nativo-windows-design.md) | O design que este ciclo implementou: contrato `IcmpResult`/`StatusIcmp`, mapeamento de códigos Win32, componentes criados |
 

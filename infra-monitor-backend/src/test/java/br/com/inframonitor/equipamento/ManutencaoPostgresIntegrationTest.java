@@ -1,7 +1,9 @@
 package br.com.inframonitor.equipamento;
 
+import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
+import br.com.inframonitor.incidente.entity.Incidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
@@ -281,6 +283,139 @@ class ManutencaoPostgresIntegrationTest {
         assertThat(notificacoesOrfas)
                 .as("nenhuma notificacao de abertura pode ficar PENDENTE sem ser cancelada ou substituida")
                 .isZero();
+    }
+
+    /**
+     * Corrida real entre a entrada em manutencao e o fechamento automatico do MESMO
+     * incidente. A instancia que o motor fecha e carregada ANTES da barreira, como no
+     * IncidentProcessor real (le, decide, fecha). Sem CAS, o UPDATE do Hibernate grava
+     * todas as colunas WHERE id = ? e sobrescreve o fechamento por manutencao.
+     *
+     * <p>Legitimos: (M) manutencao ganhou — FECHADO/MANUTENCAO, fechado_por = operador,
+     * uma INCIDENTE_ENCERRADO_MANUTENCAO e nenhuma INCIDENTE_FECHADO; (R) recuperacao
+     * ganhou — FECHADO/RECUPERACAO_AUTOMATICA, fechado_por nulo, uma INCIDENTE_FECHADO
+     * e nenhuma INCIDENTE_ENCERRADO_MANUTENCAO.
+     */
+    @RepeatedTest(30)
+    void entrarEmManutencaoEFecharAutomaticamenteConcorrentesTerminamEmUmSoFechamento() throws Exception {
+        long equipamentoId = montarEquipamento(false);
+        long monitorId = montarMonitor(equipamentoId);
+        long incidenteId = insert("insert into incidente (monitor_id, status, iniciado_em, motivo) "
+                + "values (?, 'ABERTO', ?, 'Indisponibilidade') returning id", monitorId, Timestamp.from(T0));
+        insert("insert into janela_monitoramento (monitor_id, inicio_em, origem) values (?, ?, 'PRECISA') "
+                + "returning id", monitorId, Timestamp.from(T0));
+        insert("insert into notificacao (incidente_id, canal, tipo_evento, status, mensagem, enviado_em) "
+                + "values (?, 'TELEGRAM', 'INCIDENTE_ABERTO', 'ENVIADA', 'msg', ?) returning id",
+                incidenteId, Timestamp.from(T0));
+        Incidente carregadoPeloMotor = incidenteRepository.findById(incidenteId).orElseThrow();
+
+        CyclicBarrier partida = new CyclicBarrier(2);
+        List<Throwable> falhas = new CopyOnWriteArrayList<>();
+        Thread manutencao = new Thread(() -> {
+            try {
+                partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
+            } catch (Throwable erro) {
+                falhas.add(erro);
+            }
+        }, "manutencao");
+        Thread recuperacao = new Thread(() -> {
+            try {
+                partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                incidenteService.fecharAutomaticamente(carregadoPeloMotor, T0.plusSeconds(300), 2);
+            } catch (Throwable erro) {
+                falhas.add(erro);
+            }
+        }, "fechamento-automatico");
+        manutencao.start();
+        recuperacao.start();
+        manutencao.join(LIMITE.toMillis());
+        recuperacao.join(LIMITE.toMillis());
+
+        assertThat(falhas.stream().map(Throwable::toString).toList()).isEmpty();
+
+        var linha = jdbc.queryForMap("select status, motivo_encerramento, fechado_por from incidente where id = ?",
+                incidenteId);
+        Integer encerradasPorManutencao = jdbc.queryForObject("select count(*) from notificacao where incidente_id = ? "
+                + "and tipo_evento = 'INCIDENTE_ENCERRADO_MANUTENCAO'", Integer.class, incidenteId);
+        Integer fechadas = jdbc.queryForObject("select count(*) from notificacao where incidente_id = ? "
+                + "and tipo_evento = 'INCIDENTE_FECHADO'", Integer.class, incidenteId);
+        Object motivo = linha.get("motivo_encerramento");
+        Object fechadoPor = linha.get("fechado_por");
+
+        boolean manutencaoGanhou = "MANUTENCAO".equals(motivo) && Long.valueOf(operadorId).equals(fechadoPor)
+                && encerradasPorManutencao == 1 && fechadas == 0;
+        boolean recuperacaoGanhou = "RECUPERACAO_AUTOMATICA".equals(motivo) && fechadoPor == null
+                && fechadas == 1 && encerradasPorManutencao == 0;
+        System.out.println("[corrida-fechamento-manutencao] desfecho=" + (manutencaoGanhou ? "M-manutencao-ganhou"
+                : recuperacaoGanhou ? "R-recuperacao-ganhou" : "ILEGITIMO") + " motivo=" + motivo
+                + " fechadoPor=" + fechadoPor + " encerradasPorManutencao=" + encerradasPorManutencao
+                + " fechadas=" + fechadas);
+
+        assertThat(linha.get("status")).isEqualTo("FECHADO");
+        assertThat(manutencaoGanhou || recuperacaoGanhou)
+                .as("um fechamento so: motivo, autor e notificacao do MESMO vencedor")
+                .isTrue();
+    }
+
+    /**
+     * Corrida real entre reconhecer (CAS contra ABERTO) e o fechamento automatico.
+     * Sem CAS no fechamento, o motor grava reconhecido_em/reconhecido_por de volta a
+     * NULL a partir da instancia carregada antes — a trilha de quem reconheceu some
+     * mesmo com reconhecer tendo respondido sucesso.
+     *
+     * <p>Legitimos: (F) o fechamento ganhou — FECHADO sem reconhecimento e reconhecer
+     * recebeu 409; (RF) reconhecer ganhou e depois o motor fechou — FECHADO com
+     * reconhecimento preservado.
+     */
+    @RepeatedTest(30)
+    void reconhecerEFecharAutomaticamenteConcorrentesNaoApagamReconhecimento() throws Exception {
+        long monitorId = montarEquipamentoEMonitor(false);
+        long incidenteId = insert("insert into incidente (monitor_id, status, iniciado_em, motivo) "
+                + "values (?, 'ABERTO', ?, 'Indisponibilidade') returning id", monitorId, Timestamp.from(T0));
+        Incidente carregadoPeloMotor = incidenteRepository.findById(incidenteId).orElseThrow();
+
+        CyclicBarrier partida = new CyclicBarrier(2);
+        List<Throwable> falhas = new CopyOnWriteArrayList<>();
+        java.util.concurrent.atomic.AtomicBoolean reconhecimentoRecusado = new java.util.concurrent.atomic.AtomicBoolean();
+        Thread reconhecimento = new Thread(() -> {
+            try {
+                partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                incidenteService.reconhecer(incidenteId, operadorId);
+            } catch (ConflitoException recusado) {
+                reconhecimentoRecusado.set(true);
+            } catch (Throwable erro) {
+                falhas.add(erro);
+            }
+        }, "reconhecer");
+        Thread recuperacao = new Thread(() -> {
+            try {
+                partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                incidenteService.fecharAutomaticamente(carregadoPeloMotor, T0.plusSeconds(300), 2);
+            } catch (Throwable erro) {
+                falhas.add(erro);
+            }
+        }, "fechamento-automatico");
+        reconhecimento.start();
+        recuperacao.start();
+        reconhecimento.join(LIMITE.toMillis());
+        recuperacao.join(LIMITE.toMillis());
+
+        assertThat(falhas.stream().map(Throwable::toString).toList()).isEmpty();
+
+        var linha = jdbc.queryForMap("select status, reconhecido_em, reconhecido_por from incidente where id = ?",
+                incidenteId);
+        boolean reconhecido = linha.get("reconhecido_por") != null && linha.get("reconhecido_em") != null;
+        boolean fechamentoGanhou = reconhecimentoRecusado.get() && !reconhecido;
+        boolean reconhecerGanhou = !reconhecimentoRecusado.get() && reconhecido;
+        System.out.println("[corrida-fechamento-reconhecer] desfecho=" + (fechamentoGanhou ? "F-fechamento-ganhou"
+                : reconhecerGanhou ? "RF-reconhecido-e-fechado" : "ILEGITIMO") + " recusado="
+                + reconhecimentoRecusado.get() + " reconhecidoPor=" + linha.get("reconhecido_por"));
+
+        assertThat(linha.get("status")).isEqualTo("FECHADO");
+        assertThat(fechamentoGanhou || reconhecerGanhou)
+                .as("reconhecer que respondeu sucesso nao pode ter o reconhecimento apagado pelo motor")
+                .isTrue();
     }
 
     // ---------------------------------------------------------------------------

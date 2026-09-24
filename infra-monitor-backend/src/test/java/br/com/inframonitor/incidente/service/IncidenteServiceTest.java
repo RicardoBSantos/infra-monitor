@@ -130,7 +130,9 @@ class IncidenteServiceTest {
         when(incidenteRepository.inserirSeElegivel(eq(1L), eq(INICIO), any(), any())).thenReturn(1);
         when(incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(1L, StatusIncidente.EM_ABERTO))
                 .thenReturn(Optional.of(incidenteInserido));
-        when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(incidenteRepository.fecharAutomaticamenteSeEmAberto(eq(10L), eq(INICIO.plusSeconds(60)), any(), any()))
+                .thenReturn(1);
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(incidenteInserido));
 
         Optional<Incidente> aberto = incidenteService.abrirAutomaticamente(monitor, INICIO, 3);
         assertThat(aberto).contains(incidenteInserido);
@@ -217,7 +219,15 @@ class IncidenteServiceTest {
     @Test
     void fechaAutomaticamenteAPartirDeReconhecido() {
         Incidente reconhecido = incidente(StatusIncidente.RECONHECIDO);
-        when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(i -> i.getArgument(0));
+        // Simula o bulk update: so as colunas de fechamento mudam na linha; a releitura
+        // por findById devolve a linha ja fechada.
+        when(incidenteRepository.fecharAutomaticamenteSeEmAberto(eq(10L), eq(INICIO.plusSeconds(120)), any(), any()))
+                .thenAnswer(i -> {
+                    reconhecido.fechar(INICIO.plusSeconds(120), i.getArgument(2), null,
+                            MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA);
+                    return 1;
+                });
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(reconhecido));
 
         Incidente fechado = incidenteService.fecharAutomaticamente(reconhecido, INICIO.plusSeconds(120), 2);
 
@@ -228,6 +238,21 @@ class IncidenteServiceTest {
         // Fechamento do motor nao tem autor: fechado_por nulo e a semantica da V17.
         assertThat(fechado.getFechadoPor()).isNull();
         verify(notificacaoService).criarParaIncidenteFechado(fechado);
+    }
+
+    @Test
+    void fecharAutomaticamenteNaoNotificaQuandoOutraTransacaoJaFechou() {
+        Incidente carregadoAberto = incidente(StatusIncidente.ABERTO);
+        Incidente fechadoPorManutencao = incidente(StatusIncidente.ABERTO);
+        fechadoPorManutencao.fechar(INICIO.plusSeconds(90), null, operador(), MotivoEncerramentoIncidente.MANUTENCAO);
+        when(incidenteRepository.fecharAutomaticamenteSeEmAberto(eq(10L), eq(INICIO.plusSeconds(120)), any(), any()))
+                .thenReturn(0);
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(fechadoPorManutencao));
+
+        Incidente resultado = incidenteService.fecharAutomaticamente(carregadoAberto, INICIO.plusSeconds(120), 2);
+
+        assertThat(resultado.getMotivoEncerramento()).isEqualTo(MotivoEncerramentoIncidente.MANUTENCAO);
+        verifyNoInteractions(notificacaoService);
     }
 
     private Usuario operador() {

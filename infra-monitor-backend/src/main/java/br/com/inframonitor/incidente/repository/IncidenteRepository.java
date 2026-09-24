@@ -60,6 +60,28 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     int reconhecerSeAberto(@Param("id") Long id, @Param("usuario") Usuario usuario, @Param("agora") Instant agora);
 
     /**
+     * Fechamento do motor como compara-e-troca contra ABERTO/RECONHECIDO, no idioma de
+     * reconhecerSeAberto e fecharPorManutencao. O caminho antigo carregava a entidade,
+     * chamava fechar() e fazia saveAndFlush: o UPDATE do Hibernate grava TODAS as
+     * colunas WHERE id = ?, sem versao, entao sobrescrevia um fechamento por manutencao
+     * que tivesse commitado no meio (motivo e autor trocados, duas notificacoes de
+     * encerramento) e apagava reconhecido_em/reconhecido_por gravados por reconhecer.
+     *
+     * <p>So toca as colunas de fechamento. Retorna 1 quando fechou e 0 quando outra
+     * transacao ja fechou. Sob READ COMMITTED, se a outra transacao segura a linha, este
+     * UPDATE espera e o Postgres reavalia o WHERE sobre a versao nova (EvalPlanQual).
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Incidente i set i.status = br.com.inframonitor.incidente.entity.StatusIncidente.FECHADO, "
+            + "i.encerradoEm = :encerradoEm, i.observacao = :observacao, "
+            + "i.motivoEncerramento = br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente.RECUPERACAO_AUTOMATICA, "
+            + "i.fechadoPor = null, i.updatedAt = :agora "
+            + "where i.id = :id and i.status in (br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO, "
+            + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
+    int fecharAutomaticamenteSeEmAberto(@Param("id") Long id, @Param("encerradoEm") Instant encerradoEm,
+                                        @Param("observacao") String observacao, @Param("agora") Instant agora);
+
+    /**
      * Abertura condicional, no idioma de NotificacaoRepository.inserirPendenteSeAusente.
      * O WHERE carrega o predicado inteiro de "este monitor deveria estar sendo
      * observado agora"; o ON CONFLICT DO NOTHING absorve uq_incidente_monitor_aberto.
