@@ -49,8 +49,8 @@ verde quando a correção entra, não nascer já verde). Um teste sequencial pod
 ele ainda documenta a lógica de negócio — mas não conta como prova de ausência de corrida.
 
 **Primeira aplicação da regra.** As próprias corridas desta tarefa (`entrarEmManutencaoEFecharAutomaticamenteConcorrentes`
-e `reconhecerEFecharAutomaticamenteConcorrentes`, descritas na Seção 1 de
-`Docs/validacao-producao/validacao-producao.md`, "Prova" do item 1a) já seguem esse desenho: mesmo
+e `reconhecerEFecharAutomaticamenteConcorrentes`, descritas em
+[riscos-execucao-correcoes.md](riscos-execucao-correcoes.md) §1a, "Prova") já seguem esse desenho: mesmo
 arnês, mesmo `CyclicBarrier`, 30 repetições, contra `ManutencaoPostgresIntegrationTest` real — a
 primeira vez que a regra nascida deste achado foi aplicada a um caso novo.
 
@@ -145,7 +145,7 @@ oposto da proteção que sugere. A garantia real contra duplicação passou a se
 `MonitoringEngineConfigurationTest.engineHabilitadoComMonitoringClockConfigurationNaoDuplicaBean`
 (linha 27), não uma anotação. **Estado atual: resolvido, sem pendência.**
 
-### 5. Três pares de testes sobrepostos
+### 5. Pares de testes sobrepostos (pedidos três, confirmados dois)
 
 - **Par 1** — `infra-monitor-backend/src/test/java/br/com/inframonitor/monitoring/icmp/IcmpAmbienteConfigurationTest.java:75`
   (`motorDesligadoAindaAssimTentaACarga`) e `:152`
@@ -197,3 +197,38 @@ Falta, para fechar: subir a JVM com `-XX:NativeMemoryTracking=summary`, rodar o 
 em massa do arnês de capacidade, e comparar `jcmd <pid> VM.native_memory summary` antes/depois para
 isolar o custo de memória nativa por thread parada do pool (threads ociosas ainda retêm sua pilha
 alocada mesmo sem CPU).
+
+### 7. Mapa: clique no marcador da unidade também seleciona o município debaixo dele
+
+`infra-monitor-frontend/src/app/features/mapa/mapa.component.ts:667-671`: o clique no
+`<button class="map__unidade">` chama `selecionarPeloMarcador` (`:721`, `:804`; município do `codigo_ibge` da unidade +
+unidade), e o mesmo clique também dispara `map.on('click', 'municipios-fill', ...)` do polígono que
+está debaixo do marcador. Esse handler chama `selectMunicipio` (`:526`), que chama `limparUnidade()`
+(`:531`) e apaga a seleção. Com `codigo_ibge` e coordenada no mesmo município os dois caminhos
+concordam e o defeito fica escondido. Quando o `codigo_ibge` da unidade é diferente do município em
+que a coordenada cai, **o marcador fica inclicável**: o painel mostra o município do polígono ("Nenhuma
+unidade cadastrada neste município.") e o marcador fica com `aria-pressed="false"`.
+
+- Estado real: a ITA-09 do banco de dev está nesse caso (`codigo_ibge` 2803005, coordenada no polígono
+  de Itabaiana, 2802908).
+- Evidência: [manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md),
+  "Execução 1", e `infra-monitor-frontend/e2e/mapa-manutencao-evidence/execucao-1-codigo-ibge-divergente/`
+  (`03-clique-no-marcador-sem-painel-da-unidade.png`).
+- `main` não tem `mapa.component.ts`: o defeito **entra no `main` com o merge** deste branch.
+- Não corrigido nesta rodada.
+
+### 8. Rodapé da navegação afirma "Monitoramento ICMP ativo" sem consultar o motor
+
+`infra-monitor-frontend/src/app/layout/sidebar/sidebar.component.html:19` tem o texto fixo
+`Monitoramento ICMP ativo`, com o indicador de pulso. Nada no componente lê o estado do motor: o texto
+aparece também com `monitoring.engine.enabled=false` (observado na verificação de ponta a ponta, com o
+motor desligado). Não investigado além da leitura do template; não corrigido. Também entra no `main`
+com o merge.
+
+### 9. Legenda do mapa no tema claro: bolinha "Em manutenção" mais escura que o marcador (cosmético)
+
+A legenda usa o token de cor do tema; o marcador usa `COR_DO_STATUS`, que tem os valores do tema
+escuro. No tema claro a bolinha da legenda sai num azul mais escuro que o marcador azul-claro
+(`#7fadff`). Não afeta a leitura do status. Registrado em
+[manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md), "Observações sem
+ação". Não corrigido.

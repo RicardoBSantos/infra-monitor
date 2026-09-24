@@ -1,8 +1,10 @@
 # Riscos de execução — correções da rodada de fechamento
 
-Três riscos que ficaram abertos na revisão final do branch `feat/manutencao-equipamento`, corrigidos
-com teste concorrente real (threads + `CyclicBarrier` + Postgres de Testcontainers + 30 repetições) e
-prova de reversão. Desenho: [../superpowers/specs/2026-09-24-fechamento-dois-branches-design.md](../superpowers/specs/2026-09-24-fechamento-dois-branches-design.md).
+Três riscos que ficaram abertos na revisão final do branch `feat/manutencao-equipamento`, cada um com
+prova de reversão contra Postgres de Testcontainers. O nível da prova não é o mesmo nos três: 1a tem
+corrida real (threads + `CyclicBarrier` + 30 repetições) e ordem fixa; 1b tem thread real segurando o
+lock + latch, execução única por processor; 1c é **só sequencial** (uma thread), e a corrida medição ×
+exclusão fica guardada pela FK, sem teste de corrida que a prove. Desenho: [../superpowers/specs/2026-09-24-fechamento-dois-branches-design.md](../superpowers/specs/2026-09-24-fechamento-dois-branches-design.md).
 
 ## 1a. `fecharAutomaticamente` sem CAS
 
@@ -144,6 +146,10 @@ ele quisesse, segurando a conexão.
   `entrarEmManutencao`, `atualizar`/`ativar`/`desativar` de equipamento, e a abertura concorrente de
   outro monitor do mesmo equipamento, todas na casa de milissegundos. 2 s fica duas ordens de grandeza
   acima da espera legítima e bem abaixo do menor intervalo de monitor (10 s).
+- O `lock_timeout` vale **por espera de lock** (por instrução que espera), não por medição. Os dois
+  processors rodam em sequência na mesma chamada de `MedicaoService.criar`, cada um na sua transação
+  e com o seu `lock_timeout`; como cada um aborta na primeira espera estourada, o pior caso é ~2 s por
+  processor, ≈ 4 s ou pouco mais por medição. Continua abaixo do intervalo mínimo de 10 s.
 
 ### Decisão no estouro: pula o ciclo
 
@@ -153,6 +159,9 @@ O Postgres devolve `55P03` (`canceling statement due to lock timeout`), o Spring
 fora dessa transação: nada se perde. A próxima medição do monitor reavalia a cauda inteira e abre ou
 fecha no ciclo seguinte. `MedicaoService.criar` captura `PessimisticLockingFailureException` antes do
 `catch (RuntimeException)` genérico (`MedicaoService.java:54` e `:66`) e loga **WARN** sem stack trace.
+O mesmo `catch` cobre deadlock (`40P01`), que o Spring também traduz para uma subclasse de
+`PessimisticLockingFailureException`, com a mesma política de pular o ciclo; isso decorre da hierarquia
+de exceções, não há teste que provoque um deadlock.
 
 - **Não registrar falha:** a medição é verdadeira. O que não aconteceu foi a interpretação dela.
 - **Não tentar de novo na hora:** o detentor típico é a própria manutenção. Tentar de novo prende o
@@ -189,6 +198,50 @@ ainda emite as suas duas linhas WARN do erro JDBC (`HHH000247: ErrorCode: 0, SQL
 
 Suíte completa depois da correção: `Tests run: 445, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
+**Lacuna achada na revisão final, fechada com um segundo método.** O teste acima só passa pelo
+`IncidentProcessor`: remover o `aplicarNaTransacaoCorrente` do `LatencyEpisodeProcessor`
+(`LatencyEpisodeProcessor.java:63`) não quebrava nada. O segundo método,
+`lockEstouradoNoProcessorDeLatenciaPulaOCicloSemPerderMedicaoEAProximaAbreOEpisodio`, usa o mesmo
+detentor (thread real, `for update` na linha do equipamento por 8 s, latch), mas com duas medições
+`SUCESSO` de 400 ms já gravadas e a terceira chegando por `MedicaoService.criar`. A regra de abertura
+é: as últimas `monitoring.latencia-ciclos` (2) medições `SUCESSO` com latência acima de
+`monitoring.latencia-degradada-ms` (250). Exige volta em menos de 4 s, 3 medições, zero linhas em
+`monitor_episodio_latencia`, zero notificação e zero incidente; solto o lock (e `isAlive()` falso
+depois do `join`, também acrescentado ao primeiro método), a próxima medição degradada abre o episódio.
+
+Isolamento do caminho de latência: com cauda `SUCESSO` e nenhum incidente aberto, o
+`IncidentProcessor` retorna em `sequenciaCompleta` (`IncidentProcessor.java:70`) antes de qualquer
+`FOR UPDATE`. O log confirma: no método de latência só aparece o WARN `processing latency`, nunca o
+`processing incidents`, e o tempo verde (~2,2 s) é de uma espera só — se o processor de incidente
+também esperasse, seriam ~4 s.
+
+**Reversão (só a chamada do `LatencyEpisodeProcessor` removida, arquivo editado à mão):**
+`Tests run: 2, Failures: 1`
+
+```
+[lock-timeout-latencia] chamada voltou em 7983 ms
+Expecting actual:
+  7.9835961S
+to be less than:
+  4S
+	at ...LockTimeoutMotorPostgresIntegrationTest.lockEstouradoNoProcessorDeLatenciaPulaOCicloSemPerderMedicaoEAProximaAbreOEpisodio(LockTimeoutMotorPostgresIntegrationTest.java:165)
+[lock-timeout] chamada voltou em 2046 ms
+```
+
+**Restaurada:** `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`
+
+```
+WARN ... b.c.i.medicao.service.MedicaoService     : Lock not acquired while processing latency for measurement 3; re-evaluated on the next measurement
+[lock-timeout-latencia] chamada voltou em 2246 ms
+[lock-timeout] chamada voltou em 2053 ms
+```
+
+Suíte completa com o método novo: `Tests run: 449, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS` (448 da seção 1c + 1).
+
+Limite: os dois métodos provam a espera na **abertura** (`inserirSeElegivel`). A espera nos
+fechamentos (CAS do incidente, `saveAndFlush` da normalização do episódio) recebe o mesmo
+`lock_timeout` pela mesma chamada, mas não tem teste que a provoque.
+
 ### Pool
 
 A conta do desenho previa 11 detentores de segundo plano. A leitura do código dá **10**:
@@ -216,7 +269,8 @@ Cada detentor segura no máximo uma conexão por vez, e nenhum a segura durante 
   O HTTP do Telegram roda fora de transação (`NotificationDispatcher.java:65`).
 
 Com o default antigo de 10, o pico de segundo plano já esgota o pool antes de qualquer requisição
-HTTP. Com `lock_timeout`, cada worker do motor pode segurar conexão por até 2 s num estouro. **Novo
+HTTP. Com `lock_timeout`, cada worker do motor pode segurar conexão por ~2 s por instrução que estoura
+(≈ 4 s ou pouco mais por medição se os dois processors esperarem, ver "Correção" acima). **Novo
 default: 20** (`application.yml:18`, conta no comentário), 10 de segundo plano e 10 para a API, bem
 abaixo do `max_connections = 100` do Postgres. O desenho previa 20 = 11 + 9. Com 10 detentores, a
 regra "segundo plano + 9" daria 19. Arredondado para 20, que também cobre o caso de alguém ligar
@@ -257,7 +311,9 @@ não fecha, porque um monitor sem medição e sem incidente não tem período ob
 precise preservar, e fechar não bastaria de qualquer forma — a FK continuaria `RESTRICT`. Corrida
 medição×exclusão: se o motor gravar uma medição entre a guarda de `medicaoRepository.existsByMonitorId`
 e o `delete`, a FK de `medicao` (V6:17) estoura, a transação inteira volta (janelas apagadas inclusive)
-e a API responde 409 — a invariante fica garantida pelo próprio banco, não por lock aplicativo.
+e a API responde 409 — a guarda é do próprio banco, não de lock aplicativo. Isso é leitura do
+esquema e do código: **nenhum teste reproduz essa corrida com threads reais**; os testes desta seção
+são sequenciais.
 
 ### Equipamento
 
@@ -276,7 +332,7 @@ auditoria de concorrência, não inventado aqui. Nada a cobrir nesta correção.
 
 ### Prova
 
-`ExclusaoEJanelaPostgresIntegrationTest`, Testcontainers com Postgres 16 real:
+`ExclusaoEJanelaPostgresIntegrationTest`, Testcontainers com Postgres 16 real, uma thread só (nenhum dos três é teste de corrida):
 
 - `excluirMonitorSemHistoricoApagaAJanelaEOMonitor` — RED com a `DataIntegrityViolationException`
   acima; GREEN depois de `apagarDoMonitor`: zero linhas em `monitor` e em `janela_monitoramento` para o
