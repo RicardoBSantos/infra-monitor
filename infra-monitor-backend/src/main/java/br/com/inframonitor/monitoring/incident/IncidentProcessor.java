@@ -65,7 +65,7 @@ public class IncidentProcessor {
             log.debug("Failure threshold not reached for monitor {}", monitor.getId());
             return;
         }
-        // Espelho da guarda de processarRecovery (:78): medicao anterior ao inicio da
+        // Espelho da guarda de processarRecovery: medicao anterior ao inicio da
         // observacao atual nao sustenta abertura. Sem isto, a cauda congelada pela
         // manutencao abre um incidente com iniciadoEm de antes dela, e dispara Telegram
         // na PRIMEIRA falha depois da saida - que pode ser o equipamento ainda subindo.

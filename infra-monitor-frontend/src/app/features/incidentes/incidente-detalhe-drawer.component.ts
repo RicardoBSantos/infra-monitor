@@ -414,6 +414,18 @@ export class IncidenteDetalheDrawerComponent {
   protected rotuloDoMotivoDeEncerramento(motivo: IncidentClosureReason | null): string {
     return rotuloMotivoEncerramento(motivo);
   }
+
+  /**
+   * "Motor de monitoramento" só é um fato para quem fechou depois da V17, quando o motor
+   * passou a gravar `motivoEncerramento = AutomaticRecovery`. Um `fechadoPorNome` nulo sem
+   * esse motivo é um incidente legado — encerrado antes da coluna existir — e não pode ser
+   * lido como "o motor fechou".
+   */
+  protected nomeDeQuemEncerrou(item: OcorrenciaDetalhe): string {
+    if (item.fechadoPorNome) return item.fechadoPorNome;
+    if (item.motivoEncerramento === IncidentClosureReason.AutomaticRecovery) return 'Motor de monitoramento';
+    return '—';
+  }
 }
 
 // ---- Normalização --------------------------------------------------------------

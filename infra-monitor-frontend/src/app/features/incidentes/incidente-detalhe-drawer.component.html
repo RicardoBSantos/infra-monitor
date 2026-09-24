@@ -167,10 +167,12 @@
               @else { <span class="em-curso">Em curso</span> }
             </dd>
             @if (item.tipo === IncidentKind.Incident) {
-              <dt>Encerrado por</dt>
-              <dd>{{ item.fechadoPorNome ?? 'Motor de monitoramento' }}</dd>
-              <dt>Motivo do encerramento</dt>
-              <dd>{{ rotuloDoMotivoDeEncerramento(item.motivoEncerramento) }}</dd>
+              @if (item.encerradoEm) {
+                <dt>Encerrado por</dt>
+                <dd>{{ nomeDeQuemEncerrou(item) }}</dd>
+                <dt>Motivo do encerramento</dt>
+                <dd>{{ rotuloDoMotivoDeEncerramento(item.motivoEncerramento) }}</dd>
+              }
               <dt>Reconhecido em</dt><dd class="mono">{{ item.reconhecidoEm ? (item.reconhecidoEm | date:'dd/MM/yyyy HH:mm:ss') : '—' }}</dd>
               <dt>Reconhecido por</dt><dd>{{ item.reconhecidoPorNome ?? '—' }}</dd>
             }

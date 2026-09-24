@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { IncidentStatus, MeasurementStatus, MonitorType } from '../../core/models/api-enums';
+import { IncidentClosureReason, IncidentStatus, MeasurementStatus, MonitorType } from '../../core/models/api-enums';
 import { IncidentKind } from '../../core/models/dashboard-incidente';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { IncidenteDetalheDrawerComponent } from './incidente-detalhe-drawer.component';
@@ -267,6 +267,63 @@ describe('IncidenteDetalheDrawerComponent', () => {
     expect(kpi('Pico').className).toContain('kpi--down');
     expect(valorDo('Acima do limiar')).toBe('2');
     expect(kpi('Acima do limiar').className).toContain('kpi--warn');
+  });
+
+  /**
+   * A gaveta não pode afirmar um fechamento que não aconteceu. `encerradoEm` nulo é o
+   * único sinal confiável de "em curso" — `tipo === Incident` sozinho não basta, porque
+   * também é verdadeiro para um incidente aberto.
+   */
+  it('não afirma quem encerrou nem o motivo quando o incidente está aberto', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    responderBlocos();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).not.toContain('Encerrado por');
+    expect(texto).not.toContain('Motivo do encerramento');
+  });
+
+  it('mostra o motivo de manutenção quando o incidente foi fechado pela entrada em manutenção', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+      ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
+      fechadoPorNome: null, motivoEncerramento: IncidentClosureReason.Maintenance,
+    });
+    responderBlocos();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).toContain('Entrada em manutenção');
+  });
+
+  it('atribui ao motor de monitoramento só quando o motivo registrado é recuperação automática', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+      ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
+      fechadoPorNome: null, motivoEncerramento: IncidentClosureReason.AutomaticRecovery,
+    });
+    responderBlocos();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).toContain('Motor de monitoramento');
+  });
+
+  /**
+   * Incidente legado: fechado antes da V17/V19, sem autor e sem motivo registrados.
+   * `'Motor de monitoramento'` seria uma inferência apresentada como fato — o traço é
+   * a leitura honesta de "não sabemos".
+   */
+  it('mostra travessão para incidente legado fechado sem autor e sem motivo', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+      ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
+      fechadoPorNome: null, motivoEncerramento: null,
+    });
+    responderBlocos();
+
+    const linhaEncerradoPor = Array.from(fixture.nativeElement.querySelectorAll('dt') as NodeListOf<HTMLElement>)
+      .find(dt => dt.textContent?.trim() === 'Encerrado por');
+    expect(linhaEncerradoPor?.nextElementSibling?.textContent?.trim()).toBe('—');
   });
 
   it('trata id inexistente como ocorrência não encontrada, sem derrubar a tela', () => {

@@ -166,8 +166,10 @@ public class EquipamentoService {
         //    responder. Sem reler, NotificacaoMessageBuilder monta a mensagem com
         //    encerradoEm ainda nulo ("Fim: null"), porque os objetos antigos continuam
         //    com status ABERTO e encerradoEm nulo em memoria.
-        incidenteRepository.findAllById(incidentesAfetadosIds).forEach(notificacaoService::tratarEncerramentoPorManutencao);
-        episodioRepository.findAllById(episodiosAfetadosIds).forEach(notificacaoService::tratarEncerramentoPorManutencao);
+        incidenteRepository.findAllById(incidentesAfetadosIds)
+                .forEach(incidente -> notificacaoService.tratarEncerramentoPorManutencao(incidente, agora));
+        episodioRepository.findAllById(episodiosAfetadosIds)
+                .forEach(episodio -> notificacaoService.tratarEncerramentoPorManutencao(episodio, agora));
         return paraResposta(obterEquipamento(id));
     }
 

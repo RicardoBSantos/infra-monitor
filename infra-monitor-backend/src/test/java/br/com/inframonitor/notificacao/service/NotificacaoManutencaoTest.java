@@ -81,7 +81,7 @@ class NotificacaoManutencaoTest {
     void aberturaPendenteECanceladaESemAvisoDeEncerramento() {
         inserirNotificacao(incidenteId, null, TipoEventoNotificacao.INCIDENTE_ABERTO, StatusNotificacao.PENDENTE);
 
-        notificacaoService.tratarEncerramentoPorManutencao(incidente());
+        notificacaoService.tratarEncerramentoPorManutencao(incidente(), T0);
 
         assertThat(statusDa(TipoEventoNotificacao.INCIDENTE_ABERTO)).isEqualTo(StatusNotificacao.CANCELADA);
         assertThat(existe(TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO)).isFalse();
@@ -91,7 +91,7 @@ class NotificacaoManutencaoTest {
     void aberturaEnviadaGeraAvisoDeEncerramentoComTextoProprio() {
         inserirNotificacao(incidenteId, null, TipoEventoNotificacao.INCIDENTE_ABERTO, StatusNotificacao.ENVIADA);
 
-        notificacaoService.tratarEncerramentoPorManutencao(incidente());
+        notificacaoService.tratarEncerramentoPorManutencao(incidente(), T0);
 
         assertThat(statusDa(TipoEventoNotificacao.INCIDENTE_ABERTO)).isEqualTo(StatusNotificacao.ENVIADA);
         String mensagem = mensagemDe(TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO);
@@ -109,7 +109,7 @@ class NotificacaoManutencaoTest {
         // algo possivelmente enviado seria mentira num campo auditado.
         inserirNotificacao(incidenteId, null, TipoEventoNotificacao.INCIDENTE_ABERTO, StatusNotificacao.ENVIANDO);
 
-        notificacaoService.tratarEncerramentoPorManutencao(incidente());
+        notificacaoService.tratarEncerramentoPorManutencao(incidente(), T0);
 
         assertThat(statusDa(TipoEventoNotificacao.INCIDENTE_ABERTO)).isEqualTo(StatusNotificacao.ENVIANDO);
         assertThat(existe(TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO)).isTrue();
@@ -120,7 +120,7 @@ class NotificacaoManutencaoTest {
         // FALHA: a mensagem nao chegou ao grupo; um encerramento sozinho seria ruido.
         inserirNotificacao(incidenteId, null, TipoEventoNotificacao.INCIDENTE_ABERTO, StatusNotificacao.FALHA);
 
-        notificacaoService.tratarEncerramentoPorManutencao(incidente());
+        notificacaoService.tratarEncerramentoPorManutencao(incidente(), T0);
 
         assertThat(statusDa(TipoEventoNotificacao.INCIDENTE_ABERTO)).isEqualTo(StatusNotificacao.FALHA);
         assertThat(existe(TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO)).isFalse();
@@ -131,7 +131,7 @@ class NotificacaoManutencaoTest {
         // LATENCIA_ALTA ENVIADA -> LATENCIA_ENCERRADA_MANUTENCAO criada
         inserirNotificacao(null, episodioId, TipoEventoNotificacao.LATENCIA_ALTA, StatusNotificacao.ENVIADA);
 
-        notificacaoService.tratarEncerramentoPorManutencao(episodio());
+        notificacaoService.tratarEncerramentoPorManutencao(episodio(), T0);
 
         assertThat(statusDoEpisodio(TipoEventoNotificacao.LATENCIA_ALTA)).isEqualTo(StatusNotificacao.ENVIADA);
         assertThat(existeDoEpisodio(TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO)).isTrue();
@@ -146,7 +146,7 @@ class NotificacaoManutencaoTest {
                 + "values (?, ?, 200) returning id", outroMonitor, Timestamp.from(T0));
         inserirNotificacao(null, outroEpisodioId, TipoEventoNotificacao.LATENCIA_ALTA, StatusNotificacao.PENDENTE);
 
-        notificacaoService.tratarEncerramentoPorManutencao(episodioRepository.findById(outroEpisodioId).orElseThrow());
+        notificacaoService.tratarEncerramentoPorManutencao(episodioRepository.findById(outroEpisodioId).orElseThrow(), T0);
 
         assertThat(statusDoEpisodio(outroEpisodioId, TipoEventoNotificacao.LATENCIA_ALTA))
                 .isEqualTo(StatusNotificacao.CANCELADA);
@@ -162,6 +162,26 @@ class NotificacaoManutencaoTest {
                 entityManager.find(br.com.inframonitor.notificacao.entity.Notificacao.class, id);
 
         assertThatThrownBy(notificacao::cancelar).isInstanceOf(IllegalStateException.class);
+    }
+
+    /**
+     * A metade que faltava da prova: o teste acima so cobre a rejeicao. Sem este, ninguem
+     * exercitava a transicao que o metodo de fato promete no Javadoc ("so PENDENTE cancela").
+     * O caminho de producao (`tratarEncerramentoPorManutencao`) cancela em lote via JPQL, nao
+     * por aqui — este teste prova a invariante na entidade, que e o segundo caminho de escrita
+     * que precisa continuar correto por conta propria.
+     */
+    @Test
+    void cancelarTransicionaNotificacaoPendenteParaCancelada() {
+        long id = inserirNotificacao(incidenteId, null, TipoEventoNotificacao.INCIDENTE_ABERTO,
+                StatusNotificacao.PENDENTE);
+
+        br.com.inframonitor.notificacao.entity.Notificacao notificacao =
+                entityManager.find(br.com.inframonitor.notificacao.entity.Notificacao.class, id);
+
+        notificacao.cancelar();
+
+        assertThat(notificacao.getStatus()).isEqualTo(StatusNotificacao.CANCELADA);
     }
 
     private Incidente incidente() {

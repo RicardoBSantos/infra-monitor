@@ -27,10 +27,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Prova do invariante da B.5: existe janela aberta para um monitor se e somente se
- * aquele monitor e' candidato a execucao — equipamento.ativo AND monitor.ativo AND
- * NOT equipamento.em_manutencao, a mesma expressao do WHERE de
- * {@link MonitorRepository#findActiveExecutionCandidates()}.
+ * Prova, na direcao de ABERTURA, do invariante da B.5: chamar
+ * {@link CicloJanelaMonitoramentoService#abrirEquipamento} abre janela para um monitor
+ * se e somente se aquele monitor e' candidato a execucao no momento da chamada —
+ * equipamento.ativo AND monitor.ativo AND NOT equipamento.em_manutencao, a mesma
+ * expressao do WHERE de {@link MonitorRepository#findActiveExecutionCandidates()}. A
+ * matriz sempre chama {@code abrirEquipamento}, mesmo nos casos "nao candidato": prova
+ * que um nao-candidato nao abre janela, nao que deixar de ser candidato fecha uma
+ * janela ja aberta — essa segunda direcao e' coberta por outros testes (ex.:
+ * {@code ativarEquipamentoEmManutencaoNaoAbreJanela} cobre um caso especifico, e o
+ * fechamento em si e' exercido pelos testes de {@code CicloJanelaMonitoramentoService}).
  *
  * <p>Sobe um PostgreSQL real via Testcontainers porque o coracao da prova e' comparar
  * o estado persistido de janela_monitoramento com o resultado da query nativa/JPQL de

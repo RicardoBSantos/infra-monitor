@@ -225,31 +225,40 @@ grep nas próprias marcações da classificação:
 
 ## Preocupações a observar
 
-1. **Mensagem de manutenção sem `Fim`/`Duração`.** Em `NotificacaoMessageBuilder`, tanto
-   `construir` quanto `construirParaEpisodio` só anexam `Fim`/`Duração` quando o tipo é exatamente
-   `INCIDENTE_FECHADO`/`LATENCIA_NORMALIZADA` — os dois ramos de manutenção não incluem essas
-   linhas mesmo quando `encerradoEm` já está preenchido. Pode ser proposital; não é possível
-   confirmar pela leitura do código sozinha. Quem validar o texto real da mensagem do Telegram em
-   produção deveria decidir explicitamente se isso fica assim.
-2. **`timeline.ts:319` não vai quebrar quando devia chamar atenção.** É o único dos quatro pontos de
-   rótulo do frontend sem proteção de compilador; precisa entrar num checklist manual explícito da
-   tarefa que estender os enums do frontend, porque nada vai lembrar sozinho.
+> Esta auditoria é um retrato datado (2026-09-22). As preocupações abaixo foram levantadas então;
+> cada uma é marcada como resolvida — e por qual commit — quando um commit posterior desta mesma
+> série tratou o ponto, em vez de ser apagada: quem ler depois precisa saber que foi tratado, não
+> que nunca existiu.
+
+1. ~~**Mensagem de manutenção sem `Fim`/`Duração`.**~~ **Resolvida pelo commit `6883f63`**
+   (`feat(notificacao): cancelar a abertura pendente e avisar o encerramento`). Em
+   `NotificacaoMessageBuilder`, `construir` e `construirParaEpisodio` passaram a anexar
+   `Fim`/`Duração` também para `INCIDENTE_ENCERRADO_MANUTENCAO`/`LATENCIA_ENCERRADA_MANUTENCAO`
+   (comentário no próprio arquivo: "Fim/Duracao valem para qualquer encerramento, manutencao
+   inclusive"). A prova em produção está em `manutencao-verificacao-ponta-a-ponta.md`, Passo 2: o
+   corpo real recebido pelo mock do Telegram traz `Fim:` e `Duracao:` preenchidos para o evento de
+   manutenção.
+2. ~~**`timeline.ts:319` não vai quebrar quando devia chamar atenção.**~~ **Resolvida pelo commit
+   `0673c40`** (`feat(front): motivo de encerramento no drawer e CANCELADA no badge`) e reforçada
+   pelo `9b41d21`. `rotuloDaNotificacao` em `timeline.ts` agora tem os dois `case` explícitos —
+   `NotificationEventType.IncidentClosedByMaintenance` e `.LatencyClosedByMaintenance` — antes do
+   `default`. Continua sem proteção de compilador (é `switch`, não `Record` exaustivo), mas o
+   checklist manual foi cumprido.
 3. **Dois `Record<NotificationEventType, string>` duplicados** (`notificacao-detail.component.ts` e
-   `notificacao-list.component.ts`) fazem a mesma tradução tipo→rótulo com o mesmo texto. Cada um
-   quebra o build independentemente, então a tarefa 5+ vai precisar tocar nos dois — não é um lugar
-   só. Não é escopo desta auditoria propor extrair um helper comum, só registrar que existem dois.
-4. **Filtro de eventos de `relatorios.component.html` já está incompleto hoje**, antes de qualquer
-   valor novo: só lista `IncidentOpened`/`IncidentClosed`, faltando os dois de latência que já
-   existem. Se o padrão de "esquecer o `<select>`" se repetir, os dois eventos de manutenção somam a
-   uma lacuna pré-existente, não criam uma nova.
-5. **Frontend está atualmente inconsistente com o backend já implementado**: o backend já cria
-   notificações `INCIDENTE_ENCERRADO_MANUTENCAO`/`LATENCIA_ENCERRADA_MANUTENCAO` e pode marcar
-   `CANCELADA` (via `tratarEncerramentoPorManutencao`, já mergeado neste branch), mas o frontend
-   ainda não reconhece nenhum dos três valores. Até a tarefa do frontend rodar, essas notificações
-   apareceriam nas telas atuais como: badge de status inexistente (bloqueado hoje só porque o
-   backend ainda não grava `CANCELADA` em produção — mas já pode gravar em qualquer ambiente que
-   suba este branch) e rótulo de evento cru em `timeline.ts` (`INCIDENTE_ENCERRADO_MANUTENCAO`
-   literal). Isso não é um bug desta auditoria nem desta tarefa, mas é uma janela real entre "backend
-   grava o valor" e "frontend sabe exibi-lo" que quem for sequenciar as tarefas 5-14 precisa
-   considerar — idealmente o frontend não fica muito tempo atrás em ambientes onde o dispatcher e o
-   motor de manutenção já estão ativos.
+   `notificacao-list.component.ts`) fazem a mesma tradução tipo→rótulo com o mesmo texto. **Ainda em
+   aberto**: os dois `Record`s foram estendidos com as duas chaves de manutenção (confirmado por
+   leitura em 2026-09-24), mas continuam duplicados — nenhum commit desta série extraiu um helper
+   comum, e não era escopo fazê-lo. Registro que permanece válido para quem tocar nesses arquivos de
+   novo.
+4. ~~**Filtro de eventos de `relatorios.component.html` já está incompleto hoje**~~ **Resolvida pelo
+   commit `0673c40`**. O `<select>` de Evento em `relatorios.component.html` agora lista as seis
+   opções — as quatro pré-existentes mais `IncidentClosedByMaintenance`/`LatencyClosedByMaintenance`
+   — fechando também a lacuna pré-existente de `HighLatency`/`LatencyNormalized` que a auditoria
+   tinha registrado como já faltando antes de qualquer valor novo.
+5. ~~**Frontend estava inconsistente com o backend já implementado.**~~ **Resolvida pelo commit
+   `0673c40`**. `NotificationEventType`/`NotificationStatus` em `api-enums.ts` ganharam
+   `IncidentClosedByMaintenance`, `LatencyClosedByMaintenance` e `Cancelled`; o `Record<DisplayStatus,
+   string>` exaustivo de `status-badge.component.ts` (`LABELS`/`TONES`) tem entradas para
+   `CANCELADA`; e os dois `Record<NotificationEventType, string>` de `notificacao-detail`/
+   `notificacao-list` também foram estendidos (confirmado por leitura direta em 2026-09-24). A janela
+   entre "backend grava o valor" e "frontend sabe exibi-lo" está fechada nesta branch.
