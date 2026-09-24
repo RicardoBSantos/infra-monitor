@@ -1,0 +1,48 @@
+{
+  "tipos": [
+    {
+      "nome": "Roteador",
+      "descricao": "Equipamento de roteamento de borda ou nucleo"
+    }
+  ],
+  "unidades": [
+    {
+      "nome": "Unidade de Exemplo",
+      "sigla": "EX-01",
+      "descricao": "Unidade fictícia so para ilustrar o formato do arquivo",
+      "codigoIbge": "2800308",
+      "endereco": "Rua Exemplo 100",
+      "cidade": "Aracaju",
+      "uf": "SE",
+      "latitude": -10.9472,
+      "longitude": -37.0731
+    }
+  ],
+  "equipamentos": [
+    {
+      "unidadeSigla": "EX-01",
+      "tipoNome": "Roteador",
+      "nome": "Router-Exemplo-01",
+      "ip": "192.0.2.10",
+      "hostname": "router-exemplo-01",
+      "descricao": "Roteador fictício de exemplo",
+      "localizacao": "Rack 1 - sala tecnica",
+      "numeroSerie": "SN-EXEMPLO-0001",
+      "fabricante": "Fabricante Exemplo",
+      "modelo": "Modelo Exemplo X1"
+    }
+  ],
+  "monitores": [
+    {
+      "unidadeSigla": "EX-01",
+      "equipamentoNome": "Router-Exemplo-01",
+      "tipo": "ICMP",
+      "nome": "ping-principal",
+      "intervaloSegundos": 60,
+      "timeoutMs": 2000,
+      "falhasParaIncidente": 3,
+      "sucessosParaRecovery": 2
+    }
+  ],
+  "conexoes": []
+}

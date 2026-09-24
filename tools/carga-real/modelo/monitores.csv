@@ -1,0 +1,2 @@
+unidadeSigla,equipamentoNome,tipo,nome,intervaloSegundos,timeoutMs,falhasParaIncidente,sucessosParaRecovery
+EX-01,Router-Exemplo-01,ICMP,ping-principal,60,2000,3,2
