@@ -8,7 +8,6 @@ import br.com.inframonitor.incidente.dto.CreateIncidenteRequest;
 import br.com.inframonitor.incidente.dto.IncidenteResponse;
 import br.com.inframonitor.incidente.dto.MonitorIncidenteResponse;
 import br.com.inframonitor.incidente.entity.Incidente;
-import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.entity.StatusIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
@@ -153,6 +152,10 @@ public class IncidenteService {
     /**
      * Fechamento humano: registra o autor em {@code fechado_por}, a trilha que a V17
      * criou. O id vem do principal autenticado, nunca do corpo da requisicao.
+     *
+     * <p>Escrita por CAS (fecharManualmenteSeEmAberto), nao por saveAndFlush: o UPDATE de
+     * linha inteira regravava um fechamento do motor ou da manutencao commitado depois da
+     * leitura e apagava reconhecido_* (A1 da auditoria de concorrencia).
      */
     @Transactional
     public IncidenteResponse fechar(Long id, CloseIncidenteRequest requisicao, Long usuarioId) {
@@ -163,9 +166,14 @@ public class IncidenteService {
         if (requisicao.encerradoEm().isBefore(incidente.getIniciadoEm())) {
             throw new IllegalArgumentException("encerradoEm deve ser maior ou igual a iniciadoEm");
         }
-        incidente.fechar(requisicao.encerradoEm(), normalizar(requisicao.observacao()), autor(usuarioId),
-                MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
-        Incidente fechado = incidenteRepository.saveAndFlush(incidente);
+        // CAS: a leitura acima pode estar velha (motor, manutencao ou outro operador fecharam
+        // depois dela). Quem perde devolve o estado atual, sem segunda notificacao.
+        if (incidenteRepository.fecharManualmenteSeEmAberto(id, requisicao.encerradoEm(),
+                normalizar(requisicao.observacao()), autor(usuarioId), Instant.now()) == 0) {
+            return paraResposta(obterIncidente(id));
+        }
+        // O bulk update nao atualiza a instancia carregada; releitura antes de notificar.
+        Incidente fechado = obterIncidente(id);
         notificacaoService.criarParaIncidenteFechado(fechado);
         return paraResposta(fechado);
     }

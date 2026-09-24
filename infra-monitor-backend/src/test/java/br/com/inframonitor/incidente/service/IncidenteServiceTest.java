@@ -91,16 +91,20 @@ class IncidenteServiceTest {
 
     @Test
     void permiteNovoIncidenteAposFechamentoEBuscaExistente() {
+        Incidente aberto = incidente(StatusIncidente.ABERTO);
         Incidente fechado = incidente(StatusIncidente.ABERTO);
         Usuario operador = operador();
-        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(fechado));
-        when(incidenteRepository.saveAndFlush(fechado)).thenReturn(fechado);
+        fechado.fechar(INICIO.plusSeconds(60), null, operador, MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);
+        // Primeira leitura: estado antes do CAS; segunda: releitura depois do bulk update.
+        when(incidenteRepository.findById(10L)).thenReturn(Optional.of(aberto), Optional.of(fechado));
         when(usuarioRepository.findById(7L)).thenReturn(Optional.of(operador));
-        incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.plusSeconds(60), null), 7L);
+        when(incidenteRepository.fecharManualmenteSeEmAberto(eq(10L), eq(INICIO.plusSeconds(60)), eq(null),
+                eq(operador), any())).thenReturn(1);
+        var resposta = incidenteService.fechar(10L, new CloseIncidenteRequest(INICIO.plusSeconds(60), null), 7L);
 
-        assertThat(fechado.getStatus()).isEqualTo(StatusIncidente.FECHADO);
+        assertThat(resposta.status()).isEqualTo(StatusIncidente.FECHADO);
         // Fechamento humano tem autor; o do motor e o unico que deixa fechado_por nulo.
-        assertThat(fechado.getFechadoPor()).isSameAs(operador);
+        assertThat(resposta.fechadoPorNome()).isEqualTo(operador.getNome());
         verify(notificacaoService).criarParaIncidenteFechado(fechado);
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));

@@ -82,6 +82,22 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
                                         @Param("observacao") String observacao, @Param("agora") Instant agora);
 
     /**
+     * Fechamento humano como CAS, irmao de fecharAutomaticamenteSeEmAberto: so colunas de
+     * fechamento, entao reconhecido_* sobrevive, e 0 linhas quando motor, manutencao ou outro
+     * operador ja fechou entre a leitura e aqui.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Incidente i set i.status = br.com.inframonitor.incidente.entity.StatusIncidente.FECHADO, "
+            + "i.encerradoEm = :encerradoEm, i.observacao = :observacao, "
+            + "i.motivoEncerramento = br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente.FECHAMENTO_MANUAL, "
+            + "i.fechadoPor = :usuario, i.updatedAt = :agora "
+            + "where i.id = :id and i.status in (br.com.inframonitor.incidente.entity.StatusIncidente.ABERTO, "
+            + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
+    int fecharManualmenteSeEmAberto(@Param("id") Long id, @Param("encerradoEm") Instant encerradoEm,
+                                    @Param("observacao") String observacao, @Param("usuario") Usuario usuario,
+                                    @Param("agora") Instant agora);
+
+    /**
      * Abertura condicional, no idioma de NotificacaoRepository.inserirPendenteSeAusente.
      * O WHERE carrega o predicado inteiro de "este monitor deveria estar sendo
      * observado agora"; o ON CONFLICT DO NOTHING absorve uq_incidente_monitor_aberto.
