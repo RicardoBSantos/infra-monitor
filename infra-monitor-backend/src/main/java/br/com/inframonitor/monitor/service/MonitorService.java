@@ -121,6 +121,9 @@ public class MonitorService {
         if (incidenteRepository.existsByMonitorId(id)) {
             throw new ConflitoException("Nao e possivel excluir o monitor porque existem incidentes associados");
         }
+        // Mesma transacao: se o motor gravar uma medicao entre a guarda e o DELETE, a FK
+        // de medicao estoura, tudo volta (janelas inclusive) e a API responde 409.
+        if (cicloJanela != null) cicloJanela.apagarDoMonitor(id);
         monitorRepository.delete(monitor);
     }
 

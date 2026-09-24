@@ -41,4 +41,12 @@ public class CicloJanelaMonitoramentoService {
  @Transactional public void abrirEquipamento(Long equipamentoId){
    monitorRepository.findByEquipamentoIdIn(List.of(equipamentoId)).forEach(this::abrir);
  }
+
+ /**
+  * Exclusao fisica de monitor: a FK de janela_monitoramento e ON DELETE RESTRICT, e
+  * criar/ativar sempre abrem janela — sem isto nenhum monitor ativo sem historico podia
+  * ser excluido. Apagar, nao fechar: so e chamado depois das guardas de medicao e
+  * incidente, entao nao ha periodo observado a preservar no relatorio.
+  */
+ @Transactional public void apagarDoMonitor(Long monitorId){repo.apagarDoMonitor(monitorId);}
 }

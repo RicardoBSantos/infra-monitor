@@ -228,3 +228,64 @@ em paralelo e o pico voltaria a 11). `infra-monitor-backend/README.md` atualizad
 Os `PESSIMISTIC_WRITE` de `UsuarioRepository` e o `UPDATE` de `entrarEmManutencao`, os dois do caminho
 HTTP, continuam sem `lock_timeout`. Estão registrados como B1 em
 [auditoria-concorrencia-ciclo-de-vida.md](auditoria-concorrencia-ciclo-de-vida.md).
+
+## 1c. Excluir monitor e equipamento × janela
+
+### Achado que muda o enunciado
+
+`janela_monitoramento.monitor_id` é `REFERENCES monitor(id) ON DELETE RESTRICT` (V13), e
+`MonitorService.criar`/`ativar` sempre abrem janela. Logo, antes desta correção, excluir um monitor
+ativo recém-criado (sem medição nem incidente) **não deixava janela órfã — falhava**: o `DELETE` de
+`MonitorService.excluir` estourava a FK e a API devolvia 409 `DATA_INTEGRITY_VIOLATION`. Na prática só
+era possível excluir um monitor que nunca tivera janela. Mensagem real do Postgres, capturada no RED
+do teste de integração:
+
+```
+org.springframework.dao.DataIntegrityViolationException:
+could not execute statement [ERROR: update or delete on table "monitor" violates foreign key
+constraint "janela_monitoramento_monitor_id_fkey" on table "janela_monitoramento"
+  Detalhe: Key (id)=(1) is still referenced from table "janela_monitoramento".
+```
+
+### Correção
+
+`JanelaMonitoramentoRepository.apagarDoMonitor` (bulk `delete from JanelaMonitoramento j where
+j.monitor.id = :id`, `@Modifying(clearAutomatically = true, flushAutomatically = true)`) e
+`CicloJanelaMonitoramentoService.apagarDoMonitor`, chamado por `MonitorService.excluir` entre a última
+guarda (existência de incidente) e o `monitorRepository.delete(monitor)`, na mesma transação. Apaga, e
+não fecha, porque um monitor sem medição e sem incidente não tem período observado que o relatório
+precise preservar, e fechar não bastaria de qualquer forma — a FK continuaria `RESTRICT`. Corrida
+medição×exclusão: se o motor gravar uma medição entre a guarda de `medicaoRepository.existsByMonitorId`
+e o `delete`, a FK de `medicao` (V6:17) estoura, a transação inteira volta (janelas apagadas inclusive)
+e a API responde 409 — a invariante fica garantida pelo próprio banco, não por lock aplicativo.
+
+### Equipamento
+
+Nenhuma mudança de código. `EquipamentoService.excluir` já exige `!monitorRepository.existsByEquipamentoId(id)`
+antes do `delete`: exclusão física de equipamento só é possível com zero monitores, logo zero janelas —
+a invariante nunca se quebra ali. O teste de integração
+(`excluirEquipamentoSoComZeroMonitoresLogoSemJanelaOrfa`) prova as duas pontas: equipamento com monitor
+→ 409, equipamento sem monitor → exclui, e nenhuma `janela_monitoramento` fica órfã (`left join` contra
+`monitor` vazio).
+
+### Exclusão lógica
+
+Não existe. `deleted_at` está nas três tabelas de inventário (`unidade`, `tipo_equipamento`,
+`equipamento`) desde a V2, mas nenhum código Java lê ou grava a coluna — achado já registrado na
+auditoria de concorrência, não inventado aqui. Nada a cobrir nesta correção.
+
+### Prova
+
+`ExclusaoEJanelaPostgresIntegrationTest`, Testcontainers com Postgres 16 real:
+
+- `excluirMonitorSemHistoricoApagaAJanelaEOMonitor` — RED com a `DataIntegrityViolationException`
+  acima; GREEN depois de `apagarDoMonitor`: zero linhas em `monitor` e em `janela_monitoramento` para o
+  id excluído.
+- `excluirMonitorComMedicaoRecusaEPreservaAJanela` — `ConflitoException` (409) e a janela aberta
+  (`fim_em is null`) intacta.
+- `excluirEquipamentoSoComZeroMonitoresLogoSemJanelaOrfa` — `ConflitoException` com monitor associado;
+  exclusão bem-sucedida sem monitor; zero `janela_monitoramento` órfã.
+
+Classe inteira: `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`. Suíte completa depois da correção:
+`Tests run: 448, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS` (445 antes desta rodada + 3 novos
+testes).
