@@ -1,0 +1,1329 @@
+{
+  "base": "http://127.0.0.1:4300",
+  "inicio": "2026-09-24T14:35:28.950Z",
+  "casos": [
+    {
+      "rotulo": "ITA-09-sesc-itabaiana",
+      "unidadeId": "5",
+      "rotuloAria": "Sesc Itabaiana: Disponível, 17 equipamento(s), 0 incidente(s) aberto(s)",
+      "antes": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [],
+        "painelUnidade": null,
+        "painelMunicipio": null
+      },
+      "depois": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2802908"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Itabaiana Nenhuma unidade cadastrada neste município."
+      },
+      "eventos": [
+        {
+          "seq": 1,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 2,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 3,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 4,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 5,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 6,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 7,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 8,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": true
+        },
+        {
+          "seq": 9,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 10,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 11,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 12,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 13,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 14,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 15,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 16,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 17,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 18,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 19,
+          "camada": "componente",
+          "metodo": "selecionarPeloMarcador",
+          "arg": "unidade 5 Sesc Itabaiana"
+        },
+        {
+          "seq": 20,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2803005 Itabaianinha (1 unidade(s))"
+        },
+        {
+          "seq": 21,
+          "camada": "componente",
+          "metodo": "selectUnidade",
+          "arg": "unidade 5 Sesc Itabaiana"
+        },
+        {
+          "seq": 22,
+          "camada": "componente",
+          "metodo": "selectUnidade",
+          "arg": "unidade 5 Sesc Itabaiana"
+        },
+        {
+          "seq": 23,
+          "camada": "DOM",
+          "onde": "button.map__unidade#5",
+          "fase": "alvo",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "unidadeSelecionadaNesteInstante": 5
+        },
+        {
+          "seq": 24,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2802908 Itabaiana (0 unidade(s))"
+        },
+        {
+          "seq": 25,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 26,
+          "camada": "maplibre",
+          "handler": "map.on('click') sem camada",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "ponto": [
+            395,
+            387
+          ]
+        },
+        {
+          "seq": 27,
+          "camada": "maplibre",
+          "handler": "map.on('click','municipios-fill') (instrumentação, depois do do componente)",
+          "tipoDoEventoDom": "click",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "alvoEhMarcadorDeUnidade": true,
+          "feature": "2802908 Itabaiana",
+          "ponto": [
+            395,
+            387
+          ],
+          "unidadeSelecionadaNesteInstante": null
+        },
+        {
+          "seq": 28,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 29,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        }
+      ]
+    },
+    {
+      "rotulo": "aracaju-1-sede-administrativa",
+      "unidadeId": "1",
+      "rotuloAria": "Sede Administrativa: Degradada, 21 equipamento(s), 0 incidente(s) aberto(s)",
+      "antes": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2802908"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Itabaiana Nenhuma unidade cadastrada neste município."
+      },
+      "depois": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "eventos": [
+        {
+          "seq": 1,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 2,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 3,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 4,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 5,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 6,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 7,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 8,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": true
+        },
+        {
+          "seq": 9,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 10,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 11,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 12,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 13,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 14,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 15,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 16,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 17,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 18,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 19,
+          "camada": "componente",
+          "metodo": "selecionarPeloMarcador",
+          "arg": "unidade 1 Sede Administrativa"
+        },
+        {
+          "seq": 20,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 21,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 22,
+          "camada": "componente",
+          "metodo": "selectUnidade",
+          "arg": "unidade 1 Sede Administrativa"
+        },
+        {
+          "seq": 23,
+          "camada": "DOM",
+          "onde": "button.map__unidade#1",
+          "fase": "alvo",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "unidadeSelecionadaNesteInstante": 1
+        },
+        {
+          "seq": 24,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 25,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 26,
+          "camada": "maplibre",
+          "handler": "map.on('click') sem camada",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "ponto": [
+            529,
+            275
+          ]
+        },
+        {
+          "seq": 27,
+          "camada": "maplibre",
+          "handler": "map.on('click','municipios-fill') (instrumentação, depois do do componente)",
+          "tipoDoEventoDom": "click",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "alvoEhMarcadorDeUnidade": true,
+          "feature": "2800308 Aracaju",
+          "ponto": [
+            529,
+            275
+          ],
+          "unidadeSelecionadaNesteInstante": null
+        },
+        {
+          "seq": 28,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 29,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        }
+      ]
+    },
+    {
+      "rotulo": "aracaju-2-escola-sesc-aracaju",
+      "unidadeId": "2",
+      "rotuloAria": "Escola Sesc Aracaju: Degradada, 26 equipamento(s), 0 incidente(s) aberto(s)",
+      "antes": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "depois": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "eventos": [
+        {
+          "seq": 1,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 2,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 3,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 4,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 5,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 6,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 7,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 8,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": true
+        },
+        {
+          "seq": 9,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 10,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 11,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 12,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 13,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 14,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 15,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 16,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 17,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 18,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 19,
+          "camada": "componente",
+          "metodo": "selecionarPeloMarcador",
+          "arg": "unidade 2 Escola Sesc Aracaju"
+        },
+        {
+          "seq": 20,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 21,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 22,
+          "camada": "componente",
+          "metodo": "selectUnidade",
+          "arg": "unidade 2 Escola Sesc Aracaju"
+        },
+        {
+          "seq": 23,
+          "camada": "DOM",
+          "onde": "button.map__unidade#2",
+          "fase": "alvo",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "unidadeSelecionadaNesteInstante": 2
+        },
+        {
+          "seq": 24,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 25,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 26,
+          "camada": "maplibre",
+          "handler": "map.on('click') sem camada",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "ponto": [
+            413,
+            326
+          ]
+        },
+        {
+          "seq": 27,
+          "camada": "maplibre",
+          "handler": "map.on('click','municipios-fill') (instrumentação, depois do do componente)",
+          "tipoDoEventoDom": "click",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "alvoEhMarcadorDeUnidade": true,
+          "feature": "2800308 Aracaju",
+          "ponto": [
+            413,
+            326
+          ],
+          "unidadeSelecionadaNesteInstante": null
+        },
+        {
+          "seq": 28,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 29,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        }
+      ]
+    },
+    {
+      "rotulo": "aracaju-7-centro-integrado-saude",
+      "unidadeId": "7",
+      "rotuloAria": "Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)",
+      "antes": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "depois": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "eventos": [
+        {
+          "seq": 1,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 2,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 3,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 4,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 5,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 6,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 7,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 8,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": true
+        },
+        {
+          "seq": 9,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 10,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 11,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 12,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 13,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 14,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 15,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 16,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 17,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 18,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 19,
+          "camada": "componente",
+          "metodo": "selecionarPeloMarcador",
+          "arg": "unidade 7 Centro Integrado de Saúde"
+        },
+        {
+          "seq": 20,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 21,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 22,
+          "camada": "componente",
+          "metodo": "selectUnidade",
+          "arg": "unidade 7 Centro Integrado de Saúde"
+        },
+        {
+          "seq": 23,
+          "camada": "DOM",
+          "onde": "button.map__unidade#7",
+          "fase": "alvo",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "unidadeSelecionadaNesteInstante": 7
+        },
+        {
+          "seq": 24,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 25,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 26,
+          "camada": "maplibre",
+          "handler": "map.on('click') sem camada",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "ponto": [
+            424,
+            370
+          ]
+        },
+        {
+          "seq": 27,
+          "camada": "maplibre",
+          "handler": "map.on('click','municipios-fill') (instrumentação, depois do do componente)",
+          "tipoDoEventoDom": "click",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "alvoEhMarcadorDeUnidade": true,
+          "feature": "2800308 Aracaju",
+          "ponto": [
+            424,
+            370
+          ],
+          "unidadeSelecionadaNesteInstante": null
+        },
+        {
+          "seq": 28,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 29,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        }
+      ]
+    },
+    {
+      "rotulo": "aracaju-3-hotel-sesc-atalaia",
+      "unidadeId": "3",
+      "rotuloAria": "Hotel Sesc Atalaia: Disponível, 18 equipamento(s), 0 incidente(s) aberto(s)",
+      "antes": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "depois": {
+        "ariaPressedDoMarcador": "false",
+        "marcadoresUnidadePressionados": [],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades"
+      },
+      "eventos": [
+        {
+          "seq": 1,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 2,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 3,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 4,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerdown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 5,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 6,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 7,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 8,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mousedown",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": true
+        },
+        {
+          "seq": 9,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 10,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 11,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 12,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "pointerup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 13,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 14,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 15,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 16,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "mouseup",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        },
+        {
+          "seq": 17,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 18,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "captura",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 19,
+          "camada": "componente",
+          "metodo": "selecionarPeloMarcador",
+          "arg": "unidade 3 Hotel Sesc Atalaia"
+        },
+        {
+          "seq": 20,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 21,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 22,
+          "camada": "componente",
+          "metodo": "selectUnidade",
+          "arg": "unidade 3 Hotel Sesc Atalaia"
+        },
+        {
+          "seq": 23,
+          "camada": "DOM",
+          "onde": "button.map__unidade#3",
+          "fase": "alvo",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "unidadeSelecionadaNesteInstante": 3
+        },
+        {
+          "seq": 24,
+          "camada": "componente",
+          "metodo": "selectMunicipio",
+          "arg": "municipio 2800308 Aracaju (4 unidade(s))"
+        },
+        {
+          "seq": 25,
+          "camada": "componente",
+          "metodo": "limparUnidade",
+          "arg": null
+        },
+        {
+          "seq": 26,
+          "camada": "maplibre",
+          "handler": "map.on('click') sem camada",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "ponto": [
+            400,
+            603
+          ]
+        },
+        {
+          "seq": 27,
+          "camada": "maplibre",
+          "handler": "map.on('click','municipios-fill') (instrumentação, depois do do componente)",
+          "tipoDoEventoDom": "click",
+          "alvoOriginal": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "alvoEhMarcadorDeUnidade": true,
+          "feature": "2800308 Aracaju",
+          "ponto": [
+            400,
+            603
+          ],
+          "unidadeSelecionadaNesteInstante": null
+        },
+        {
+          "seq": 28,
+          "camada": "DOM",
+          "onde": "canvas-container",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center"
+        },
+        {
+          "seq": 29,
+          "camada": "DOM",
+          "onde": "document",
+          "fase": "bolha",
+          "tipo": "click",
+          "alvo": "button.map__unidade.map__unidade--pulsa.maplibregl-marker.maplibregl-marker-anchor-center",
+          "defaultPrevented": false
+        }
+      ]
+    }
+  ],
+  "erros": [],
+  "instrumentacao": {
+    "zoomInicial": 8.28807003534669
+  },
+  "sobreposicaoNoZoomInicial": [
+    {
+      "unidadeId": "5",
+      "centroRecebidoPor": "5"
+    },
+    {
+      "unidadeId": "1",
+      "centroRecebidoPor": "1"
+    },
+    {
+      "unidadeId": "2",
+      "centroRecebidoPor": "2"
+    },
+    {
+      "unidadeId": "7",
+      "centroRecebidoPor": "2"
+    },
+    {
+      "unidadeId": "3",
+      "centroRecebidoPor": "3"
+    }
+  ],
+  "zoomAracaju": {
+    "zoom": 12
+  },
+  "fim": "2026-09-24T14:35:39.890Z"
+}
