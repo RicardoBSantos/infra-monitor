@@ -5,6 +5,10 @@
 --
 --   docker exec -i infra-e2e psql -v ON_ERROR_STOP=1 -U inframonitor -d inframonitor < e2e/pre-carga-seed.sql
 --
+-- Guarda: o seed aborta se o banco não tiver o marcador `app.banco_descartavel = 'sim'`, gravado
+-- uma única vez só no infra-e2e (depois de restaurar o dump; vale para conexões novas):
+--   docker exec infra-e2e psql -U inframonitor -d postgres -c "ALTER DATABASE inframonitor SET app.banco_descartavel = 'sim'"
+--
 -- Pré-requisito: o backend já subiu uma vez contra o 5437 com BOOTSTRAP_ADMIN_* — o
 -- FECHAMENTO_MANUAL aponta `fechado_por` para esse admin (e2e@inframonitor.local).
 --
@@ -40,6 +44,10 @@ DECLARE
   t          timestamptz;
   i          int;
 BEGIN
+  IF current_setting('app.banco_descartavel', true) IS DISTINCT FROM 'sim' THEN
+    RAISE EXCEPTION 'seed so roda no banco descartavel (infra-e2e): marcador app.banco_descartavel ausente';
+  END IF;
+
   SELECT id INTO admin_id FROM usuarios WHERE lower(email) = 'e2e@inframonitor.local';
   IF admin_id IS NULL THEN
     RAISE EXCEPTION 'admin bootstrap e2e@inframonitor.local ausente: suba o backend com BOOTSTRAP_ADMIN_* antes do seed';
@@ -57,7 +65,10 @@ BEGIN
   -- Rodada anterior --------------------------------------------------------------
   DELETE FROM incidente WHERE observacao = 'e2e-pre-carga';
   DELETE FROM medicao WHERE mensagem = 'e2e-pre-carga';
-  DELETE FROM monitor_episodio_latencia WHERE monitor_id = m_latencia;
+  -- Só a assinatura exata do que este seed insere (passo 6).
+  DELETE FROM monitor_episodio_latencia
+   WHERE monitor_id = m_latencia AND limiar_ms = 250
+     AND created_at = iniciado_em AND encerrado_em = iniciado_em + interval '90 seconds';
 
   -- 1. RECUPERACAO_AUTOMATICA: S, F F F F, S S (fecha no 2º S), F F depois do fechamento.
   t := base - interval '40 hours';

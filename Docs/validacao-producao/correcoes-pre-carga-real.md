@@ -66,6 +66,9 @@ Componente `monitoring/InicioDaObservacao` (consulta
   muda.
 - Vale para os três motivos sem ramificar: na recuperação automática a âncora cai depois das
   falhas; na manutenção a janela nova já é posterior; no fechamento manual é a correção.
+  Na latência a recuperação automática não é neutra: as respostas da sequência de recuperação têm
+  `executadoEm` anterior ao `updated_at` do fechamento, então não contam; um episódio logo após a
+  recuperação só nasce depois de `ciclos` medições novas acima do limiar.
 
 **Latência (mesmo defeito, maior).** `LatencyEpisodeProcessor` não tinha âncora nenhuma: ao sair da
 manutenção, a cauda congelada abria episódio com `iniciado_em` anterior à manutenção; depois de um
@@ -96,8 +99,10 @@ Commits: `08b7974` (incidente), `8fc245e` (latência).
 A timeline usa só as medições em `[iniciadoEm, encerradoEm ?? agora]`; a folga continua carregada
 para o gráfico, mas não vira evento. Layout corrigido no SCSS: "Encerrado por manutenção" estava
 sobreposto ao detalhe (a quarta coluna `auto` esmagava a terceira, largura 0 do rótulo); agora são
-três colunas, detalhe alinhado em `grid-column: 3`, `overflow-wrap: anywhere`. Verificado em 1440 e
-390 px, tema escuro e claro, com controle negativo (SCSS antigo faz o caso falhar).
+três colunas, detalhe alinhado em `grid-column: 3`, `overflow-wrap: anywhere`. Verificação: asserção
+automática de não sobreposição só em 1440 px/tema escuro (`pre-carga-timeline-e-tela.cjs`); 390 px e
+tema claro conferidos por captura (`00-timeline-depois-*`); o defeito antigo está mostrado em
+`00-timeline-antes-*`. Não há execução registrada do roteiro falhando com o SCSS antigo.
 
 Decisão registrada: o texto "N respostas consecutivas…" aparece para `RECUPERACAO_AUTOMATICA` mesmo
 que o recorte de histórico não liste a sequência, porque o motivo é fato gravado pelo motor.
@@ -162,6 +167,15 @@ este código (o aviso só entrou em 2026-10-08), mas não há log daquela execu�
 código foi necessária. O e2e ganhou espera pela malha carregada e um sinal positivo antes de afirmar
 a ausência (`de4671d`); o sinal positivo é um proxy, não prova a ausência por si.
 
+## Seed do e2e: guarda de banco descartável
+
+`e2e/pre-carga-seed.sql` aborta se `current_setting('app.banco_descartavel', true)` não for `sim`. O
+marcador é gravado só no `infra-e2e`, uma vez, depois de restaurar o dump:
+`docker exec infra-e2e psql -U inframonitor -d postgres -c "ALTER DATABASE inframonitor SET app.banco_descartavel = 'sim'"`
+(vale para conexões novas). Os DELETEs só removem o que o seed grava: incidente/medição com a marca
+`e2e-pre-carga` e o episódio de latência com a assinatura exata do seed (`limiar_ms = 250`,
+`created_at = iniciado_em`, `encerrado_em = iniciado_em + 90 s`).
+
 ## Evidências
 
 - Backend: [reabertura-1-sem-correcao.txt](evidencias/reabertura-1-sem-correcao.txt),
@@ -207,6 +221,5 @@ Aviso de budget (único, preexistente, confirmado na Task 5 via stash):
 - Invariante "FECHADO é terminal" só em comentário; um `@PreUpdate` moveria a âncora se surgir
   edição de incidente fechado.
 - Sem teste Postgres dos casos negativos de latência e do texto de fechamento manual via CAS.
-- Seed do e2e sem guarda explícita de banco descartável (depende de `e2e@` inexistente no dev).
 - Texto do aviso de IBGE duplicado entre mapa e visão geral.
 - Topbar mostra "0 degradados" onde antes ficava vazio.

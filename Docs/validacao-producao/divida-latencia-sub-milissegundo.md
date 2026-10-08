@@ -55,8 +55,8 @@ obriga a trocar o contrato JSON ou manter um campo derivado.
    `round(avg, 2)` passa a mascarar a precisão ganha; com B, o `avg` precisa dividir por 1000.
 4. **Comparação com limiar**: `dashboard/DashboardReadRepository.java` (linha 25,
    `um.latencia_ms > ?1`), `dashboard/OperationalStatusResolver.degradado(Integer, Integer)` e
-   `monitoring/latency/LatencyEpisodeProcessor.java` (`acimaDoLimiar` e `dentroDoLimiar`, linhas 162
-   e 167, `getLatenciaMs() > limiarMs`). Com B, o limiar tem de ser convertido para µs na
+   `monitoring/latency/LatencyEpisodeProcessor.java` (métodos `acimaDoLimiar` e `dentroDoLimiar`,
+   `getLatenciaMs() > limiarMs`). Com B, o limiar tem de ser convertido para µs na
    comparação; com A, `0,3 > limiar_ms` continua correto, mas os tipos mudam (`BigDecimal` vs `int`).
 5. **CSV e PDF**: `RelatorioExportService` (CSV, ponto decimal por decisão, ver
    `correcoes-pre-carga-real.md`) e `VisaoGeralPdfModel`/`VisaoGeralPdfRenderer` (`millis`,

@@ -8,7 +8,7 @@
  * AMBIENTE: SÓ o banco descartável `infra-e2e` (porta 5437), restaurado de um pg_dump do dev e
  * semeado com `e2e/pre-carga-seed.sql` LOGO ANTES deste roteiro (o caso 6 lê os últimos 26 min).
  * Backend com DB_PORT=5437 e motor/Telegram/dispatcher no default desligado; `ng serve` em 4200.
- * Nunca apontar para o banco de dev: o seed escreve, e o Flyway migra no boot.
+ * Nunca apontar para o banco de dev (o seed exige o marcador app.banco_descartavel, ver cabeçalho do SQL): o seed escreve, e o Flyway migra no boot.
  *
  * Casos:
  *   1–3  Gaveta de cada incidente seed (RECUPERACAO_AUTOMATICA, FECHAMENTO_MANUAL, MANUTENCAO):
