@@ -109,3 +109,11 @@ diretório temporário de trabalho.)
   como um terceiro valor definitivo.
 * Banco de dev (5434) permaneceu com os mesmos 76/317080/10/222/224/2 registros e Flyway em V18
   do início ao fim do diagnóstico — nenhuma escrita foi feita nele.
+
+## Nota posterior: a V19 chegou ao dev pelo boot de 2026-09-24
+
+Contrariando o "Flyway em V18 do início ao fim" acima (verdadeiro só durante o diagnóstico), a
+V19 foi instalada no banco de dev em **2026-09-24 11:31:45**: a aplicação subiu apontando para o
+dev e o Flyway aplicou a migration no boot. O efeito nas 76 linhas foi igual ao previsto pela
+cópia (`FECHAMENTO_MANUAL` = 1, `RECUPERACAO_AUTOMATICA` = 0, `NULL` = 75). Verificação e
+contagens em [correcoes-pre-carga-real.md](correcoes-pre-carga-real.md), seção "Item 0".
