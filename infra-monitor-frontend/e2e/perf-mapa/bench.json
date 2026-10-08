@@ -1,0 +1,186 @@
+{
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics 770 (0x0000A780) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "resultados": [
+    {
+      "rotulo": "A   baseline (mapa parado, sem animacao)",
+      "frames": 360,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.9,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 0.167,
+        "scriptMsFrame": 0.026,
+        "estiloMsFrame": 0,
+        "layoutMsFrame": 0,
+        "recalcs": 0,
+        "layouts": 0,
+        "pctOrcamento": 1
+      }
+    },
+    {
+      "rotulo": "B   11 marcadores pulsando — ::after, transform+opacity",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 17.6,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 0.477,
+        "scriptMsFrame": 0.025,
+        "estiloMsFrame": 0.138,
+        "layoutMsFrame": 0,
+        "recalcs": 361,
+        "layouts": 0,
+        "pctOrcamento": 2.8
+      }
+    },
+    {
+      "rotulo": "C   11 marcadores pulsando — box-shadow no elemento (idioma do sidebar)",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 17.1,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 0.514,
+        "scriptMsFrame": 0.02,
+        "estiloMsFrame": 0.092,
+        "layoutMsFrame": 0,
+        "recalcs": 361,
+        "layouts": 0,
+        "pctOrcamento": 3.1
+      }
+    },
+    {
+      "rotulo": "D   20 pings — Marker DOM, setLngLat por frame",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.9,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 0.919,
+        "scriptMsFrame": 0.326,
+        "estiloMsFrame": 0.178,
+        "layoutMsFrame": 0,
+        "recalcs": 361,
+        "layouts": 0,
+        "pctOrcamento": 5.5
+      }
+    },
+    {
+      "rotulo": "E   20 pings — camada circle, setData de GeoJSON por frame",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.9,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 2.086,
+        "scriptMsFrame": 1.201,
+        "estiloMsFrame": 0,
+        "layoutMsFrame": 0,
+        "recalcs": 0,
+        "layouts": 0,
+        "pctOrcamento": 12.5
+      }
+    },
+    {
+      "rotulo": "F   linha tracejada — setPaintProperty line-dasharray a 20 Hz",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 17.3,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 1.549,
+        "scriptMsFrame": 1.062,
+        "estiloMsFrame": 0,
+        "layoutMsFrame": 0,
+        "recalcs": 0,
+        "layouts": 0,
+        "pctOrcamento": 9.3
+      }
+    },
+    {
+      "rotulo": "BD  B + D (proposta completa, carga real)",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.9,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 1.211,
+        "scriptMsFrame": 0.304,
+        "estiloMsFrame": 0.258,
+        "layoutMsFrame": 0,
+        "recalcs": 361,
+        "layouts": 0,
+        "pctOrcamento": 7.2
+      }
+    },
+    {
+      "rotulo": "B5  55 marcadores pulsando (5x a carga real) — margem",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.9,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 1.047,
+        "scriptMsFrame": 0.023,
+        "estiloMsFrame": 0.362,
+        "layoutMsFrame": 0,
+        "recalcs": 361,
+        "layouts": 0,
+        "pctOrcamento": 6.2
+      }
+    },
+    {
+      "rotulo": "D5  100 pings DOM (5x) — margem",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 17.2,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 2.198,
+        "scriptMsFrame": 0.949,
+        "estiloMsFrame": 0.446,
+        "layoutMsFrame": 0,
+        "recalcs": 361,
+        "layouts": 0,
+        "pctOrcamento": 13.1
+      }
+    },
+    {
+      "rotulo": "E5  100 pings por setData (5x) — margem",
+      "frames": 359,
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.9,
+      "fps": 59.9,
+      "lentos": 0,
+      "cpu": {
+        "taskMsFrame": 2.123,
+        "scriptMsFrame": 1.133,
+        "estiloMsFrame": 0,
+        "layoutMsFrame": 0,
+        "recalcs": 0,
+        "layouts": 0,
+        "pctOrcamento": 12.7
+      }
+    }
+  ],
+  "erros": []
+}

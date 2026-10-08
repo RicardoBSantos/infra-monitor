@@ -241,7 +241,7 @@ const focado = (page) => page.evaluate(() => {
     await page.waitForTimeout(3500);
     await page.screenshot({ path: path.join(OUT, '01-tela-inteira.png') });
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-cartao-sem-faixa-morta.png') });
-    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '03-legenda-altura.png') });
+    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '03-legenda.png') });
 
     /*
      * 19 — faixa morta medida, em vez de olhada. Os alvos ficam no centróide de cada município: se
@@ -257,29 +257,42 @@ const focado = (page) => page.evaluate(() => {
       abaixo > 0 && acima > 0,
       `${acima} alvos acima de 28% e ${abaixo} abaixo de 72% da altura (${Math.round(cartao.height)}px)`);
 
-    // --------------------------------------------------------------- 20 (anel no topo da extrusão)
+    // ------------------------------------------------------ 20 (seleção vive só no marcador, D17)
     /*
-     * O anel é um colar no topo da extrusão, então a evidência só prova alguma coisa num município
-     * que tenha altura. Escolhe-se o de mais unidades — com a extrusão somando os equipamentos das
-     * unidades do município, é ele o bloco mais alto. Em município sem equipamento o colar encosta
-     * no chão e a captura não mostraria a diferença que o N05 precisa demonstrar.
+     * Reescrito de novo, e agora pelo motivo oposto: o anel lilás em volta do polígono SAIU (D17).
+     * O município é cartografia neutra, e um contorno de 3px cercando meia tela afirmava sobre a
+     * região no exato instante em que o dado é a unidade.
+     *
+     * O que o check prova mudou junto. Antes: que o anel cercava o polígono. Agora: que a seleção
+     * continua inteira sem ele — exatamente um município com `aria-pressed`, e o marcador da
+     * unidade marcado também, que é onde o lilás agora vive.
      */
     const comUnidade = (await lerAlvos(page))
       .map((a) => ({ ...a, unidades: Number((a.rotulo.match(/: (\d+) unidade/) ?? [])[1] ?? 0) }))
-      .filter((a) => a.unidades > 0)
-      .sort((x, y) => y.unidades - x.unidades);
-    const maisAlto = comUnidade[0];
-    if (!maisAlto) {
-      checar(20, 'seleção por clique marca o município e rende a captura do anel', false, 'nenhum município com unidade');
+      .filter((a) => a.unidades > 0);
+    const escolhido = comUnidade[0];
+    if (!escolhido) {
+      checar(20, 'seleção por clique marca o município sem tocar no polígono', false, 'nenhum município com unidade');
     } else {
-      await page.click(`.map__alvo[data-codigo-ibge="${maisAlto.codigo}"]`);
+      await page.click(`.map__alvo[data-codigo-ibge="${escolhido.codigo}"]`);
       await page.waitForTimeout(1800);
-      await page.locator('.map-card').screenshot({ path: path.join(OUT, '04-anel-selecao-3d.png') });
-      // Recorte fechado no bloco selecionado: é onde se vê que o anel está no topo, não no pé.
-      await page.screenshot({ path: path.join(OUT, '05-anel-de-perto.png'),
-        clip: { x: maisAlto.x - 210, y: maisAlto.y - 240, width: 420, height: 420 } });
-      checar(20, 'seleção por clique marca o município e rende a captura do anel',
-        (await lerAlvos(page)).filter((a) => a.pressionado).length === 1, maisAlto.rotulo);
+      await page.locator('.map-card').screenshot({ path: path.join(OUT, '04-selecao-no-marcador.png') });
+      // Recorte fechado no município selecionado: é onde se veria o anel, se ele ainda existisse.
+      // A captura serve agora para provar a ausência — polígono idêntico ao dos vizinhos.
+      await page.screenshot({ path: path.join(OUT, '05-municipio-de-perto.png'),
+        clip: { x: Math.max(0, escolhido.x - 210), y: Math.max(0, escolhido.y - 210), width: 420, height: 420 } });
+      checar(20, 'seleção por clique marca exatamente um município',
+        (await lerAlvos(page)).filter((a) => a.pressionado).length === 1, escolhido.rotulo);
+      /*
+       * O lilás mudou de portador: quem o carrega agora é o marcador da unidade. Aracaju — o de
+       * maior área com unidade — tem quatro, e município de várias não escolhe nenhuma de
+       * propósito: pede a escolha. A escolha vai pelo painel, e não por clique no marcador, porque
+       * os quatro marcadores de Aracaju se sobrepõem na tela (DV09) e o clique cai no vizinho.
+       */
+      await page.locator('.selected-panel .unit-list__escolha').first().click();
+      await page.waitForTimeout(300);
+      const marcados = await page.locator('.map__unidade[aria-pressed="true"]').count();
+      checar(20, 'a seleção aparece no marcador da unidade, não no polígono', marcados === 1, `${marcados} marcador(es)`);
     }
 
     checar(0, 'nenhum erro de página no roteiro inteiro', erros.length === 0, erros.join(' | '));
