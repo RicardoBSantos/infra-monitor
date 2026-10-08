@@ -1,13 +1,18 @@
 /*
  * Aviso de IBGE divergente no detalhe da unidade (Visão geral).
  *
- *   MAPA_SENHA=<senha> [MAPA_BASE=http://127.0.0.1:4300] node e2e/unidade-detalhe-aviso-ibge.cjs
+ *   MAPA_SENHA=<senha> [MAPA_EMAIL=<email>] [MAPA_BASE=http://127.0.0.1:4200] node e2e/unidade-detalhe-aviso-ibge.cjs
  *
- * Casos (banco de dev, SELECT em 2026-09-24 — ver e2e/mapa-marcador-investigacao.cjs):
- *   - id 5 "Sesc Itabaiana" (ITA-09): codigo_ibge 2803005 (Itabaianinha), coordenada dentro do
- *     polígono de Itabaiana (2802908) — diverge. A Visão geral deve mostrar `.aviso-ibge` citando
- *     "Itabaiana" e "2803005".
- *   - id 1 "Sede Administrativa" (Aracaju): IBGE 2800308, coerente com a coordenada — sem aviso.
+ * Rodar contra o ambiente descartável (banco `infra-e2e`, cópia do dev), nunca com o backend
+ * apontado para o banco de dev.
+ *
+ * Casos (dado conferido no `infra-e2e` em 2026-10-08, ponto-em-polígono contra
+ * public/assets/maps/se-municipalities.geo.json):
+ *   - id 5 "Sesc Itabaiana" (ITA-09): codigo_ibge 2803005 (Itabaianinha), coordenada
+ *     -10.6853, -37.4256 dentro do polígono de Itabaiana (2802908) — diverge. A Visão geral deve
+ *     mostrar `.aviso-ibge` citando "Itabaiana" e "2803005".
+ *   - id 1 "Sede Administrativa" (Aracaju): IBGE 2800308, coordenada -10.9116, -37.0497 dentro
+ *     de Aracaju — coerente, sem aviso.
  *
  * Navegação por clique (sessão só existe em memória; page.goto pós-login cai em /login):
  * lista de unidades -> link "Ver" da linha -> aba Visão geral (rota-filha padrão do detalhe).
@@ -16,7 +21,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
 
-const BASE = process.env.MAPA_BASE || 'http://127.0.0.1:4300';
+const BASE = process.env.MAPA_BASE || 'http://127.0.0.1:4200';
 const EMAIL = process.env.MAPA_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.MAPA_SENHA;
 if (!SENHA) throw new Error('MAPA_SENHA é obrigatória');
@@ -40,6 +45,10 @@ async function abrirUnidadePelaLista(page, unidadeId) {
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1400, height: 960 } });
+  // A malha de municípios é carregada uma vez e reaproveitada (shareReplay): o caso 2 só
+  // pode afirmar ausência sabendo que ela já chegou nesta sessão.
+  let malhaCarregada = false;
+  page.on('response', (r) => { if (r.url().includes('se-municipalities.geo.json') && r.ok()) malhaCarregada = true; });
   page.on('pageerror', (e) => registro.erros.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') registro.erros.push('console: ' + m.text()); });
   try {
@@ -63,7 +72,15 @@ async function abrirUnidadePelaLista(page, unidadeId) {
 
     // ------------------------------------------------------------------ caso 2: Aracaju coerente, sem aviso
     await abrirUnidadePelaLista(page, 1);
-    await page.waitForTimeout(800); // dá tempo do computed/toSignal assentar antes de afirmar ausência
+    /*
+     * Ausência só vale depois de as duas entradas do aviso estarem na tela: a malha (já chegou
+     * no caso 1, conferido aqui) e o cadastro da unidade 1 — cujas coordenadas aparecem nos
+     * metadados do cabeçalho. Com as duas presentes, o mesmo ciclo que pinta os metadados
+     * pintaria o aviso; e a Visão geral precisa ter saído do carregamento.
+     */
+    if (!malhaCarregada) throw new Error('malha de municípios não chegou: ausência do aviso não provaria nada');
+    await page.locator('.unidade-detalhe__meta', { hasText: /-10\.9116, -37\.0497/ }).waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForFunction(() => !document.querySelector('.visao-geral .esqueleto'), null, { timeout: 15000 });
     const semAviso = (await page.locator('.aviso-ibge').count()) === 0;
     registro.casos.push({ rotulo: 'aracaju-1-sede-administrativa', unidadeId: 1, esperaAviso: false, avisoEncontrado: !semAviso });
     await page.screenshot({ path: path.join(OUT, '02-aracaju-sem-aviso.png') });
