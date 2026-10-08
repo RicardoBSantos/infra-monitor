@@ -343,20 +343,14 @@ export class EquipamentoDetalheDrawerComponent {
     return valor >= 99 ? 'kpi--ok' : valor >= 95 ? 'kpi--warn' : 'kpi--down';
   });
 
-  /** Perda e sempre ambar, qualquer que seja o percentual; sem dado, neutro. */
-  protected readonly corPerda = computed(() => (this.perdaDePacotes() === null ? '' : 'kpi--warn'));
+  /** Perda ambar so quando ha perda: 0% e sem dado (null) sao neutros. */
+  protected readonly corPerda = computed(() => ((this.perdaDePacotes() ?? 0) > 0 ? 'kpi--warn' : ''));
 
   /**
-   * Incidentes e sempre vermelho para qualquer contagem, inclusive zero — a cor
-   * identifica a metrica, nao o estado dela. Nao "corrigir" para neutro quando o valor
-   * for 0: e o comportamento pedido, coberto por teste. So o "—" fica neutro, porque ai
-   * nao ha contagem alguma: e request que falhou ou ainda nao voltou, nao ausencia de
-   * incidentes.
+   * Tom so quando ha o que alertar: zero incidentes e o estado saudavel e fica neutro,
+   * assim como o "—" (contagem que falhou ou ainda nao voltou).
    */
-  protected readonly corIncidentes = computed(() => {
-    const contagem = this.disponibilidade()?.incidentes;
-    return contagem === null || contagem === undefined ? '' : 'kpi--down';
-  });
+  protected readonly corIncidentes = computed(() => ((this.disponibilidade()?.incidentes ?? 0) > 0 ? 'kpi--down' : ''));
 
   /**
    * Âmbar um passo antes do limite, vermelho ao atingi-lo. Com

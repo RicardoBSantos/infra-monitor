@@ -225,7 +225,15 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi--info').length).toBe(2);
   });
 
-  it('mantém Incidentes em vermelho mesmo com zero incidentes', () => {
+  it('deixa Perda de pacotes neutra com zero por cento', () => {
+    const fixture = montar();
+    responder(fixture, [], [monitor({ id: 10 })], [medicao(18, 'SUCESSO', 4), medicao(19, 'SUCESSO', 6)]);
+
+    expect(fixture.componentInstance['perdaDePacotes']()).toBe(0);
+    expect(fixture.componentInstance['corPerda']()).toBe('');
+  });
+
+  it('deixa Incidentes neutro com zero incidentes', () => {
     const fixture = montar();
     responder(fixture, [], [monitor({ id: 10 })], MEDICOES_PADRAO, [
       { equipamentoId: 1, disponibilidadePercentual: 100, incidentes: 0 },
@@ -234,8 +242,9 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     const cartaoIncidentes = [...elemento.querySelectorAll('.kpi')]
       .find((cartao) => cartao.textContent?.includes('Incidentes'))!;
 
-    // A cor identifica a métrica, não o estado: zero incidente segue vermelho.
-    expect(cartaoIncidentes.className).toContain('kpi--down');
+    // Zero é o estado saudável: tom de alerta só quando há o que alertar.
+    expect(fixture.componentInstance['corIncidentes']()).toBe('');
+    expect(cartaoIncidentes.className).not.toContain('kpi--down');
     expect(cartaoIncidentes.textContent).toContain('0');
   });
 

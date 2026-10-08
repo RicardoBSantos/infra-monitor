@@ -218,10 +218,33 @@ describe('IncidenteDetalheDrawerComponent', () => {
   });
 
   /**
-   * Zero medido é fato e continua colorido; o que muda de cor é a ausência. As duas
-   * leituras não podem ficar iguais na tela.
+   * Zero medido é fato, mas não é alerta: fica neutro, como a contagem ausente. O tom só
+   * aparece quando o valor passa de zero.
    */
-  it('pinta a contagem zero medida, ao contrário da contagem ausente', () => {
+  it('pinta de vermelho as falhas na janela quando há ao menos uma', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    responderBlocos();
+
+    expect(valorDo('Falhas na janela')).toBe('3');
+    expect(kpi('Falhas na janela').className).toContain('kpi--down');
+  });
+
+  it('não pinta "Acima do limiar" com zero medições acima do limiar', () => {
+    montar(IncidentKind.Latency, 5);
+    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
+      { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 100, executadoEm: '2026-09-01T09:00:30Z' },
+    ]));
+    http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
+    http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
+    fixture.detectChanges();
+
+    expect(valorDo('Acima do limiar')).toBe('0');
+    expect(kpi('Acima do limiar').className).not.toContain('kpi--warn');
+  });
+
+  it('não pinta a contagem zero de falhas', () => {
     montar(IncidentKind.Incident, 5);
     http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([]));
@@ -230,7 +253,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
     fixture.detectChanges();
 
     expect(valorDo('Falhas na janela')).toBe('0');
-    expect(kpi('Falhas na janela').className).toContain('kpi--down');
+    expect(kpi('Falhas na janela').className).not.toContain('kpi--down');
   });
 
   it('escala a cor do Status e marca a duração de ocorrência em curso', () => {

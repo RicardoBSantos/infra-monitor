@@ -277,8 +277,9 @@ export class IncidenteDetalheDrawerComponent {
   //   · cor de métrica é fixa e identifica a métrica, não o estado dela — azul para
   //     latência, âmbar para limiar e para violação, vermelho para falha;
   //   · cor nunca aparece sozinha em cima de dado ausente: sem contagem, sem cor.
-  // A distinção que importa é contagem zero (que é um fato, e é colorida) contra
-  // contagem desconhecida (medições que não voltaram, que fica neutra).
+  // Contagem só ganha tom quando passa de zero: zero medido e contagem desconhecida
+  // (medições que não voltaram) ficam ambos neutros. A diferença entre os dois aparece
+  // no texto ("0" contra "indisponível"), não na cor.
 
   /** Toda contagem derivada de medição só é fato depois que o bloco respondeu. */
   protected readonly medicoesProntas = computed(() => this.medicoesEstado() === 'success');
@@ -307,10 +308,11 @@ export class IncidenteDetalheDrawerComponent {
   protected readonly corLatenciaMedia = computed(() => (this.latenciaMedia() === null ? '' : 'kpi--info'));
 
   protected readonly corAcimaDoLimiar = computed(() =>
-    (this.medicoesProntas() && this.medicoesAcimaDoLimiar() !== null ? 'kpi--warn' : ''));
+    (this.medicoesProntas() && (this.medicoesAcimaDoLimiar() ?? 0) > 0 ? 'kpi--warn' : ''));
 
-  /** Vermelho para qualquer contagem, zero inclusive; neutro só sem contagem alguma. */
-  protected readonly corFalhas = computed(() => (this.medicoesProntas() ? 'kpi--down' : ''));
+  /** Tom só quando há o que alertar: zero é neutro, não alerta; sem contagem, também. */
+  protected readonly corFalhas = computed(() =>
+    (this.medicoesProntas() && this.falhasNaJanela() > 0 ? 'kpi--down' : ''));
 
   // ---- Ações -------------------------------------------------------------------
 
