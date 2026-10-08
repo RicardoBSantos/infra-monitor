@@ -176,7 +176,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
   /**
    * Medições fora do ar não são "zero falhas em zero amostras": é contagem desconhecida.
    * Escrever 0 ali afirmaria uma janela limpa que ninguém mediu — e ainda pintaria de
-   * vermelho um número inventado.
+   * tom de alerta num número inventado.
    */
   it('mostra "indisponível" em vez de zero nos KPIs de medição quando o bloco cai — incidente', () => {
     montar(IncidentKind.Incident, 5);
@@ -242,6 +242,19 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
     expect(valorDo('Acima do limiar')).toBe('0');
     expect(kpi('Acima do limiar').className).not.toContain('kpi--warn');
+  });
+
+  it('não pinta o pico de latência de 0 ms (RTT sub-ms gravado como zero)', () => {
+    montar(IncidentKind.Latency, 5);
+    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
+      { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 0, executadoEm: '2026-09-01T09:00:30Z' },
+    ]));
+    http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
+    http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
+    fixture.detectChanges();
+
+    expect(kpi('Pico').className).not.toContain('kpi--down');
   });
 
   it('não pinta a contagem zero de falhas', () => {

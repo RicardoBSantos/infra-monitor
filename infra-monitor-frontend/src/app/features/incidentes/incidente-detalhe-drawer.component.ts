@@ -303,7 +303,7 @@ export class IncidenteDetalheDrawerComponent {
   protected readonly corLimiar = computed(() =>
     (this.ocorrencia()?.limiarMs === null || this.ocorrencia()?.limiarMs === undefined ? '' : 'kpi--warn'));
 
-  protected readonly corPico = computed(() => (this.latenciaPico() === null ? '' : 'kpi--down'));
+  protected readonly corPico = computed(() => ((this.latenciaPico() ?? 0) > 0 ? 'kpi--down' : ''));
 
   protected readonly corLatenciaMedia = computed(() => (this.latenciaMedia() === null ? '' : 'kpi--info'));
 
