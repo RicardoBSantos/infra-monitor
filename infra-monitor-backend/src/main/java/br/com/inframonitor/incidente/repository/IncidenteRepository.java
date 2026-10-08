@@ -153,6 +153,16 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
             + "br.com.inframonitor.incidente.entity.StatusIncidente.RECONHECIDO)")
     List<Incidente> abertosDoEquipamento(@Param("equipamentoId") Long equipamentoId);
 
+    /**
+     * Instante em que o fechamento mais recente do monitor foi GRAVADO, nao o encerrado_em
+     * informado: no fechamento manual o encerrado_em vem do corpo e aceita data retroativa.
+     * Os tres CAS de fechamento escrevem updated_at = :agora, e FECHADO e terminal (nenhum
+     * endpoint escreve num incidente fechado), entao o valor nao se move depois.
+     */
+    @Query("select max(i.updatedAt) from Incidente i where i.monitor.id = :monitorId "
+            + "and i.status = br.com.inframonitor.incidente.entity.StatusIncidente.FECHADO")
+    Optional<Instant> ultimoFechamentoRegistrado(@Param("monitorId") Long monitorId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Incidente i set i.status = br.com.inframonitor.incidente.entity.StatusIncidente.FECHADO, "
             + "i.encerradoEm = :agora, "
