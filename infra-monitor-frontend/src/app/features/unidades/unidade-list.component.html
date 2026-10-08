@@ -27,7 +27,7 @@
       [value]="busca()"
       (input)="aoBuscar($any($event.target).value)"
     >
-    <p class="contagem">{{ filtradas().length }} de {{ total() }} unidades</p>
+    <p class="contagem">{{ filtradas().length }} de {{ plural(total(), 'unidade', 'unidades') }}</p>
   </div>
 
   <div class="cartao">

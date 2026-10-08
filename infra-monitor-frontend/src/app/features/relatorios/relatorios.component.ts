@@ -21,6 +21,8 @@ import {
 import { TipoEquipamentoResponse } from '../../core/models/tipo-equipamento';
 import { UnidadeResponse } from '../../core/models/unidade';
 import { EquipamentoApiService } from '../../core/services/equipamento-api.service';
+import { formatarDecimal, formatarPercentual } from '../../core/format/numero';
+import { plural } from '../../core/format/plural';
 import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
@@ -57,6 +59,7 @@ const notificationSorts = [{ value: 'createdAt', label: 'Criada em' }, { value: 
 
 @Component({ selector: 'app-relatorios', imports: [PaginacaoComponent, ReactiveFormsModule, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './relatorios.component.html', styleUrl: './relatorios.component.scss' })
 export class RelatoriosComponent {
+  protected readonly plural = plural;
   private readonly reportsApi = inject(RelatorioApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
   private readonly tiposApi = inject(TipoEquipamentoApiService);
@@ -305,9 +308,9 @@ export class RelatoriosComponent {
   }
   /** `mudarPagina` de <app-paginacao> chega 1-based e já clampado; aqui vira o delta que o estado por aba usa. */
   protected irParaPagina(pagina: number) { const delta = pagina - 1 - this.currentPageNumber(); if (delta === 0) return; this.changePage(delta); this.search(); }
-  protected availability(value: number | null) { return value === null ? '—' : `${value.toFixed(2)}%`; }
+  protected availability(value: number | null) { return formatarPercentual(value); }
   protected availabilityBar(value: number | null) { return value === null || !Number.isFinite(value) ? 0 : Math.max(0, Math.min(100, value)); }
-  protected latency(value: number | null | undefined, average = false) { return value === null || value === undefined || !Number.isFinite(value) ? '—' : `${average ? value.toFixed(2) : value} ms`; }
+  protected latency(value: number | null | undefined, average = false) { return value === null || value === undefined || !Number.isFinite(value) ? '—' : `${average ? formatarDecimal(value) : value} ms`; }
   protected date(value: string | null) { if (!value) return '—'; const parsed = new Date(value); return Number.isNaN(parsed.valueOf()) ? '—' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }).format(parsed); }
   protected errorText() { const error = this.error(); if (!error) return ''; if (error.status === 400) return 'A consulta não é válida. Revise o período e os filtros selecionados.'; if (error.status === 404) return 'Um recurso selecionado não foi encontrado. Atualize os filtros e tente novamente.'; if (error.status >= 500) return 'O serviço de relatórios apresentou uma falha. Tente atualizar em instantes.'; return error.message || 'Não foi possível carregar o relatório.'; }
   protected currentState() { return this.stateFor(this.activeTab())(); }

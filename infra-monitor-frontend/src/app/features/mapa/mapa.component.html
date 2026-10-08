@@ -17,12 +17,12 @@
     @if (statusGeografico().length) {
       <div class="geo-status"><p class="panel-label">STATUS GEOGRÁFICO · SERGIPE</p>
         <ul class="geo-status__list">@for (linha of statusGeografico(); track linha.status) { <li><app-status-badge [status]="linha.status" /><span class="geo-status__total">{{ linha.total }}</span></li> }</ul>
-        <p class="geo-status__foot">{{ totalUnidades() }} unidade(s) monitorada(s)</p>
+        <p class="geo-status__foot">{{ plural(totalUnidades(), 'unidade monitorada', 'unidades monitoradas') }}</p>
       </div>
     }
     <!-- Municipio com exatamente uma unidade nao aparece aqui: o painel da unidade abaixo ja diz
          tudo que este bloco diria, e repetir o nome duas vezes so alonga a coluna. -->
-    @if (selected(); as municipio) { @if (municipio.units.length !== 1) { <div class="map-feedback selected-panel"><strong>{{ municipio.nome }}</strong>@if (municipio.units.length === 0) { <p>Nenhuma unidade cadastrada neste município.</p> } @else { <p>{{ municipio.units.length }} unidades neste município. Escolha uma para ver o detalhe.</p><ul class="unit-list">@for (unit of municipio.units; track unit.id) { <li><button class="unit-list__escolha" type="button" [class.unit-list__escolha--ativa]="unidadeSelecionada()?.id === unit.id" [attr.aria-pressed]="unidadeSelecionada()?.id === unit.id" (click)="selectUnidade(unit)"><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /> <span>{{ unit.equipamentosTotal }} equipamentos</span></button></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Gerenciar unidades</button> }</div> } }
+    @if (selected(); as municipio) { @if (municipio.units.length !== 1) { <div class="map-feedback selected-panel"><strong>{{ municipio.nome }}</strong>@if (municipio.units.length === 0) { <p>Nenhuma unidade cadastrada neste município.</p> } @else { <p>{{ plural(municipio.units.length, 'unidade', 'unidades') }} neste município. Escolha uma para ver o detalhe.</p><ul class="unit-list">@for (unit of municipio.units; track unit.id) { <li><button class="unit-list__escolha" type="button" [class.unit-list__escolha--ativa]="unidadeSelecionada()?.id === unit.id" [attr.aria-pressed]="unidadeSelecionada()?.id === unit.id" (click)="selectUnidade(unit)"><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /> <span>{{ plural(unit.equipamentosTotal, 'equipamento', 'equipamentos') }}</span></button></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Gerenciar unidades</button> }</div> } }
     @if (unidadeSelecionada(); as unidade) {
       <div class="unit-panel"><p class="panel-label">UNIDADE SELECIONADA</p>
         <strong class="unit-panel__nome">{{ unidade.nome }}</strong>

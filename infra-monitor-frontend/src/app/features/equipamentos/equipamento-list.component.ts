@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, forkJoin, map, take } from 'rxjs';
 
+import { plural } from '../../core/format/plural';
 import { EquipmentOperationalStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
@@ -78,6 +79,7 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
   styleUrl: './equipamento-list.component.scss',
 })
 export class EquipamentoListComponent {
+  protected readonly plural = plural;
   private readonly api = inject(EquipamentoApiService);
   private readonly dashboard = inject(DashboardApiService);
   private readonly unidadesApi = inject(UnidadeApiService);

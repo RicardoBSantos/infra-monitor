@@ -103,7 +103,7 @@
                 @if (!equipamentoContextId()) { <td>{{ item.equipamento.nome }}</td> }
                 <td><span class="chip-tipo">{{ item.tipo }}</span></td>
                 <td class="mono">{{ item.intervaloSegundos }} s <span class="apagado">/ {{ item.timeoutMs }} ms</span></td>
-                <td class="mono">{{ item.falhasParaIncidente }} falhas <span class="apagado">/ {{ item.sucessosParaRecovery }} sucessos</span></td>
+                <td class="mono">{{ plural(item.falhasParaIncidente, 'falha', 'falhas') }} <span class="apagado">/ {{ plural(item.sucessosParaRecovery, 'sucesso', 'sucessos') }}</span></td>
                 <td>
                   <span class="chip-monitoramento" [class.chip-monitoramento--off]="!item.ativo">
                     {{ item.ativo ? 'Ativo' : 'Inativo' }}

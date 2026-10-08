@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, injec
 import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 
+import { plural } from '../../core/format/plural';
+import { formatarPercentual } from '../../core/format/numero';
 import { EquipmentOperationalStatus, MeasurementStatus } from '../../core/models/api-enums';
 import { EquipamentoResponse } from '../../core/models/equipamento';
 import { IncidenteResponse } from '../../core/models/incidente';
@@ -72,6 +74,7 @@ export interface EquipamentoResumo {
   styleUrl: './equipamento-detalhe-drawer.component.scss',
 })
 export class EquipamentoDetalheDrawerComponent {
+  protected readonly plural = plural;
   private readonly api = inject(EquipamentoApiService);
   private readonly relatorios = inject(RelatorioApiService);
   private readonly monitores = inject(MonitorApiService);
@@ -401,7 +404,7 @@ export class EquipamentoDetalheDrawerComponent {
   // ---- Apresentação ------------------------------------------------------------
 
   protected percentual(valor: number | null | undefined): string {
-    return valor === null || valor === undefined ? '—' : `${valor.toFixed(2).replace('.', ',')}%`;
+    return formatarPercentual(valor);
   }
 
   protected milissegundos(valor: number | null | undefined): string { return formatarMs(valor); }

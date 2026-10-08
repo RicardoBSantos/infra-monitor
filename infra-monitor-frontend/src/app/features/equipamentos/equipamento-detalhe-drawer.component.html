@@ -88,7 +88,7 @@
           <span class="grafico__chave grafico__chave--linha">latência</span>
           <span class="grafico__chave grafico__chave--media">média móvel</span>
           <span class="mono">pico {{ milissegundos(picoLatencia()) }}</span>
-          <span class="mono">{{ timeoutsNaJanela() }} timeouts</span>
+          <span class="mono">{{ plural(timeoutsNaJanela(), 'timeout', 'timeouts') }}</span>
         </p>
       </div>
 

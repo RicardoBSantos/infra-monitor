@@ -94,7 +94,7 @@ describe('RelatoriosComponent', () => {
     requests.units.flush(page()); requests.equipment.flush(page()); requests.latency.flush(page([latency()]));
     fixture.detectChanges();
     const carregando = fixture.nativeElement.querySelectorAll('.kpi-card .skeleton');
-    expect(carregando.length).toBe(3); expect(fixture.nativeElement.textContent).toContain('55.00 ms');
+    expect(carregando.length).toBe(3); expect(fixture.nativeElement.textContent).toContain('55,00 ms');
 
     requests.indicators.flush({ status: 500, code: 'INTERNAL_ERROR', message: 'segredo' }, { status: 500, statusText: 'Erro' });
     fixture.detectChanges();
@@ -104,7 +104,7 @@ describe('RelatoriosComponent', () => {
     // Uma ação só para os três, e ela não pode reaparecer em cada cartão.
     const repetir = cards.flatMap(card => Array.from(card.querySelectorAll('.botao')) as HTMLButtonElement[]);
     expect(repetir.length).toBe(1);
-    expect(fixture.nativeElement.textContent).toContain('55.00 ms');
+    expect(fixture.nativeElement.textContent).toContain('55,00 ms');
 
     repetir[0].click(); fixture.detectChanges();
     http.expectNone(r => r.url.endsWith('/relatorios/latencia'));
@@ -126,7 +126,7 @@ describe('RelatoriosComponent', () => {
     const retry = (Array.from(fixture.nativeElement.querySelectorAll('.analytic-card .botao')) as HTMLButtonElement[]).find(button => button.textContent?.includes('Tentar novamente'))!;
     retry.click(); fixture.detectChanges();
     const retried = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(retried.request.params.get('sort')).toBe('avgLatenciaMs,desc'); retried.flush(page([latency()])); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('55.00 ms');
+    expect(fixture.nativeElement.textContent).toContain('55,00 ms');
   });
 
   it('refreshes and changes the Overview period with four requests and rejects periods over 31 days without calls', () => {
@@ -146,7 +146,7 @@ describe('RelatoriosComponent', () => {
     const { fixture, request, report } = create();
     expect(fixture.nativeElement.textContent).toContain('Carregando relatório');
     request.flush(report); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Calculado'); expect(fixture.nativeElement.textContent).toContain('Precisa'); expect(fixture.nativeElement.textContent).toContain('91.00%'); expect(fixture.nativeElement.textContent).toContain('1h 1m');
+    expect(fixture.nativeElement.textContent).toContain('Calculado'); expect(fixture.nativeElement.textContent).toContain('Precisa'); expect(fixture.nativeElement.textContent).toContain('91,00%'); expect(fixture.nativeElement.textContent).toContain('1h 1m');
   });
   it('renders empty and safe null analytical states without NaN, undefined or false zeroes', () => {
     let x = create(page()); x.request.flush(x.report); x.fixture.detectChanges(); expect(x.fixture.nativeElement.textContent).toContain('Nenhum resultado encontrado');
@@ -205,7 +205,7 @@ describe('RelatoriosComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Carregando relatório');
     expect(query.request.params.get('page')).toBe('0'); expect(query.request.params.get('size')).toBe('20'); expect(query.request.params.get('sort')).toBe('monitorNome,asc');
     query.flush(page([latency(), latency({ monitorId: 4, monitorNome: 'ICMP sem dados', minLatenciaMs: null, avgLatenciaMs: null, maxLatenciaMs: null, p95LatenciaMs: null, count: 0 })])); fixture.detectChanges();
-    const text = fixture.nativeElement.textContent; expect(text).toContain('11 ms'); expect(text).toContain('55.00 ms'); expect(text).toContain('96 ms'); expect(text).toContain('91 ms'); expect(text).toContain('7'); expect(text).toContain('ICMP sem dados————0'); expect(text).not.toMatch(/NaN|undefined|null/);
+    const text = fixture.nativeElement.textContent; expect(text).toContain('11 ms'); expect(text).toContain('55,00 ms'); expect(text).toContain('96 ms'); expect(text).toContain('91 ms'); expect(text).toContain('7'); expect(text).toContain('ICMP sem dados————0'); expect(text).not.toMatch(/NaN|undefined|null/);
   });
 
   it('covers latency empty plus mapped 400, 404 and 500 states with refresh', () => {

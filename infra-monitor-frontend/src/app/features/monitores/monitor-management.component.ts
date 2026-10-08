@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { take } from 'rxjs';
+import { plural } from '../../core/format/plural';
 import { ApiErrorCode, isApiError } from '../../core/models/api-error';
 import { MonitorType } from '../../core/models/api-enums';
 import { EquipamentoResponse } from '../../core/models/equipamento';
@@ -23,6 +24,7 @@ type Sort = 'nome,asc' | 'nome,desc' | 'tipo,asc' | 'intervaloSegundos,asc' | 't
   styleUrl: './monitor-management.component.scss',
 })
 export class MonitorManagementComponent implements OnInit {
+  protected readonly plural = plural;
   protected readonly authState = inject(AuthStateService);
   readonly equipamentoContextId = input<number | undefined>();
   private readonly api = inject(MonitorApiService); private readonly equipamentosApi = inject(EquipamentoApiService); private readonly fb = inject(FormBuilder);

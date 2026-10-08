@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 
+import { plural } from '../../core/format/plural';
 import { isApiError } from '../../core/models/api-error';
 import { DashboardUnidade } from '../../core/models/dashboard';
 import { UnidadeResponse } from '../../core/models/unidade';
@@ -13,7 +14,8 @@ import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
-import { JANELA_DIAS, formatarPercentual } from './detalhe/unidade-detalhe.store';
+import { JANELA_DIAS } from './detalhe/unidade-detalhe.store';
+import { formatarPercentual } from '../../core/format/numero';
 import { UnidadeFormDrawerComponent } from './unidade-form-drawer.component';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
@@ -45,6 +47,7 @@ interface Linha {
   styleUrl: './unidade-list.component.scss',
 })
 export class UnidadeListComponent {
+  protected readonly plural = plural;
   private readonly api = inject(UnidadeApiService);
   private readonly dashboard = inject(DashboardApiService);
   private readonly relatorios = inject(RelatorioApiService);
@@ -132,13 +135,13 @@ export class UnidadeListComponent {
         return `Não foi possível confirmar quantos equipamentos estão vinculados a ${alvo.nome}. Se houver algum, a exclusão será recusada: mova ou desvincule os equipamentos antes de tentar.`;
       }
       if (equipamentos > 0) {
-        return `${alvo.nome} tem ${equipamentos} equipamento(s) vinculado(s) e a exclusão será recusada enquanto existirem. Mova ou desvincule os equipamentos primeiro.`;
+        return `${alvo.nome} tem ${plural(equipamentos, 'equipamento vinculado', 'equipamentos vinculados')} e a exclusão será recusada enquanto existirem. Mova ou desvincule os equipamentos primeiro.`;
       }
       return `${alvo.nome} não tem equipamentos vinculados. A exclusão é definitiva e não pode ser desfeita.`;
     }
     const dispositivos = equipamentos === null
       ? 'dos dispositivos desta unidade (quantidade não confirmada)'
-      : `dos ${equipamentos} dispositivo(s) desta unidade`;
+      : `${equipamentos === 1 ? 'do 1 dispositivo' : `dos ${equipamentos} dispositivos`} desta unidade`;
     return `Desativar interrompe o monitoramento ICMP ${dispositivos} e suprime os alertas do Telegram. O histórico de medições e incidentes é preservado.`;
   });
 

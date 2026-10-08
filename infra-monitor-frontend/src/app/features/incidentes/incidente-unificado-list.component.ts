@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith, take } from 'rxjs';
+import { plural } from '../../core/format/plural';
 import { isApiError } from '../../core/models/api-error';
 import { IncidentClosureReason, IncidentStatus, NotificationStatus } from '../../core/models/api-enums';
 import {
@@ -137,7 +138,7 @@ export class IncidenteUnificadoListComponent {
 
   protected readonly contagem = computed(() => {
     const total = this.totalElementos();
-    return total ? `${this.linhas().length} de ${total} ocorrência(s)` : '';
+    return total ? `${this.linhas().length} de ${plural(total, 'ocorrência', 'ocorrências')}` : '';
   });
 
   constructor() {

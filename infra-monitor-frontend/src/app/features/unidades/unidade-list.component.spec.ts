@@ -164,7 +164,7 @@ describe('UnidadeListComponent', () => {
 
     const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
     expect(dialogo.textContent).toContain('Desativar Unidade 1?');
-    expect(dialogo.textContent).toContain('24 dispositivo(s)');
+    expect(dialogo.textContent).toContain('24 dispositivos');
     expect(dialogo.textContent).toContain('Telegram');
 
     (dialogo.querySelectorAll('button')[1] as HTMLButtonElement).click();
@@ -184,7 +184,7 @@ describe('UnidadeListComponent', () => {
 
     (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[2] as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.confirm-dialog')!.textContent).toContain('12 equipamento(s) vinculado(s)');
+    expect(fixture.nativeElement.querySelector('.confirm-dialog')!.textContent).toContain('12 equipamentos vinculados');
 
     (fixture.nativeElement.querySelectorAll('.confirm-dialog button')[1] as HTMLButtonElement).click();
     http.expectOne(`${UNIDADES_URL}/1`).flush({
@@ -208,7 +208,7 @@ describe('UnidadeListComponent', () => {
     fixture.detectChanges();
 
     const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
-    expect(dialogo.textContent).toContain('24 equipamento(s) vinculado(s)');
+    expect(dialogo.textContent).toContain('24 equipamentos vinculados');
     expect(dialogo.textContent).toContain('será recusada');
     expect(dialogo.textContent).toContain('Mova ou desvincule');
     expect(dialogo.textContent).not.toContain('definitiva');
@@ -247,7 +247,7 @@ describe('UnidadeListComponent', () => {
 
     const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
     expect(dialogo.textContent).toContain('quantidade não confirmada');
-    expect(dialogo.textContent).not.toContain('0 dispositivo(s)');
+    expect(dialogo.textContent).not.toContain('0 dispositivos');
   });
 
   it('ativa sem confirmação', () => {

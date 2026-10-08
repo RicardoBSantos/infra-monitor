@@ -3,7 +3,7 @@
     <div>
       <h1 id="painel-titulo">Visão Geral da Infraestrutura</h1>
       @if (resumo(); as data) {
-        <p class="painel__meta">{{ data.unidades.total }} unidades · {{ monitorados() }} dispositivos monitorados · última varredura {{ ultimaVarredura() }}</p>
+        <p class="painel__meta">{{ plural(data.unidades.total, 'unidade', 'unidades') }} · {{ plural(monitorados(), 'dispositivo monitorado', 'dispositivos monitorados') }} · última varredura {{ ultimaVarredura() }}</p>
       } @else {
         <p class="painel__meta">carregando leitura operacional…</p>
       }
@@ -21,14 +21,14 @@
   } @else if (resumo(); as data) {
     <div class="kpis">
       <article class="kpi"><span>UNIDADES</span><strong>{{ data.unidades.total }}</strong><small>cadastradas e ativas</small></article>
-      <article class="kpi"><span>EQUIPAMENTOS</span><strong>{{ data.equipamentos.total }}</strong><small>{{ monitorados() }} monitorados</small></article>
-      <article class="kpi kpi--ok"><span>ONLINE</span><strong>{{ data.equipamentos.disponiveis }}</strong><small>de {{ data.equipamentos.ativos }} ativos</small></article>
+      <article class="kpi"><span>EQUIPAMENTOS</span><strong>{{ data.equipamentos.total }}</strong><small>{{ plural(monitorados(), 'monitorado', 'monitorados') }}</small></article>
+      <article class="kpi kpi--ok"><span>ONLINE</span><strong>{{ data.equipamentos.disponiveis }}</strong><small>de {{ plural(data.equipamentos.ativos, 'ativo', 'ativos') }}</small></article>
       <article class="kpi kpi--warn"><span>DEGRADADOS</span><strong>{{ data.equipamentos.degradados }}</strong><small>acima de {{ data.limiarLatenciaDegradadaMs }} ms</small></article>
       <article class="kpi kpi--warn"><span>EM MANUTENÇÃO</span><strong>{{ data.equipamentos.emManutencao }}</strong><small>fora da leitura ICMP</small></article>
-      <article class="kpi kpi--down"><span>OFFLINE</span><strong>{{ data.equipamentos.indisponiveis }}</strong><small>{{ unidadesOffline() }} unidades afetadas</small></article>
+      <article class="kpi kpi--down"><span>OFFLINE</span><strong>{{ data.equipamentos.indisponiveis }}</strong><small>{{ plural(unidadesOffline(), 'unidade afetada', 'unidades afetadas') }}</small></article>
       <article class="kpi" [class.kpi--carregando]="disponibilidadeGlobalCarregando()"><span>DISPONIBILIDADE</span><strong [class.kpi__vazio]="disponibilidadeGlobalTexto() === '—'">{{ disponibilidadeGlobalTexto() }}</strong><small>janela de 30 dias</small></article>
       <article class="kpi" [class.kpi--carregando]="latenciaGlobalCarregando()"><span>LATÊNCIA MÉDIA</span><strong [class.kpi__vazio]="latenciaGlobalTexto() === '—'">{{ latenciaGlobalTexto() }}@if (latenciaGlobalTexto() !== '—') { <span class="kpi__unidade">ms</span> }</strong><small>ICMP · todas as unidades</small></article>
-      <article class="kpi kpi--down"><span>INCIDENTES ABERTOS</span><strong>{{ data.incidentes.abertos }}</strong><small>{{ unidadesComIncidente() }} unidades com incidente</small></article>
+      <article class="kpi kpi--down"><span>INCIDENTES ABERTOS</span><strong>{{ data.incidentes.abertos }}</strong><small>{{ plural(unidadesComIncidente(), 'unidade com incidente', 'unidades com incidente') }}</small></article>
     </div>
   }
 
@@ -37,7 +37,7 @@
       <div class="alerta" role="status">
         <span class="alerta__marca" aria-hidden="true"><app-icon name="close" /></span>
         <div class="alerta__texto">
-          <p class="alerta__linha">{{ data.equipamentos.indisponiveis }} dispositivos offline em {{ unidadesOffline() }} unidades · {{ data.incidentes.abertos }} incidentes abertos</p>
+          <p class="alerta__linha">{{ plural(data.equipamentos.indisponiveis, 'dispositivo offline', 'dispositivos offline') }} em {{ plural(unidadesOffline(), 'unidade', 'unidades') }} · {{ plural(data.incidentes.abertos, 'incidente aberto', 'incidentes abertos') }}</p>
           @if (descricaoIncidentes(); as descricao) { <p class="alerta__detalhe">{{ descricao }}</p> }
         </div>
         <a class="botao" routerLink="/incidentes">Incidentes abertos</a>
@@ -59,7 +59,7 @@
     </div>
   </div>
 
-  <p class="contagem">{{ unidades().length }} de {{ painel.unidades().length }} unidades</p>
+  <p class="contagem">{{ unidades().length }} de {{ plural(painel.unidades().length, 'unidade', 'unidades') }}</p>
 
   @if (unidadesState() === 'loading') {
     <div class="lista" aria-label="Carregando unidades">@for (linha of [1,2,3,4]; track linha) { <div class="linha linha--carregando"></div> }</div>
@@ -113,7 +113,7 @@
             <div class="detalhe">
               @if (detalhe(unidade.id); as dados) {
                 <div class="detalhe__cabecalho">
-                  <span>EQUIPAMENTOS · {{ equipamentosVisiveis(unidade).length }} de {{ dados.total }} exibidos</span>
+                  <span>EQUIPAMENTOS · {{ equipamentosVisiveis(unidade).length }} de {{ plural(dados.total, 'exibido', 'exibidos') }}</span>
                   <a class="botao botao--discreto" [routerLink]="['/unidades', unidade.id]">Abrir unidade <app-icon name="external" /></a>
                 </div>
 

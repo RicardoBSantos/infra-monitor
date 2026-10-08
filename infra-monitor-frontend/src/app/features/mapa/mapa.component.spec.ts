@@ -35,7 +35,7 @@ describe('agrupamento de unidades por municipio',()=>{
 
   it('rotula o municipio para leitor de tela com e sem unidade',()=>{
     const r=agruparUnidades(fonte,[unit]);
-    expect(rotuloDoMunicipio(r.municipios.find(m=>m.codigoIbge==='2800308')!)).toBe('Aracaju: 1 unidade(s)');
+    expect(rotuloDoMunicipio(r.municipios.find(m=>m.codigoIbge==='2800308')!)).toBe('Aracaju: 1 unidade');
     expect(rotuloDoMunicipio(r.municipios.find(m=>m.codigoIbge==='2800100')!)).toBe('Amparo: nenhuma unidade cadastrada');
   });
 });
@@ -118,7 +118,7 @@ describe('rotulo do marcador de unidade',()=>{
    */
   it('usa o status por extenso e leva os mesmos dados da dica',()=>{
     expect(rotuloDaUnidade({...unit,nome:'Sede',status:UnitOperationalStatus.Maintenance,equipamentosTotal:7,incidentesAbertos:2}))
-      .toBe('Sede: Em manutenção, 7 equipamento(s), 2 incidente(s) aberto(s)');
+      .toBe('Sede: Em manutenção, 7 equipamentos, 2 incidentes abertos');
   });
 });
 

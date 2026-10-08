@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, comput
 import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 
+import { formatarPercentual } from '../../core/format/numero';
+import { plural } from '../../core/format/plural';
 import { IncidentStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipamentoResponse } from '../../core/models/equipamento';
@@ -26,7 +28,6 @@ const LOTE = 500;
 const INCIDENTES_NO_BANNER = 3;
 
 const HORA = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-const PERCENTUAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type EstadoEquipamentos = 'loading' | 'success' | 'empty' | 'error';
 /** Filtro de status da barra de pills: rótulos operacionais, não o enum cru da API. */
@@ -54,6 +55,7 @@ const PILLS: readonly { valor: FiltroStatus; rotulo: string; tom: Severidade | '
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent {
+  protected readonly plural = plural;
   private readonly api = inject(DashboardApiService);
   private readonly relatorios = inject(RelatorioApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -429,10 +431,6 @@ function combinaStatus(unidade: DashboardUnidade, filtro: FiltroStatus): boolean
 function combinaCadastro(equipamento: EquipamentoResponse, texto: string, tipoId: number | null): boolean {
   if (tipoId !== null && equipamento.tipoEquipamento.id !== tipoId) return false;
   return [equipamento.nome, equipamento.hostname, equipamento.ip].some((valor) => valor?.toLowerCase().includes(texto));
-}
-
-function formatarPercentual(valor: number | null): string {
-  return valor === null || valor === undefined ? '—' : `${PERCENTUAL.format(valor)}%`;
 }
 
 /** Agregado global a partir das linhas do relatório: razão entre tempo disponível e tempo monitorado. */

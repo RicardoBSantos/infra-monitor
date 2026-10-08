@@ -120,7 +120,7 @@ describe('DashboardComponent', () => {
     // O resto do painel continua de pé: contadores do resumo e a linha da unidade.
     expect(texto(fixture)).toContain('EM MANUTENÇÃO');
     expect(texto(fixture)).toContain('Centro Operacional');
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
   });
 
   it('usa o agregado por unidade do backend em vez de somar as linhas por monitor', () => {
@@ -147,7 +147,7 @@ describe('DashboardComponent', () => {
     busca.value = 'CIS-01';
     busca.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
 
     busca.value = '';
     busca.dispatchEvent(new Event('input'));
@@ -183,7 +183,7 @@ describe('DashboardComponent', () => {
     const pills = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.pill')];
     pills[pills.length - 1].click();
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
     expect(texto(fixture)).toContain('Em manutenção');
   });
 
@@ -243,12 +243,12 @@ describe('DashboardComponent', () => {
     busca.value = 'sw-core.rede.local';
     busca.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
 
     busca.value = 'inexistente';
     busca.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('0 de 1 unidades');
+    expect(texto(fixture)).toContain('0 de 1 unidade');
   });
 
   it('reaproveita o cache ao recolher e expandir a mesma unidade', () => {

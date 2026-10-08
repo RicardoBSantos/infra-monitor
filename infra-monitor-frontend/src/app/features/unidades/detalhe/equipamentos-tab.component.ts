@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { plural } from '../../../core/format/plural';
 import { DashboardEquipamento } from '../../../core/models/dashboard';
 import { StatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
-import { Severidade, UnidadeDetalheStore, formatarPercentual, severidadeDoEquipamento } from './unidade-detalhe.store';
+import { Severidade, UnidadeDetalheStore, severidadeDoEquipamento } from './unidade-detalhe.store';
+import { formatarPercentual } from '../../../core/format/numero';
 
 const STATUS_DISPONIVEIS = [
   { valor: 'DISPONIVEL', rotulo: 'Online' },
@@ -22,6 +24,7 @@ const STATUS_DISPONIVEIS = [
   styleUrl: './equipamentos-tab.component.scss',
 })
 export class EquipamentosTabComponent {
+  protected readonly plural = plural;
   protected readonly store = inject(UnidadeDetalheStore);
   protected readonly statusDisponiveis = STATUS_DISPONIVEIS;
 

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { plural } from '../../core/format/plural';
 import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
 import { BreadcrumbsComponent } from '../../shared/breadcrumbs/breadcrumbs.component';
 import { AuthService } from '../../core/services/auth.service';
@@ -19,6 +20,7 @@ const DATA = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit'
   styleUrl: './topbar.component.scss',
 })
 export class TopbarComponent {
+  protected readonly plural = plural;
   readonly openNavigation = output<void>();
   protected readonly authState = inject(AuthStateService);
   private readonly auth = inject(AuthService);

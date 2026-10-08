@@ -6,6 +6,7 @@ import { LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerU
 import { take } from 'rxjs';
 
 
+import { plural } from '../../core/format/plural';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { GeoMunicipioService, Municipio, divergenciaIbge, normalizeCodigoIbge } from '../../core/services/geo-municipio.service';
@@ -45,7 +46,7 @@ export function agruparUnidades(fonte: Municipio[], unidades: DashboardUnidade[]
 }
 
 export function rotuloDoMunicipio(municipio: MapMunicipio): string {
-  return `${municipio.nome}: ${municipio.units.length ? `${municipio.units.length} unidade(s)` : 'nenhuma unidade cadastrada'}`;
+  return `${municipio.nome}: ${municipio.units.length ? plural(municipio.units.length, 'unidade', 'unidades') : 'nenhuma unidade cadastrada'}`;
 }
 
 /** Uma linha do card "Status geográfico". `total` zerado não é omitido: a ausência é informação. */
@@ -386,8 +387,8 @@ export function conexoesDesenhaveis(unidades: DashboardUnidade[]): Feature[] {
  * número só estivesse na dica, o mouse teria uma informação que o teclado não tem.
  */
 export function rotuloDaUnidade(unidade: DashboardUnidade): string {
-  return `${unidade.nome}: ${ROTULO_STATUS[unidade.status]}, ${unidade.equipamentosTotal} equipamento(s), `
-    + `${unidade.incidentesAbertos} incidente(s) aberto(s)`;
+  return `${unidade.nome}: ${ROTULO_STATUS[unidade.status]}, ${plural(unidade.equipamentosTotal, 'equipamento', 'equipamentos')}, `
+    + `${plural(unidade.incidentesAbertos, 'incidente aberto', 'incidentes abertos')}`;
 }
 
 /**
@@ -462,6 +463,7 @@ export function cliqueVeioDeMarcador(alvo: EventTarget | null): boolean {
 
 @Component({ selector: 'app-mapa', imports: [StatusBadgeComponent, EquipamentoDetalheDrawerComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './mapa.component.html', styleUrl: './mapa.component.scss' })
 export class MapaComponent implements OnDestroy {
+  protected readonly plural = plural;
   private readonly geoMunicipio = inject(GeoMunicipioService);
   private readonly dashboardApi = inject(DashboardApiService);
   private readonly router = inject(Router);
@@ -542,7 +544,7 @@ export class MapaComponent implements OnDestroy {
 
   protected selectMunicipio(municipio: MapMunicipio): void {
     this.selected.set(municipio);
-    this.anuncio.set(`${municipio.nome} selecionado. ${municipio.units.length ? `${municipio.units.length} unidade(s).` : 'Nenhuma unidade cadastrada.'}`);
+    this.anuncio.set(`${municipio.nome} selecionado. ${municipio.units.length ? `${plural(municipio.units.length, 'unidade', 'unidades')}.` : 'Nenhuma unidade cadastrada.'}`);
     // Com uma única unidade, exigir um segundo clique só para ver o detalhe seria atrito sem ganho.
     if (municipio.units.length === 1) { this.selectUnidade(municipio.units[0]); return; }
     this.limparUnidade();

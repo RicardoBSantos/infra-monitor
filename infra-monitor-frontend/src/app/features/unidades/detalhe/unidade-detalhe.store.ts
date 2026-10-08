@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { take } from 'rxjs';
 
+import { formatarPercentual } from '../../../core/format/numero';
 import { isApiError } from '../../../core/models/api-error';
 import { DashboardEquipamento, DashboardUnidadeDetalhe } from '../../../core/models/dashboard';
 import { UnidadeResponse } from '../../../core/models/unidade';
@@ -14,12 +15,6 @@ export const JANELA_DIAS = 30;
 
 export type Estado = 'loading' | 'success' | 'error' | 'not-found';
 export type Severidade = 'ok' | 'warn' | 'down';
-
-const PERCENTUAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-export function formatarPercentual(valor: number | null | undefined): string {
-  return valor === null || valor === undefined ? '—' : `${PERCENTUAL.format(valor)}%`;
-}
 
 export function severidadeDoEquipamento(equipamento: DashboardEquipamento): Severidade {
   if (equipamento.status === 'INDISPONIVEL') return 'down';
