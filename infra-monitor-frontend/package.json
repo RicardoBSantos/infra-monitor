@@ -12,6 +12,7 @@
     "e2e:m06": "node e2e/m06-drawer-no-mapa.cjs",
     "e2e:n06": "node e2e/n06-marcadores-e-conexoes.cjs",
     "e2e:n07": "node e2e/n07-pulso-ping-dica.cjs",
+    "e2e:pre-carga": "node e2e/pre-carga-timeline-e-tela.cjs",
     "perf:mapa": "node e2e/perf-mapa/perf-mapa-animacoes.cjs"
   },
   "private": true,

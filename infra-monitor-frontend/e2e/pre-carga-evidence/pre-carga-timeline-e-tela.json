@@ -1,0 +1,170 @@
+{
+  "base": "http://127.0.0.1:4200",
+  "quando": "2026-10-08T13:24:15.718Z",
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "RECUPERACAO_AUTOMATICA: gaveta INC-88 mostra \"Incidente fechado\" com o detalhe certo",
+      "ok": true,
+      "detalhe": "titulo=INC-88 rotulo=\"Incidente fechado\" detalhe=\"2 respostas consecutivas restabeleceram o monitor\""
+    },
+    {
+      "caso": 1,
+      "nome": "RECUPERACAO_AUTOMATICA: as 2 respostas que terminam no encerradoEm aparecem como recuperação",
+      "ok": true,
+      "detalhe": "recuperacoes=2"
+    },
+    {
+      "caso": 1,
+      "nome": "RECUPERACAO_AUTOMATICA: nenhum evento depois do fechamento (e a gaveta recebeu medição posterior para recortar)",
+      "ok": true,
+      "detalhe": "eventos=8 depois=[] medicoesPosterioresRecebidas=2"
+    },
+    {
+      "caso": 1,
+      "nome": "RECUPERACAO_AUTOMATICA: rótulo e detalhe do fechamento não se sobrepõem",
+      "ok": true,
+      "detalhe": "rotulo={\"x\":936,\"y\":773.8125,\"width\":471,\"height\":17.390625} detalhe={\"x\":936,\"y\":793.203125,\"width\":471,\"height\":15.9375} textoCruza=false"
+    },
+    {
+      "caso": 2,
+      "nome": "FECHAMENTO_MANUAL: gaveta INC-89 mostra \"Encerrado manualmente\" com o detalhe certo",
+      "ok": true,
+      "detalhe": "titulo=INC-89 rotulo=\"Encerrado manualmente\" detalhe=\"por Admin E2E. Nenhuma recuperação foi medida.\""
+    },
+    {
+      "caso": 2,
+      "nome": "FECHAMENTO_MANUAL: nenhum evento depois do fechamento (e a gaveta recebeu medição posterior para recortar)",
+      "ok": true,
+      "detalhe": "eventos=6 depois=[] medicoesPosterioresRecebidas=2"
+    },
+    {
+      "caso": 2,
+      "nome": "FECHAMENTO_MANUAL: rótulo e detalhe do fechamento não se sobrepõem",
+      "ok": true,
+      "detalhe": "rotulo={\"x\":936,\"y\":673.15625,\"width\":471,\"height\":17.390625} detalhe={\"x\":936,\"y\":692.546875,\"width\":471,\"height\":15.9375} textoCruza=false"
+    },
+    {
+      "caso": 3,
+      "nome": "MANUTENCAO: gaveta INC-90 mostra \"Encerrado por manutenção\" com o detalhe certo",
+      "ok": true,
+      "detalhe": "titulo=INC-90 rotulo=\"Encerrado por manutenção\" detalhe=\"O equipamento entrou em manutenção e saiu da observação. Nenhuma recuperação foi medida.\""
+    },
+    {
+      "caso": 3,
+      "nome": "MANUTENCAO: nenhum evento depois do fechamento (e a gaveta recebeu medição posterior para recortar)",
+      "ok": true,
+      "detalhe": "eventos=6 depois=[] medicoesPosterioresRecebidas=2"
+    },
+    {
+      "caso": 3,
+      "nome": "MANUTENCAO: rótulo e detalhe do fechamento não se sobrepõem",
+      "ok": true,
+      "detalhe": "rotulo={\"x\":936,\"y\":673.15625,\"width\":471,\"height\":17.390625} detalhe={\"x\":936,\"y\":692.546875,\"width\":471,\"height\":31.875} textoCruza=false"
+    },
+    {
+      "caso": 4,
+      "nome": "Painel: OFFLINE diz quantas unidades estão afetadas, com o número da API e a concordância certa",
+      "ok": true,
+      "detalhe": "legenda=\"1 unidade afetada\" esperado=1 unidade afetada"
+    },
+    {
+      "caso": 4,
+      "nome": "Painel: percentuais com vírgula e nenhum com ponto",
+      "ok": true,
+      "detalhe": "disponibilidade=\"99,98%\""
+    },
+    {
+      "caso": 5,
+      "nome": "Relatórios: disponibilidade com vírgula, nenhuma com ponto",
+      "ok": true,
+      "detalhe": "20 percentuais, ex.: 99,48% 100,00% 100,00%"
+    },
+    {
+      "caso": 5,
+      "nome": "Relatórios: latência média com vírgula, nenhuma com ponto",
+      "ok": true,
+      "detalhe": "[\"13,97 ms\",\"13,00 ms\",\"—\",\"—\",\"—\"]"
+    },
+    {
+      "caso": 6,
+      "nome": "Gaveta de equipamento: perda 0 e 0 incidentes ficam neutros (nenhum kpi--warn/kpi--down)",
+      "ok": true,
+      "detalhe": "perda=\"0,00%\" incidentes=\"0\" coloridos=[]"
+    },
+    {
+      "caso": 7,
+      "nome": "Gaveta de episódio: 0 acima do limiar fica neutro (sem kpi--warn)",
+      "ok": true,
+      "detalhe": "acima=\"0\" classe=\"kpi\" limiar=\"250ms\""
+    },
+    {
+      "caso": 8,
+      "nome": "nenhum erro de página no roteiro inteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    "2026-10-08T13:24:11.321Z POST /auth/login",
+    "2026-10-08T13:24:11.582Z GET /dashboard/resumo",
+    "2026-10-08T13:24:11.599Z GET /dashboard/unidades",
+    "2026-10-08T13:24:11.599Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:11.600Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-08T13:24:11.584Z&fim=2026-10-08T13:24:11.584Z&size=200",
+    "2026-10-08T13:24:11.600Z GET /relatorios/latencia/unidades?inicio=2026-09-08T13:24:11.584Z&fim=2026-10-08T13:24:11.584Z&size=500",
+    "2026-10-08T13:24:11.600Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-08T13:24:11.681Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:11.684Z GET /dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&status=ABERTO&inicio=2026-10-01T13:24:11.680Z&fim=2026-10-08T13:24:11.680Z",
+    "2026-10-08T13:24:11.684Z GET /dashboard/incidentes/contadores?inicio=2026-10-01T13:24:11.680Z&fim=2026-10-08T13:24:11.680Z",
+    "2026-10-08T13:24:11.719Z GET /dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&status=FECHADO&inicio=2026-10-01T13:24:11.680Z&fim=2026-10-08T13:24:11.680Z",
+    "2026-10-08T13:24:11.821Z GET /incidentes/88",
+    "2026-10-08T13:24:11.828Z GET /relatorios/medicoes?inicio=2026-10-06T21:19:09.000Z&fim=2026-10-06T21:31:39.000Z&size=200&sort=executadoEm,asc&monitorId=14",
+    "2026-10-08T13:24:11.828Z GET /monitores/14",
+    "2026-10-08T13:24:11.828Z GET /notificacoes?incidenteId=88&size=20&sort=createdAt,asc",
+    "2026-10-08T13:24:12.469Z GET /incidentes/89",
+    "2026-10-08T13:24:12.476Z GET /relatorios/medicoes?inicio=2026-10-07T07:19:09.000Z&fim=2026-10-07T07:30:49.000Z&size=200&sort=executadoEm,asc&monitorId=14",
+    "2026-10-08T13:24:12.476Z GET /monitores/14",
+    "2026-10-08T13:24:12.476Z GET /notificacoes?incidenteId=89&size=20&sort=createdAt,asc",
+    "2026-10-08T13:24:13.102Z GET /incidentes/90",
+    "2026-10-08T13:24:13.111Z GET /relatorios/medicoes?inicio=2026-10-07T17:19:09.000Z&fim=2026-10-07T17:30:49.000Z&size=200&sort=executadoEm,asc&monitorId=14",
+    "2026-10-08T13:24:13.111Z GET /monitores/14",
+    "2026-10-08T13:24:13.111Z GET /notificacoes?incidenteId=90&size=20&sort=createdAt,asc",
+    "2026-10-08T13:24:13.806Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:13.806Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-08T13:24:13.802Z&fim=2026-10-08T13:24:13.802Z&size=200",
+    "2026-10-08T13:24:13.807Z GET /relatorios/latencia/unidades?inicio=2026-09-08T13:24:13.802Z&fim=2026-10-08T13:24:13.802Z&size=500",
+    "2026-10-08T13:24:13.828Z GET /incidentes?status=ABERTO&size=20&sort=iniciadoEm,desc",
+    "2026-10-08T13:24:13.828Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-08T13:24:14.091Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:14.091Z GET /tipos-equipamento?ativo=true",
+    "2026-10-08T13:24:14.092Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-10-08T12:24:00.000Z&fim=2026-10-08T13:24:00.000Z&page=0&size=20&sort=equipamentoNome,asc",
+    "2026-10-08T13:24:14.134Z GET /relatorios/visao-geral/indicadores?inicio=2026-10-07T13:24:00.000Z&fim=2026-10-08T13:24:00.000Z",
+    "2026-10-08T13:24:14.134Z GET /relatorios/disponibilidade/unidades?inicio=2026-10-07T13:24:00.000Z&fim=2026-10-08T13:24:00.000Z&page=0&size=5&sort=disponibilidadePercentual,asc",
+    "2026-10-08T13:24:14.134Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-10-07T13:24:00.000Z&fim=2026-10-08T13:24:00.000Z&page=0&size=5&sort=disponibilidadePercentual,asc",
+    "2026-10-08T13:24:14.135Z GET /relatorios/latencia?inicio=2026-10-07T13:24:00.000Z&fim=2026-10-08T13:24:00.000Z&page=0&size=5&sort=avgLatenciaMs,desc",
+    "2026-10-08T13:24:14.478Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:14.478Z GET /tipos-equipamento?ativo=true",
+    "2026-10-08T13:24:14.478Z GET /dashboard/equipamentos",
+    "2026-10-08T13:24:14.802Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:14.802Z GET /tipos-equipamento?ativo=true",
+    "2026-10-08T13:24:14.802Z GET /dashboard/equipamentos",
+    "2026-10-08T13:24:14.812Z GET /equipamentos/19",
+    "2026-10-08T13:24:14.813Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-09-08T13:24:14.806Z&fim=2026-10-08T13:24:14.806Z&size=1&equipamentoId=19",
+    "2026-10-08T13:24:14.813Z GET /relatorios/latencia?inicio=2026-09-08T13:24:14.807Z&fim=2026-10-08T13:24:14.807Z&size=1&equipamentoId=19",
+    "2026-10-08T13:24:14.813Z GET /relatorios/medicoes?inicio=2026-10-08T12:58:14.807Z&fim=2026-10-08T13:24:14.807Z&size=60&sort=executadoEm,asc&equipamentoId=19",
+    "2026-10-08T13:24:14.813Z GET /monitores?equipamentoId=19&size=100&sort=id,asc",
+    "2026-10-08T13:24:14.813Z GET /incidentes?equipamentoId=19&size=3&sort=iniciadoEm,desc",
+    "2026-10-08T13:24:15.172Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:15.172Z GET /tipos-equipamento?ativo=true",
+    "2026-10-08T13:24:15.173Z GET /dashboard/equipamentos",
+    "2026-10-08T13:24:15.204Z GET /unidades?ativo=true",
+    "2026-10-08T13:24:15.217Z GET /dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&status=ABERTO&inicio=2026-10-01T13:24:15.213Z&fim=2026-10-08T13:24:15.213Z",
+    "2026-10-08T13:24:15.217Z GET /dashboard/incidentes/contadores?inicio=2026-10-01T13:24:15.213Z&fim=2026-10-08T13:24:15.213Z",
+    "2026-10-08T13:24:15.268Z GET /dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&inicio=2026-10-01T13:24:15.213Z&fim=2026-10-08T13:24:15.213Z",
+    "2026-10-08T13:24:15.352Z GET /episodios-latencia/5",
+    "2026-10-08T13:24:15.359Z GET /relatorios/medicoes?inicio=2026-10-08T03:19:09.000Z&fim=2026-10-08T03:30:39.000Z&size=200&sort=executadoEm,asc&monitorId=23",
+    "2026-10-08T13:24:15.359Z GET /monitores/23",
+    "2026-10-08T13:24:15.359Z GET /notificacoes?episodioLatenciaId=5&size=20&sort=createdAt,asc"
+  ],
+  "erros": [],
+  "fatal": null
+}
