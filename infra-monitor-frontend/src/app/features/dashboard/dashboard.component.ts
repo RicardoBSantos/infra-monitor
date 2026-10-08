@@ -147,7 +147,7 @@ export class DashboardComponent {
       .map((incidente) => `${incidente.monitor.equipamentoNome} no ${incidente.monitor.unidadeNome} offline ${this.desde(incidente.iniciadoEm)}.`)
       .join(' · ');
     const restantes = abertos.length - INCIDENTES_NO_BANNER;
-    return restantes > 0 ? `${descritos} · +${restantes} incidentes` : descritos;
+    return restantes > 0 ? `${descritos} · +${plural(restantes, 'incidente', 'incidentes')}` : descritos;
   });
 
   constructor() {

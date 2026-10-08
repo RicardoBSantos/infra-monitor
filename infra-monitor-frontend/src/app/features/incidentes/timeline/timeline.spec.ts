@@ -149,6 +149,11 @@ describe('derivarTimeline', () => {
     expect(eventos.at(-1)?.detalhe).toBe('2 medições consecutivas dentro do limiar encerraram o episódio');
   });
 
+  it('episódio de uma só medição concorda no singular', () => {
+    const eventos = derivarTimeline({ ...entradaDeEpisodio, ocorrencia: { ...entradaDeEpisodio.ocorrencia, ciclosParaEpisodio: 1 } });
+    expect(eventos.at(-1)?.detalhe).toBe('1 medição consecutiva dentro do limiar encerrou o episódio');
+  });
+
   /** Sem o N não há o que numerar: a abertura cai no início registrado, como no incidente. */
   it('sem o N do episódio, cai para o início registrado e não numera nada', () => {
     const eventos = derivarTimeline({
@@ -198,6 +203,11 @@ describe('derivarTimeline', () => {
 });
 
 describe('fechamento por motivo', () => {
+  it('concorda verbo e número no singular (1 resposta)', () => {
+    const incidente = derivarTimeline({ ...entradaDeIncidente, limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 1 }, ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: IncidentClosureReason.AutomaticRecovery, encerradoEm: '2026-09-01T08:02:30Z' } });
+    expect(incidente.find((e) => e.tipo === 'fechamento')?.detalhe).toBe('1 resposta consecutiva restabeleceu o monitor');
+  });
+
   const fechamento = (entrada: EntradaTimeline) => derivarTimeline(entrada).find((e) => e.tipo === 'fechamento')!;
   const comMotivo = (motivo: IncidentClosureReason | null, fechadoPorNome: string | null, encerradoEm = '2026-09-01T08:02:30Z'): EntradaTimeline => ({
     ...entradaDeIncidente,

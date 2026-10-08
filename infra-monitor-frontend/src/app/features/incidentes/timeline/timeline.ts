@@ -1,3 +1,4 @@
+import { plural } from '../../../core/format/plural';
 import { IncidentClosureReason, MeasurementStatus, NotificationEventType } from '../../../core/models/api-enums';
 import { IncidentKind } from '../../../core/models/dashboard-incidente';
 import { NotificacaoResponse } from '../../../core/models/notificacao';
@@ -171,7 +172,7 @@ function eventosDeFechamento(ocorrencia: OcorrenciaTimeline, encerradoEm: string
   const recuperacao = eventosDeRecuperacao(encerradoEm, medicoes, limiares.sucessosParaRecovery);
   if (motivo === null && recuperacao.length === 0) return [fechamento('Incidente fechado', null)];
   return [...recuperacao, fechamento('Incidente fechado', limiares.sucessosParaRecovery !== null
-    ? `${limiares.sucessosParaRecovery} respostas consecutivas restabeleceram o monitor` : null)];
+    ? `${plural(limiares.sucessosParaRecovery, 'resposta consecutiva', 'respostas consecutivas')} ${limiares.sucessosParaRecovery === 1 ? 'restabeleceu' : 'restabeleceram'} o monitor` : null)];
 }
 
 /**
@@ -312,7 +313,7 @@ function eventosDeLatencia(ocorrencia: OcorrenciaTimeline, medicoes: HistoricoMe
       severidade: 'ok',
       rotulo: 'Latência normalizada',
       detalhe: total !== null
-        ? `${total} medições consecutivas dentro do limiar encerraram o episódio`
+        ? `${plural(total, 'medição consecutiva', 'medições consecutivas')} dentro do limiar ${total === 1 ? 'encerrou' : 'encerraram'} o episódio`
         : 'episódio encerrado automaticamente',
     });
   }

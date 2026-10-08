@@ -201,6 +201,15 @@ describe('Abas Histórico e Configurações', () => {
       expect(texto(fixture)).toContain('24 dispositivos vinculados');
     });
 
+    it('exclusão de unidade com um só dispositivo concorda no singular', async () => {
+      const fixture = await criar();
+      store.unidade.set({ ...detalhe, equipamentos: { ...detalhe.equipamentos, total: 1 } });
+      fixture.detectChanges();
+      clicar(fixture, 'Excluir unidade');
+
+      expect(texto(fixture)).toContain('1 dispositivo vinculado.');
+    });
+
     it('exibe a mensagem real da API quando a exclusão é recusada', async () => {
       const fixture = await criar();
       clicar(fixture, 'Excluir unidade');

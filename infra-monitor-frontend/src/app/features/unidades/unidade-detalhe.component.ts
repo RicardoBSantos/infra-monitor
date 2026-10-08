@@ -1,3 +1,4 @@
+import { plural } from '../../core/format/plural';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, signal, viewChildren } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -32,6 +33,7 @@ const ABAS: Aba[] = [
   styleUrl: './unidade-detalhe.component.scss',
 })
 export class UnidadeDetalheComponent {
+  protected readonly plural = plural;
   private readonly titulo = inject(Title);
   private readonly rotuloDaMigalha = inject(BreadcrumbLabelService);
   protected readonly store = inject(UnidadeDetalheStore);

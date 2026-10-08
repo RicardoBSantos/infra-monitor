@@ -239,6 +239,17 @@ describe('UnidadeListComponent', () => {
     expect(dialogo.textContent).not.toContain('definitiva');
   });
 
+  it('desativação com um único dispositivo usa o singular', () => {
+    const fixture = criar({ operacionais: [operacional(1, { equipamentosTotal: 1 })] });
+
+    (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
+    expect(dialogo.textContent).toContain('ICMP do único dispositivo desta unidade');
+    expect(dialogo.textContent).not.toContain('1 dispositivos');
+  });
+
   it('não anuncia quantidade de dispositivos na desativação quando o painel falhou', () => {
     const fixture = criar({ operacionais: 'erro' });
 

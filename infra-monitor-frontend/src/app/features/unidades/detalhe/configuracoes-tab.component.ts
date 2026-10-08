@@ -1,3 +1,4 @@
+import { plural } from '../../../core/format/plural';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -55,9 +56,9 @@ export class ConfiguracoesTabComponent {
 
   protected readonly mensagemConfirmacao = computed(() => {
     const total = this.totalEquipamentos();
-    const dispositivos = `${total} ${total === 1 ? 'dispositivo' : 'dispositivos'}`;
+    const dispositivos = plural(total, 'dispositivo', 'dispositivos');
     return this.acao() === 'excluir'
-      ? `Esta unidade tem ${dispositivos} vinculados. A exclusão não pode ser desfeita.`
+      ? `Esta unidade tem ${total === 1 ? '1 dispositivo vinculado' : `${dispositivos} vinculados`}. A exclusão não pode ser desfeita.`
       : `Desativar interrompe o monitoramento ICMP dos ${dispositivos} desta unidade e suprime os alertas do Telegram. O histórico é preservado.`;
   });
 

@@ -50,7 +50,7 @@ describe('DashboardComponent', () => {
   function texto(fixture: ComponentFixture<DashboardComponent>) { return (fixture.nativeElement as HTMLElement).textContent ?? ''; }
 
   /** Responde às chamadas disparadas na abertura da página; nenhuma delas cria endpoint novo. */
-  function responderCarga(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade]) {
+  function responderCarga(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade], incidentesBody: unknown[] = [incidenteAberto]) {
     httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush(resumoBody);
     httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush(unidadesBody);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([{ id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true, createdAt: '', updatedAt: '' }]);
@@ -60,7 +60,7 @@ describe('DashboardComponent', () => {
     httpTesting.expectOne((request) => request.url.includes('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(23, 200)]));
     fixture.detectChanges();
     if (resumoBody.incidentes.abertos > 0) {
-      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes')).flush(pagina([incidenteAberto]));
+      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes')).flush(pagina(incidentesBody));
       fixture.detectChanges();
     }
   }
@@ -199,6 +199,13 @@ describe('DashboardComponent', () => {
     responderCarga(fixture);
     const detalhe = (fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent ?? '';
     expect(detalhe).toContain('SW-CORE no Centro Operacional offline há');
+  });
+
+  it('concorda o excedente do banner no singular (+1 incidente)', () => {
+    const extra = (id: number) => ({ ...incidenteAberto, id });
+    const um = create();
+    responderCarga(um, resumo, [unidade], [1, 2, 3, 4].map(extra));
+    expect((um.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent?.trim()).toMatch(/· [+]1 incidente$/);
   });
 
   it('não busca incidentes quando o resumo não aponta incidentes abertos', () => {

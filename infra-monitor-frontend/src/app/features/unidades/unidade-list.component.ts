@@ -141,7 +141,7 @@ export class UnidadeListComponent {
     }
     const dispositivos = equipamentos === null
       ? 'dos dispositivos desta unidade (quantidade não confirmada)'
-      : `${equipamentos === 1 ? 'do 1 dispositivo' : `dos ${equipamentos} dispositivos`} desta unidade`;
+      : `${equipamentos === 1 ? 'do único dispositivo' : `dos ${equipamentos} dispositivos`} desta unidade`;
     return `Desativar interrompe o monitoramento ICMP ${dispositivos} e suprime os alertas do Telegram. O histórico de medições e incidentes é preservado.`;
   });
 
