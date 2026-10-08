@@ -41,9 +41,9 @@ class VisaoGeralPdfRendererTest {
             String text = new PDFTextStripper().getText(document);
             assertThat(text).contains("Visão Geral", "01/08/2026 00:00:00 UTC", "Incidentes abertos",
                     "Medições com falha", "Notificações com falha", "São José", "Produção", "Monitoração",
-                    "Top 5 Unidades", "Top 5 Equipamentos críticos", "Latência por Monitor", "87.35%",
+                    "Top 5 Unidades", "Top 5 Equipamentos críticos", "Latência por Monitor", "87,35%", "99,10%", "55,56 ms",
                     "CALCULADO", "SEM_DADOS", "SEM_MONITORAMENTO", "PRECISA", "INFERIDA", "96 ms");
-            assertThat(text).doesNotContain("null", "undefined", "NaN");
+            assertThat(text).doesNotContain("null", "undefined", "NaN", "87.35%", "99.10%", "55.56 ms");
         }
     }
 }
