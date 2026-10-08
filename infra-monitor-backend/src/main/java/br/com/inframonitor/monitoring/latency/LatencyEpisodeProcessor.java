@@ -7,6 +7,7 @@ import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
+import br.com.inframonitor.monitoring.observacao.InicioDaObservacao;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public class LatencyEpisodeProcessor {
     private final IncidenteRepository incidenteRepository;
     private final MonitorEpisodioLatenciaRepository episodioRepository;
     private final NotificacaoService notificacaoService;
+    private final InicioDaObservacao inicioDaObservacao;
     private final int limiarMs;
     private final int ciclos;
     private final LimiteDeEsperaPorLock limiteDeEsperaPorLock;
@@ -46,6 +48,7 @@ public class LatencyEpisodeProcessor {
     public LatencyEpisodeProcessor(MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository,
                                    MonitorEpisodioLatenciaRepository episodioRepository,
                                    NotificacaoService notificacaoService,
+                                   InicioDaObservacao inicioDaObservacao,
                                    @Value("${monitoring.latencia-degradada-ms:250}") int limiarMs,
                                    @Value("${monitoring.latencia-ciclos:2}") int ciclos,
                                    LimiteDeEsperaPorLock limiteDeEsperaPorLock) {
@@ -53,6 +56,7 @@ public class LatencyEpisodeProcessor {
         this.incidenteRepository = incidenteRepository;
         this.episodioRepository = episodioRepository;
         this.notificacaoService = notificacaoService;
+        this.inicioDaObservacao = inicioDaObservacao;
         this.limiarMs = limiarMs;
         this.ciclos = ciclos;
         this.limiteDeEsperaPorLock = limiteDeEsperaPorLock;
@@ -94,6 +98,15 @@ public class LatencyEpisodeProcessor {
         List<Medicao> medicoes = ultimasMedicoes(monitorId);
         if (!sequenciaCompleta(medicoes, this::acimaDoLimiar)) {
             log.debug("Latency threshold not reached for monitor {}", monitorId);
+            return;
+        }
+        // Mesma ancora do IncidentProcessor. Sem ela a cauda congelada pela manutencao abria
+        // episodio com iniciado_em de antes da manutencao, e sucessos lentos medidos durante um
+        // incidente ja fechado abriam episodio com inicio dentro dele.
+        Optional<Instant> inicioDaObservacao = this.inicioDaObservacao.doMonitor(monitorId);
+        if (inicioDaObservacao.isEmpty()
+                || medicoes.stream().anyMatch(m -> m.getExecutadoEm().isBefore(inicioDaObservacao.get()))) {
+            log.debug("Latency tail predates the observation start for monitor {}", monitorId);
             return;
         }
         // A lista esta DESC; a ultima posicao e a primeira medicao degradada da sequencia.

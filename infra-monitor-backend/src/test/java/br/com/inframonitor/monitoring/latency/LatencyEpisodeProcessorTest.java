@@ -10,6 +10,7 @@ import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
+import br.com.inframonitor.monitoring.observacao.InicioDaObservacao;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
@@ -44,10 +45,11 @@ class LatencyEpisodeProcessorTest {
     @Mock private IncidenteRepository incidenteRepository;
     @Mock private MonitorEpisodioLatenciaRepository episodioRepository;
     @Mock private NotificacaoService notificacaoService;
+    @Mock private InicioDaObservacao inicioDaObservacao;
 
     private LatencyEpisodeProcessor processor() {
         return new LatencyEpisodeProcessor(medicaoRepository, incidenteRepository, episodioRepository,
-                notificacaoService, LIMIAR, CICLOS, mock(LimiteDeEsperaPorLock.class));
+                notificacaoService, inicioDaObservacao, LIMIAR, CICLOS, mock(LimiteDeEsperaPorLock.class));
     }
 
     @Test void abreEpisodioNoSegundoCicloAcimaDoLimiarComInicioNaPrimeiraDegradada() {
@@ -62,6 +64,7 @@ class LatencyEpisodeProcessorTest {
         when(episodioRepository.inserirSeElegivel(eq(1L), eq(T0), eq(LIMIAR), any())).thenReturn(1);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(segunda, primeira));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.minusSeconds(60)));
 
         processor().process(segunda);
 
@@ -70,6 +73,52 @@ class LatencyEpisodeProcessorTest {
         verify(notificacaoService).criarParaLatenciaAlta(aberto.capture());
         assertThat(aberto.getValue().getIniciadoEm()).isEqualTo(T0);
         assertThat(aberto.getValue().getLimiarMs()).isEqualTo(LIMIAR);
+    }
+
+    @Test void caudaCongeladaPelaManutencaoNaoAbreEpisodio() {
+        Monitor monitor = monitor();
+        Medicao antiga = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);                 // antes da manutencao
+        Medicao nova = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(3600)); // 1a depois da saida
+        prepararAtual(nova);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(nova, antiga));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.plusSeconds(3000)));
+
+        processor().process(nova);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
+        verify(notificacaoService, never()).criarParaLatenciaAlta(any());
+    }
+
+    @Test void caudaAnteriorAoFechamentoDoIncidenteNaoAbreEpisodio() {
+        Monitor monitor = monitor();
+        Medicao duranteOIncidente = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
+        Medicao depoisDoFechamento = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
+        prepararAtual(depoisDoFechamento);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(depoisDoFechamento, duranteOIncidente));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.plusSeconds(30)));
+
+        processor().process(depoisDoFechamento);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
+    }
+
+    @Test void semJanelaAbertaNaoAbreEpisodio() {
+        Monitor monitor = monitor();
+        Medicao primeira = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
+        Medicao segunda = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
+        prepararAtual(segunda);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(segunda, primeira));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.empty());
+
+        processor().process(segunda);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
     }
 
     @Test void umUnicoCicloAcimaDoLimiarNaoAbreEpisodio() {
