@@ -5,6 +5,9 @@
 .visao-geral { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; align-items: start; }
 .visao-geral__coluna { display: grid; gap: 14px; }
 
+/* Mesmo aviso da Task 3 no painel do mapa — duplicação de poucas linhas, sem primitiva global (ver .skeleton). */
+.aviso-ibge { grid-column: 1 / -1; margin: 0; padding: 10px 14px; border: 1px solid var(--im-warning); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-secondary); font-size: 12px; }
+
 .latencias, .tipos, .incidentes-recentes { margin: 0; padding: 0 14px 14px; list-style: none; display: grid; gap: 10px; }
 
 .latencias li { display: flex; align-items: center; gap: 10px; }

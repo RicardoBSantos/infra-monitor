@@ -2,13 +2,26 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { Observable, of, throwError } from 'rxjs';
 
 import { EquipmentOperationalStatus } from '../../../core/models/api-enums';
 import { DashboardEquipamento } from '../../../core/models/dashboard';
+import { GeoMunicipioService, Municipio } from '../../../core/services/geo-municipio.service';
 import { EquipamentosTabComponent } from './equipamentos-tab.component';
 import { IncidentesTabComponent } from './incidentes-tab.component';
 import { VisaoGeralComponent } from './visao-geral.component';
 import { UnidadeDetalheStore } from './unidade-detalhe.store';
+
+const quadrado = (x0: number, y0: number, x1: number, y1: number) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]];
+const mun = (codigoIbge: string, nome: string, coordinates: number[][][]): Municipio =>
+  ({ codigoIbge, nome, uf: 'SE', feature: { type: 'Feature', properties: { id: codigoIbge, name: nome }, geometry: { type: 'Polygon', coordinates } } } as never);
+const itabaiana = mun('2802908', 'Itabaiana', [quadrado(-38, -11, -37, -10)]);
+const itabaianinha = mun('2803005', 'Itabaianinha', [quadrado(-38, -12, -37, -11.001)]);
+
+/** Falso padrão: sem municípios, nunca produz divergência nos testes que não tratam de IBGE. */
+function geoFake(getMunicipios: () => Observable<Municipio[] | null> = () => of([])): Partial<GeoMunicipioService> {
+  return { getMunicipios: getMunicipios as () => Observable<Municipio[]> };
+}
 
 function equipamento(parcial: Partial<DashboardEquipamento> & { id: number; nome: string }): DashboardEquipamento {
   return {
@@ -32,9 +45,12 @@ describe('Abas do detalhe da unidade', () => {
   let httpTesting: HttpTestingController;
   let store: UnidadeDetalheStore;
 
-  async function configurar() {
+  async function configurar(geo: Partial<GeoMunicipioService> = geoFake()) {
     await TestBed.configureTestingModule({
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(), UnidadeDetalheStore],
+      providers: [
+        provideRouter([]), provideHttpClient(), provideHttpClientTesting(), UnidadeDetalheStore,
+        { provide: GeoMunicipioService, useValue: geo },
+      ],
     }).compileComponents();
     httpTesting = TestBed.inject(HttpTestingController);
     store = TestBed.inject(UnidadeDetalheStore);
@@ -93,6 +109,43 @@ describe('Abas do detalhe da unidade', () => {
       httpTesting.expectOne((request) => request.url.includes('/incidentes')).flush(pagina([]));
       fixture.detectChanges();
 
+      expect(texto(fixture)).toContain('Nenhum incidente registrado nesta unidade.');
+    });
+
+    it('mostra o aviso de IBGE divergente quando a coordenada cai em outro município (ITA-09)', async () => {
+      await configurar(geoFake(() => of([itabaiana, itabaianinha])));
+      store.equipamentos.set([]);
+      store.cadastro.set({ codigoIbge: '2803005', latitude: -10.6853, longitude: -37.4256 } as never);
+      const fixture = criar();
+      httpTesting.expectOne((request) => request.url.includes('/incidentes')).flush(pagina([]));
+      fixture.detectChanges();
+
+      const aviso = (fixture.nativeElement as HTMLElement).querySelector('.aviso-ibge');
+      expect(aviso).not.toBeNull();
+      expect(aviso?.textContent).toContain('Itabaiana');
+      expect(aviso?.textContent).toContain('2803005');
+    });
+
+    it('não mostra aviso quando o IBGE cadastrado é coerente com a coordenada', async () => {
+      await configurar(geoFake(() => of([itabaiana, itabaianinha])));
+      store.equipamentos.set([]);
+      store.cadastro.set({ codigoIbge: '2802908', latitude: -10.6853, longitude: -37.4256 } as never);
+      const fixture = criar();
+      httpTesting.expectOne((request) => request.url.includes('/incidentes')).flush(pagina([]));
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.aviso-ibge')).toBeNull();
+    });
+
+    it('sem cartografia disponível apenas apaga o aviso, sem derrubar a visão geral', async () => {
+      await configurar(geoFake(() => throwError(() => new Error('falha ao carregar cartografia'))));
+      store.equipamentos.set([]);
+      store.cadastro.set({ codigoIbge: '2803005', latitude: -10.6853, longitude: -37.4256 } as never);
+      const fixture = criar();
+      httpTesting.expectOne((request) => request.url.includes('/incidentes')).flush(pagina([]));
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.aviso-ibge')).toBeNull();
       expect(texto(fixture)).toContain('Nenhum incidente registrado nesta unidade.');
     });
   });

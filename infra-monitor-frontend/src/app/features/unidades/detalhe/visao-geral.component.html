@@ -1,4 +1,7 @@
 <div class="visao-geral">
+  @if (divergencia(); as d) {
+    <p class="aviso-ibge" role="note"><strong>Localização divergente.</strong> A coordenada cai em {{ d.nomeCoordenada }}, mas o código IBGE aponta {{ d.nomeCadastro ?? 'um município fora do mapa' }} ({{ d.codigoCadastro }}). O mapa posiciona pela coordenada.</p>
+  }
   <section class="cartao" aria-labelledby="titulo-latencia">
     <h2 class="cartao__titulo" id="titulo-latencia">DISPOSITIVOS COM MAIOR LATÊNCIA</h2>
     @if (store.equipamentosEstado() === 'loading') {
