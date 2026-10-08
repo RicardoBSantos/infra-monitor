@@ -42,6 +42,8 @@ export interface OcorrenciaTimeline {
   reconhecidoPorNome: string | null;
   /** Só o incidente tem. Ausente é fechamento antes da V19, ou episódio de latência. */
   motivoEncerramento: IncidentClosureReason | null;
+  /** Só o incidente tem; nulo é motor, episódio ou legado sem autor. */
+  fechadoPorNome: string | null;
 }
 
 /** Vem de `GET /monitores/{id}`; nulo quando a carga do monitor falhou. */
@@ -65,7 +67,9 @@ const ORDEM: Record<TipoEventoTimeline, number> = {
 
 export function derivarTimeline(entrada: EntradaTimeline): EventoTimeline[] {
   const { ocorrencia, limiares, notificacoes } = entrada;
-  const medicoes = [...entrada.medicoes].sort(porMedicao);
+  // A folga carregada pelo drawer é contexto do gráfico, não evento: medição fora da janela
+  // pertence a outra ocorrência.
+  const medicoes = entrada.medicoes.filter((m) => dentroDaJanela(m.executadoEm, ocorrencia)).sort(porMedicao);
   const eventos: EventoTimeline[] = ocorrencia.tipo === IncidentKind.Incident
     ? eventosDeIncidente(ocorrencia, medicoes, limiares)
     : eventosDeLatencia(ocorrencia, medicoes);
@@ -140,30 +144,34 @@ function eventosDeIncidente(ocorrencia: OcorrenciaTimeline, medicoes: HistoricoM
     detalhe: detalheDaAbertura(ocorrencia.motivo, ocorrencia.iniciadoEm, instanteConsolidacao),
   });
 
-  if (ocorrencia.encerradoEm) {
-    eventos.push(...eventosDeRecuperacao(ocorrencia.encerradoEm, medicoes, limiares.sucessosParaRecovery));
-    // O rotulo fixo "Incidente fechado" com o detalhe de N respostas consecutivas
-    // e falso para um fechamento por manutencao: nao houve sequencia de recuperacao.
-    // Os eventos de recuperacao ja somem sozinhos (sequenciaDeFechamento procura a
-    // medicao cujo executadoEm e exatamente encerradoEm, e o fechamento por
-    // manutencao usa o instante do clique), mas esta frase continuava sendo impressa.
-    const fechamentoPorManutencao = ocorrencia.motivoEncerramento === IncidentClosureReason.Maintenance;
-    const titulo = fechamentoPorManutencao ? 'Encerrado por manutenção' : 'Incidente fechado';
-    const detalhe = fechamentoPorManutencao
-      ? 'O equipamento entrou em manutenção e saiu da observação. Nenhuma recuperação foi medida.'
-      : limiares.sucessosParaRecovery !== null
-        ? `${limiares.sucessosParaRecovery} respostas consecutivas restabeleceram o monitor`
-        : null;
-    eventos.push({
-      chave: 'fechamento',
-      instante: ocorrencia.encerradoEm,
-      tipo: 'fechamento',
-      severidade: 'ok',
-      rotulo: titulo,
-      detalhe,
-    });
-  }
+  if (ocorrencia.encerradoEm) eventos.push(...eventosDeFechamento(ocorrencia, ocorrencia.encerradoEm, medicoes, limiares));
   return eventos;
+}
+
+/**
+ * O fechamento só afirma o que o dado prova. Manual e manutenção não têm sequência de
+ * recuperação — a guarda é pelo motivo, não por a medição não casar com `encerradoEm`. Legado
+ * (antes da V19, motivo nulo) se decide pelo autor e pela sequência medida; sem nenhum dos dois,
+ * o fechamento sai sem causa.
+ */
+function eventosDeFechamento(ocorrencia: OcorrenciaTimeline, encerradoEm: string,
+                             medicoes: HistoricoMedicaoResponse[], limiares: LimiaresMonitor): EventoTimeline[] {
+  const fechamento = (rotulo: string, detalhe: string | null): EventoTimeline => ({
+    chave: 'fechamento', instante: encerradoEm, tipo: 'fechamento', severidade: 'ok', rotulo, detalhe,
+  });
+  const motivo = ocorrencia.motivoEncerramento;
+  if (motivo === IncidentClosureReason.Maintenance) {
+    return [fechamento('Encerrado por manutenção',
+      'O equipamento entrou em manutenção e saiu da observação. Nenhuma recuperação foi medida.')];
+  }
+  if (motivo === IncidentClosureReason.ManualClosure || (motivo === null && ocorrencia.fechadoPorNome)) {
+    const autor = ocorrencia.fechadoPorNome ? `por ${ocorrencia.fechadoPorNome}` : 'por um operador';
+    return [fechamento('Encerrado manualmente', `${autor}. Nenhuma recuperação foi medida.`)];
+  }
+  const recuperacao = eventosDeRecuperacao(encerradoEm, medicoes, limiares.sucessosParaRecovery);
+  if (motivo === null && recuperacao.length === 0) return [fechamento('Incidente fechado', null)];
+  return [...recuperacao, fechamento('Incidente fechado', limiares.sucessosParaRecovery !== null
+    ? `${limiares.sucessosParaRecovery} respostas consecutivas restabeleceram o monitor` : null)];
 }
 
 /**
