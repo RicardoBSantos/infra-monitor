@@ -2,6 +2,7 @@ package br.com.inframonitor.notificacao.service;
 
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
@@ -15,6 +16,8 @@ public class NotificacaoMessageBuilder {
     public String construir(Incidente incidente, TipoEventoNotificacao tipoEvento) {
         Monitor monitor = incidente.getMonitor();
         Equipamento equipamento = monitor.getEquipamento();
+        boolean fechamentoManual = tipoEvento == TipoEventoNotificacao.INCIDENTE_FECHADO
+                && incidente.getMotivoEncerramento() == MotivoEncerramentoIncidente.FECHAMENTO_MANUAL;
         String cabecalho;
         if (tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO) {
             cabecalho = "INCIDENTE ABERTO";
@@ -22,6 +25,8 @@ public class NotificacaoMessageBuilder {
             // NUNCA o texto de "resolvido": ninguem resolveu nada, o equipamento
             // saiu do radar por decisao operacional.
             cabecalho = "🔧 Incidente encerrado: equipamento entrou em manutenção";
+        } else if (fechamentoManual) {
+            cabecalho = "INCIDENTE ENCERRADO MANUALMENTE";
         } else {
             cabecalho = "INCIDENTE ENCERRADO";
         }
@@ -47,6 +52,12 @@ public class NotificacaoMessageBuilder {
                 mensagem.append("\nDuracao: ").append(formatarDuracao(Duration.between(
                         incidente.getIniciadoEm(), incidente.getEncerradoEm())));
             }
+        }
+        if (fechamentoManual) {
+            // Recuperacao e fechamento a mao saiam com o mesmo texto: quem le no Telegram
+            // achava que o equipamento tinha voltado.
+            mensagem.append("\nEncerrado por: ").append(incidente.getFechadoPor() != null
+                    ? incidente.getFechadoPor().getNome() : "operador nao identificado");
         }
         return mensagem.toString();
     }
