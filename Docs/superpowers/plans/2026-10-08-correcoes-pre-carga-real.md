@@ -322,29 +322,55 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `InicioDaObservacao#doMonitor(Long): Optional<Instant>` (Task 1).
 
-- [ ] **Step 1: Testes falhando** (em `LatencyEpisodeProcessorTest`; adicionar `@Mock private InicioDaObservacao inicioDaObservacao;` e passar no construtor do helper `processor()` na posição definida no Step 3). Use os helpers de medição já existentes no arquivo (ler o arquivo; adaptar nomes):
+- [ ] **Step 1: Testes falhando** (em `LatencyEpisodeProcessorTest`; adicionar `@Mock private InicioDaObservacao inicioDaObservacao;` e, no helper `processor()`, passar `inicioDaObservacao` logo após `notificacaoService`). Helpers `monitor()` (id 1), `medicao(monitor, id, status, latenciaMs, quando)`, `prepararAtual`, `semEpisodioAberto` já existem no arquivo; `LIMIAR = 250`, `CICLOS = 2`:
 
 ```java
     @Test void caudaCongeladaPelaManutencaoNaoAbreEpisodio() {
-        // CICLOS medicoes acima do limiar; a mais antiga e anterior a reabertura da janela.
-        // Montar a lista DESC com executadoEm T0 (antiga) e T0+3600s (nova), ambas > LIMIAR.
-        // when(inicioDaObservacao.doMonitor(MONITOR_ID)).thenReturn(Optional.of(T0.plusSeconds(3000)));
-        // processor().process(nova);
-        // verify(episodioRepository, never()).inserirSeElegivel(anyLong(), any(), anyInt(), any());
+        Monitor monitor = monitor();
+        Medicao antiga = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);                 // antes da manutencao
+        Medicao nova = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(3600)); // 1a depois da saida
+        prepararAtual(nova);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(nova, antiga));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.plusSeconds(3000)));
+
+        processor().process(nova);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
+        verify(notificacaoService, never()).criarParaLatenciaAlta(any());
     }
 
     @Test void caudaAnteriorAoFechamentoDoIncidenteNaoAbreEpisodio() {
-        // Mesma montagem; ancora = instante entre as duas medicoes (fechamento do incidente).
-        // verify(episodioRepository, never()).inserirSeElegivel(...)
+        Monitor monitor = monitor();
+        Medicao duranteOIncidente = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
+        Medicao depoisDoFechamento = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
+        prepararAtual(depoisDoFechamento);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(depoisDoFechamento, duranteOIncidente));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.plusSeconds(30)));
+
+        processor().process(depoisDoFechamento);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
     }
 
     @Test void semJanelaAbertaNaoAbreEpisodio() {
-        // when(inicioDaObservacao.doMonitor(MONITOR_ID)).thenReturn(Optional.empty());
-        // verify(episodioRepository, never()).inserirSeElegivel(...)
+        Monitor monitor = monitor();
+        Medicao primeira = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
+        Medicao segunda = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
+        prepararAtual(segunda);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(segunda, primeira));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.empty());
+
+        processor().process(segunda);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
     }
 ```
-
-Os comentários acima descrevem a montagem; o implementador escreve o corpo real com os helpers do arquivo (`medicao(...)`, constantes `LIMIAR`, `CICLOS`) — cada teste termina no `verify(..., never()).inserirSeElegivel(...)`.
 
 Nos testes existentes que esperam abertura, stubar `when(inicioDaObservacao.doMonitor(<id>)).thenReturn(Optional.of(<instante anterior a todas as medições>))` **só** nos testes que chegam à abertura (Mockito strict: stub sem uso falha).
 
