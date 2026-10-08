@@ -65,8 +65,9 @@ nova. O denominador não muda.
 - `monitoring/InicioDaObservacao` (componente, dois consumidores reais):
   `Optional<Instant> doMonitor(Long monitorId)` → vazio sem janela aberta; senão o `max` acima.
 - `IncidentProcessor.processarAbertura`: troca a leitura direta da janela por
-  `InicioDaObservacao`; a cauda precisa estar **estritamente depois** da âncora quando ela vem do
-  fechamento (medição no mesmo instante foi observada antes da gravação). Comentário atualizado.
+  `InicioDaObservacao`; mesma regra que já vale para a janela — medição com `executadoEm` anterior
+  à âncora não sustenta abertura. Um único critério para as duas origens da âncora (empate no mesmo
+  microssegundo da gravação é irrelevante na prática). Comentário atualizado.
 - `LatencyEpisodeProcessor.processarAbertura`: **mesmo defeito, maior.** Hoje não tem âncora
   nenhuma: ao sair da manutenção, a cauda congelada abre episódio com `iniciado_em` anterior à
   manutenção; depois de um incidente fechado, sucessos acima do limiar medidos durante o incidente
