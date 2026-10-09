@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { indexarGeoJson } from '../lib/geo.mjs';
 import {
-  ipv4Valido,
+  motivoRecusaIp,
   ibgeFormatoValido,
   coordenadasCompletas,
   normalizarUf,
@@ -37,23 +37,36 @@ const geojsonExemplo = {
   ],
 };
 
-// --- ipv4Valido ---
+// --- motivoRecusaIp (espelha RegraIpv4 do backend) ---
 
-test('ipv4Valido: aceita IPv4 valido', () => {
-  assert.equal(ipv4Valido('192.0.2.10'), true);
-});
+for (const valor of [null, undefined, '', '   ', '10.0.0.1', ' 10.0.0.1 ', '223.255.255.255', '127.0.0.1']) {
+  test(`motivoRecusaIp: aceita ${JSON.stringify(valor)}`, () => {
+    assert.equal(motivoRecusaIp(valor), null);
+  });
+}
 
-test('ipv4Valido: recusa octeto fora de faixa (999)', () => {
-  assert.equal(ipv4Valido('999.1.1.1'), false);
-});
+for (const [valor, mensagem] of [
+  ['2001:db8::1', 'apenas IPv4 e suportado: o monitoramento ICMP nao sonda IPv6'],
+  ['servidor.local', 'deve ser um endereco IPv4 no formato 192.168.0.10'],
+  ['999.1.1.1', 'cada octeto do IP vai de 0 a 255'],
+  ['010.0.0.1', 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001'],
+  ['10.0.0.01', 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001'],
+  ['10.00.0.1', 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001'],
+  ['1.2.3.4.5', 'deve ser um endereco IPv4 no formato 192.168.0.10'],
+  ['0.0.0.0', 'a faixa 0.0.0.0/8 nao e endereco de host'],
+  ['0.1.2.3', 'a faixa 0.0.0.0/8 nao e endereco de host'],
+  ['224.0.0.0', 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel'],
+  ['224.0.0.1', 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel'],
+  ['255.255.255.255', 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel'],
+]) {
+  test(`motivoRecusaIp: recusa ${valor}`, () => {
+    assert.equal(motivoRecusaIp(valor), mensagem);
+  });
+}
 
-test('ipv4Valido: recusa IPv6', () => {
-  assert.equal(ipv4Valido('2001:db8::1'), false);
-});
-
-test('ipv4Valido: vazio/nulo e valido (IP e opcional)', () => {
-  assert.equal(ipv4Valido(''), true);
-  assert.equal(ipv4Valido(null), true);
+test('validarLinhaEquipamento: IP recusado vira erro com o motivo', () => {
+  const { erros } = validarLinhaEquipamento({ unidadeSigla: 'EX-01', tipoNome: 'Switch', nome: 'SW', ip: '010.0.0.1' });
+  assert.deepEqual(erros, ['ip: octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001']);
 });
 
 // --- ibgeFormatoValido ---
@@ -181,7 +194,7 @@ test('validarLinhaEquipamento: IP invalido gera erro', () => {
     nome: 'Router1',
     ip: '999.1.1.1',
   });
-  assert.ok(resultado.erros.some((e) => e.includes('IPv4')));
+  assert.ok(resultado.erros.some((e) => e.includes('cada octeto do IP vai de 0 a 255')));
 });
 
 test('validarLinhaEquipamento: chave combina unidade e nome (case-insensitive)', () => {

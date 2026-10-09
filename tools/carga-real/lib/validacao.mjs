@@ -24,13 +24,24 @@ export function normalizarUf(valor) {
   return texto === null ? null : texto.toUpperCase();
 }
 
-/** Espelha EquipamentoService.normalizarIp: IPv4 estrito, 4 octetos 0-255. */
-export function ipv4Valido(valor) {
-  const texto = normalizarTexto(valor);
-  if (texto === null) return true; // IP e opcional
-  const partes = texto.split('.');
-  if (partes.length !== 4) return false;
-  return partes.every((parte) => /^\d{1,3}$/.test(parte) && Number(parte) <= 255);
+/**
+ * Espelha RegraIpv4 do backend (e a V20): so IPv4 de host, sem zero a esquerda
+ * (o ping do Linux le "010" como octal). Nulo = aceito; vazio = sem IP.
+ */
+export function motivoRecusaIp(valor) {
+  const ip = normalizarTexto(valor);
+  if (ip === null) return null;
+  if (ip.includes(':')) return 'apenas IPv4 e suportado: o monitoramento ICMP nao sonda IPv6';
+  if (!/^[0-9]{1,3}(\.[0-9]{1,3}){3}$/.test(ip)) return 'deve ser um endereco IPv4 no formato 192.168.0.10';
+  const octetos = ip.split('.');
+  if (octetos.some((octeto) => Number(octeto) > 255)) return 'cada octeto do IP vai de 0 a 255';
+  if (octetos.some((octeto) => octeto.length > 1 && octeto.startsWith('0'))) {
+    return 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001';
+  }
+  const primeiro = Number(octetos[0]);
+  if (primeiro === 0) return 'a faixa 0.0.0.0/8 nao e endereco de host';
+  if (primeiro >= 224) return 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel';
+  return null;
 }
 
 /** Espelha CreateUnidadeRequest: exatamente 7 digitos (com espacos ao redor tolerados). */
@@ -115,7 +126,8 @@ export function validarLinhaEquipamento(linha) {
   if (normalizarTexto(linha.unidadeSigla) === null) erros.push('unidadeSigla e obrigatoria');
   if (normalizarTexto(linha.tipoNome) === null) erros.push('tipoNome e obrigatorio');
   if (normalizarTexto(linha.nome) === null) erros.push('nome e obrigatorio');
-  if (!ipv4Valido(linha.ip)) erros.push('ip deve ser um endereco IPv4 valido (IPv6 nao e aceito)');
+  const motivoIp = motivoRecusaIp(linha.ip);
+  if (motivoIp !== null) erros.push(`ip: ${motivoIp}`);
 
   const chave =
     normalizarTexto(linha.unidadeSigla) !== null && normalizarTexto(linha.nome) !== null

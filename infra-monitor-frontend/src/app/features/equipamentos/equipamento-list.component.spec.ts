@@ -300,4 +300,79 @@ describe('EquipamentoListComponent', () => {
     expect(TestBed.inject(Router).url).toBe('/equipamentos/7');
     expect(harness.routeNativeElement!.querySelector('app-equipamento-detalhe-drawer')).not.toBeNull();
   });
+
+  describe('validação do IP no formulário', () => {
+    const IPV6 = 'Apenas IPv4 é suportado: o monitoramento ICMP não sonda IPv6';
+
+    function abrirCriacaoComIp(ip: string): ComponentFixture<EquipamentoListComponent> {
+      const fixture = montar([]);
+      fixture.componentInstance['abrirCriacao']();
+      fixture.componentInstance['form'].patchValue({ nome: 'SW-1', tipoEquipamentoId: 2, unidadeId: 1, ip });
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    function enviar(fixture: ComponentFixture<EquipamentoListComponent>): void {
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('.equipamento-modal form')!
+        .dispatchEvent(new Event('submit'));
+      fixture.detectChanges();
+    }
+
+    it('recusa IPv6 sem chamar a API e mostra o motivo uma única vez, sob o campo', () => {
+      const fixture = abrirCriacaoComIp('2001:db8::1');
+      enviar(fixture);
+
+      http.expectNone((requisicao) => requisicao.method === 'POST');
+      const raiz = fixture.nativeElement as HTMLElement;
+      const erro = raiz.querySelector('#equipamento-ip-erro');
+      expect(erro?.textContent?.trim()).toBe(IPV6);
+      expect(raiz.querySelector('input[formControlName="ip"]')?.getAttribute('aria-invalid')).toBe('true');
+      const repetidos = Array.from(raiz.querySelectorAll('small.campo-erro')).filter((el) => el.textContent?.trim() === IPV6);
+      expect(repetidos.length).toBe(1);
+    });
+
+    it('aceita na edição o IP já cadastrado e salva via PUT', () => {
+      const fixture = montar([linha({ id: 1 })]);
+      fixture.componentInstance['executarAcao'](linha({ id: 1 }), 'editar');
+      fixture.detectChanges();
+      http.expectOne((requisicao) => requisicao.url.endsWith('/equipamentos/1')).flush({ ...CADASTRO_COMPLETO, ip: '10.0.0.10' });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance['form'].get('ip')?.valid).toBe(true);
+      enviar(fixture);
+      const put = http.expectOne((requisicao) => requisicao.method === 'PUT' && requisicao.url.endsWith('/equipamentos/1'));
+      expect(put.request.body.ip).toBe('10.0.0.10');
+      put.flush(CADASTRO_COMPLETO);
+      http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1 })]);
+    });
+
+    it.each(['010.0.0.1', '0.0.0.0'])('não mostra dica informativa quando %s é recusado', (ip) => {
+      const fixture = abrirCriacaoComIp(ip);
+      fixture.componentInstance['avaliarIp'](ip);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance['dicaIp']()).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.equipamento-modal__dica')).toBeNull();
+    });
+
+    it('mantém a dica informativa para IP aceito', () => {
+      const fixture = abrirCriacaoComIp('10.0.0.1');
+      fixture.componentInstance['avaliarIp']('10.0.0.1');
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.equipamento-modal__dica')?.textContent?.trim())
+        .toBe('IPv4 · faixa privada');
+    });
+
+    it('aceita IP com espaços nas pontas e envia aparado', () => {
+      const fixture = abrirCriacaoComIp(' 10.0.0.1 ');
+      expect(fixture.componentInstance['form'].get('ip')?.valid).toBe(true);
+      enviar(fixture);
+
+      const post = http.expectOne((requisicao) => requisicao.method === 'POST' && requisicao.url.endsWith('/equipamentos'));
+      expect(post.request.body.ip).toBe('10.0.0.1');
+      post.flush({ ...CADASTRO_COMPLETO, nome: 'SW-1' });
+      http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush([]);
+    });
+  });
 });

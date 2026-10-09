@@ -1,0 +1,22 @@
+❯ Building...
+✔ Building...
+Initial chunk files                               | Names                                          |  Raw size
+styles.css                                        | styles                                         |  36.94 kB | 
+spec-app-features-incidentes-timeline-timeline.js | spec-app-features-incidentes-timeline-timeline |  35.78 kB | 
+chunk-RSTWSNOR.js                                 | -                                              |   4.75 kB | 
+init-testbed.js                                   | init-testbed                                   |   1.21 kB | 
+vitest-mock-patch.js                              | vitest-mock-patch                              | 974 bytes | 
+
+                                                  | Initial total                                  |  79.67 kB
+
+Application bundle generation complete. [8.630 seconds] - 2026-10-09T11:16:45.325Z
+
+
+ RUN  v4.1.11 C:/Users/rbfilho/Documents/infra-monitor/infra-monitor-frontend
+
+
+ Test Files  1 passed (1)
+      Tests  34 passed (34)
+   Start at  08:16:45
+   Duration  2.32s (transform 137ms, setup 517ms, import 70ms, tests 55ms, environment 1.41s)
+

@@ -7,6 +7,7 @@ import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.equipamento.validation.RegraIpv4;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
@@ -110,6 +111,9 @@ class EquipamentoServiceTest {
 
         assertThatThrownBy(() -> equipamentoService.criar(criacao("SW-01", "999.1.1.1")))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> equipamentoService.criar(criacao("SW-01", "010.0.0.1")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(RegraIpv4.ZERO_A_ESQUERDA);
         verify(equipamentoRepository, never()).save(any());
     }
 
@@ -220,6 +224,19 @@ class EquipamentoServiceTest {
         assertThat(semNumero.numeroSerie()).isNull();
         assertThat(semNumero.fabricante()).isNull();
         assertThat(semNumero.modelo()).isNull();
+    }
+
+    @Test
+    void ipComEspacoUnicodeVazioViraNuloEEspacoUnicodeNasBordasEAparado() {
+        Unidade unidade = new Unidade("Matriz", "MTZ", null);
+        TipoEquipamento tipo = new TipoEquipamento("Switch", null);
+        definirId(unidade, 1L);
+        definirId(tipo, 2L);
+        relacionamentosAtivos(unidade, tipo);
+        when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        assertThat(equipamentoService.criar(criacao("SW-03", "\u2003")).ip()).isNull();
+        assertThat(equipamentoService.criar(criacao("SW-04", "\u200310.0.0.1\u2003")).ip()).isEqualTo("10.0.0.1");
     }
 
     private CreateEquipamentoRequest criacao(String nome, String ip) {
