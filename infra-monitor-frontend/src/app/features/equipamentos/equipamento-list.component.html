@@ -233,8 +233,11 @@
               <input formControlName="hostname" maxlength="255" autocomplete="off">
             </label>
             <label>ENDEREÇO IP *
-              <input formControlName="ip" maxlength="45" autocomplete="off" (blur)="avaliarIp($any($event.target).value)" (input)="avaliarIp($any($event.target).value)">
+              <input formControlName="ip" maxlength="45" autocomplete="off" [attr.aria-invalid]="form.get('ip')?.touched && form.get('ip')?.invalid ? 'true' : null" [attr.aria-describedby]="form.get('ip')?.touched && form.get('ip')?.errors ? 'equipamento-ip-erro' : null" (blur)="avaliarIp($any($event.target).value)" (input)="avaliarIp($any($event.target).value)">
               @if (dicaIp()) { <small class="equipamento-modal__dica">{{ dicaIp() }}</small> }
+              @if (form.get('ip')?.touched && form.get('ip')?.errors) {
+                <small class="campo-erro" id="equipamento-ip-erro" role="alert">{{ form.get('ip')?.errors?.['ipv4'] || form.get('ip')?.errors?.['backend'] || 'Revise este campo.' }}</small>
+              }
             </label>
           </div>
 
@@ -259,7 +262,7 @@
             <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
           </label>
 
-          @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','ip','fabricante','modelo','numeroSerie','localizacao','descricao']; track campo) {
+          @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','fabricante','modelo','numeroSerie','localizacao','descricao']; track campo) {
             @if (form.get(campo)?.touched && form.get(campo)?.errors) {
               <small class="campo-erro">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
             }

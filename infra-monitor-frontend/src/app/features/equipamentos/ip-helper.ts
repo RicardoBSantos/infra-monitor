@@ -1,8 +1,35 @@
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+
+/**
+ * Mesma regra de `RegraIpv4` (backend), da V20 e de `tools/carga-real`: só IPv4 de host,
+ * sem zero à esquerda (o ping do Linux lê "010" como octal). Vazio = sem IP.
+ */
+export function motivoRecusaIp(valor: string | null | undefined): string | null {
+  const ip = (valor ?? '').trim();
+  if (!ip) return null;
+  if (ip.includes(':')) return 'Apenas IPv4 é suportado: o monitoramento ICMP não sonda IPv6';
+  if (!/^[0-9]{1,3}(.[0-9]{1,3}){3}$/.test(ip)) return 'IP deve ser um endereço IPv4 no formato 192.168.0.10';
+  const octetos = ip.split('.');
+  if (octetos.some((octeto) => Number(octeto) > 255)) return 'Cada octeto do IP vai de 0 a 255';
+  if (octetos.some((octeto) => octeto.length > 1 && octeto.startsWith('0'))) {
+    return 'Octeto com zero à esquerda é ambíguo (pode ser lido como octal): escreva 10.0.0.1, não 010.000.000.001';
+  }
+  const primeiro = Number(octetos[0]);
+  if (primeiro === 0) return 'A faixa 0.0.0.0/8 não é endereço de host';
+  if (primeiro >= 224) return 'Multicast, reservado ou broadcast (224.0.0.0 em diante) não é endereço de host monitorável';
+  return null;
+}
+
+export const validadorIpv4Monitoravel: ValidatorFn = (controle: AbstractControl): ValidationErrors | null => {
+  const motivo = motivoRecusaIp(controle.value as string | null);
+  return motivo ? { ipv4: motivo } : null;
+};
+
 /**
  * Classificação informativa do endereço digitado.
  *
- * Só descreve o que foi digitado — a validação de formato continua sendo a do formulário
- * e a do backend. Um texto aqui nunca impede o envio.
+ * Só descreve o que foi digitado — quem recusa o envio é `validadorIpv4Monitoravel`
+ * (e, no servidor, `RegraIpv4`). Este texto nunca impede o envio.
  */
 export function classificarIp(valor: string): string | null {
   const limpo = valor.trim();

@@ -22,7 +22,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.component';
-import { classificarIp } from './ip-helper';
+import { classificarIp, validadorIpv4Monitoravel } from './ip-helper';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
 type Acao = 'excluir' | 'desativar' | 'ativar';
@@ -141,7 +141,7 @@ export class EquipamentoListComponent {
     tipoEquipamentoId: [0, [Validators.min(1)]],
     unidadeId: [0, [Validators.min(1)]],
     hostname: ['', [Validators.maxLength(255)]],
-    ip: ['', [Validators.required, Validators.maxLength(45)]],
+    ip: ['', [Validators.required, Validators.maxLength(45), validadorIpv4Monitoravel]],
     fabricante: ['', [Validators.maxLength(100)]],
     modelo: ['', [Validators.maxLength(150)]],
     numeroSerie: ['', [Validators.maxLength(150)]],
