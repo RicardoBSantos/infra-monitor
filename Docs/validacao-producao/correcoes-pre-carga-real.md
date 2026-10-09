@@ -106,6 +106,8 @@ tema claro conferidos por captura (`00-timeline-depois-*`); o defeito antigo est
 
 Decisão registrada: o texto "N respostas consecutivas…" aparece para `RECUPERACAO_AUTOMATICA` mesmo
 que o recorte de histórico não liste a sequência, porque o motivo é fato gravado pelo motor.
+**Revertida em 2026-10-09:** a timeline só cita N quando a sequência inteira está listada; ver
+[rodada-curta-pre-carga.md](rodada-curta-pre-carga.md#item-1--a-timeline-só-afirma-o-que-lista).
 
 Commits: `565b7d5`, `fd51987` (SCSS e e2e).
 

@@ -44,6 +44,8 @@ Regras de negócio já aprovadas:
 13. Datas operacionais deverão usar `TIMESTAMPTZ`.
 14. Endereços IP deverão utilizar o tipo PostgreSQL `INET`. **Estado real diverge:** a `V4` converteu
     `equipamento.ip_address` para `VARCHAR(45)` NULL, derrubando o `INET` e a constraint de host da `V2`.
+    A `V20` voltou a validar no banco: `ck_equipamento_ip_ipv4` (CHECK de IPv4 de host, `NULL`
+    permitido), `VARCHAR(45)` mantido. Regra única em `equipamento/validation/RegraIpv4`.
 15. IDs devem utilizar `BIGINT GENERATED ... AS IDENTITY`.
 
 ## Objetivo desta etapa
