@@ -1,4 +1,4 @@
-import { IncidentClosureReason, MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../../core/models/api-enums';
+import { IncidentClosureReason, LatencyClosureReason, MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../../core/models/api-enums';
 import { IncidentKind } from '../../../core/models/dashboard-incidente';
 import { NotificacaoResponse } from '../../../core/models/notificacao';
 import { HistoricoMedicaoResponse } from '../../../core/models/relatorio';
@@ -40,6 +40,7 @@ const entradaDeIncidente: EntradaTimeline = {
     reconhecidoPorNome: 'Ricardo',
     motivoEncerramento: IncidentClosureReason.AutomaticRecovery,
     fechadoPorNome: null,
+    motivoEncerramentoEpisodio: null,
   },
   medicoes: medicoesDoIncidente,
   limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 2 },
@@ -119,11 +120,102 @@ describe('derivarTimeline', () => {
       reconhecidoEm: null, reconhecidoPorNome: null,
       motivoEncerramento: null,
       fechadoPorNome: null,
+      motivoEncerramentoEpisodio: null,
     },
     medicoes: medicoesDoEpisodio,
     limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 2 },
     notificacoes: [],
   };
+
+  const AUTO_SEM_SEQUENCIA = 'Recuperação automática registrada pelo motor; a sequência completa de respostas não está no histórico carregado';
+  const NORMALIZACAO_SEM_SEQUENCIA = 'Normalização registrada pelo motor; a sequência completa de medições não está no histórico carregado';
+
+  describe('só afirma o que lista', () => {
+    const fechamentoDe = (entrada: EntradaTimeline) => derivarTimeline(entrada).find(e => e.tipo === 'fechamento');
+    const recuperacoesDe = (entrada: EntradaTimeline) => derivarTimeline(entrada).filter(e => e.tipo === 'recuperacao').map(e => e.rotulo);
+
+    it('recuperação automática sem nenhuma resposta no histórico não cita N', () => {
+      const entrada = { ...entradaDeIncidente, medicoes: medicoesDoIncidente.slice(0, 4) };
+      expect(fechamentoDe(entrada)?.detalhe).toBe(AUTO_SEM_SEQUENCIA);
+      expect(recuperacoesDe(entrada)).toEqual([]);
+    });
+
+    it('recuperação automática com sequência parcial lista sem numerar e não cita N', () => {
+      // Só a última resposta (a do encerramento) está no histórico: a 08:02:00 sumiu.
+      const entrada = { ...entradaDeIncidente, medicoes: [...medicoesDoIncidente.slice(0, 4), medicoesDoIncidente[5]] };
+      expect(recuperacoesDe(entrada)).toEqual(['Resposta ICMP']);
+      expect(fechamentoDe(entrada)?.detalhe).toBe(AUTO_SEM_SEQUENCIA);
+    });
+
+    it('N maior que a sequência medida (limiar editado depois) não cita N', () => {
+      const entrada = { ...entradaDeIncidente, limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 3 } };
+      expect(recuperacoesDe(entrada)).toEqual(['Resposta ICMP', 'Resposta ICMP']);
+      expect(fechamentoDe(entrada)?.detalhe).toBe(AUTO_SEM_SEQUENCIA);
+    });
+
+    it('sequência completa continua numerada e cita N', () => {
+      expect(recuperacoesDe(entradaDeIncidente)).toEqual(['Resposta ICMP — recuperação 1/2', 'Resposta ICMP — recuperação 2/2']);
+      expect(fechamentoDe(entradaDeIncidente)?.detalhe).toBe('2 respostas consecutivas restabeleceram o monitor');
+    });
+
+    it('legado sem autor com sequência parcial lista sem numerar e não afirma causa', () => {
+      const entrada = {
+        ...entradaDeIncidente,
+        ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: null },
+        medicoes: [...medicoesDoIncidente.slice(0, 4), medicoesDoIncidente[5]],
+      };
+      expect(recuperacoesDe(entrada)).toEqual(['Resposta ICMP']);
+      expect(fechamentoDe(entrada)?.rotulo).toBe('Incidente fechado');
+      expect(fechamentoDe(entrada)?.detalhe).toBeNull();
+    });
+
+    const episodioCom = (motivo: LatencyClosureReason | null, medicoes = entradaDeEpisodio.medicoes) => ({
+      ...entradaDeEpisodio, medicoes,
+      ocorrencia: { ...entradaDeEpisodio.ocorrencia, motivoEncerramentoEpisodio: motivo },
+    });
+    // Remove a penúltima (dentro do limiar) e deixa só a do encerramento.
+    const semPenultima = entradaDeEpisodio.medicoes.slice(0, -2).concat(entradaDeEpisodio.medicoes.slice(-1));
+
+    it('episódio encerrado por incidente não diz que normalizou', () => {
+      const eventos = derivarTimeline(episodioCom(LatencyClosureReason.Incident));
+      const fechamento = eventos.find(e => e.tipo === 'fechamento');
+      expect(fechamento?.rotulo).toBe('Encerrado pela abertura de incidente');
+      expect(fechamento?.detalhe).toBe('O monitor deixou de responder e um incidente foi aberto. A latência não normalizou.');
+      expect(fechamento?.severidade).toBe('critico');
+      expect(eventos.some(e => e.tipo === 'recuperacao')).toBe(false);
+    });
+
+    it('episódio encerrado por manutenção não diz que normalizou', () => {
+      const eventos = derivarTimeline(episodioCom(LatencyClosureReason.Maintenance));
+      const fechamento = eventos.find(e => e.tipo === 'fechamento');
+      expect(fechamento?.rotulo).toBe('Encerrado por manutenção');
+      expect(fechamento?.detalhe).toBe('O equipamento entrou em manutenção e saiu da observação. Nenhuma normalização foi medida.');
+      expect(eventos.some(e => e.tipo === 'recuperacao')).toBe(false);
+    });
+
+    it('normalização com sequência completa cita N', () => {
+      const fechamento = derivarTimeline(episodioCom(LatencyClosureReason.Normalization)).find(e => e.tipo === 'fechamento');
+      expect(fechamento?.rotulo).toBe('Latência normalizada');
+      expect(fechamento?.detalhe).toBe('2 medições consecutivas dentro do limiar encerraram o episódio');
+    });
+
+    it('normalização sem a sequência no histórico não cita N nem numera', () => {
+      const eventos = derivarTimeline(episodioCom(LatencyClosureReason.Normalization, semPenultima));
+      expect(eventos.find(e => e.tipo === 'fechamento')?.detalhe).toBe(NORMALIZACAO_SEM_SEQUENCIA);
+      expect(eventos.filter(e => e.tipo === 'recuperacao').every(e => e.rotulo === 'Dentro do limiar')).toBe(true);
+    });
+
+    it('episódio legado sem sequência não vira "Latência normalizada"', () => {
+      const fechamento = derivarTimeline(episodioCom(null, semPenultima)).find(e => e.tipo === 'fechamento');
+      expect(fechamento?.rotulo).toBe('Episódio encerrado');
+      expect(fechamento?.detalhe).toBeNull();
+    });
+
+    it('episódio legado com sequência completa é lido como normalização', () => {
+      const fechamento = derivarTimeline(episodioCom(null)).find(e => e.tipo === 'fechamento');
+      expect(fechamento?.rotulo).toBe('Latência normalizada');
+    });
+  });
 
   it('numera as N medições que consolidaram o episódio de latência', () => {
     const rotulos = derivarTimeline(entradaDeEpisodio).filter(e => e.tipo === 'degradacao').map(e => e.rotulo);

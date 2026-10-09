@@ -1,5 +1,5 @@
 import { plural } from '../../../core/format/plural';
-import { IncidentClosureReason, MeasurementStatus, NotificationEventType } from '../../../core/models/api-enums';
+import { IncidentClosureReason, LatencyClosureReason, MeasurementStatus, NotificationEventType } from '../../../core/models/api-enums';
 import { IncidentKind } from '../../../core/models/dashboard-incidente';
 import { NotificacaoResponse } from '../../../core/models/notificacao';
 import { HistoricoMedicaoResponse } from '../../../core/models/relatorio';
@@ -45,6 +45,8 @@ export interface OcorrenciaTimeline {
   motivoEncerramento: IncidentClosureReason | null;
   /** Só o incidente tem; nulo é motor, episódio ou legado sem autor. */
   fechadoPorNome: string | null;
+  /** Só o episódio tem; nulo é aberto, incidente ou episódio anterior à V19. */
+  motivoEncerramentoEpisodio: LatencyClosureReason | null;
 }
 
 /** Vem de `GET /monitores/{id}`; nulo quando a carga do monitor falhou. */
@@ -59,6 +61,11 @@ export interface EntradaTimeline {
   limiares: LimiaresMonitor;
   notificacoes: NotificacaoResponse[];
 }
+
+const RECUPERACAO_SEM_SEQUENCIA =
+  'Recuperação automática registrada pelo motor; a sequência completa de respostas não está no histórico carregado';
+const NORMALIZACAO_SEM_SEQUENCIA =
+  'Normalização registrada pelo motor; a sequência completa de medições não está no histórico carregado';
 
 /** Desempate quando dois eventos caem no mesmo instante: o mecanismo antes da consequência. */
 const ORDEM: Record<TipoEventoTimeline, number> = {
@@ -153,7 +160,8 @@ function eventosDeIncidente(ocorrencia: OcorrenciaTimeline, medicoes: HistoricoM
  * O fechamento só afirma o que o dado prova. Manual e manutenção não têm sequência de
  * recuperação — a guarda é pelo motivo, não por a medição não casar com `encerradoEm`. Legado
  * (antes da V19, motivo nulo) se decide pelo autor e pela sequência medida; sem nenhum dos dois,
- * o fechamento sai sem causa.
+ * o fechamento sai sem causa. O N (`N respostas consecutivas`) só é dito com as N respostas
+ * listadas na tela; sem a sequência completa, a recuperação automática sai sem número.
  */
 function eventosDeFechamento(ocorrencia: OcorrenciaTimeline, encerradoEm: string,
                              medicoes: HistoricoMedicaoResponse[], limiares: LimiaresMonitor): EventoTimeline[] {
@@ -169,10 +177,19 @@ function eventosDeFechamento(ocorrencia: OcorrenciaTimeline, encerradoEm: string
     const autor = ocorrencia.fechadoPorNome ? `por ${ocorrencia.fechadoPorNome}` : 'por um operador';
     return [fechamento('Encerrado manualmente', `${autor}. Nenhuma recuperação foi medida.`)];
   }
-  const recuperacao = eventosDeRecuperacao(encerradoEm, medicoes, limiares.sucessosParaRecovery);
-  if (motivo === null && recuperacao.length === 0) return [fechamento('Incidente fechado', null)];
-  return [...recuperacao, fechamento('Incidente fechado', limiares.sucessosParaRecovery !== null
-    ? `${plural(limiares.sucessosParaRecovery, 'resposta consecutiva', 'respostas consecutivas')} ${limiares.sucessosParaRecovery === 1 ? 'restabeleceu' : 'restabeleceram'} o monitor` : null)];
+  const total = limiares.sucessosParaRecovery;
+  const sequencia = sequenciaDeFechamento(encerradoEm, medicoes, total,
+    (medicao) => medicao.status === MeasurementStatus.Success);
+  const completa = total !== null && sequencia.length === total;
+  const recuperacao = eventosDeRecuperacao(sequencia, completa ? total : null);
+  if (completa) {
+    return [...recuperacao, fechamento('Incidente fechado',
+      `${plural(total, 'resposta consecutiva', 'respostas consecutivas')} ${total === 1 ? 'restabeleceu' : 'restabeleceram'} o monitor`)];
+  }
+  // N só é dito quando as N respostas estão na tela. O motivo gravado prova que foi o motor,
+  // não quantas respostas ele exigiu: o N exibido é o limiar de hoje, não o da hora do fechamento.
+  return [...recuperacao, fechamento('Incidente fechado',
+    motivo === IncidentClosureReason.AutomaticRecovery ? RECUPERACAO_SEM_SEQUENCIA : null)];
 }
 
 /**
@@ -207,17 +224,14 @@ function sequenciaDeFechamento(encerradoEm: string, medicoes: HistoricoMedicaoRe
   return sequencia;
 }
 
-/** A sequência de sucessos que fechou o incidente. */
-function eventosDeRecuperacao(encerradoEm: string, medicoes: HistoricoMedicaoResponse[],
-                              total: number | null): EventoTimeline[] {
-  const sequencia = sequenciaDeFechamento(encerradoEm, medicoes, total,
-    (medicao) => medicao.status === MeasurementStatus.Success);
+/** `total` nulo = sequência incompleta: lista o que foi medido sem numerar, porque as encontradas são as últimas, não as primeiras. */
+function eventosDeRecuperacao(sequencia: HistoricoMedicaoResponse[], total: number | null): EventoTimeline[] {
   return sequencia.map((medicao, indice) => ({
     chave: `recuperacao-${medicao.medicaoId}`,
     instante: medicao.executadoEm,
     tipo: 'recuperacao' as const,
     severidade: 'ok' as const,
-    rotulo: `Resposta ICMP — recuperação ${indice + 1}/${total}`,
+    rotulo: total !== null ? `Resposta ICMP — recuperação ${indice + 1}/${total}` : 'Resposta ICMP',
     detalhe: medicao.latenciaMs !== null ? `${medicao.latenciaMs} ms` : null,
   }));
 }
@@ -295,29 +309,49 @@ function eventosDeLatencia(ocorrencia: OcorrenciaTimeline, medicoes: HistoricoMe
     });
   }
 
-  if (ocorrencia.encerradoEm) {
-    const normalizacao = sequenciaDeFechamento(ocorrencia.encerradoEm, medicoes, total,
-      (medicao) => dentroDoLimiar(medicao, limiar));
-    eventos.push(...normalizacao.map((medicao, indice) => ({
-      chave: `normalizacao-${medicao.medicaoId}`,
-      instante: medicao.executadoEm,
-      tipo: 'recuperacao' as const,
-      severidade: 'ok' as const,
-      rotulo: `Dentro do limiar — normalização ${indice + 1}/${total}`,
-      detalhe: medicao.latenciaMs !== null ? `${medicao.latenciaMs} ms` : null,
-    })));
-    eventos.push({
-      chave: 'fechamento',
-      instante: ocorrencia.encerradoEm,
-      tipo: 'fechamento',
-      severidade: 'ok',
-      rotulo: 'Latência normalizada',
-      detalhe: total !== null
-        ? `${plural(total, 'medição consecutiva', 'medições consecutivas')} dentro do limiar ${total === 1 ? 'encerrou' : 'encerraram'} o episódio`
-        : 'episódio encerrado automaticamente',
-    });
-  }
+  if (ocorrencia.encerradoEm) eventos.push(...eventosDeEncerramentoDoEpisodio(ocorrencia, ocorrencia.encerradoEm, medicoes, total, limiar));
   return eventos;
+}
+
+/**
+ * Mesmo critério do incidente: o motivo diz o caminho, a sequência listada diz o N.
+ * INCIDENTE e MANUTENCAO não têm normalização para mostrar — a latência não melhorou.
+ */
+function eventosDeEncerramentoDoEpisodio(ocorrencia: OcorrenciaTimeline, encerradoEm: string,
+                                         medicoes: HistoricoMedicaoResponse[], total: number | null,
+                                         limiar: number | null): EventoTimeline[] {
+  const fechamento = (rotulo: string, detalhe: string | null,
+                      severidade: SeveridadeEvento = 'ok'): EventoTimeline => ({
+    chave: 'fechamento', instante: encerradoEm, tipo: 'fechamento', severidade, rotulo, detalhe,
+  });
+  const motivo = ocorrencia.motivoEncerramentoEpisodio;
+  if (motivo === LatencyClosureReason.Incident) {
+    return [fechamento('Encerrado pela abertura de incidente',
+      'O monitor deixou de responder e um incidente foi aberto. A latência não normalizou.', 'critico')];
+  }
+  if (motivo === LatencyClosureReason.Maintenance) {
+    return [fechamento('Encerrado por manutenção',
+      'O equipamento entrou em manutenção e saiu da observação. Nenhuma normalização foi medida.')];
+  }
+  const sequencia = sequenciaDeFechamento(encerradoEm, medicoes, total, (medicao) => dentroDoLimiar(medicao, limiar));
+  const completa = total !== null && sequencia.length === total;
+  const normalizacao = sequencia.map((medicao, indice): EventoTimeline => ({
+    chave: `normalizacao-${medicao.medicaoId}`,
+    instante: medicao.executadoEm,
+    tipo: 'recuperacao',
+    severidade: 'ok',
+    rotulo: completa ? `Dentro do limiar — normalização ${indice + 1}/${total}` : 'Dentro do limiar',
+    detalhe: medicao.latenciaMs !== null ? `${medicao.latenciaMs} ms` : null,
+  }));
+  if (completa) {
+    return [...normalizacao, fechamento('Latência normalizada',
+      `${plural(total, 'medição consecutiva', 'medições consecutivas')} dentro do limiar ${total === 1 ? 'encerrou' : 'encerraram'} o episódio`)];
+  }
+  if (motivo === LatencyClosureReason.Normalization) {
+    return [...normalizacao, fechamento('Latência normalizada', NORMALIZACAO_SEM_SEQUENCIA)];
+  }
+  // Pré-V19: normalização e encerramento por incidente gravavam as mesmas colunas.
+  return [...normalizacao, fechamento('Episódio encerrado', null)];
 }
 
 /** Só medição bem-sucedida tem latência: uma falha interrompe a sequência dos dois lados. */

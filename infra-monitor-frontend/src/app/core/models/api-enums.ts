@@ -62,6 +62,13 @@ export enum IncidentClosureReason {
   Maintenance = 'MANUTENCAO',
 }
 
+/** Como o episódio de latência foi encerrado. Ausente = aberto, ou encerrado antes da V19. */
+export enum LatencyClosureReason {
+  Normalization = 'NORMALIZACAO',
+  Incident = 'INCIDENTE',
+  Maintenance = 'MANUTENCAO',
+}
+
 export enum MonitorOperationalStatus {
   Available = 'DISPONIVEL',
   Degraded = 'DEGRADADO',

@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Observable, take } from 'rxjs';
 
 import { ApiErrorCode, isApiError } from '../../core/models/api-error';
-import { IncidentClosureReason, IncidentStatus, MeasurementStatus, isIncidentOpen } from '../../core/models/api-enums';
+import { IncidentClosureReason, IncidentStatus, LatencyClosureReason, MeasurementStatus, isIncidentOpen } from '../../core/models/api-enums';
 import { DashboardIncidenteResponse, IncidentKind } from '../../core/models/dashboard-incidente';
 import { EpisodioLatenciaResponse } from '../../core/models/episodio-latencia';
 import { IncidenteResponse } from '../../core/models/incidente';
@@ -53,6 +53,8 @@ interface OcorrenciaDetalhe {
   fechadoPorNome: string | null;
   /** Só o incidente tem. Ausente é o caso comum: fechado antes da V19 que o introduziu. */
   motivoEncerramento: IncidentClosureReason | null;
+  /** Só o episódio tem. */
+  motivoEncerramentoEpisodio: LatencyClosureReason | null;
   monitorId: number; monitorNome: string;
   equipamentoId: number; equipamentoNome: string;
   unidadeId: number; unidadeNome: string;
@@ -447,6 +449,7 @@ function deIncidente(incidente: IncidenteResponse): OcorrenciaDetalhe {
     reconhecidoPorNome: incidente.reconhecidoPorNome,
     fechadoPorNome: incidente.fechadoPorNome,
     motivoEncerramento: incidente.motivoEncerramento,
+    motivoEncerramentoEpisodio: null,
     monitorId: incidente.monitor.id, monitorNome: incidente.monitor.nome,
     equipamentoId: incidente.monitor.equipamentoId, equipamentoNome: incidente.monitor.equipamentoNome,
     unidadeId: incidente.monitor.unidadeId, unidadeNome: incidente.monitor.unidadeNome,
@@ -473,6 +476,7 @@ function deEpisodio(episodio: EpisodioLatenciaResponse): OcorrenciaDetalhe {
     reconhecidoPorNome: null,
     fechadoPorNome: null,
     motivoEncerramento: null,
+    motivoEncerramentoEpisodio: episodio.motivoEncerramento,
     monitorId: episodio.monitorId, monitorNome: episodio.monitorNome,
     equipamentoId: episodio.equipamentoId, equipamentoNome: episodio.equipamentoNome,
     unidadeId: episodio.unidadeId, unidadeNome: episodio.unidadeNome,

@@ -1,3 +1,5 @@
+import { LatencyClosureReason } from './api-enums';
+
 /**
  * Episódio de latência: a janela em que o monitor respondeu acima do limiar. `encerradoEm`
  * nulo significa episódio em curso — o mesmo "Aberto" do incidente, no vocabulário da
@@ -20,4 +22,6 @@ export interface EpisodioLatenciaResponse {
    * da linha: é o denominador da numeração na linha do tempo.
    */
   ciclosParaEpisodio: number;
+  /** Nulo em episódio aberto ou encerrado antes da V19, que não fez backfill. */
+  motivoEncerramento: LatencyClosureReason | null;
 }

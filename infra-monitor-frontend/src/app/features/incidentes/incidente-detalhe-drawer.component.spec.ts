@@ -22,6 +22,7 @@ const episodio = {
   id: 5, monitorId: 2, monitorNome: 'ICMP WAN',
   equipamentoId: 44, equipamentoNome: 'LINK-WAN', unidadeId: 7, unidadeNome: 'Centro',
   iniciadoEm: '2026-09-01T09:00:00Z', encerradoEm: '2026-09-01T09:02:00Z', limiarMs: 250, ciclosParaEpisodio: 2,
+  motivoEncerramento: null,
 };
 
 const monitor = {

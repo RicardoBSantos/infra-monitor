@@ -1,0 +1,179 @@
+❯ Building...
+✔ Building...
+Initial chunk files                               | Names                                          |  Raw size
+styles.css                                        | styles                                         |  36.94 kB | 
+spec-app-features-incidentes-timeline-timeline.js | spec-app-features-incidentes-timeline-timeline |  34.34 kB | 
+chunk-RSTWSNOR.js                                 | -                                              |   4.75 kB | 
+init-testbed.js                                   | init-testbed                                   |   1.21 kB | 
+vitest-mock-patch.js                              | vitest-mock-patch                              | 974 bytes | 
+
+                                                  | Initial total                                  |  78.22 kB
+
+Application bundle generation complete. [12.725 seconds] - 2026-10-09T11:15:45.508Z
+
+
+ RUN  v4.1.11 C:/Users/rbfilho/Documents/infra-monitor/infra-monitor-frontend
+
+ ❯  infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts (34 tests | 8 failed) 102ms
+       × recuperação automática sem nenhuma resposta no histórico não cita N 10ms
+       × recuperação automática com sequência parcial lista sem numerar e não cita N 3ms
+       × N maior que a sequência medida (limiar editado depois) não cita N 1ms
+       × legado sem autor com sequência parcial lista sem numerar e não afirma causa 1ms
+       × episódio encerrado por incidente não diz que normalizou 1ms
+       × episódio encerrado por manutenção não diz que normalizou 1ms
+       × normalização sem a sequência no histórico não cita N nem numera 1ms
+       × episódio legado sem sequência não vira "Latência normalizada" 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > recuperação automática sem nenhuma resposta no histórico não cita N
+AssertionError: expected '2 respostas consecutivas restabelecer…' to be 'Recuperação automática registrada pel…' // Object.is equality
+
+Expected: "Recuperação automática registrada pelo motor; a sequência completa de respostas não está no histórico carregado"
+Received: "2 respostas consecutivas restabeleceram o monitor"
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:139:46
+    137|     it('recuperação automática sem nenhuma resposta no histórico não c…
+    138|       const entrada = { ...entradaDeIncidente, medicoes: medicoesDoInc…
+    139|       expect(fechamentoDe(entrada)?.detalhe).toBe(AUTO_SEM_SEQUENCIA);
+       |                                              ^
+    140|       expect(recuperacoesDe(entrada)).toEqual([]);
+    141|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > recuperação automática com sequência parcial lista sem numerar e não cita N
+AssertionError: expected [ 'Resposta ICMP — recuperação 1/2' ] to deeply equal [ 'Resposta ICMP' ]
+
+- Expected
++ Received
+
+  [
+-   "Resposta ICMP",
++   "Resposta ICMP — recuperação 1/2",
+  ]
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:146:39
+    144|       // Só a última resposta (a do encerramento) está no histórico: a…
+    145|       const entrada = { ...entradaDeIncidente, medicoes: [...medicoesD…
+    146|       expect(recuperacoesDe(entrada)).toEqual(['Resposta ICMP']);
+       |                                       ^
+    147|       expect(fechamentoDe(entrada)?.detalhe).toBe(AUTO_SEM_SEQUENCIA);
+    148|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > N maior que a sequência medida (limiar editado depois) não cita N
+AssertionError: expected [ …(2) ] to deeply equal [ 'Resposta ICMP', 'Resposta ICMP' ]
+
+- Expected
++ Received
+
+  [
+-   "Resposta ICMP",
+-   "Resposta ICMP",
++   "Resposta ICMP — recuperação 1/3",
++   "Resposta ICMP — recuperação 2/3",
+  ]
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:152:39
+    150|     it('N maior que a sequência medida (limiar editado depois) não cit…
+    151|       const entrada = { ...entradaDeIncidente, limiares: { falhasParaI…
+    152|       expect(recuperacoesDe(entrada)).toEqual(['Resposta ICMP', 'Respo…
+       |                                       ^
+    153|       expect(fechamentoDe(entrada)?.detalhe).toBe(AUTO_SEM_SEQUENCIA);
+    154|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > legado sem autor com sequência parcial lista sem numerar e não afirma causa
+AssertionError: expected [ 'Resposta ICMP — recuperação 1/2' ] to deeply equal [ 'Resposta ICMP' ]
+
+- Expected
++ Received
+
+  [
+-   "Resposta ICMP",
++   "Resposta ICMP — recuperação 1/2",
+  ]
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:167:39
+    165|         medicoes: [...medicoesDoIncidente.slice(0, 4), medicoesDoIncid…
+    166|       };
+    167|       expect(recuperacoesDe(entrada)).toEqual(['Resposta ICMP']);
+       |                                       ^
+    168|       expect(fechamentoDe(entrada)?.rotulo).toBe('Incidente fechado');
+    169|       expect(fechamentoDe(entrada)?.detalhe).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > episódio encerrado por incidente não diz que normalizou
+AssertionError: expected 'Latência normalizada' to be 'Encerrado pela abertura de incidente' // Object.is equality
+
+Expected: "Encerrado pela abertura de incidente"
+Received: "Latência normalizada"
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:182:34
+    180|       const eventos = derivarTimeline(episodioCom(LatencyClosureReason…
+    181|       const fechamento = eventos.find(e => e.tipo === 'fechamento');
+    182|       expect(fechamento?.rotulo).toBe('Encerrado pela abertura de inci…
+       |                                  ^
+    183|       expect(fechamento?.detalhe).toBe('O monitor deixou de responder …
+    184|       expect(fechamento?.severidade).toBe('critico');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > episódio encerrado por manutenção não diz que normalizou
+AssertionError: expected 'Latência normalizada' to be 'Encerrado por manutenção' // Object.is equality
+
+Expected: "Encerrado por manutenção"
+Received: "Latência normalizada"
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:191:34
+    189|       const eventos = derivarTimeline(episodioCom(LatencyClosureReason…
+    190|       const fechamento = eventos.find(e => e.tipo === 'fechamento');
+    191|       expect(fechamento?.rotulo).toBe('Encerrado por manutenção');
+       |                                  ^
+    192|       expect(fechamento?.detalhe).toBe('O equipamento entrou em manute…
+    193|       expect(eventos.some(e => e.tipo === 'recuperacao')).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > normalização sem a sequência no histórico não cita N nem numera
+AssertionError: expected '2 medições consecutivas dentro do lim…' to be 'Normalização registrada pelo motor; a…' // Object.is equality
+
+Expected: "Normalização registrada pelo motor; a sequência completa de medições não está no histórico carregado"
+Received: "2 medições consecutivas dentro do limiar encerraram o episódio"
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:204:67
+    202|     it('normalização sem a sequência no histórico não cita N nem numer…
+    203|       const eventos = derivarTimeline(episodioCom(LatencyClosureReason…
+    204|       expect(eventos.find(e => e.tipo === 'fechamento')?.detalhe).toBe…
+       |                                                                   ^
+    205|       expect(eventos.filter(e => e.tipo === 'recuperacao').every(e => …
+    206|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL   infra-monitor-frontend  src/app/features/incidentes/timeline/timeline.spec.ts > derivarTimeline > só afirma o que lista > episódio legado sem sequência não vira "Latência normalizada"
+AssertionError: expected 'Latência normalizada' to be 'Episódio encerrado' // Object.is equality
+
+Expected: "Episódio encerrado"
+Received: "Latência normalizada"
+
+ ❯ src/app/features/incidentes/timeline/timeline.spec.ts:210:34
+    208|     it('episódio legado sem sequência não vira "Latência normalizada"'…
+    209|       const fechamento = derivarTimeline(episodioCom(null, semPenultim…
+    210|       expect(fechamento?.rotulo).toBe('Episódio encerrado');
+       |                                  ^
+    211|       expect(fechamento?.detalhe).toBeNull();
+    212|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 26 passed (34)
+   Start at  08:15:48
+   Duration  25.32s (transform 99ms, setup 432ms, import 56ms, tests 102ms, environment 24.20s)
+
