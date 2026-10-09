@@ -1,0 +1,221 @@
+{
+  "base": "http://127.0.0.1:4200",
+  "quando": "2026-10-09T12:54:37.117Z",
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "AUTO sem respostas no histórico: fechamento diz que a sequência não está carregada, sem número",
+      "ok": true,
+      "detalhe": "detalhe=\"Recuperação automática registrada pelo motor; a sequência completa de respostas não está no histórico carregado\""
+    },
+    {
+      "caso": 1,
+      "nome": "AUTO sem respostas: nenhum \"recuperação k/N\" e nenhum \"N respostas consecutivas\" na timeline",
+      "ok": true,
+      "detalhe": "numerados=0"
+    },
+    {
+      "caso": 2,
+      "nome": "LAT-4 (INCIDENTE): rótulo e detalhe dizem que a latência não normalizou",
+      "ok": true,
+      "detalhe": "detalhe=\"O monitor deixou de responder e um incidente foi aberto. A latência não normalizou.\""
+    },
+    {
+      "caso": 2,
+      "nome": "LAT-4 (INCIDENTE): a gaveta não diz \"Latência normalizada\" nem lista normalização",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 3,
+      "nome": "LAT-5 (NORMALIZACAO completa): cita as 2 medições e lista as 2 numeradas (controle positivo)",
+      "ok": true,
+      "detalhe": "detalhe=\"2 medições consecutivas dentro do limiar encerraram o episódio\" normalizacoes=2"
+    },
+    {
+      "caso": 4,
+      "nome": "IP \"2001:db8::1\": mensagem sob o campo, aria-invalid e nenhum POST enviado",
+      "ok": true,
+      "detalhe": "texto=\"Apenas IPv4 é suportado: o monitoramento ICMP não sonda IPv6\" posts=0 aria-invalid=true ocorrencias=1"
+    },
+    {
+      "caso": 5,
+      "nome": "IP \"010.0.0.1\": mensagem sob o campo, aria-invalid e nenhum POST enviado",
+      "ok": true,
+      "detalhe": "texto=\"Octeto com zero à esquerda é ambíguo (pode ser lido como octal): escreva 10.0.0.1, não 010.000.000.001\" posts=0 aria-invalid=true ocorrencias=1"
+    },
+    {
+      "caso": 6,
+      "nome": "API: POST com IP \"2001:db8::1\" é recusado com o motivo em fields.ip",
+      "ok": true,
+      "detalhe": "status=400 corpo={\"timestamp\":\"2026-10-09T12:54:36.994943Z\",\"status\":400,\"error\":\"Bad Request\",\"code\":\"VALIDATION_ERROR\",\"message\":\"Requisicao invalida\",\"path\":\"/api/v1/equipamentos\",\"fields\":{\"ip\":\"apenas IPv4 e suportado: o monitoramento ICMP nao sonda IPv6\"}}"
+    },
+    {
+      "caso": 7,
+      "nome": "API: POST com IP \"224.0.0.1\" é recusado com o motivo em fields.ip",
+      "ok": true,
+      "detalhe": "status=400 corpo={\"timestamp\":\"2026-10-09T12:54:37.004980500Z\",\"status\":400,\"error\":\"Bad Request\",\"code\":\"VALIDATION_ERROR\",\"message\":\"Requisicao invalida\",\"path\":\"/api/v1/equipamentos\",\"fields\":{\"ip\":\"multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel\"}}"
+    },
+    {
+      "caso": 8,
+      "nome": "IP válido com espaços: o formulário envia e a API grava \"10.250.0.7\"",
+      "ok": true,
+      "detalhe": "status=201 ip=10.250.0.7"
+    },
+    {
+      "caso": 9,
+      "nome": "nenhum erro de página no roteiro inteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    {
+      "quando": 1791550472883,
+      "metodo": "POST",
+      "url": "/auth/login"
+    },
+    {
+      "quando": 1791550473155,
+      "metodo": "GET",
+      "url": "/dashboard/resumo"
+    },
+    {
+      "quando": 1791550473172,
+      "metodo": "GET",
+      "url": "/dashboard/unidades"
+    },
+    {
+      "quando": 1791550473172,
+      "metodo": "GET",
+      "url": "/unidades?ativo=true"
+    },
+    {
+      "quando": 1791550473172,
+      "metodo": "GET",
+      "url": "/relatorios/disponibilidade/unidades?inicio=2026-09-09T12:54:33.157Z&fim=2026-10-09T12:54:33.157Z&size=200"
+    },
+    {
+      "quando": 1791550473173,
+      "metodo": "GET",
+      "url": "/relatorios/latencia/unidades?inicio=2026-09-09T12:54:33.158Z&fim=2026-10-09T12:54:33.158Z&size=500"
+    },
+    {
+      "quando": 1791550473173,
+      "metodo": "GET",
+      "url": "/equipamentos?size=500&sort=nome,asc"
+    },
+    {
+      "quando": 1791550473257,
+      "metodo": "GET",
+      "url": "/unidades?ativo=true"
+    },
+    {
+      "quando": 1791550473261,
+      "metodo": "GET",
+      "url": "/dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&status=ABERTO&inicio=2026-10-02T12:54:33.258Z&fim=2026-10-09T12:54:33.258Z"
+    },
+    {
+      "quando": 1791550473262,
+      "metodo": "GET",
+      "url": "/dashboard/incidentes/contadores?inicio=2026-10-02T12:54:33.258Z&fim=2026-10-09T12:54:33.258Z"
+    },
+    {
+      "quando": 1791550473299,
+      "metodo": "GET",
+      "url": "/dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&status=FECHADO&inicio=2026-10-02T12:54:33.258Z&fim=2026-10-09T12:54:33.258Z"
+    },
+    {
+      "quando": 1791550473398,
+      "metodo": "GET",
+      "url": "/incidentes/84"
+    },
+    {
+      "quando": 1791550473411,
+      "metodo": "GET",
+      "url": "/relatorios/medicoes?inicio=2026-10-08T06:49:01.000Z&fim=2026-10-08T07:01:01.000Z&size=200&sort=executadoEm,asc&monitorId=53"
+    },
+    {
+      "quando": 1791550473412,
+      "metodo": "GET",
+      "url": "/monitores/53"
+    },
+    {
+      "quando": 1791550473412,
+      "metodo": "GET",
+      "url": "/notificacoes?incidenteId=84&size=20&sort=createdAt,asc"
+    },
+    {
+      "quando": 1791550473997,
+      "metodo": "GET",
+      "url": "/dashboard/incidentes?page=0&size=20&sort=iniciadoEm,desc&inicio=2026-10-02T12:54:33.258Z&fim=2026-10-09T12:54:33.258Z"
+    },
+    {
+      "quando": 1791550474131,
+      "metodo": "GET",
+      "url": "/episodios-latencia/4"
+    },
+    {
+      "quando": 1791550474143,
+      "metodo": "GET",
+      "url": "/relatorios/medicoes?inicio=2026-10-08T16:49:01.000Z&fim=2026-10-08T17:00:01.000Z&size=200&sort=executadoEm,asc&monitorId=71"
+    },
+    {
+      "quando": 1791550474143,
+      "metodo": "GET",
+      "url": "/monitores/71"
+    },
+    {
+      "quando": 1791550474143,
+      "metodo": "GET",
+      "url": "/notificacoes?episodioLatenciaId=4&size=20&sort=createdAt,asc"
+    },
+    {
+      "quando": 1791550474749,
+      "metodo": "GET",
+      "url": "/episodios-latencia/5"
+    },
+    {
+      "quando": 1791550474762,
+      "metodo": "GET",
+      "url": "/relatorios/medicoes?inicio=2026-10-09T02:49:01.000Z&fim=2026-10-09T03:00:31.000Z&size=200&sort=executadoEm,asc&monitorId=69"
+    },
+    {
+      "quando": 1791550474762,
+      "metodo": "GET",
+      "url": "/monitores/69"
+    },
+    {
+      "quando": 1791550474762,
+      "metodo": "GET",
+      "url": "/notificacoes?episodioLatenciaId=5&size=20&sort=createdAt,asc"
+    },
+    {
+      "quando": 1791550475374,
+      "metodo": "GET",
+      "url": "/unidades?ativo=true"
+    },
+    {
+      "quando": 1791550475374,
+      "metodo": "GET",
+      "url": "/tipos-equipamento?ativo=true"
+    },
+    {
+      "quando": 1791550475374,
+      "metodo": "GET",
+      "url": "/dashboard/equipamentos"
+    },
+    {
+      "quando": 1791550477045,
+      "metodo": "POST",
+      "url": "/equipamentos"
+    },
+    {
+      "quando": 1791550477082,
+      "metodo": "GET",
+      "url": "/dashboard/equipamentos"
+    }
+  ],
+  "erros": [],
+  "fatal": null
+}
