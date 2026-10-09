@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "um marcador por unidade com coordenada",
+      "ok": true,
+      "detalhe": "11 marcador(es)"
+    },
+    {
+      "caso": 1,
+      "nome": "marcadores não colapsam no mesmo pixel",
+      "ok": true,
+      "detalhe": "11 posição(ões) distintas para 11 marcadores"
+    },
+    {
+      "caso": 1,
+      "nome": "as 4 unidades de Aracaju aparecem separadas",
+      "ok": true,
+      "detalhe": "4 em Aracaju, espalhamento 28px"
+    },
+    {
+      "caso": 1,
+      "nome": "rótulo traz nome e status por extenso",
+      "ok": true,
+      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)"
+    },
+    {
+      "caso": 2,
+      "nome": "marcador de unidade é alcançável por Tab",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)\",\"unidade\":\"7\",\"deUnidade\":true}"
+    },
+    {
+      "caso": 2,
+      "nome": "Enter no marcador abre o painel da unidade",
+      "ok": true,
+      "detalhe": "painel: Centro Integrado de Saúde | marcador: Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)"
+    },
+    {
+      "caso": 2,
+      "nome": "exatamente um marcador fica aria-pressed",
+      "ok": true,
+      "detalhe": "[\"7\"]"
+    },
+    {
+      "caso": 2,
+      "nome": "Espaço ativa o mesmo marcador",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 3,
+      "nome": "nenhum marcador é recriado em pan/zoom",
+      "ok": true,
+      "detalhe": "11 nós antes, 11 depois"
+    },
+    {
+      "caso": 3,
+      "nome": "marcadores acompanham a câmera",
+      "ok": true,
+      "detalhe": "posições mudaram sem troca de nó"
+    },
+    {
+      "caso": 3,
+      "nome": "seleção sobrevive ao pan/zoom",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 4,
+      "nome": "área principal do shell não rola",
+      "ok": true,
+      "detalhe": "excedente 0px"
+    },
+    {
+      "caso": 4,
+      "nome": "documento não rola",
+      "ok": true,
+      "detalhe": "excedente 0px"
+    },
+    {
+      "caso": 4,
+      "nome": "painel lateral com a largura nova",
+      "ok": true,
+      "detalhe": "320px"
+    },
+    {
+      "caso": 4,
+      "nome": "enquadramento equilibrado entre topo e base",
+      "ok": true,
+      "detalhe": "topo 15.6% · base 12.4% · desequilíbrio 3.2 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "desenho ocupa a maior parte da altura do cartão",
+      "ok": true,
+      "detalhe": "sobra total 28.0%"
+    },
+    {
+      "caso": 5,
+      "nome": "nenhuma costura vazia dominante no painel",
+      "ok": true,
+      "detalhe": "maior costura 111px em 754px de painel"
+    },
+    {
+      "caso": 5,
+      "nome": "os 6 status de unidade numa lista só",
+      "ok": true,
+      "detalhe": "6 item(ns)"
+    },
+    {
+      "caso": 5,
+      "nome": "legenda anuncia que fala do marcador, não do polígono",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 5,
+      "nome": "duas notas de gramática do mapa: município neutro e linha de hub",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 5,
+      "nome": "botão de informação removido",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 5,
+      "nome": "disclosure \"Estados sem leitura\" desfeito",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "falhas": 0,
+  "fatal": null
+}

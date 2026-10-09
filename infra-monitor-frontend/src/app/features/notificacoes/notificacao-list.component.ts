@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
+import { plural } from '../../core/format/plural';
 import { isApiError } from '../../core/models/api-error';
 import { NotificationChannel, NotificationEventType, NotificationStatus } from '../../core/models/api-enums';
 import { NotificacaoListQuery, NotificacaoResponse } from '../../core/models/notificacao';
@@ -14,10 +15,13 @@ const ROTULOS_EVENTO: Record<NotificationEventType, string> = {
   [NotificationEventType.IncidentClosed]: 'Incidente fechado',
   [NotificationEventType.HighLatency]: 'Latência alta',
   [NotificationEventType.LatencyNormalized]: 'Latência normalizada',
+  [NotificationEventType.IncidentClosedByMaintenance]: 'Incidente encerrado por manutenção',
+  [NotificationEventType.LatencyClosedByMaintenance]: 'Latência encerrada por manutenção',
 };
 type State = 'loading' | 'success' | 'empty' | 'error'; type Sort = 'createdAt,desc' | 'createdAt,asc' | 'enviadoEm,desc' | 'status,asc' | 'tentativas,desc' | 'id,desc';
 @Component({ selector: 'app-notificacao-list', imports: [DatePipe, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './notificacao-list.component.html', styleUrl: './notificacao-list.component.scss' })
 export class NotificacaoListComponent {
+  protected readonly plural = plural;
   private readonly api = inject(NotificacaoApiService); private readonly router = inject(Router);
   protected readonly page = signal<NotificacaoResponse[]>([]); protected readonly state = signal<State>('loading'); protected readonly error = signal<string | null>(null);
   protected readonly pageNumber = signal(0); protected readonly pageSize = signal(20); protected readonly totalElements = signal(0); protected readonly totalPages = signal(0); protected readonly incidenteId = signal<number | undefined>(undefined); protected readonly status = signal<NotificationStatus | undefined>(undefined); protected readonly canal = signal<NotificationChannel | undefined>(undefined); protected readonly tipoEvento = signal<NotificationEventType | undefined>(undefined); protected readonly inicio = signal(''); protected readonly fim = signal(''); protected readonly sort = signal<Sort>('createdAt,desc');

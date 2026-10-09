@@ -63,7 +63,7 @@ class IncidenteControllerTest {
     private static final IncidenteResponse INCIDENTE = new IncidenteResponse(1L, StatusIncidente.ABERTO,
             Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null, null, null, null,
             new MonitorIncidenteResponse(10L, "ICMP principal", TipoMonitor.ICMP, 20L, "SW-01", 30L, "Matriz"),
-            Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:00:00Z"));
+            Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:00:00Z"), null);
 
     @Autowired private MockMvc mockMvc;
     @MockitoBean private IncidenteService incidenteService;
@@ -126,7 +126,7 @@ class IncidenteControllerTest {
                 Instant.parse("2026-08-19T12:00:00Z"), null, "Indisponibilidade", null,
                 Instant.parse("2026-08-19T12:05:00Z"), "Operador", null,
                 new MonitorIncidenteResponse(10L, "ICMP principal", TipoMonitor.ICMP, 20L, "SW-01", 30L, "Matriz"),
-                Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:05:00Z"));
+                Instant.parse("2026-08-19T12:00:00Z"), Instant.parse("2026-08-19T12:05:00Z"), null);
         when(incidenteService.reconhecer(eq(1L), any())).thenReturn(reconhecido);
         when(incidenteService.reconhecer(eq(2L), any()))
                 .thenThrow(new ConflitoException("O incidente ja foi fechado e nao pode mais ser reconhecido"));

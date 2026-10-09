@@ -55,12 +55,12 @@
       <article class="kpi">
         <span>EQUIPAMENTOS</span>
         <strong>{{ dados.equipamentos.total }}</strong>
-        <small>{{ dados.equipamentos.total - dados.equipamentos.semMonitoramento }} monitorados</small>
+        <small>{{ plural(dados.equipamentos.total - dados.equipamentos.semMonitoramento, 'monitorado', 'monitorados') }}</small>
       </article>
       <article class="kpi kpi--ok">
         <span>ONLINE</span>
         <strong>{{ dados.equipamentos.disponiveis }}</strong>
-        <small>de {{ dados.equipamentos.ativos }} ativos</small>
+        <small>de {{ plural(dados.equipamentos.ativos, 'ativo', 'ativos') }}</small>
       </article>
       <article class="kpi kpi--warn">
         <span>DEGRADADOS</span>

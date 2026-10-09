@@ -84,4 +84,42 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
     @Query("update Notificacao n set n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE "
             + "where n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIANDO and n.updatedAt < :limite")
     int releaseStaleSending(@Param("limite") java.time.Instant limite);
+
+    /**
+     * CAS contra PENDENTE, mesmo idioma de reserveForDispatch. As duas instrucoes
+     * disputam a mesma linha e o Postgres serializa:
+     * - cancelamento primeiro: reserveForDispatch encontra CANCELADA, atualiza 0, o
+     *   dispatcher desiste;
+     * - reserva primeiro: a linha ja e ENVIANDO, o cancelamento atualiza 0 e a
+     *   mensagem sai. Aceito e deliberado.
+     *
+     * <p>Escopo por incidente e nao por tipo de evento: na pratica so existe um
+     * INCIDENTE_ABERTO pendente, mas amarrar a regra a uma enumeracao que a V15 ja
+     * mostrou que cresce e' criar um bug futuro.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Notificacao n set n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.CANCELADA, "
+            + "n.updatedAt = :agora where n.incidente.id = :incidenteId "
+            + "and n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE")
+    int cancelarPendentesDoIncidente(@Param("incidenteId") Long incidenteId, @Param("agora") java.time.Instant agora);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Notificacao n set n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.CANCELADA, "
+            + "n.updatedAt = :agora where n.episodioLatencia.id = :episodioId "
+            + "and n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE")
+    int cancelarPendentesDoEpisodio(@Param("episodioId") Long episodioId, @Param("agora") java.time.Instant agora);
+
+    /** ENVIANDO ou ENVIADA: a mensagem saiu, ou esta saindo. So nesses casos o grupo
+     *  precisa do aviso de encerramento. */
+    @Query("select count(n) > 0 from Notificacao n where n.incidente.id = :incidenteId "
+            + "and n.tipoEvento = br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.INCIDENTE_ABERTO "
+            + "and n.status in (br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIANDO, "
+            + "br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIADA)")
+    boolean existeAberturaJaDespachada(@Param("incidenteId") Long incidenteId);
+
+    @Query("select count(n) > 0 from Notificacao n where n.episodioLatencia.id = :episodioId "
+            + "and n.tipoEvento = br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.LATENCIA_ALTA "
+            + "and n.status in (br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIANDO, "
+            + "br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIADA)")
+    boolean existeAberturaJaDespachadaDoEpisodio(@Param("episodioId") Long episodioId);
 }

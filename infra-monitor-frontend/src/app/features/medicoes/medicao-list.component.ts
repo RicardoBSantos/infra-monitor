@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { take } from 'rxjs';
+import { plural } from '../../core/format/plural';
 import { isApiError } from '../../core/models/api-error';
 import { MeasurementStatus } from '../../core/models/api-enums';
 import { MedicaoListQuery, MedicaoResponse } from '../../core/models/medicao';
@@ -14,6 +15,7 @@ type State = 'loading' | 'success' | 'empty' | 'error';
 type Sort = 'executadoEm,desc' | 'executadoEm,asc' | 'latenciaMs,desc' | 'latenciaMs,asc' | 'status,asc' | 'id,desc';
 @Component({ selector: 'app-medicao-list', imports: [DatePipe, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './medicao-list.component.html', styleUrl: './medicao-list.component.scss' })
 export class MedicaoListComponent {
+  protected readonly plural = plural;
   private readonly api = inject(MedicaoApiService); private readonly monitorsApi = inject(MonitorApiService);
   protected readonly page = signal<MedicaoResponse[]>([]); protected readonly monitors = signal<MonitorResponse[]>([]); protected readonly state = signal<State>('loading'); protected readonly error = signal<string | null>(null); protected readonly lookupError = signal<string | null>(null);
   protected readonly pageNumber = signal(0); protected readonly pageSize = signal(50); protected readonly totalElements = signal(0); protected readonly totalPages = signal(0); protected readonly monitorId = signal<number | undefined>(undefined); protected readonly status = signal<MeasurementStatus | undefined>(undefined); protected readonly inicio = signal(''); protected readonly fim = signal(''); protected readonly sort = signal<Sort>('executadoEm,desc');

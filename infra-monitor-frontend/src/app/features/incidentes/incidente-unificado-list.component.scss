@@ -47,3 +47,8 @@
 
 .notificado { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .notificado__canal { color: var(--im-text-secondary); font: 600 10px var(--im-mono); letter-spacing: .04em; }
+
+// Marca discreta junto do badge de status: o dado só interessa depois de escolher a
+// ocorrência (o detalhe já mostra o motivo por extenso), então não vira décima segunda
+// coluna numa tabela que já rola no laptop.
+.marca-manutencao { margin-left: 6px; font-size: 12px; cursor: default; }

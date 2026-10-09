@@ -103,7 +103,7 @@
                 @if (!equipamentoContextId()) { <td>{{ item.equipamento.nome }}</td> }
                 <td><span class="chip-tipo">{{ item.tipo }}</span></td>
                 <td class="mono">{{ item.intervaloSegundos }} s <span class="apagado">/ {{ item.timeoutMs }} ms</span></td>
-                <td class="mono">{{ item.falhasParaIncidente }} falhas <span class="apagado">/ {{ item.sucessosParaRecovery }} sucessos</span></td>
+                <td class="mono">{{ plural(item.falhasParaIncidente, 'falha', 'falhas') }} <span class="apagado">/ {{ plural(item.sucessosParaRecovery, 'sucesso', 'sucessos') }}</span></td>
                 <td>
                   <span class="chip-monitoramento" [class.chip-monitoramento--off]="!item.ativo">
                     {{ item.ativo ? 'Ativo' : 'Inativo' }}
@@ -127,7 +127,7 @@
       </div>
 
       <nav class="monitor-page__paginacao" aria-label="Paginação de monitores">
-        <p class="contagem">{{ totalElements() }} monitor(es)</p>
+        <p class="contagem">{{ plural(totalElements(), 'monitor', 'monitores') }}</p>
         <div>
           <button class="botao botao--discreto" type="button" (click)="goToPage(pageNumber() - 1)" [disabled]="pageNumber() === 0">Anterior</button>
           <span class="contagem">Página {{ pageNumber() + 1 }} de {{ totalPages() }}</span>

@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, forkJoin, map, take } from 'rxjs';
 
+import { plural } from '../../core/format/plural';
 import { EquipmentOperationalStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
@@ -78,6 +79,7 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
   styleUrl: './equipamento-list.component.scss',
 })
 export class EquipamentoListComponent {
+  protected readonly plural = plural;
   private readonly api = inject(EquipamentoApiService);
   private readonly dashboard = inject(DashboardApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -471,7 +473,7 @@ export class EquipamentoListComponent {
       this.unidades.update((atuais) => [...atuais, {
         id: equipamento.unidade.id, nome: `${equipamento.unidade.nome} (inativa)`, sigla: '', descricao: null,
         codigoIbge: null, ativo: false, createdAt: '', updatedAt: '', endereco: null, cidade: null, uf: null,
-        latitude: null, longitude: null,
+        latitude: null, longitude: null, conectaAUnidadeId: null,
       }]);
     }
     if (!this.tipos().some((tipo) => tipo.id === equipamento.tipoEquipamento.id)) {

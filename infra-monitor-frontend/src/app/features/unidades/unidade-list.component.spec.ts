@@ -16,7 +16,7 @@ const DASHBOARD_URL = 'http://localhost:8080/api/v1/dashboard/unidades';
 function unidade(id: number, extra: Partial<UnidadeResponse> = {}): UnidadeResponse {
   return {
     id, nome: `Unidade ${id}`, sigla: `U-${id}`, descricao: null, codigoIbge: null, ativo: true,
-    createdAt: '', updatedAt: '', endereco: `Rua ${id}`, cidade: 'Aracaju', uf: 'SE', latitude: null, longitude: null,
+    createdAt: '', updatedAt: '', endereco: `Rua ${id}`, cidade: 'Aracaju', uf: 'SE', latitude: null, longitude: null, conectaAUnidadeId: null,
     ...extra,
   };
 }
@@ -164,7 +164,7 @@ describe('UnidadeListComponent', () => {
 
     const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
     expect(dialogo.textContent).toContain('Desativar Unidade 1?');
-    expect(dialogo.textContent).toContain('24 dispositivo(s)');
+    expect(dialogo.textContent).toContain('24 dispositivos');
     expect(dialogo.textContent).toContain('Telegram');
 
     (dialogo.querySelectorAll('button')[1] as HTMLButtonElement).click();
@@ -184,7 +184,7 @@ describe('UnidadeListComponent', () => {
 
     (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[2] as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.confirm-dialog')!.textContent).toContain('12 equipamento(s) vinculado(s)');
+    expect(fixture.nativeElement.querySelector('.confirm-dialog')!.textContent).toContain('12 equipamentos vinculados');
 
     (fixture.nativeElement.querySelectorAll('.confirm-dialog button')[1] as HTMLButtonElement).click();
     http.expectOne(`${UNIDADES_URL}/1`).flush({
@@ -208,7 +208,7 @@ describe('UnidadeListComponent', () => {
     fixture.detectChanges();
 
     const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
-    expect(dialogo.textContent).toContain('24 equipamento(s) vinculado(s)');
+    expect(dialogo.textContent).toContain('24 equipamentos vinculados');
     expect(dialogo.textContent).toContain('será recusada');
     expect(dialogo.textContent).toContain('Mova ou desvincule');
     expect(dialogo.textContent).not.toContain('definitiva');
@@ -239,6 +239,17 @@ describe('UnidadeListComponent', () => {
     expect(dialogo.textContent).not.toContain('definitiva');
   });
 
+  it('desativação com um único dispositivo usa o singular', () => {
+    const fixture = criar({ operacionais: [operacional(1, { equipamentosTotal: 1 })] });
+
+    (fixture.nativeElement.querySelectorAll('.unidades__acoes .botao')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
+    expect(dialogo.textContent).toContain('ICMP do único dispositivo desta unidade');
+    expect(dialogo.textContent).not.toContain('1 dispositivos');
+  });
+
   it('não anuncia quantidade de dispositivos na desativação quando o painel falhou', () => {
     const fixture = criar({ operacionais: 'erro' });
 
@@ -247,7 +258,7 @@ describe('UnidadeListComponent', () => {
 
     const dialogo = fixture.nativeElement.querySelector('.confirm-dialog') as HTMLElement;
     expect(dialogo.textContent).toContain('quantidade não confirmada');
-    expect(dialogo.textContent).not.toContain('0 dispositivo(s)');
+    expect(dialogo.textContent).not.toContain('0 dispositivos');
   });
 
   it('ativa sem confirmação', () => {
@@ -270,6 +281,8 @@ describe('UnidadeListComponent', () => {
     fixture.detectChanges();
     // O GeoJSON de municípios só é baixado quando a gaveta abre.
     http.expectOne('assets/maps/se-municipalities.geo.json').flush(GEO);
+    // E os destinos possiveis de conexao, para o select "Conecta a".
+    http.expectOne('http://localhost:8080/api/v1/unidades').flush([]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.gaveta')).not.toBeNull();

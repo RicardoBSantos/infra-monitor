@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "clicar no equipamento afetado abre a gaveta SEM sair do mapa",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4200/mapa -> http://127.0.0.1:4200/mapa"
+    },
+    {
+      "caso": 2,
+      "nome": "a gaveta é a do equipamento clicado",
+      "ok": true,
+      "detalhe": "clicado=\"CME-10-U2\" gaveta=\"CME-10-U2\""
+    },
+    {
+      "caso": 3,
+      "nome": "status chega pela linha montada no mapa (badge no topo e KPI preenchido)",
+      "ok": true,
+      "detalhe": "badges=1 kpi=\"StatusDegradado\""
+    },
+    {
+      "caso": 4,
+      "nome": "painel da unidade continua visível atrás do backdrop, intacto",
+      "ok": true,
+      "detalhe": "visível=true idêntico=true"
+    },
+    {
+      "caso": 5,
+      "nome": "inert aplicado na página do mapa enquanto a gaveta está aberta",
+      "ok": true,
+      "detalhe": "inert=true"
+    },
+    {
+      "caso": 6,
+      "nome": "(a) Tab a partir do último focável da gaveta NÃO alcança canvas nem marcadores",
+      "ok": true,
+      "detalhe": "partida=\"Abrir histórico\" (111 focáveis na gaveta); trajeto=body > A > A > A > A"
+    },
+    {
+      "caso": 7,
+      "nome": "(a) marcadores e canvas inalcançáveis por Shift+Tab e por focus() programático",
+      "ok": true,
+      "detalhe": "Shift+Tab vazou=false; 0/75 marcadores aceitaram foco"
+    },
+    {
+      "caso": 8,
+      "nome": "rodapé no Mapa traz só \"Abrir histórico\" (host não implementa editar/alternar)",
+      "ok": true,
+      "detalhe": "[\"Abrir histórico\"]"
+    },
+    {
+      "caso": 9,
+      "nome": "Escape fecha a gaveta e mantém a rota do mapa",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4200/mapa"
+    },
+    {
+      "caso": 10,
+      "nome": "foco volta ao equipamento afetado que abriu a gaveta",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":null,\"texto\":\"CME-10-U2DegradadoCâmera · 10.72.10.20\",\"classe\":\"afetados__item\",\"naGaveta\":false,\"noMapa\":true,\"ehCanvas\":false,\"ehAlvoDeMapa\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": 11,
+      "nome": "(b) inert removido da página do mapa ao fechar a gaveta",
+      "ok": true,
+      "detalhe": "inert=false"
+    },
+    {
+      "caso": 12,
+      "nome": "(b) todos os marcadores voltam a aceitar foco — nenhum preso",
+      "ok": true,
+      "detalhe": "75/75 marcadores focáveis"
+    },
+    {
+      "caso": 13,
+      "nome": "(b) mapa volta totalmente navegável: canvas e depois o primeiro município",
+      "ok": true,
+      "detalhe": "CANVAS/Map > Amparo de São Francisco: nenhuma unidade cadastrada"
+    },
+    {
+      "caso": 14,
+      "nome": "seleção do município sobrevive ao ciclo de inert",
+      "ok": true,
+      "detalhe": "antes=2800308 depois=2800308"
+    },
+    {
+      "caso": 15,
+      "nome": "inert não faz a lib recriar os Markers (marca posta antes continua nos nós)",
+      "ok": true,
+      "detalhe": "75/75 nós com a marca; 75 alvos antes"
+    },
+    {
+      "caso": 16,
+      "nome": "câmera e reposicionamento continuam funcionando depois do inert",
+      "ok": true,
+      "detalhe": "alvos reposicionados=true"
+    },
+    {
+      "caso": 17,
+      "nome": "contexto WebGL intacto — não foi perdido nem zerado pelo inert",
+      "ok": true,
+      "detalhe": "{\"existe\":true,\"largura\":894,\"altura\":778,\"perdido\":false}"
+    },
+    {
+      "caso": 18,
+      "nome": "ciclo abre/fecha é repetível: reabrir religa o inert, botão × desliga",
+      "ok": true,
+      "detalhe": "reabriu com inert=true"
+    },
+    {
+      "caso": 19,
+      "nome": "nenhum erro de página no roteiro inteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    "2026-09-16T12:07:57.159Z POST /auth/login",
+    "2026-09-16T12:07:57.498Z GET /dashboard/resumo",
+    "2026-09-16T12:07:57.519Z GET /dashboard/unidades",
+    "2026-09-16T12:07:57.520Z GET /unidades?ativo=true",
+    "2026-09-16T12:07:57.520Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-17T12:07:57.500Z&fim=2026-09-16T12:07:57.500Z&size=200",
+    "2026-09-16T12:07:57.520Z GET /relatorios/latencia/unidades?inicio=2026-08-17T12:07:57.501Z&fim=2026-09-16T12:07:57.501Z&size=500",
+    "2026-09-16T12:07:57.520Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-09-16T12:07:57.679Z GET /dashboard/unidades",
+    "2026-09-16T12:08:00.023Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-09-16T12:08:01.051Z GET /dashboard/unidades/2/equipamentos?size=200&sort=nome",
+    "2026-09-16T12:08:02.276Z GET /equipamentos/111",
+    "2026-09-16T12:08:02.277Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-08-17T12:08:02.260Z&fim=2026-09-16T12:08:02.260Z&size=1&equipamentoId=111",
+    "2026-09-16T12:08:02.277Z GET /relatorios/latencia?inicio=2026-08-17T12:08:02.260Z&fim=2026-09-16T12:08:02.260Z&size=1&equipamentoId=111",
+    "2026-09-16T12:08:02.277Z GET /relatorios/medicoes?inicio=2026-09-16T11:42:02.261Z&fim=2026-09-16T12:08:02.261Z&size=60&sort=executadoEm,asc&equipamentoId=111",
+    "2026-09-16T12:08:02.278Z GET /monitores?equipamentoId=111&size=100&sort=id,asc",
+    "2026-09-16T12:08:02.278Z GET /incidentes?equipamentoId=111&size=3&sort=iniciadoEm,desc",
+    "2026-09-16T12:08:05.793Z GET /equipamentos/111",
+    "2026-09-16T12:08:05.793Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-08-17T12:08:05.779Z&fim=2026-09-16T12:08:05.779Z&size=1&equipamentoId=111",
+    "2026-09-16T12:08:05.794Z GET /relatorios/latencia?inicio=2026-08-17T12:08:05.780Z&fim=2026-09-16T12:08:05.780Z&size=1&equipamentoId=111",
+    "2026-09-16T12:08:05.795Z GET /relatorios/medicoes?inicio=2026-09-16T11:42:05.781Z&fim=2026-09-16T12:08:05.781Z&size=60&sort=executadoEm,asc&equipamentoId=111",
+    "2026-09-16T12:08:05.795Z GET /monitores?equipamentoId=111&size=100&sort=id,asc",
+    "2026-09-16T12:08:05.795Z GET /incidentes?equipamentoId=111&size=3&sort=iniciadoEm,desc"
+  ],
+  "erros": [],
+  "fatal": null
+}

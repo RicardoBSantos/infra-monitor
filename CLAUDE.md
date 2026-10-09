@@ -42,7 +42,8 @@ Regras de negócio já aprovadas:
 11. Telegram será apenas um tipo de canal de alerta.
 12. Equipamentos poderão ser desativados e também excluídos logicamente.
 13. Datas operacionais deverão usar `TIMESTAMPTZ`.
-14. Endereços IP deverão utilizar o tipo PostgreSQL `INET`.
+14. Endereços IP deverão utilizar o tipo PostgreSQL `INET`. **Estado real diverge:** a `V4` converteu
+    `equipamento.ip_address` para `VARCHAR(45)` NULL, derrubando o `INET` e a constraint de host da `V2`.
 15. IDs devem utilizar `BIGINT GENERATED ... AS IDENTITY`.
 
 ## Objetivo desta etapa

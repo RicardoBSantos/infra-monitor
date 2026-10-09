@@ -112,7 +112,7 @@ public class DashboardService {
     }
 
     private DashboardUnidadeResponse unidadeResponse(DashboardReadRepository.UnidadeCounts c) {
-        return new DashboardUnidadeResponse(c.id(), c.nome(), c.codigoIbge(), c.ativo(), statusUnidade(c), c.equipamentosTotal(), c.equipamentosAtivos(), c.equipamentosDisponiveis(), c.equipamentosDegradados(), c.equipamentosIndisponiveis(), c.equipamentosSemDados(), c.equipamentosSemMonitoramento(), c.equipamentosEmManutencao(), c.incidentesAbertos(), c.latitude(), c.longitude());
+        return new DashboardUnidadeResponse(c.id(), c.nome(), c.codigoIbge(), c.ativo(), statusUnidade(c), c.equipamentosTotal(), c.equipamentosAtivos(), c.equipamentosDisponiveis(), c.equipamentosDegradados(), c.equipamentosIndisponiveis(), c.equipamentosSemDados(), c.equipamentosSemMonitoramento(), c.equipamentosEmManutencao(), c.incidentesAbertos(), c.latitude(), c.longitude(), c.conectaAUnidadeId());
     }
 
     private StatusOperacionalUnidade statusUnidade(DashboardReadRepository.UnidadeCounts c) {

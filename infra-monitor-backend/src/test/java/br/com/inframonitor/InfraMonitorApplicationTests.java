@@ -145,6 +145,12 @@ class InfraMonitorApplicationTests {
             long tipoId = inserirERetornarId(conexao, "INSERT INTO tipo_equipamento (nome) VALUES ('Tipo integration') RETURNING id");
             long equipamentoId = inserirERetornarId(conexao, "INSERT INTO equipamento (unidade_id, tipo_equipamento_id, nome) VALUES (" + unidadeId + ", " + tipoId + ", 'EQ integration') RETURNING id");
             monitorId = inserirERetornarId(conexao, "INSERT INTO monitor (equipamento_id, tipo, nome, intervalo_segundos, timeout_ms, falhas_para_incidente, sucessos_para_recovery) VALUES (" + equipamentoId + ", 'ICMP', 'Monitor integration', 60, 2000, 3, 2) RETURNING id");
+            try (Statement statement = conexao.createStatement()) {
+                // Ancora exigida pelo IncidentProcessor: sem janela aberta desde antes das
+                // falhas, a medicao e tratada como residuo e o incidente nao abre.
+                statement.executeUpdate("INSERT INTO janela_monitoramento (monitor_id, inicio_em, origem) VALUES ("
+                        + monitorId + ", '2026-08-19T11:00:00Z', 'PRECISA')");
+            }
         }
         Instant inicio = Instant.parse("2026-08-19T12:00:00Z");
         registrar(monitorId, StatusMedicao.FALHA, inicio);

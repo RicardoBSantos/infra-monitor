@@ -37,7 +37,7 @@
       Filtros
       @if (filtrosAtivos() > 0) { <span class="equipamentos__contador-filtros">{{ filtrosAtivos() }}</span> }
     </button>
-    <p class="contagem">{{ filtradas().length }} de {{ total() }} dispositivos</p>
+    <p class="contagem">{{ filtradas().length }} de {{ plural(total(), 'dispositivo', 'dispositivos') }}</p>
   </div>
 
   @if (filtrosAbertos()) {

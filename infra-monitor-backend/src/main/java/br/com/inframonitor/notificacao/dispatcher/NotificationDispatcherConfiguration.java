@@ -1,5 +1,6 @@
 package br.com.inframonitor.notificacao.dispatcher;
 
+import br.com.inframonitor.common.concurrent.ExecutorQueLogaFalhas;
 import br.com.inframonitor.notificacao.telegram.TelegramProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -23,8 +24,9 @@ public class NotificationDispatcherConfiguration {
     ExecutorService notificationWorkerExecutor(NotificationDispatcherProperties properties) {
         AtomicInteger sequence = new AtomicInteger();
         ThreadFactory factory = task -> new Thread(task, "notification-worker-" + sequence.incrementAndGet());
-        return new ThreadPoolExecutor(properties.getWorkerThreads(), properties.getWorkerThreads(), 0, TimeUnit.MILLISECONDS,
+        ThreadPoolExecutor pool = new ThreadPoolExecutor(properties.getWorkerThreads(), properties.getWorkerThreads(), 0, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(properties.getQueueCapacity()), factory, new ThreadPoolExecutor.AbortPolicy());
+        return new ExecutorQueLogaFalhas(pool);
     }
     @Bean Clock notificationClock() { return Clock.systemUTC(); }
 

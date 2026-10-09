@@ -6,16 +6,18 @@ import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
+import br.com.inframonitor.monitoring.observacao.InicioDaObservacao;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -38,24 +40,31 @@ public class LatencyEpisodeProcessor {
     private final IncidenteRepository incidenteRepository;
     private final MonitorEpisodioLatenciaRepository episodioRepository;
     private final NotificacaoService notificacaoService;
+    private final InicioDaObservacao inicioDaObservacao;
     private final int limiarMs;
     private final int ciclos;
+    private final LimiteDeEsperaPorLock limiteDeEsperaPorLock;
 
     public LatencyEpisodeProcessor(MedicaoRepository medicaoRepository, IncidenteRepository incidenteRepository,
                                    MonitorEpisodioLatenciaRepository episodioRepository,
                                    NotificacaoService notificacaoService,
+                                   InicioDaObservacao inicioDaObservacao,
                                    @Value("${monitoring.latencia-degradada-ms:250}") int limiarMs,
-                                   @Value("${monitoring.latencia-ciclos:2}") int ciclos) {
+                                   @Value("${monitoring.latencia-ciclos:2}") int ciclos,
+                                   LimiteDeEsperaPorLock limiteDeEsperaPorLock) {
         this.medicaoRepository = medicaoRepository;
         this.incidenteRepository = incidenteRepository;
         this.episodioRepository = episodioRepository;
         this.notificacaoService = notificacaoService;
+        this.inicioDaObservacao = inicioDaObservacao;
         this.limiarMs = limiarMs;
         this.ciclos = ciclos;
+        this.limiteDeEsperaPorLock = limiteDeEsperaPorLock;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void process(Medicao medicaoPersistida) {
+        limiteDeEsperaPorLock.aplicarNaTransacaoCorrente();
         Long monitorId = medicaoPersistida.getMonitor().getId();
         Optional<Medicao> ultima = medicaoRepository.findFirstByMonitorIdOrderByExecutadoEmDescIdDesc(monitorId);
         if (ultima.isEmpty() || !ultima.get().getId().equals(medicaoPersistida.getId())) {
@@ -72,7 +81,7 @@ public class LatencyEpisodeProcessor {
         if (incidenteRepository.findFirstByMonitorIdAndStatusInOrderByIniciadoEmDescIdDesc(
                 monitorId, StatusIncidente.EM_ABERTO).isPresent()) {
             episodioAberto.ifPresent(episodio -> {
-                episodio.encerrar(medicaoPersistida.getExecutadoEm());
+                episodio.encerrar(medicaoPersistida.getExecutadoEm(), MotivoEncerramentoEpisodio.INCIDENTE);
                 log.info("Latency episode {} closed by incident for monitor {}", episodio.getId(), monitorId);
             });
             return;
@@ -91,16 +100,28 @@ public class LatencyEpisodeProcessor {
             log.debug("Latency threshold not reached for monitor {}", monitorId);
             return;
         }
-        // A lista esta DESC; a ultima posicao e a primeira medicao degradada da sequencia.
-        MonitorEpisodioLatencia episodio = new MonitorEpisodioLatencia(monitor,
-                medicoes.get(medicoes.size() - 1).getExecutadoEm(), limiarMs);
-        try {
-            episodioRepository.saveAndFlush(episodio);
-        } catch (DataIntegrityViolationException ex) {
-            // uq_monitor_episodio_latencia_aberto resolve a corrida concorrente.
-            log.warn("Concurrent latency episode opening for monitor {} was resolved by another processing", monitorId);
+        // Mesma ancora do IncidentProcessor. Sem ela a cauda congelada pela manutencao abria
+        // episodio com iniciado_em de antes da manutencao, e sucessos lentos medidos durante um
+        // incidente ja fechado abriam episodio com inicio dentro dele.
+        Optional<Instant> inicioDaObservacao = this.inicioDaObservacao.doMonitor(monitorId);
+        if (inicioDaObservacao.isEmpty()
+                || medicoes.stream().anyMatch(m -> m.getExecutadoEm().isBefore(inicioDaObservacao.get()))) {
+            log.debug("Latency tail predates the observation start for monitor {}", monitorId);
             return;
         }
+        // A lista esta DESC; a ultima posicao e a primeira medicao degradada da sequencia.
+        Instant iniciadoEm = medicoes.get(medicoes.size() - 1).getExecutadoEm();
+        if (episodioRepository.inserirSeElegivel(monitorId, iniciadoEm, limiarMs, Instant.now()) == 0) {
+            // Manutencao ganhou a corrida, monitor/equipamento saiu do ar, ou ja havia
+            // episodio aberto. Sem insercao, sem notificacao.
+            log.debug("Latency episode opening skipped for monitor {}: equipment under maintenance, "
+                    + "monitor inactive, or episode already open", monitorId);
+            return;
+        }
+        MonitorEpisodioLatencia episodio = episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(monitorId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "insercao reportou 1 linha mas nenhum episodio aberto foi encontrado para o monitor "
+                                + monitorId));
         notificacaoService.criarParaLatenciaAlta(episodio);
         log.info("Latency episode {} opened for monitor {}", episodio.getId(), monitorId);
     }
@@ -112,9 +133,18 @@ public class LatencyEpisodeProcessor {
             log.debug("Latency recovery not reached for monitor {}", monitorId);
             return;
         }
-        episodio.encerrar(atual.getExecutadoEm());
-        episodioRepository.saveAndFlush(episodio);
-        notificacaoService.criarParaLatenciaNormalizada(episodio);
+        if (episodioRepository.encerrarPorNormalizacaoSeAberto(episodio.getId(), atual.getExecutadoEm(),
+                Instant.now()) == 0) {
+            // A manutencao (ou outro ciclo) encerrou o episodio depois da nossa leitura:
+            // o encerramento dela vale, e nenhuma LATENCIA_NORMALIZADA nasce.
+            log.debug("Latency episode {} already closed before normalization for monitor {}",
+                    episodio.getId(), monitorId);
+            return;
+        }
+        // Bulk update nao repropaga para a instancia carregada: releitura (grafo largo do
+        // findById, o mesmo que a mensagem usa) antes de notificar.
+        MonitorEpisodioLatencia normalizado = episodioRepository.findById(episodio.getId()).orElseThrow();
+        notificacaoService.criarParaLatenciaNormalizada(normalizado);
         log.info("Latency episode {} normalized for monitor {}", episodio.getId(), monitorId);
     }
 

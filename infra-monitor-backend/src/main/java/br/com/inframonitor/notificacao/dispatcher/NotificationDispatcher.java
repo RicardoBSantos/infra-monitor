@@ -1,5 +1,6 @@
 package br.com.inframonitor.notificacao.dispatcher;
 
+import br.com.inframonitor.common.concurrent.TarefaRotulada;
 import br.com.inframonitor.notificacao.entity.CanalNotificacao;
 import br.com.inframonitor.notificacao.entity.Notificacao;
 import br.com.inframonitor.notificacao.entity.StatusNotificacao;
@@ -52,7 +53,7 @@ public class NotificationDispatcher {
 
     public void submit(Long id) {
         if (!properties.isEnabled() || !telegramProperties.isEnabled() || !inFlight.add(id)) return;
-        try { executor.execute(() -> process(id)); }
+        try { executor.execute(new TarefaRotulada("notificacao " + id, () -> process(id))); }
         catch (RejectedExecutionException ex) { inFlight.remove(id); log.warn("Fila do dispatcher saturada; notificacao {} permanecera pendente", id); }
     }
 

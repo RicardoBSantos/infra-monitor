@@ -9,7 +9,7 @@
   <div class="status-chips" role="status" aria-label="Situação da frota monitorada">
     @if (painel.resumoState() === 'success') {
       <span class="status-chip status-chip--ok"><i aria-hidden="true"></i>{{ painel.online() }} online</span>
-      <span class="status-chip status-chip--warn"><i aria-hidden="true"></i>{{ painel.degradados() }} degradados</span>
+      <span class="status-chip status-chip--warn"><i aria-hidden="true"></i>{{ plural(painel.degradados() ?? 0, 'degradado', 'degradados') }}</span>
       <span class="status-chip status-chip--down"><i aria-hidden="true"></i>{{ painel.offline() }} offline</span>
     } @else if (painel.resumoState() === 'error') {
       <span class="status-chip status-chip--muted"><i aria-hidden="true"></i>frota indisponível</span>

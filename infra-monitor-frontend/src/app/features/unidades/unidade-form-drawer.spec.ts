@@ -27,7 +27,14 @@ const UNIDADE: UnidadeResponse = {
   uf: 'SE',
   latitude: -10.9095,
   longitude: -37.0748,
+  conectaAUnidadeId: null,
 };
+
+/** Destinos do select "Conecta a". A propria unidade editada e filtrada pelo componente. */
+const DESTINOS: UnidadeResponse[] = [
+  { ...UNIDADE, id: 1, nome: 'Sede Administrativa', sigla: 'SEDE' },
+  { ...UNIDADE },
+];
 
 describe('UnidadeFormDrawerComponent', () => {
   let http: HttpTestingController;
@@ -48,6 +55,8 @@ describe('UnidadeFormDrawerComponent', () => {
     fixture.componentRef.setInput('aberto', true);
     fixture.detectChanges();
     http.expectOne('assets/maps/se-municipalities.geo.json').flush(GEO);
+    // A gaveta tambem carrega os destinos possiveis de conexao ao abrir.
+    http.expectOne('http://localhost:8080/api/v1/unidades').flush(DESTINOS);
     fixture.detectChanges();
     return fixture;
   }
@@ -167,5 +176,49 @@ describe('UnidadeFormDrawerComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Descartar alterações?');
     expect(fechou).toBe(false);
+  });
+
+  // A conexao NAO viaja no corpo da unidade: no PUT null significa "preserva", e "Nenhuma"
+  // nunca desconectaria. Estes dois testes travam o contrato das duas chamadas.
+  it('conecta a unidade ao hub escolhido depois de salvar o cadastro', () => {
+    const fixture = abrir(UNIDADE);
+
+    const select = fixture.nativeElement.querySelector('select[formControlName="conectaAUnidadeId"]') as HTMLSelectElement;
+    select.value = '1';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    submeter(fixture);
+
+    http.expectOne('http://localhost:8080/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: null });
+    const conexao = http.expectOne('http://localhost:8080/api/v1/unidades/7/conexao');
+    expect(conexao.request.method).toBe('PUT');
+    expect(conexao.request.body).toEqual({ conectaAUnidadeId: 1 });
+    conexao.flush({ ...UNIDADE, conectaAUnidadeId: 1 });
+  });
+
+  it('desconecta com DELETE quando o select volta para "Nenhuma"', () => {
+    const fixture = abrir({ ...UNIDADE, conectaAUnidadeId: 1 });
+
+    const select = fixture.nativeElement.querySelector('select[formControlName="conectaAUnidadeId"]') as HTMLSelectElement;
+    select.value = '';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    submeter(fixture);
+
+    http.expectOne('http://localhost:8080/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: 1 });
+    const conexao = http.expectOne('http://localhost:8080/api/v1/unidades/7/conexao');
+    expect(conexao.request.method).toBe('DELETE');
+    conexao.flush({ ...UNIDADE, conectaAUnidadeId: null });
+  });
+
+  it('nao repete a chamada de conexao quando o destino nao mudou', () => {
+    const fixture = abrir({ ...UNIDADE, conectaAUnidadeId: 1 });
+
+    submeter(fixture);
+
+    http.expectOne('http://localhost:8080/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: 1 });
+    http.expectNone('http://localhost:8080/api/v1/unidades/7/conexao');
   });
 });

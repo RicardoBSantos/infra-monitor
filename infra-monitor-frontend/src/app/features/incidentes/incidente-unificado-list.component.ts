@@ -4,8 +4,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith, take } from 'rxjs';
+import { plural } from '../../core/format/plural';
 import { isApiError } from '../../core/models/api-error';
-import { IncidentStatus, NotificationStatus } from '../../core/models/api-enums';
+import { IncidentClosureReason, IncidentStatus, NotificationStatus } from '../../core/models/api-enums';
 import {
   DashboardIncidenteContadoresResponse,
   DashboardIncidenteQuery,
@@ -81,6 +82,7 @@ export class IncidenteUnificadoListComponent {
 
   protected readonly IncidentKind = IncidentKind;
   protected readonly IncidentStatus = IncidentStatus;
+  protected readonly IncidentClosureReason = IncidentClosureReason;
 
   /**
    * Rota filha ativa, relida a cada navegação concluída. É snapshot de propósito: a
@@ -136,7 +138,7 @@ export class IncidenteUnificadoListComponent {
 
   protected readonly contagem = computed(() => {
     const total = this.totalElementos();
-    return total ? `${this.linhas().length} de ${total} ocorrência(s)` : '';
+    return total ? `${this.linhas().length} de ${plural(total, 'ocorrência', 'ocorrências')}` : '';
   });
 
   constructor() {

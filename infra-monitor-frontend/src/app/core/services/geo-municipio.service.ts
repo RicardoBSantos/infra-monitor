@@ -39,3 +39,43 @@ export class GeoMunicipioService {
 }
 
 export function normalizeCodigoIbge(codigoIbge: string | null | undefined): string { return codigoIbge?.trim() ?? ''; }
+
+/** Ray casting num anel [lng, lat]. Ponto exatamente na aresta pode cair para qualquer lado — irrelevante para marcador. */
+function dentroDoAnel(ponto: [number, number], anel: number[][]): boolean {
+  const [x, y] = ponto; let dentro = false;
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [xi, yi] = anel[i]; const [xj, yj] = anel[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) dentro = !dentro;
+  }
+  return dentro;
+}
+
+function dentroDoPoligono(ponto: [number, number], aneis: number[][][]): boolean {
+  if (!aneis.length || !dentroDoAnel(ponto, aneis[0])) return false;
+  return !aneis.slice(1).some(buraco => dentroDoAnel(ponto, buraco));
+}
+
+export function pontoNoPoligono(ponto: [number, number], geometria: { type: string; coordinates: unknown }): boolean {
+  if (geometria.type === 'Polygon') return dentroDoPoligono(ponto, geometria.coordinates as number[][][]);
+  if (geometria.type === 'MultiPolygon') return (geometria.coordinates as number[][][][]).some(p => dentroDoPoligono(ponto, p));
+  return false;
+}
+
+export function municipioDaCoordenada(ponto: [number, number], municipios: Municipio[]): Municipio | null {
+  return municipios.find(m => pontoNoPoligono(ponto, m.feature.geometry as { type: string; coordinates: unknown })) ?? null;
+}
+
+/**
+ * Coordenada e código IBGE apontando municípios diferentes. A coordenada é o que posiciona o
+ * marcador e prevalece; isto só existe para tornar a divergência visível a quem corrige o cadastro.
+ */
+export interface DivergenciaIbge { codigoCadastro: string; nomeCadastro: string | null; codigoCoordenada: string; nomeCoordenada: string; }
+
+export function divergenciaIbge(unidade: { codigoIbge: string | null; latitude: number | null; longitude: number | null }, municipios: Municipio[]): DivergenciaIbge | null {
+  const codigo = normalizeCodigoIbge(unidade.codigoIbge);
+  if (!codigo || unidade.latitude == null || unidade.longitude == null) return null;
+  const daCoordenada = municipioDaCoordenada([unidade.longitude, unidade.latitude], municipios);
+  if (!daCoordenada || daCoordenada.codigoIbge === codigo) return null;
+  const doCadastro = municipios.find(m => m.codigoIbge === codigo);
+  return { codigoCadastro: codigo, nomeCadastro: doCadastro?.nome ?? null, codigoCoordenada: daCoordenada.codigoIbge, nomeCoordenada: daCoordenada.nome };
+}

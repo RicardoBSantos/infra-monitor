@@ -36,7 +36,7 @@ class DashboardControllerTest {
                 new DashboardResumoResponse.Unidades(2), new DashboardResumoResponse.Equipamentos(4, 3, 2, 1, 1, 0, 0, 0),
                 new DashboardResumoResponse.Monitores(3, 3, 2, 0, 1, 0), new DashboardResumoResponse.Incidentes(1), 250, Instant.parse("2026-08-19T12:00:00Z")));
         var unidade = new DashboardUnidadeResponse(1L, "Matriz", "2800308", true, StatusOperacionalUnidade.DISPONIVEL, 2, 2, 2, 0, 0, 0, 0, 0, 0,
-                new BigDecimal("-10.947200"), new BigDecimal("-37.073500"));
+                new BigDecimal("-10.947200"), new BigDecimal("-37.073500"), 9L);
         when(dashboardService.unidades()).thenReturn(List.of(unidade));
         when(dashboardService.unidade(1L)).thenReturn(new DashboardUnidadeDetalheResponse(1L, "Matriz", "2800308", true, StatusOperacionalUnidade.DISPONIVEL,
                 new DashboardUnidadeDetalheResponse.Equipamentos(2, 2, 2, 0, 0, 0, 0, 0), new DashboardUnidadeDetalheResponse.Monitores(2, 0), 0));
@@ -46,7 +46,8 @@ class DashboardControllerTest {
 
         mockMvc.perform(get("/api/v1/dashboard/resumo")).andExpect(status().isOk()).andExpect(jsonPath("$.equipamentos.indisponiveis").value(1));
         mockMvc.perform(get("/api/v1/dashboard/unidades")).andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("DISPONIVEL")).andExpect(jsonPath("$[0].codigoIbge").value("2800308"))
-                .andExpect(jsonPath("$[0].latitude").value(-10.9472)).andExpect(jsonPath("$[0].longitude").value(-37.0735));
+                .andExpect(jsonPath("$[0].latitude").value(-10.9472)).andExpect(jsonPath("$[0].longitude").value(-37.0735))
+                .andExpect(jsonPath("$[0].conectaAUnidadeId").value(9));
         mockMvc.perform(get("/api/v1/dashboard/unidades/1")).andExpect(status().isOk()).andExpect(jsonPath("$.monitores.ativos").value(2)).andExpect(jsonPath("$.codigoIbge").value("2800308"));
         mockMvc.perform(get("/api/v1/dashboard/unidades/1/equipamentos?tipoEquipamentoId=2&ativo=true&page=0&size=20"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].tipoEquipamento.nome").value("Switch"))
@@ -94,7 +95,7 @@ class DashboardControllerTest {
     @Test void expoeCodigoIbgeNuloQuandoUnidadeNaoFoiGeorreferenciada() throws Exception {
         when(dashboardService.unidades()).thenReturn(List.of(
                 new DashboardUnidadeResponse(2L, "Filial", null, true, StatusOperacionalUnidade.SEM_EQUIPAMENTOS,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, null, null)));
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, null, null, null)));
 
         mockMvc.perform(get("/api/v1/dashboard/unidades"))
                 .andExpect(status().isOk())
@@ -109,12 +110,27 @@ class DashboardControllerTest {
     @Test void expoeCoordenadaNulaSemSubstituirPorZero() throws Exception {
         when(dashboardService.unidades()).thenReturn(List.of(
                 new DashboardUnidadeResponse(2L, "Filial", "2800308", true, StatusOperacionalUnidade.SEM_EQUIPAMENTOS,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, null, null)));
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, null, null, null)));
 
         mockMvc.perform(get("/api/v1/dashboard/unidades"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].latitude").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$[0].longitude").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    /**
+     * Raiz da topologia tem pai nulo, e nulo nao pode virar 0: o mapa usa este campo para decidir se
+     * desenha a linha hub-&gt;unidade, e 0 seria lido como "conecta a uma unidade de id 0" — linha
+     * apontando para lugar nenhum, ou pior, para a unidade errada se algum dia existir esse id.
+     */
+    @Test void expoeConexaoNulaParaRaizDaTopologia() throws Exception {
+        when(dashboardService.unidades()).thenReturn(List.of(
+                new DashboardUnidadeResponse(1L, "Sede", "2800308", true, StatusOperacionalUnidade.SEM_EQUIPAMENTOS,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, null, null, null)));
+
+        mockMvc.perform(get("/api/v1/dashboard/unidades"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].conectaAUnidadeId").value(org.hamcrest.Matchers.nullValue()));
     }
 
     /** hostname e campo adicional e opcional: ausencia no cadastro nao pode virar erro nem sumir do payload. */

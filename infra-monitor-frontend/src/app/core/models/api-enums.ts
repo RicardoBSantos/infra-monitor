@@ -36,6 +36,8 @@ export enum NotificationEventType {
   IncidentClosed = 'INCIDENTE_FECHADO',
   HighLatency = 'LATENCIA_ALTA',
   LatencyNormalized = 'LATENCIA_NORMALIZADA',
+  IncidentClosedByMaintenance = 'INCIDENTE_ENCERRADO_MANUTENCAO',
+  LatencyClosedByMaintenance = 'LATENCIA_ENCERRADA_MANUTENCAO',
 }
 
 /** Verificacao da identidade do bot via getMe, mantida em cache no backend. */
@@ -49,6 +51,15 @@ export enum NotificationStatus {
   Sending = 'ENVIANDO',
   Sent = 'ENVIADA',
   Failure = 'FALHA',
+  /** O evento deixou de valer antes do envio. Só PENDENTE vira CANCELADA. */
+  Cancelled = 'CANCELADA',
+}
+
+/** Como o incidente foi encerrado. Ausente = fechado antes da V19, não classificável. */
+export enum IncidentClosureReason {
+  AutomaticRecovery = 'RECUPERACAO_AUTOMATICA',
+  ManualClosure = 'FECHAMENTO_MANUAL',
+  Maintenance = 'MANUTENCAO',
 }
 
 export enum MonitorOperationalStatus {

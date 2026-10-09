@@ -16,5 +16,6 @@ public record UnidadeResponse(
         String cidade,
         String uf,
         BigDecimal latitude,
-        BigDecimal longitude) {
+        BigDecimal longitude,
+        Long conectaAUnidadeId) {
 }

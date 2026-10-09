@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { take } from 'rxjs';
+import { catchError, of, take } from 'rxjs';
 
 import { DashboardEquipamento } from '../../../core/models/dashboard';
 import { IncidenteResponse } from '../../../core/models/incidente';
+import { GeoMunicipioService, divergenciaIbge } from '../../../core/services/geo-municipio.service';
 import { IncidenteApiService } from '../../../core/services/incidente-api.service';
 import { StatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { Estado, Severidade, UnidadeDetalheStore, severidadeDoEquipamento } from './unidade-detalhe.store';
@@ -26,10 +28,19 @@ interface LinhaTipo { nome: string; total: number; largura: string; }
 })
 export class VisaoGeralComponent {
   private readonly incidentesApi = inject(IncidenteApiService);
+  private readonly geo = inject(GeoMunicipioService);
   protected readonly store = inject(UnidadeDetalheStore);
 
   protected readonly incidentes = signal<IncidenteResponse[]>([]);
   protected readonly incidentesEstado = signal<Estado>('loading');
+
+  /** Falha ao carregar a cartografia só apaga o aviso; nunca derruba a visão geral. */
+  private readonly municipios = toSignal(this.geo.getMunicipios().pipe(catchError(() => of(null))), { initialValue: null });
+  protected readonly divergencia = computed(() => {
+    const cadastro = this.store.cadastro();
+    const municipios = this.municipios();
+    return cadastro && municipios ? divergenciaIbge(cadastro, municipios) : null;
+  });
 
   /** Offline ocupa a barra inteira: sem latência, a leitura correta é "pior caso". */
   protected readonly maioresLatencias = computed<LinhaLatencia[]>(() => {

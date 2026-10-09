@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { IncidentStatus, MeasurementStatus, MonitorType } from '../../core/models/api-enums';
+import { IncidentClosureReason, IncidentStatus, MeasurementStatus, MonitorType } from '../../core/models/api-enums';
 import { IncidentKind } from '../../core/models/dashboard-incidente';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { IncidenteDetalheDrawerComponent } from './incidente-detalhe-drawer.component';
@@ -176,7 +176,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
   /**
    * Medições fora do ar não são "zero falhas em zero amostras": é contagem desconhecida.
    * Escrever 0 ali afirmaria uma janela limpa que ninguém mediu — e ainda pintaria de
-   * vermelho um número inventado.
+   * tom de alerta num número inventado.
    */
   it('mostra "indisponível" em vez de zero nos KPIs de medição quando o bloco cai — incidente', () => {
     montar(IncidentKind.Incident, 5);
@@ -218,10 +218,46 @@ describe('IncidenteDetalheDrawerComponent', () => {
   });
 
   /**
-   * Zero medido é fato e continua colorido; o que muda de cor é a ausência. As duas
-   * leituras não podem ficar iguais na tela.
+   * Zero medido é fato, mas não é alerta: fica neutro, como a contagem ausente. O tom só
+   * aparece quando o valor passa de zero.
    */
-  it('pinta a contagem zero medida, ao contrário da contagem ausente', () => {
+  it('pinta de vermelho as falhas na janela quando há ao menos uma', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    responderBlocos();
+
+    expect(valorDo('Falhas na janela')).toBe('3');
+    expect(kpi('Falhas na janela').className).toContain('kpi--down');
+  });
+
+  it('não pinta "Acima do limiar" com zero medições acima do limiar', () => {
+    montar(IncidentKind.Latency, 5);
+    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
+      { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 100, executadoEm: '2026-09-01T09:00:30Z' },
+    ]));
+    http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
+    http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
+    fixture.detectChanges();
+
+    expect(valorDo('Acima do limiar')).toBe('0');
+    expect(kpi('Acima do limiar').className).not.toContain('kpi--warn');
+  });
+
+  it('não pinta o pico de latência de 0 ms (RTT sub-ms gravado como zero)', () => {
+    montar(IncidentKind.Latency, 5);
+    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
+      { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 0, executadoEm: '2026-09-01T09:00:30Z' },
+    ]));
+    http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
+    http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
+    fixture.detectChanges();
+
+    expect(kpi('Pico').className).not.toContain('kpi--down');
+  });
+
+  it('não pinta a contagem zero de falhas', () => {
     montar(IncidentKind.Incident, 5);
     http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([]));
@@ -230,7 +266,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
     fixture.detectChanges();
 
     expect(valorDo('Falhas na janela')).toBe('0');
-    expect(kpi('Falhas na janela').className).toContain('kpi--down');
+    expect(kpi('Falhas na janela').className).not.toContain('kpi--down');
   });
 
   it('escala a cor do Status e marca a duração de ocorrência em curso', () => {
@@ -267,6 +303,63 @@ describe('IncidenteDetalheDrawerComponent', () => {
     expect(kpi('Pico').className).toContain('kpi--down');
     expect(valorDo('Acima do limiar')).toBe('2');
     expect(kpi('Acima do limiar').className).toContain('kpi--warn');
+  });
+
+  /**
+   * A gaveta não pode afirmar um fechamento que não aconteceu. `encerradoEm` nulo é o
+   * único sinal confiável de "em curso" — `tipo === Incident` sozinho não basta, porque
+   * também é verdadeiro para um incidente aberto.
+   */
+  it('não afirma quem encerrou nem o motivo quando o incidente está aberto', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    responderBlocos();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).not.toContain('Encerrado por');
+    expect(texto).not.toContain('Motivo do encerramento');
+  });
+
+  it('mostra o motivo de manutenção quando o incidente foi fechado pela entrada em manutenção', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+      ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
+      fechadoPorNome: null, motivoEncerramento: IncidentClosureReason.Maintenance,
+    });
+    responderBlocos();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).toContain('Entrada em manutenção');
+  });
+
+  it('atribui ao motor de monitoramento só quando o motivo registrado é recuperação automática', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+      ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
+      fechadoPorNome: null, motivoEncerramento: IncidentClosureReason.AutomaticRecovery,
+    });
+    responderBlocos();
+
+    const texto = fixture.nativeElement.textContent;
+    expect(texto).toContain('Motor de monitoramento');
+  });
+
+  /**
+   * Incidente legado: fechado antes da V17/V19, sem autor e sem motivo registrados.
+   * `'Motor de monitoramento'` seria uma inferência apresentada como fato — o traço é
+   * a leitura honesta de "não sabemos".
+   */
+  it('mostra travessão para incidente legado fechado sem autor e sem motivo', () => {
+    montar(IncidentKind.Incident, 5);
+    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+      ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
+      fechadoPorNome: null, motivoEncerramento: null,
+    });
+    responderBlocos();
+
+    const linhaEncerradoPor = Array.from(fixture.nativeElement.querySelectorAll('dt') as NodeListOf<HTMLElement>)
+      .find(dt => dt.textContent?.trim() === 'Encerrado por');
+    expect(linhaEncerradoPor?.nextElementSibling?.textContent?.trim()).toBe('—');
   });
 
   it('trata id inexistente como ocorrência não encontrada, sem derrubar a tela', () => {

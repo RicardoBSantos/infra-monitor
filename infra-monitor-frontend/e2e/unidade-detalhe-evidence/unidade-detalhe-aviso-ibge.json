@@ -1,0 +1,23 @@
+{
+  "base": "http://127.0.0.1:4200",
+  "inicio": "2026-10-08T13:24:06.946Z",
+  "casos": [
+    {
+      "rotulo": "ITA-09-sesc-itabaiana",
+      "unidadeId": 5,
+      "esperaAviso": true,
+      "avisoEncontrado": true,
+      "textoAviso": "Localização divergente. A coordenada cai em Itabaiana, mas o código IBGE aponta Itabaianinha (2803005). O mapa posiciona pela coordenada.",
+      "contemItabaiana": true,
+      "contemCodigo": true
+    },
+    {
+      "rotulo": "aracaju-1-sede-administrativa",
+      "unidadeId": 1,
+      "esperaAviso": false,
+      "avisoEncontrado": false
+    }
+  ],
+  "erros": [],
+  "fim": "2026-10-08T13:24:08.960Z"
+}

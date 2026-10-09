@@ -5,6 +5,7 @@ import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.entity.StatusMedicao;
@@ -97,7 +98,7 @@ class RelatorioExportPostgresIntegrationTest {
         Monitor monitor=monitores.saveAndFlush(new Monitor(equipamento,TipoMonitor.ICMP,"Monitor \"ICMP\"",60,1000));monitorId=monitor.getId();
         JanelaMonitoramento janela=new JanelaMonitoramento(monitor,INICIO,OrigemJanelaMonitoramento.PRECISA);janela.fechar(FIM);janelas.saveAndFlush(janela);
         medicoes.saveAndFlush(new Medicao(monitor,StatusMedicao.SUCESSO,25,null,INICIO.plusSeconds(60)));
-        Incidente incidente=new Incidente(monitor,INICIO.plusSeconds(120),"=1+1","linha 1\nlinha 2");incidente.fechar(INICIO.plusSeconds(180),null,null);incidenteId=incidentes.saveAndFlush(incidente).getId();
+        Incidente incidente=new Incidente(monitor,INICIO.plusSeconds(120),"=1+1","linha 1\nlinha 2");incidente.fechar(INICIO.plusSeconds(180),null,null,MotivoEncerramentoIncidente.FECHAMENTO_MANUAL);incidenteId=incidentes.saveAndFlush(incidente).getId();
         Notificacao notificacao=notificacoes.saveAndFlush(new Notificacao(incidente,CanalNotificacao.TELEGRAM,TipoEventoNotificacao.INCIDENTE_ABERTO,"mensagem fora do CSV"));
         jdbc.update("update notificacao set created_at=? where id=?",java.sql.Timestamp.from(INICIO.plusSeconds(150)),notificacao.getId());
         String hash=encoder.encode(PASSWORD);
@@ -111,7 +112,7 @@ class RelatorioExportPostgresIntegrationTest {
         List<Expected> endpoints=List.of(
                 new Expected("/disponibilidade/equipamentos/export?unidadeId="+unidadeId+"&sort=equipamentoNome,asc","unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,inicio,fim,estado_analitico,qualidade_janela,tempo_monitorado_segundos,tempo_indisponivel_segundos,tempo_disponivel_segundos,disponibilidade_percentual,incidentes","disponibilidade-equipamentos_2026-08-01_2026-08-01.csv"),
                 new Expected("/disponibilidade/unidades/export?unidadeId="+unidadeId,"unidade_id,unidade_nome,inicio,fim,estado_analitico,equipamentos_total,equipamentos_monitorados,equipamentos_sem_monitoramento,equipamentos_sem_dados,tempo_monitorado_segundos,tempo_indisponivel_segundos,tempo_disponivel_segundos,disponibilidade_percentual,incidentes","disponibilidade-unidades_2026-08-01_2026-08-01.csv"),
-                new Expected("/incidentes/export?monitorId="+monitorId+"&status=FECHADO","incidente_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,iniciado_em,encerrado_em,duracao_segundos_no_periodo,motivo,observacao","incidentes_2026-08-01_2026-08-01.csv"),
+                new Expected("/incidentes/export?monitorId="+monitorId+"&status=FECHADO","incidente_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,iniciado_em,encerrado_em,duracao_segundos_no_periodo,motivo,observacao,motivo_encerramento","incidentes_2026-08-01_2026-08-01.csv"),
                 new Expected("/medicoes/export?monitorId="+monitorId+"&status=SUCESSO&sort=executadoEm,desc","medicao_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,latencia_ms,executado_em","medicoes_2026-08-01_2026-08-01.csv"),
                 new Expected("/latencia/export?monitorId="+monitorId,"unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,inicio,fim,min_latencia_ms,avg_latencia_ms,max_latencia_ms,p95_latencia_ms,amostras","latencia_2026-08-01_2026-08-01.csv"),
                 new Expected("/notificacoes/export?incidenteId="+incidenteId+"&status=PENDENTE&canal=TELEGRAM&tipoEvento=INCIDENTE_ABERTO","notificacao_id,incidente_id,tipo_evento,canal,status,tentativas,created_at,enviado_em","notificacoes_2026-08-01_2026-08-01.csv"));

@@ -1,5 +1,248 @@
-.map-page { max-width:1500px; margin:0 auto; padding:22px; color:var(--im-text); }.map-page__header { display:flex; align-items:end; justify-content:space-between; gap:var(--im-space-4); margin-bottom:var(--im-space-4); }.map-page__eyebrow,.panel-label,.map-source dt { margin:0 0 4px; color:var(--im-text-muted); font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.12em; }.map-page h1 { margin:0; color:var(--im-text-strong); font-size:20px; font-weight:600; }.map-page__header p:last-child { margin:4px 0 0; color:var(--im-text-muted); font-size:12px; }
-.map-layout { display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:var(--im-space-4); }.map-card,.map-panel { border:1px solid var(--im-border-strong); border-radius:var(--im-radius); background:var(--im-surface); }.map-card { position:relative; min-height:580px; overflow:hidden; background:radial-gradient(circle at 52% 48%,var(--im-map-glow) 0,var(--im-surface) 56%); }.map { display:block; width:100%; height:100%; min-height:580px; /* O SVG antigo tinha viewBox 760x680 e impunha esta proporcao ao cartao; um <div> nao tem proporcao intrinseca, e sem isto o mapa encolheria para os 580px minimos. */ aspect-ratio:760 / 680; }.map-panel { display:flex; flex-direction:column; gap:var(--im-space-4); padding:15px; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:var(--im-text-secondary); }.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:var(--im-text-muted); }.legend__dot--none { background:var(--im-map-water); border:1px solid var(--im-map-stroke); }.legend__dot--multiple { background:var(--im-map-active); border:1px dashed var(--im-info-soft); }.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }.map-source { display:grid; gap:3px; margin:auto 0 0; padding-top:14px; border-top:1px solid var(--im-border); }.map-source dt { margin:0; }.map-source dd { margin:0 0 9px; color:var(--im-text-secondary); font:11px 'IBM Plex Mono',monospace; }.map-loading { display:grid; min-height:580px; place-items:center; color:var(--im-text-muted); font:11px 'IBM Plex Mono',monospace; letter-spacing:.04em; } @media (max-width:900px) { .map-layout { grid-template-columns:1fr; }.map-panel { display:grid; grid-template-columns:1fr 1fr; }.map-source { margin:0; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-page { padding:16px; }.map-page__header { align-items:start; }.map-card,.map,.map-loading { min-height:420px; }.map-panel { grid-template-columns:1fr; }.map-page__header p:last-child { max-width:255px; } }
+@use 'sass:meta';
+
+/*
+ * Folha do MapLibre + as sobreposições de tema, dentro do estilo deste componente — ou seja,
+ * dentro do chunk lazy da rota do Mapa. Não vai para `styles[]` do `angular.json`, onde a do
+ * Leaflet estava: `styles[]` é bundle inicial, e são ~8,6 kB gz cobrados de quem nunca abre o
+ * Mapa. Também não funciona como `import` de CSS no .ts: o builder emite o arquivo, mas nada o
+ * carrega em runtime (medido — a folha sai órfã do `dist`).
+ *
+ * `meta.load-css` porque `@use` só existe no topo do arquivo, e este bloco precisa estar
+ * aninhado: canvas, controles e marcadores nascem por script, sem o atributo de escopo do
+ * Angular, e só `::ng-deep` os alcança. Consequência registrada: esta folha passa dos 6 kB do
+ * budget `anyComponentStyle`, cujo erro subiu para 100 kB no `angular.json`.
+ */
+:host ::ng-deep {
+  @include meta.load-css('maplibre-gl/dist/maplibre-gl.css');
+
+  /*
+   * Anel de foco de tudo que vive SOBRE o canvas: literal, e não `var(--im-primary)`.
+   *
+   * O canvas do mapa não tem tema. Todas as cores desenhadas nele são hex literais em
+   * `mapa.component.ts` (`COR_MUNICIPIO`, `COR_DO_STATUS`) porque o
+   * WebGL não lê variável CSS — o mapa é escuro no tema claro e no escuro, igual. Mas
+   * `--im-primary` SEGUE o tema da aplicação, e no claro ele é #1a56db: contra o #16283a do
+   * município isso dá **2,43:1**, abaixo dos 3:1 que WCAG 2.2 exige para indicador de foco. No
+   * escuro, com #3B6EFF, dá 3,47:1 e passa — ou seja, o anel de foco do mapa estava dependendo de
+   * qual tema o operador escolheu.
+   *
+   * Antes de D15 o defeito existia mas era intermitente: o polígono tinha cor de status variável,
+   * então o contraste mudava de município para município. Com o fundo constante, o número é um só
+   * e dá para fechar: #3B6EFF nos dois temas (3,47:1 contra o município, 3,76:1 contra o aro claro
+   * do marcador). Este é o único lugar do sistema onde um literal vence o token — e vence porque a
+   * superfície embaixo dele também é literal.
+   */
+  --cor-foco-mapa: #3B6EFF;
+
+  /* Crítico: o maplibre-gl.css pinta o container e cobriria o radial-gradient do .map-card. */
+  .maplibregl-map { background: transparent; font: inherit; }
+  .maplibregl-canvas:focus-visible { outline: 2px solid var(--cor-foco-mapa); outline-offset: -2px; }
+
+  /* Único controle exibido. Herda as cores do tema, como o zoom do Leaflet herdava. */
+  .maplibregl-ctrl-group { border: 1px solid var(--im-border-strong); border-radius: var(--im-radius); background: var(--im-surface-raised); box-shadow: none; overflow: hidden; }
+  .maplibregl-ctrl-group button + button { border-top: 1px solid var(--im-border); }
+  .maplibregl-ctrl-group button { width: 26px; height: 26px; background-color: var(--im-surface-raised); }
+  .maplibregl-ctrl-group button:hover, .maplibregl-ctrl-group button:focus-visible { background-color: var(--im-surface); }
+  .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(78%); }
+
+  /* Alvo de teclado de cada município: um <button> real que a lib posiciona como Marker. Invisível
+   * em repouso — o município já está desenhado no canvas; o que este elemento entrega é o foco. */
+  .map__alvo { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+  .map__alvo:focus-visible { outline: 2px solid var(--cor-foco-mapa); outline-offset: 2px; background: rgba(59, 110, 255, .28); }
+  /* O disco lilás de `aria-pressed` SAIU junto com o anel do polígono (D17), e pelo mesmo motivo.
+   * Ele era o resto visível da seleção no município: um ponto de 22px no centroide, que não é lugar
+   * nenhum — nem marcador de unidade, nem sede. Na captura ele lia como uma décima segunda unidade.
+   * O atributo continua no DOM, que é o que o leitor de tela consome; o foco de teclado continua
+   * visível pelo `:focus-visible` acima. O que sumiu é só a pintura em repouso. */
+
+  /* --- Marcador da unidade ----------------------------------------------------------------
+   *
+   * `--cor-unidade` vem do componente a partir de `COR_DO_STATUS`, desde N07 o único lugar onde a
+   * cor de status entra no mapa — o polígono virou neutro e não a consome mais.
+   *
+   * SEM ARO E SEM HALO: disco chapado de cor de status, e nada mais. O aro claro de 2px (D15) e o
+   * halo interno de 1,5px que o precedeu (N06) resolviam o mesmo problema, camuflagem do miolo
+   * contra o município — e o município era pintado por status, ou seja, o fundo mudava de cor
+   * debaixo do marcador. Desde N07 o polígono é neutro e constante (#16283a): o problema que os
+   * dois remendos atacavam deixou de existir, e o remendo ficou custando 4px dos 13px do marcador
+   * (o miolo visível era de 9px) e um aro branco que competia com o anel de foco e com o de pulso.
+   *
+   * A conta que o aro fazia foi transferida para a cor do miolo: os dois status escuros foram
+   * clareados em D19 até passarem 3:1 sozinhos contra #16283a. Ver o comentário de `COR_DO_STATUS`
+   * em `mapa.component.ts`. A `box-shadow` escura de contato fica — ela não é contraste, é
+   * profundidade, e separa o marcador da linha de conexão quando os dois se cruzam. */
+  .map__unidade { width: 13px; height: 13px; padding: 0; border: 0; border-radius: 50%; background: var(--cor-unidade, #8797a6); box-shadow: 0 1px 3px rgba(0, 0, 0, .6); cursor: pointer; transition: width .12s ease, height .12s ease, box-shadow .12s ease; }
+
+  /* Crescer por largura/altura, e NUNCA por `transform` — ver DV13. O MapLibre reescreve
+   * `style.transform` do elemento do Marker a cada reposicionamento, e estilo inline vence regra de
+   * folha: os `transform: scale()` que estavam aqui desde N06 nunca aplicaram (medido — o transform
+   * computado no hover era idêntico ao de repouso). Largura e altura funcionam porque o próprio
+   * `translate(-50%, -50%)` da lib é relativo ao tamanho do elemento: ele cresce centrado sozinho.
+   * O `outline` de foco acompanha a caixa, então o anel cresce junto sem nenhuma conta. */
+  .map__unidade:hover { width: 17px; height: 17px; }
+
+  /* Anel de foco a 3px de distância: o vão deixa o município aparecer entre o aro e o anel, e é
+   * contra ele que o contraste vale — #3B6EFF x #16283a = 3,47:1, acima dos 3:1 de WCAG 2.2. Contra
+   * o aro claro do marcador, 3,76:1. Antes da troca do aro, o anel encostava no miolo escuro e dava
+   * 1,81:1 em `sem-dados` e 2,84:1 em `sem-equipamentos`: reprovava nos dois.
+   *
+   * `--cor-foco-mapa` e não `--im-primary`: ver o comentário no topo deste bloco — no tema claro o
+   * token daria 2,43:1. */
+  .map__unidade:focus-visible { outline: 2px solid var(--cor-foco-mapa); outline-offset: 3px; }
+  /* Dica e marcador em foco/hover sobem acima dos vizinhos: sem isto a dica de uma unidade some
+   * atrás do marcador da unidade seguinte no aglomerado de Aracaju. */
+  .map__unidade:hover, .map__unidade:focus-visible, .map__unidade:focus-within { z-index: 4; }
+
+  /* Selecionado: anel na PRÓPRIA cor do status, e não mais o lilás #f2d6ff de D17.
+   *
+   * O lilás foi escolhido quando o polígono ainda carregava cor e a seleção precisava de um matiz
+   * que não colidisse com nenhum status. Com o polígono neutro sobrou só o custo: uma segunda fonte
+   * de cor no mapa, e um marcador selecionado cuja borda dizia "selecionado" mas já não dizia qual
+   * status. D19 devolve a leitura ao marcador inteiro — miolo, anel e pulso saem todos de
+   * `--cor-unidade`.
+   *
+   * O risco conhecido dessa troca é anel-da-mesma-cor-do-miolo sumir à distância, e é por isso que a
+   * seleção NÃO é só o anel: o marcador cresce de 13px para 19px. São duas dimensões de diferença —
+   * tamanho e anel — contra uma. A translucidez (78%) é o que separa anel de miolo de perto; o
+   * tamanho é o que separa selecionado de não-selecionado de longe, inclusive num aglomerado de
+   * marcadores do mesmo status, que é o caso difícil (Aracaju, quatro unidades).
+   *
+   * 19px e não 17px: 17px é o hover. Se os dois coincidissem, passar o mouse por um marcador vizinho
+   * o deixaria do tamanho do selecionado.
+   *
+   * GEOMETRIA — os três anéis do marcador selecionado, do centro para fora:
+   *   miolo        raio  9,5px
+   *   seleção      9,5 → 12,5px  (box-shadow de 3px)
+   *   foco         12,5 → 14,5px (outline 2px, offset 3px) — tangente, nunca sobreposto
+   *   pulso nasce  15,5px        (::after com inset -6px) — fora do foco
+   * Mudar o tamanho da caixa OU o offset do foco OU a espessura do anel exige refazer esta conta. */
+  .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #8797a6) 78%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
+
+  /* --- Pulso (N07, generalizado em D19) -----------------------------------------------------
+   *
+   * Todos os marcadores pulsam. O filtro de N07 (só INDISPONIVEL e DEGRADADA) foi revertido: ver
+   * D19 em Docs/mapa-architecture/mapa-decisoes.md.
+   *
+   * No `::after`, não no elemento, pelo mesmo motivo de DV13: `transform` no elemento do Marker
+   * pertence à lib. O pseudo-elemento tem transform próprio, e como o elemento já é
+   * `position: absolute` (`.maplibregl-marker` da folha da lib) o `inset` posiciona sem que se
+   * precise tocar em `position` — tocar quebraria o posicionamento.
+   *
+   * `transform` + `opacity` e não `box-shadow`: medido, 0,475 ms/quadro contra 0,618 ms do idioma
+   * de `.sidebar__pulse` — 45% mais barato, e as duas propriedades compõem no compositor.
+   *
+   * `inset: -6px` faz o anel NASCER a 14,5px do centro, fora do anel de foco (que vai até 13,5px).
+   * O pulso nunca atravessa o foco: cresce a partir de fora dele. */
+  .map__unidade--pulsa::after { content: ''; position: absolute; inset: -6px; border: 2px solid var(--cor-unidade, #8797a6); border-radius: 50%; animation: map-pulsar 1.9s ease-out infinite; pointer-events: none; }
+  @keyframes map-pulsar { 0% { transform: scale(1); opacity: .9; } 70% { transform: scale(2); opacity: 0; } 100% { transform: scale(2); opacity: 0; } }
+  /* Estático, não ausente: o anel continua marcando quais unidades pedem ação — some o movimento,
+   * não a informação. Mesmo tratamento das três gavetas e de `.sidebar__pulse`. */
+  @media (prefers-reduced-motion: reduce) {
+    .map__unidade--pulsa::after { animation: none; transform: scale(1.25); opacity: .55; }
+  }
+
+  /* --- Ping na linha de conexão (N07 + volume D18) -------------------------------------------
+   *
+   * `--cor-ping` é o status da unidade CONECTADA — a mesma cor que, com D18, a linha inteira já
+   * carrega. O ping continua existindo mesmo assim: ele é o elemento que se MOVE, e é o movimento
+   * que lê como "sonda ativa"; a linha estática, ainda que colorida, não carrega essa leitura.
+   *
+   * Aro claro pela mesma razão que justificava o do marcador antes de D19: sem ele o ping de uma
+   * unidade `sem-equipamentos` (#667b8b, hoje já a 3,41:1 sozinho) seria mais difícil de ver sobre
+   * o município — o argumento ficou mais fraco com o clareamento, mas continua valendo para um
+   * disco de 7px, bem menor que os 13px do marcador. Sem `pointer-events`: o ping cruza os marcadores
+   * e não pode roubar o clique de nenhum.
+   *
+   * Volume por CSS (D18, variação B sobre captura comparativa): o ping é o único elemento do mapa
+   * que representa tráfego — dar-lhe esfera o separa visualmente do marcador de unidade, que é
+   * chapado de propósito. `radial-gradient` com highlight deslocado (32% 28%, fora do centro)
+   * simula a luz vindo de cima-esquerda; a segunda parada escurece a própria `--cor-ping` com
+   * `color-mix` (não branco semitransparente — isso deixava o fundo escuro do cartão atravessar o
+   * disco e virar borrão cinza). A `box-shadow` empilha três camadas: o glow externo que já existia
+   * (`rgba(232,240,248,.3)`), uma sombra interna escura simulando a face oposta à luz, e uma sombra
+   * de contato leve embaixo. Não é extrusão geométrica (isso foi descartado de propósito) — é
+   * shading 2D que lê como esfera a 7px. `--cor-ping` continua sendo o contrato lido pelo e2e
+   * (custom property inline, não `background-color`). */
+  .map__ping {
+    width: 7px; height: 7px; border: 1px solid rgba(232, 240, 248, .8); border-radius: 50%;
+    /* Declaração plana antes do gradiente: `--cor-ping` é guaranteed-invalid se faltar, o que
+       derrubaria o `background` inteiro para `transparent` (ping oco, não cinza) — e é a primeira
+       ocorrência de `color-mix` no codebase, sem navegador de rede conhecida que não faça o parse,
+       mas a plana sobrevive de graça se algum dia não fizer. */
+    background: var(--cor-ping, #8797a6);
+    background: radial-gradient(circle at 32% 28%,
+      color-mix(in srgb, #fff 62%, var(--cor-ping, #8797a6)) 0%,
+      var(--cor-ping, #8797a6) 52%,
+      color-mix(in srgb, var(--cor-ping, #8797a6) 70%, #000) 100%);
+    box-shadow: 0 0 5px 1px rgba(232, 240, 248, .3),
+      inset -1.5px -1.5px 2.5px rgba(0, 0, 0, .38),
+      0 1px 2px rgba(0, 0, 0, .45);
+    pointer-events: none; z-index: 1;
+  }
+
+  /* --- Dica de relance (N07) ----------------------------------------------------------------
+   *
+   * Filha do <button> do marcador, e não `Popup` do MapLibre: a lib já reposiciona o pai, então a
+   * dica acompanha de graça. Aparece em `:hover` E em `:focus-visible` — hover sozinho é interação
+   * só de mouse, e quem navega por teclado perderia informação que quem usa mouse tem.
+   *
+   * Não há conflito com Enter/Espaço: a dica reage a foco e ponteiro, a seleção reage a `click`, que
+   * é o que Enter e Espaço disparam num <button>. Focar não é acionar — são os dois níveis de
+   * interação, relance e seleção, sem se cruzar.
+   *
+   * `margin-left` negativo em vez de `translateX(-50%)`: transform aqui FUNCIONARIA (a dica é filha,
+   * não o elemento do Marker), mas margem não deixa dúvida na próxima leitura.
+   *
+   * `visibility` junto de `opacity`: só opacidade deixaria a caixa capturando ponteiro mesmo
+   * invisível — e ela é maior que o marcador. */
+  /* 18px e não 10px de afastamento: com 10px a caixa da dica entrava por cima do anel de pulso,
+   * que cresce até 25px do centro — e no foco os dois aparecem JUNTOS, então um cobria o outro
+   * justamente no estado que a revisão visual precisava conferir. Achado na captura, não no
+   * raciocínio. */
+  .map__dica { position: absolute; bottom: calc(100% + 18px); left: 50%; display: grid; width: 178px; margin-left: -89px; gap: 4px; padding: 8px 9px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius); background: var(--im-surface-raised); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); color: var(--im-text); font-size: 11px; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .1s ease; }
+  .map__unidade:hover .map__dica, .map__unidade:focus-visible .map__dica { opacity: 1; visibility: visible; }
+  .map__dica-nome { color: var(--im-text-strong); font-weight: 600; line-height: 1.3; }
+  .map__dica-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .map__dica-rotulo { color: var(--im-text-muted); font: 600 9px 'IBM Plex Mono', monospace; letter-spacing: .08em; }
+  .map__dica-valor { color: var(--im-text-strong); font: 600 11px 'IBM Plex Mono', monospace; }
+  @media (prefers-reduced-motion: reduce) { .map__dica { transition: none; } }
+}
+
+/*
+ * Sem `max-width:1500px`, ao contrário das outras seis telas do sistema.
+ *
+ * O valor não é token nem classe compartilhada: é literal repetido em cada componente de página
+ * (`.admin-page`, `.operational-page`, `.reports`…), e o `.shell__main` não tem largura máxima
+ * nenhuma. Tirar daqui portanto não alarga nada além do Mapa — nem existe media query que use
+ * 1500px como ponto de quebra.
+ *
+ * Por que só aqui: as outras telas são tabela e formulário, onde linha longa demais prejudica a
+ * leitura e a coluna centralizada é o certo. Esta é cartografia presa à viewport: cada pixel de
+ * gutter é área de mapa que não se desenha. Em 1700px de viewport sobravam ~100px mortos de cada
+ * lado, e a coluna do mapa passa de 1119 para ~1320px.
+ */
+.map-page { margin:0 auto; padding:22px; color:var(--im-text); }.map-page__header { display:flex; align-items:end; justify-content:space-between; gap:var(--im-space-4); margin-bottom:var(--im-space-4); }.map-page__eyebrow,.panel-label,.map-source dt { margin:0 0 4px; color:var(--im-text-muted); font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.12em; }.map-page h1 { margin:0; color:var(--im-text-strong); font-size:20px; font-weight:600; }.map-page__header p:last-child { margin:4px 0 0; color:var(--im-text-muted); font-size:12px; }
+/*
+ * Altura do cartão presa à viewport, e NÃO mais `aspect-ratio: 760/680`.
+ *
+ * A proporção era herança do SVG antigo, que tinha `viewBox` e portanto proporção intrínseca. Num
+ * `<div>` de ~1200 px de largura ela impunha ~1074 px de altura: somada ao cabeçalho, a página
+ * passava da viewport e a área principal do shell ganhava barra de rolagem — numa tela cujo ponto
+ * inteiro é ser vista de uma vez.
+ *
+ * O que a proporção protegia era a calibração de câmera de N05 (`OFFSET_CAMERA` e
+ * `ZOOM_AO_INCLINAR` foram medidos contra um cartão 760/680). Trocar a altura sem mais nada
+ * reabriria a faixa morta que N05 fechou, então os dois valores foram recalibrados contra esta
+ * altura — ver o comentário de OFFSET_CAMERA em mapa.component.ts. As duas correções convivem
+ * porque a segunda foi refeita em cima da primeira, não sobreposta a ela.
+ *
+ * `100dvh` e não `100vh`: no navegador móvel a barra de endereço entra e sai da conta.
+ */
+.map-layout { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:var(--im-space-4); --altura-mapa:clamp(460px,calc(100dvh - 196px),780px); }.map-card,.map-panel { border:1px solid var(--im-border-strong); border-radius:var(--im-radius); background:var(--im-surface); }.map-card { position:relative; height:var(--altura-mapa); overflow:hidden; background:radial-gradient(circle at 52% 48%,var(--im-map-glow) 0,var(--im-surface) 56%); }.map { display:block; width:100%; height:100%; }/* O painel é a outra metade da rolagem: com unidade selecionada ele passa dos 1200px e, como as
+ * duas colunas dividem a mesma linha da grade, era ELE quem esticava a página — o cartão já cabia.
+ * Preso à mesma altura do cartão, com rolagem própria; a lista de afetados pode crescer à vontade
+ * sem empurrar o mapa para fora da viewport. */
+.map-panel { display:flex; max-height:var(--altura-mapa); flex-direction:column; justify-content:space-between; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:#8797a6; }/* Hex literal e não token: espelha `COR_DO_STATUS['sem-dados']` em mapa.component.ts (D19) — muda junto. */.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:#667b8b; }/* Idem, espelha `COR_DO_STATUS['sem-equipamentos']`. */.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }.map-source { display:grid; gap:3px; margin:0; padding-top:14px; border-top:1px solid var(--im-border); }.map-source dt { margin:0; }.map-source dd { margin:0 0 9px; color:var(--im-text-secondary); font:11px 'IBM Plex Mono',monospace; }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px 'IBM Plex Mono',monospace; letter-spacing:.04em; } @media (max-width:900px) { .map-layout { grid-template-columns:1fr; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. */.map-panel { display:grid; max-height:none; grid-template-columns:1fr 1fr; overflow:visible; }.map-source { margin:0; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-page { padding:16px; }.map-page__header { align-items:start; }.map-card { height:clamp(360px,calc(100dvh - 240px),520px); }.map-panel { grid-template-columns:1fr; }.map-page__header p:last-child { max-width:255px; } }
 
 /* --- Painel lateral (M03) ------------------------------------------------------------ */
 .geo-status,.unit-panel { padding:12px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface-raised); }
@@ -17,6 +260,8 @@
 .unit-panel__acoes { display:flex; flex-wrap:wrap; gap:7px; width:100%; }
 .unit-panel__vazio { margin:0; color:var(--im-text-secondary); font-size:11px; line-height:1.5; }
 .unit-panel__vazio .botao { margin-top:8px; }
+/* Mesma régua lateral de alerta do `.map-feedback`, sem a caixa: é nota do cadastro, não bloqueio. */
+.aviso-ibge { margin:0; padding-left:9px; border-left:3px solid var(--im-warning); color:var(--im-text-secondary); font-size:11px; line-height:1.5; }
 .afetados { display:grid; gap:6px; width:100%; margin:0; padding:0; list-style:none; }
 /* O item inteiro e o alvo do clique: area grande e um so stop de teclado por equipamento. */
 .afetados__item { display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%; padding:7px 8px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface); color:inherit; font:inherit; text-align:left; cursor:pointer; }
@@ -27,3 +272,23 @@
 .unit-list__escolha:hover,.unit-list__escolha:focus-visible { border-color:var(--im-border-strong); background:var(--im-surface); }
 .unit-list__escolha--ativa { border-color:var(--im-primary); background:var(--im-surface); }
 
+/* --- Legenda 3D e regiao viva (N05) -------------------------------------------------- */
+.legend__nota { display:flex; align-items:flex-start; gap:7px; margin:9px 0 0; color:var(--im-text-muted); font-size:11px; line-height:1.45; }
+.legend__nota strong { color:var(--im-text-secondary); }
+/* Amostra do colar: mesmo lilas e mesma translucidez do que e desenhado no topo da extrusao. */
+
+/* --- Legenda compacta (N06) ----------------------------------------------------------- */
+.legend-bloco .legend { margin-top:9px; }
+/* Amostra da conexao: traco solido, a mesma translucidez das linhas do canvas. Com D18 a linha
+ * inteira assume a cor do status da unidade conectada, e nenhuma cor unica representaria isso —
+ * a amostra vale pela FORMA (traco fino ligando duas pontas) e o texto da nota diz a cor. */
+.legend__linha { flex:0 0 auto; width:18px; height:2px; margin-top:7px; background:rgba(124,150,180,.65); }
+/* --- Legenda de marcador (N07) --------------------------------------------------------- */
+/* Diz de QUE cor a legenda fala. Sem ele, o painel ao lado de um mapa de poligonos sugere o
+ * poligono — que desde N07 nao tem cor de status nenhuma. */
+.legend__intro { margin:0; color:var(--im-text-muted); font-size:11px; }
+/* Amostra do poligono: exatamente o COR_MUNICIPIO e o contorno #294056 do canvas. Hex literais
+ * porque e o canvas WebGL que dita os dois — token de tema aqui divergiria em silencio. */
+.legend__municipio { flex:0 0 auto; width:14px; height:10px; margin-top:2px; border:1px solid #456a8e; border-radius:2px; background:#16283a; }
+/* So para leitor de tela: a selecao acontece no canvas, sem texto visivel novo. */
+.map-sr { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }

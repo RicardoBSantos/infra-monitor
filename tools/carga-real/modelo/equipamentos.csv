@@ -1,0 +1,2 @@
+unidadeSigla,tipoNome,nome,ip,hostname,descricao,localizacao,numeroSerie,fabricante,modelo
+EX-01,Roteador,Router-Exemplo-01,192.0.2.10,router-exemplo-01,Roteador fictício de exemplo,Rack 1 - sala tecnica,SN-EXEMPLO-0001,Fabricante Exemplo,Modelo Exemplo X1

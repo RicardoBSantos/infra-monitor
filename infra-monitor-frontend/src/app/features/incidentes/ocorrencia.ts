@@ -1,4 +1,5 @@
 import { AppIconName } from '../../shared/app-icon/app-icon.component';
+import { IncidentClosureReason } from '../../core/models/api-enums';
 import { IncidentKind } from '../../core/models/dashboard-incidente';
 
 /**
@@ -26,6 +27,23 @@ export function iconeEvento(tipo: IncidentKind): AppIconName {
 export function duracaoDe(iniciadoEm: string, encerradoEm: string | null): string {
   const fim = encerradoEm ? new Date(encerradoEm).getTime() : Date.now();
   return formatarDuracao(Math.max(0, Math.round((fim - new Date(iniciadoEm).getTime()) / 1000)));
+}
+
+const ROTULOS_MOTIVO_ENCERRAMENTO: Record<IncidentClosureReason, string> = {
+  [IncidentClosureReason.AutomaticRecovery]: 'Recuperação automática',
+  [IncidentClosureReason.ManualClosure]: 'Fechamento manual',
+  [IncidentClosureReason.Maintenance]: 'Entrada em manutenção',
+};
+
+/**
+ * Ausente é o caso comum, não exceção: no banco de dev, a maioria dos incidentes fechados
+ * tem `motivoEncerramento` nulo, porque foram encerrados antes da V19 que introduziu a coluna.
+ * Compartilhada entre a gaveta de detalhe, o histórico do equipamento e a aba de incidentes
+ * da unidade — as três leem o mesmo dado e não podem divergir no rótulo.
+ */
+export function rotuloMotivoEncerramento(motivo: IncidentClosureReason | null | undefined): string {
+  if (motivo === null || motivo === undefined) return '—';
+  return ROTULOS_MOTIVO_ENCERRAMENTO[motivo];
 }
 
 export function formatarDuracao(segundos: number): string {

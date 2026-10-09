@@ -22,7 +22,7 @@
         @for (opcao of statusDisponiveis; track opcao.valor) { <option [value]="opcao.valor">{{ opcao.rotulo }}</option> }
       </select>
     </label>
-    <span class="contagem equipamentos-aba__contagem">{{ filtrados().length }} de {{ store.equipamentos().length }} dispositivos</span>
+    <span class="contagem equipamentos-aba__contagem">{{ filtrados().length }} de {{ plural(store.equipamentos().length, 'dispositivo', 'dispositivos') }}</span>
     <a class="botao botao--primario" routerLink="/equipamentos">+ Novo equipamento</a>
   </div>
 
@@ -42,7 +42,7 @@
   } @else if (filtrados().length === 0) {
     <div class="vazio">
       <strong>Nenhum dispositivo corresponde aos filtros.</strong>
-      <p>Ajuste a busca, o tipo ou o status para ver os {{ store.equipamentos().length }} dispositivos desta unidade.</p>
+      <p>Ajuste a busca, o tipo ou o status para ver {{ plural(store.equipamentos().length, 'dispositivo', 'dispositivos') }} desta unidade.</p>
       <button class="botao" type="button" (click)="limparFiltros()">Limpar filtros</button>
     </div>
   } @else {

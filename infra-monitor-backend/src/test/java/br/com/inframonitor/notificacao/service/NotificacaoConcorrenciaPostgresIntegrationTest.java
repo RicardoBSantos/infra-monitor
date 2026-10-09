@@ -154,11 +154,10 @@ class NotificacaoConcorrenciaPostgresIntegrationTest {
     }
 
     /**
-     * Laco completo entre o bug original e a correcao. {@code fechar()} nao tem CAS: as
-     * duas threads leem ABERTO e as duas escrevem. Isso continua sendo last-write-wins na
-     * linha do incidente — benigno, e nao e o que se corrigiu. O que mudou e o efeito
-     * colateral: antes a segunda notificacao podia vazar como 500, agora convergem para
-     * exatamente uma linha.
+     * Laco completo entre o bug original e a correcao: antes a segunda notificacao podia
+     * vazar como 500, agora convergem para exatamente uma linha. Desde a correcao A1,
+     * {@code fechar()} tambem e CAS: so uma das duas threads escreve na linha do
+     * incidente (ver FechamentoManualConcorrenciaPostgresIntegrationTest).
      */
     @Test
     void doisFecharConcorrentesFechamUmaVezEGeramUmaUnicaNotificacao() throws Exception {

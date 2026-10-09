@@ -1,0 +1,166 @@
+{
+  "executadoEm": "2026-09-24T13:47:42.269Z",
+  "base": "http://127.0.0.1:4300",
+  "esperado": {
+    "manutencao": {
+      "status": "EM_MANUTENCAO",
+      "hex": "#7fadff",
+      "rgb": "rgb(127, 173, 255)"
+    },
+    "contraste": {
+      "status": "INDISPONIVEL",
+      "hex": "#e5484d",
+      "rgb": "rgb(229, 72, 77)"
+    }
+  },
+  "obtido": {
+    "manutencao": {
+      "corUnidadeInline": "#7fadff",
+      "backgroundColor": "rgb(127, 173, 255)",
+      "pulsoBorderColor": "rgb(127, 173, 255)",
+      "ariaLabel": "Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)",
+      "ariaPressed": "false"
+    },
+    "contraste": {
+      "corUnidadeInline": "#e5484d",
+      "backgroundColor": "rgb(229, 72, 77)",
+      "pulsoBorderColor": "rgb(229, 72, 77)",
+      "ariaLabel": "Unidade E2E Mapa Contraste: Indisponível, 1 equipamento(s), 1 incidente(s) aberto(s)",
+      "ariaPressed": "false"
+    },
+    "manutencaoSelecionado": {
+      "corUnidadeInline": "#7fadff",
+      "backgroundColor": "rgb(127, 173, 255)",
+      "pulsoBorderColor": "rgb(127, 173, 255)",
+      "ariaLabel": "Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)",
+      "ariaPressed": "true"
+    }
+  },
+  "resumo": "18/18",
+  "fatal": null,
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído, fora de /login",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4300/dashboard"
+    },
+    {
+      "caso": "mapa-url",
+      "nome": "navegação por clique chegou a /mapa",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4300/mapa"
+    },
+    {
+      "caso": "sem-localizacao-vazia",
+      "nome": "nenhuma unidade de teste caiu em \"Unidades sem localização\"",
+      "ok": true,
+      "detalhe": "blocos=0"
+    },
+    {
+      "caso": "marcador-manutencao-existe",
+      "nome": "marcador da unidade em manutenção existe no DOM",
+      "ok": true,
+      "detalhe": "{\"corUnidadeInline\":\"#7fadff\",\"backgroundColor\":\"rgb(127, 173, 255)\",\"pulsoBorderColor\":\"rgb(127, 173, 255)\",\"ariaLabel\":\"Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)\",\"ariaPressed\":\"false\"}"
+    },
+    {
+      "caso": "marcador-manutencao-rotulo",
+      "nome": "aria-label do marcador diz o status \"Em manutenção\"",
+      "ok": true,
+      "detalhe": "Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)"
+    },
+    {
+      "caso": "marcador-manutencao-variavel",
+      "nome": "--cor-unidade inline = #7fadff",
+      "ok": true,
+      "detalhe": "esperado=#7fadff obtido=#7fadff"
+    },
+    {
+      "caso": "marcador-manutencao-cor",
+      "nome": "cor computada do miolo = rgb(127, 173, 255)",
+      "ok": true,
+      "detalhe": "esperado=rgb(127, 173, 255) obtido=rgb(127, 173, 255)"
+    },
+    {
+      "caso": "marcador-manutencao-pulso",
+      "nome": "cor do anel de pulso (::after) = rgb(127, 173, 255)",
+      "ok": true,
+      "detalhe": "esperado=rgb(127, 173, 255) obtido=rgb(127, 173, 255)"
+    },
+    {
+      "caso": "marcador-contraste-cor",
+      "nome": "unidade de contraste (.10, incidente aberto) = rgb(229, 72, 77)",
+      "ok": true,
+      "detalhe": "esperado=rgb(229, 72, 77) obtido=rgb(229, 72, 77)"
+    },
+    {
+      "caso": "marcador-visivel",
+      "nome": "marcador tem caixa na tela",
+      "ok": true,
+      "detalhe": "{\"x\":636.4075927734375,\"y\":543.4342041015625,\"width\":13,\"height\":13}"
+    },
+    {
+      "caso": "clique-abre-painel-unidade",
+      "nome": "clique no marcador abre o painel da unidade",
+      "ok": true,
+      "detalhe": "painel da unidade aberto"
+    },
+    {
+      "caso": "painel-unidade",
+      "nome": "painel mostra a unidade clicada",
+      "ok": true,
+      "detalhe": "nome=\"Unidade E2E Mapa Manutencao\""
+    },
+    {
+      "caso": "painel-badge-unidade",
+      "nome": "badge da unidade = \"Em manutenção\"",
+      "ok": true,
+      "detalhe": "badge=\"Em manutenção\""
+    },
+    {
+      "caso": "painel-kpi-manutencao",
+      "nome": "KPI EM MANUTENÇÃO da unidade = 1",
+      "ok": true,
+      "detalhe": "valor=\"1\""
+    },
+    {
+      "caso": "painel-equipamento",
+      "nome": "equipamento EQ-192.0.2.11 listado em \"Equipamentos afetados\"",
+      "ok": true,
+      "detalhe": "itens=1"
+    },
+    {
+      "caso": "painel-badge-equipamento",
+      "nome": "badge do equipamento = \"Em manutenção\"",
+      "ok": true,
+      "detalhe": "badge=\"Em manutenção\""
+    },
+    {
+      "caso": "marcador-selecionado-cor",
+      "nome": "marcador selecionado mantém a cor de manutenção",
+      "ok": true,
+      "detalhe": "{\"corUnidadeInline\":\"#7fadff\",\"backgroundColor\":\"rgb(127, 173, 255)\",\"pulsoBorderColor\":\"rgb(127, 173, 255)\",\"ariaLabel\":\"Unidade E2E Mapa Manutencao: Em manutenção, 1 equipamento(s), 0 incidente(s) aberto(s)\",\"ariaPressed\":\"true\"}"
+    },
+    {
+      "caso": "sem-erros-pagina",
+      "nome": "nenhum erro de página/console durante o roteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "erros": [],
+  "rede": [
+    "2026-09-24T13:47:36.832Z POST /auth/login -> 200",
+    "2026-09-24T13:47:36.886Z GET /dashboard/resumo -> 200",
+    "2026-09-24T13:47:36.886Z GET /unidades?ativo=true -> 200",
+    "2026-09-24T13:47:36.887Z GET /dashboard/unidades -> 200",
+    "2026-09-24T13:47:36.887Z GET /relatorios/latencia/unidades?inicio=2026-08-25T13:47:36.853Z&fim=2026-09-24T13:47:36.853Z&size=500 -> 200",
+    "2026-09-24T13:47:36.888Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-25T13:47:36.852Z&fim=2026-09-24T13:47:36.852Z&size=200 -> 200",
+    "2026-09-24T13:47:36.888Z GET /equipamentos?size=500&sort=nome,asc -> 200",
+    "2026-09-24T13:47:36.905Z GET /incidentes?status=ABERTO&size=20&sort=iniciadoEm,desc -> 200",
+    "2026-09-24T13:47:37.008Z GET /dashboard/unidades -> 200",
+    "2026-09-24T13:47:40.087Z GET /dashboard/unidades/1/equipamentos?size=200&sort=nome -> 200",
+    "2026-09-24T13:47:40.096Z GET /dashboard/unidades/1/equipamentos?size=200&sort=nome -> 200",
+    "2026-09-24T13:47:40.113Z GET /dashboard/unidades/1/equipamentos?size=200&sort=nome -> 200"
+  ]
+}

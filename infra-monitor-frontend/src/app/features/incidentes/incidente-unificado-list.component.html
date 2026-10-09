@@ -69,6 +69,9 @@
               </td>
               <td>
                 <app-status-badge [status]="linha.status" />
+                @if (linha.motivoEncerramento === IncidentClosureReason.Maintenance) {
+                  <span class="marca-manutencao" title="Encerrado por entrada em manutenção">🔧<span class="visualmente-oculto"> — Encerrado por entrada em manutenção</span></span>
+                }
               </td>
               <td class="reconhecido">
                 @if (linha.reconhecidoPorNome) { {{ linha.reconhecidoPorNome }} }

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { take } from 'rxjs';
+import { Observable, of, switchMap, take } from 'rxjs';
 
 import { isApiError } from '../../core/models/api-error';
 import { UnidadeResponse } from '../../core/models/unidade';
@@ -72,6 +72,8 @@ export class UnidadeFormDrawerComponent {
   protected readonly descartando = signal(false);
   protected readonly municipios = signal<Municipio[]>([]);
   protected readonly municipiosErro = signal<string | null>(null);
+  /** Destinos possíveis de conexão: toda unidade menos a que está sendo editada. */
+  protected readonly unidadesDestino = signal<UnidadeResponse[]>([]);
 
   protected readonly editando = computed(() => this.unidade() !== null);
   protected readonly ufs = UFS;
@@ -86,6 +88,8 @@ export class UnidadeFormDrawerComponent {
     uf: ['', ufValida],
     latitude: ['', faixa(-90, 90)],
     longitude: ['', faixa(-180, 180)],
+    // Vazio = unidade raiz. Não viaja no corpo da unidade: ver salvarConexao.
+    conectaAUnidadeId: [''],
   }, { validators: coordenadasCompletas });
 
   private readonly primeiroCampo = viewChild<ElementRef<HTMLInputElement>>('primeiroCampo');
@@ -115,6 +119,7 @@ export class UnidadeFormDrawerComponent {
     effect(() => {
       if (!this.aberto()) return;
       this.carregarMunicipios();
+      this.carregarUnidades();
       this.gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       this.preencher(this.unidade());
     });
@@ -126,6 +131,25 @@ export class UnidadeFormDrawerComponent {
   /* Só ao abrir: a gaveta vive montada na lista e no detalhe, e o GeoJSON de
      municípios não deve ser baixado por quem nunca abre o cadastro. */
   private municipiosPedidos = false;
+
+  /* Mesma razão de carregarMunicipios: só ao abrir, e uma vez. A lista é curta (11 unidades). */
+  private unidadesPedidas = false;
+
+  private carregarUnidades(): void {
+    if (this.unidadesPedidas) return;
+    this.unidadesPedidas = true;
+    this.api.list().pipe(take(1)).subscribe({
+      next: (unidades) => this.unidadesDestino.set(unidades),
+      // Falhar aqui não pode derrubar o cadastro: sem a lista, o select fica vazio e o
+      // resto do formulário continua salvável.
+      error: () => this.unidadesDestino.set([]),
+    });
+  }
+
+  protected destinosDisponiveis(): UnidadeResponse[] {
+    const atual = this.unidade();
+    return this.unidadesDestino().filter((candidata) => candidata.id !== atual?.id);
+  }
 
   private carregarMunicipios(): void {
     if (this.municipiosPedidos) return;
@@ -165,6 +189,7 @@ export class UnidadeFormDrawerComponent {
       uf: unidade?.uf ?? '',
       latitude: unidade?.latitude === null || unidade?.latitude === undefined ? '' : String(unidade.latitude),
       longitude: unidade?.longitude === null || unidade?.longitude === undefined ? '' : String(unidade.longitude),
+      conectaAUnidadeId: unidade?.conectaAUnidadeId == null ? '' : String(unidade.conectaAUnidadeId),
     });
     this.codigoIbgeSelecionado.set(unidade?.codigoIbge ?? '');
     this.sincronizarUf();
@@ -212,8 +237,16 @@ export class UnidadeFormDrawerComponent {
     const atual = this.unidade();
     this.salvando.set(true);
     this.erro.set(null);
+    /*
+     * Duas chamadas, nesta ordem, de propósito: a unidade precisa existir antes de receber
+     * conexão -- no cadastro o id só nasce na resposta do POST. A segunda só sai quando o
+     * destino mudou; salvar o nome de uma unidade já conectada não repete o PUT de conexão.
+     */
     const requisicao = atual ? this.api.update(atual.id, corpo) : this.api.create(corpo);
-    requisicao.pipe(take(1)).subscribe({
+    requisicao.pipe(
+      switchMap((unidade) => this.salvarConexao(unidade, this.destinoEscolhido())),
+      take(1),
+    ).subscribe({
       next: (unidade) => {
         this.salvando.set(false);
         this.form.markAsPristine();
@@ -225,6 +258,24 @@ export class UnidadeFormDrawerComponent {
         this.aplicarErro(erro);
       },
     });
+  }
+
+  /** Destino escolhido no select, ou null para "Nenhuma (unidade raiz)". */
+  private destinoEscolhido(): number | null {
+    const valor = this.form.getRawValue().conectaAUnidadeId.trim();
+    return valor ? Number(valor) : null;
+  }
+
+  /**
+   * Alinha a conexão da unidade salva com o que o select pede.
+   *
+   * Sem mudança, devolve a própria unidade sem chamada nenhuma. Com mudança, PUT para conectar
+   * e DELETE para desconectar -- e é este DELETE que justifica o endpoint separado: no corpo da
+   * unidade, "Nenhuma" seria null, e null no PUT significa preservar, não limpar.
+   */
+  private salvarConexao(unidade: UnidadeResponse, destino: number | null): Observable<UnidadeResponse> {
+    if ((unidade.conectaAUnidadeId ?? null) === destino) return of(unidade);
+    return destino === null ? this.api.clearConexao(unidade.id) : this.api.setConexao(unidade.id, destino);
   }
 
   private aplicarErro(erro: HttpErrorResponse): void {

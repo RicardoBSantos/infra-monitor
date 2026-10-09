@@ -1,22 +1,20 @@
-import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
-import { DashboardUnidade } from '../../core/models/dashboard';
+import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { MapaComponent, agruparUnidades, contarPorStatus, equipamentosAfetados, rotuloDoMunicipio, toneDoMunicipio } from './mapa.component';
-import { DashboardEquipamento } from '../../core/models/dashboard';
+import { agruparUnidades, arcoEntre, camadasDeConexao, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
-const unit: DashboardUnidade={id:1,nome:'Matriz',codigoIbge:'2800308',ativo:true,status:UnitOperationalStatus.Available,equipamentosTotal:1,equipamentosAtivos:1,equipamentosDisponiveis:1,equipamentosDegradados:0,equipamentosIndisponiveis:0,equipamentosSemDados:0,equipamentosSemMonitoramento:0,equipamentosEmManutencao:0,incidentesAbertos:0,latitude:null,longitude:null};
+const unit: DashboardUnidade={id:1,nome:'Matriz',codigoIbge:'2800308',ativo:true,status:UnitOperationalStatus.Available,equipamentosTotal:1,equipamentosAtivos:1,equipamentosDisponiveis:1,equipamentosDegradados:0,equipamentosIndisponiveis:0,equipamentosSemDados:0,equipamentosSemMonitoramento:0,equipamentosEmManutencao:0,incidentesAbertos:0,latitude:null,longitude:null,conectaAUnidadeId:null};
 const municipio=(codigoIbge:string,nome:string):Municipio=>({codigoIbge,nome,uf:'SE',feature:geoJson.features[0] as never});
 
 /*
- * O cruzamento entre cartografia e unidades vive em funcoes puras exportadas, e e testado aqui sem
- * DOM: o Leaflet renderiza fora do template Angular, e o jsdom nao faz layout: sem largura e altura
- * de container, `fitBounds` nao tem como projetar. Os testes de montagem abaixo compensam isso
- * fixando o tamanho do container; a logica de negocio nao depende desse remendo.
+ * So funcao pura aqui. Desde a migracao para o MapLibre (N05) o mapa e um canvas WebGL, que o jsdom
+ * nao tem: montar o componente neste ambiente falha na criacao do contexto grafico, e os remendos
+ * antigos (forjar clientWidth/clientHeight para o Leaflet projetar) nao alcancam isso.
+ *
+ * O que era testado montando o componente — selecao, painel da unidade, rotas, estados de erro —
+ * passou para `e2e/n05-mapa-maplibre.cjs`, que roda contra a aplicacao real com WebGL de verdade.
+ * O cruzamento entre cartografia e unidades continua aqui porque nunca dependeu de DOM.
  */
 describe('agrupamento de unidades por municipio',()=>{
   const fonte=[municipio('2800308','Aracaju'),municipio('2800100','Amparo')];
@@ -29,18 +27,15 @@ describe('agrupamento de unidades por municipio',()=>{
     expect(r.municipios.find(m=>m.codigoIbge==='2800100')?.units).toEqual([]);
   });
 
-  it('deriva o tom do municipio sem recalcular status da unidade',()=>{
-    const r=agruparUnidades(fonte,[{...unit,status:UnitOperationalStatus.Unavailable}]);
-    const aracaju=r.municipios.find(m=>m.codigoIbge==='2800308')!;
-    const amparo=r.municipios.find(m=>m.codigoIbge==='2800100')!;
-    expect(toneDoMunicipio(aracaju)).toBe('indisponivel');
-    expect(toneDoMunicipio(amparo)).toBe('none');
-    expect(toneDoMunicipio({...aracaju,units:[unit,unit]})).toBe('multiple');
-  });
+  /*
+   * O teste do tom do municipio saiu com a funcao: o poligono nao carrega mais status (N07). O que
+   * ele protegia de fato — que o agrupamento NAO recalcula status, so acomoda a unidade no
+   * municipio — continua coberto pelo teste acima, que confere a lista `units` de cada municipio.
+   */
 
   it('rotula o municipio para leitor de tela com e sem unidade',()=>{
     const r=agruparUnidades(fonte,[unit]);
-    expect(rotuloDoMunicipio(r.municipios.find(m=>m.codigoIbge==='2800308')!)).toBe('Aracaju: 1 unidade(s)');
+    expect(rotuloDoMunicipio(r.municipios.find(m=>m.codigoIbge==='2800308')!)).toBe('Aracaju: 1 unidade');
     expect(rotuloDoMunicipio(r.municipios.find(m=>m.codigoIbge==='2800100')!)).toBe('Amparo: nenhuma unidade cadastrada');
   });
 });
@@ -74,162 +69,182 @@ describe('painel lateral',()=>{
   });
 });
 
-describe('MapaComponent',()=>{
-  let http:HttpTestingController;
-  let tamanho:{width:PropertyDescriptor|undefined;height:PropertyDescriptor|undefined};
+/*
+ * N06 — as linhas hub->unidade. A guarda das duas pontas nao e detalhe: uma unidade tem coordenada
+ * e a outra nao com muito mais frequencia do que as duas terem, porque o cadastro nunca exigiu
+ * coordenada. Meia linha, saindo do nada, seria lida como ligacao para fora do estado.
+ */
+describe('linhas de conexao hub->unidade',()=>{
+  const comCoordenada=(id:number,lat:number,lon:number,pai:number|null):DashboardUnidade=>
+    ({...unit,id,nome:`U${id}`,latitude:lat,longitude:lon,conectaAUnidadeId:pai});
 
-  beforeEach(async()=>{
-    // jsdom nao calcula layout: sem isto todo elemento mede 0x0 e o Leaflet nao consegue projetar.
-    tamanho={width:Object.getOwnPropertyDescriptor(HTMLElement.prototype,'clientWidth'),height:Object.getOwnPropertyDescriptor(HTMLElement.prototype,'clientHeight')};
-    Object.defineProperty(HTMLElement.prototype,'clientWidth',{configurable:true,get:()=>800});
-    Object.defineProperty(HTMLElement.prototype,'clientHeight',{configurable:true,get:()=>600});
-    await TestBed.configureTestingModule({imports:[MapaComponent],providers:[provideHttpClient(),provideHttpClientTesting(),provideRouter([])]}).compileComponents();
-    http=TestBed.inject(HttpTestingController);
-  });
-  afterEach(()=>{
-    http.verify();
-    if(tamanho.width)Object.defineProperty(HTMLElement.prototype,'clientWidth',tamanho.width);
-    if(tamanho.height)Object.defineProperty(HTMLElement.prototype,'clientHeight',tamanho.height);
-  });
-
-  function create(){const f=TestBed.createComponent(MapaComponent);f.detectChanges();return f;}
-  function respond(units=[unit]){http.expectOne('assets/maps/se-municipalities.geo.json').flush(geoJson);http.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush(units);}
-  /* Selecionar um municipio de uma unidade so ja seleciona a unidade, e isso dispara a busca dos
-     equipamentos. Toda interacao de selecao precisa consumir essa chamada, senao o verify() falha. */
-  function flushEquipamentos(unidadeId:number,content:DashboardEquipamento[]=[]){
-    http.expectOne(r=>r.url.includes(`/dashboard/unidades/${unidadeId}/equipamentos`))
-      .flush({content,totalElements:content.length,totalPages:1,size:200,number:0});
-  }
-
-  it('waits for both sources and renders API status on its matching code',()=>{
-    const f=create();
-    expect(f.nativeElement.textContent).toContain('Carregando cartografia');
-    respond();f.detectChanges();
-    expect(f.nativeElement.querySelectorAll('svg path').length).toBe(2);
-    expect(f.nativeElement.querySelector('[data-codigo-ibge="2800308"]')?.getAttribute('class')).toContain('disponivel');
+  it('desenha um arco por unidade conectada, do pai para o filho',()=>{
+    const r=conexoesDesenhaveis([comCoordenada(1,-10.9,-37.0,null),comCoordenada(2,-11.2,-37.4,1)]);
+    expect(r.length).toBe(1);
+    const g=r[0].geometry as {type:string;coordinates:[number,number][]};
+    expect(g.type).toBe('LineString');
+    /* As PONTAS continuam exatas: e delas que `montarPings` reconstroi a curva do ping, e e nelas
+     * que a linha tem de encostar no marcador. O miolo e o arco amostrado. */
+    expect(g.coordinates[0]).toEqual([-37.0,-10.9]);
+    expect(g.coordinates[g.coordinates.length-1]).toEqual([-37.4,-11.2]);
+    expect(g.coordinates.length).toBeGreaterThan(2);
+    // `status` e o do FILHO: e ele que o ping carrega e que o fim do gradiente assume.
+    expect(r[0].properties).toEqual({de:1,para:2,status:UnitOperationalStatus.Available});
   });
 
-  /* A selecao ja substituiu o tom do municipio, e o azul dela era quase o de "Em manutencao": o
-     operador nao conseguia distinguir o que selecionou do que esta em janela. Agora sao duas
-     classes somadas, e o status tem de sobreviver ao clique. */
-  it('soma a selecao ao status em vez de substituir a cor do municipio',()=>{
-    const f=create();
-    respond([{...unit,status:UnitOperationalStatus.Maintenance}]);
-    f.detectChanges();
-    // Selecionar remonta o mapa: o no de antes do clique fica orfao, so a consulta nova ve o SVG vivo.
-    const alvo=()=>f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGPathElement;
-    alvo().dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    f.detectChanges();
-    flushEquipamentos(1);
-    f.detectChanges();
-    const classes=alvo().getAttribute('class')!.split(' ');
-    expect(classes).toContain('map__municipio--em-manutencao');
-    expect(classes).toContain('map__municipio--selected');
+  it('nao desenha quando falta coordenada em qualquer uma das duas pontas',()=>{
+    const paiSemCoordenada=[{...unit,id:1,latitude:null,longitude:null},comCoordenada(2,-11.2,-37.4,1)];
+    const filhoSemCoordenada=[comCoordenada(1,-10.9,-37.0,null),{...unit,id:2,latitude:null,longitude:null,conectaAUnidadeId:1}];
+    expect(conexoesDesenhaveis(paiSemCoordenada)).toEqual([]);
+    expect(conexoesDesenhaveis(filhoSemCoordenada)).toEqual([]);
   });
 
+  it('ignora raiz e pai ausente da lista sem quebrar',()=>{
+    expect(conexoesDesenhaveis([comCoordenada(1,-10.9,-37.0,null)])).toEqual([]);
+    expect(conexoesDesenhaveis([comCoordenada(2,-11.2,-37.4,99)])).toEqual([]);
+  });
+
+  /* Coordenada 0 e valida (Golfo da Guine). Guarda por veracidade a descartaria em silencio. */
+  it('aceita zero como coordenada valida',()=>{
+    expect(conexoesDesenhaveis([comCoordenada(1,0,0,null),comCoordenada(2,-11.2,-37.4,1)]).length).toBe(1);
+  });
+});
+
+describe('rotulo do marcador de unidade',()=>{
   /*
-   * Regressao de acessibilidade que ja aconteceu: `montarMapa` terminava chamando `aplicarTons`,
-   * que le `selected()`, e com isso o effect de montagem passava a depender da selecao. Cada
-   * clique destruia a camada, e o municipio focado saia do DOM levando o foco para o `body` — o
-   * operador de teclado perdia a posicao a cada selecao. Fixamos o contrato aqui: selecionar nao
-   * remonta o mapa, nao troca o no e nao move o foco.
+   * Incidentes abertos entraram no rotulo junto com a dica de relance (N07). A dica e aria-hidden,
+   * entao este rotulo E o canal do leitor de tela: sem o numero aqui, o mouse teria um dado que o
+   * teclado nao tem.
    */
-  it('preserva o no e o foco do municipio ao selecionar pelo teclado',()=>{
-    const f=create();respond();f.detectChanges();
-    const antes=f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGElement;
-    antes.focus();
-    expect(document.activeElement).toBe(antes);
-    antes.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
-    f.detectChanges();
-    flushEquipamentos(1);
-    f.detectChanges();
-    expect(f.nativeElement.querySelector('[data-codigo-ibge="2800308"]')).toBe(antes);
-    expect(document.activeElement).toBe(antes);
-    expect(antes.getAttribute('class')).toContain('map__municipio--selected');
+  it('usa o status por extenso e leva os mesmos dados da dica',()=>{
+    expect(rotuloDaUnidade({...unit,nome:'Sede',status:UnitOperationalStatus.Maintenance,equipamentosTotal:7,incidentesAbertos:2}))
+      .toBe('Sede: Em manutenção, 7 equipamentos, 2 incidentes abertos');
+  });
+});
+
+/*
+ * N07 — o movimento do ping. Puro de proposito: e a unica parte da animacao que pode dar errado
+ * silenciosamente (um ping que nao chega na ponta, ou que "salta" ao virar o ciclo) e que nao
+ * aparece em captura de tela.
+ */
+describe('movimento do ping na linha de conexao',()=>{
+  it('vai e volta dentro de um ciclo, sem salto na virada',()=>{
+    expect(faseVaiEVolta(0)).toBe(0);
+    expect(faseVaiEVolta(0.25)).toBe(0.5);
+    expect(faseVaiEVolta(0.5)).toBe(1);     // chegou na unidade
+    expect(faseVaiEVolta(0.75)).toBe(0.5);
+    expect(faseVaiEVolta(1)).toBe(0);       // voltou ao hub, sem descontinuidade
   });
 
-  it('mantem o municipio focavel e acionavel por teclado',()=>{
-    const f=create();respond();f.detectChanges();
-    const path=f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGPathElement;
-    expect(path.getAttribute('tabindex')).toBe('0');
-    expect(path.getAttribute('role')).toBe('button');
-    expect(path.getAttribute('aria-label')).toBe('Aracaju: 1 unidade(s)');
-    path.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
-    f.detectChanges();
-    flushEquipamentos(1);
-    f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('Matriz');
+  /* Dois pings por linha, defasados de 0,5: quando um esta no hub o outro esta na ponta. */
+  it('mantem os dois pings da mesma linha em fases opostas',()=>{
+    expect(faseVaiEVolta(0) + faseVaiEVolta(0.5)).toBe(1);
+    expect(faseVaiEVolta(0.3) + faseVaiEVolta(0.8)).toBeCloseTo(1, 10);
   });
 
-  it('keeps empty municipalities neutral and lists unmapped units without recalculating status',()=>{
-    const f=create();
-    respond([{...unit,nome:'Sem local',codigoIbge:null,status:UnitOperationalStatus.NoData},{...unit,id:2,nome:'Inválida',codigoIbge:'9999999'},{...unit,id:3,nome:'Datacenter',codigoIbge:'2800308',status:UnitOperationalStatus.Unavailable}]);
-    f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('Unidades sem localização');
-    expect(f.nativeElement.textContent).toContain('Associação geográfica não encontrada');
-    expect(f.nativeElement.querySelector('[data-codigo-ibge="2800100"]')?.getAttribute('class')).toContain('none');
-    (f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGPathElement).dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    f.detectChanges();
-    flushEquipamentos(3);
-    f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('Datacenter');
-    expect(f.nativeElement.textContent).toContain('Indisponível');
+  /* O relogio nunca volta, mas o cast de `performance.now` e o modulo negativo ja morderam antes. */
+  it('aceita ciclo negativo sem inverter o sentido',()=>{
+    expect(faseVaiEVolta(-0.25)).toBe(0.5);
   });
 
-  it('shows cartography for zero units',()=>{const f=create();respond([]);f.detectChanges();expect(f.nativeElement.textContent).toContain('Nenhuma unidade retornada');});
+  it('interpola o par [lng, lat] nas duas pontas e no meio',()=>{
+    const hub:[number,number]=[-37,-10], filha:[number,number]=[-38,-11];
+    expect(interpolar(hub,filha,0)).toEqual(hub);
+    expect(interpolar(hub,filha,1)).toEqual(filha);
+    expect(interpolar(hub,filha,0.5)).toEqual([-37.5,-10.5]);
+  });
+});
 
-  it('reports a geographic source error',()=>{const f=create();http.expectOne('assets/maps/se-municipalities.geo.json').flush({}, {status:500,statusText:'Error'});http.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush([]);f.detectChanges();expect(f.nativeElement.textContent).toContain('Erro ao carregar mapa');});
+/*
+ * Arco (D17). A linha deixou de ser reta, e o ping tem de correr EXATAMENTE sobre o desenho — se as
+ * duas contas divergissem, o ponto flutuaria ao lado da linha e ninguem veria por que.
+ */
+describe('arco da conexao',()=>{
+  const hub:[number,number]=[-37,-10], filha:[number,number]=[-38,-11];
 
-  it('seleciona a unica unidade do municipio e lista so os equipamentos afetados',()=>{
-    const f=create();respond();f.detectChanges();
-    (f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGPathElement).dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    f.detectChanges();
-    http.expectOne(r=>r.url.includes('/dashboard/unidades/1/equipamentos')).flush({content:[
-      equipamento(1,'SW-OK',EquipmentOperationalStatus.Available),
-      equipamento(2,'SW-CAIU',EquipmentOperationalStatus.Unavailable),
-    ],totalElements:2,totalPages:1,size:200,number:0});
-    f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('UNIDADE SELECIONADA');
-    expect(f.nativeElement.textContent).toContain('SW-CAIU');
-    expect(f.nativeElement.textContent).not.toContain('SW-OK');
+  it('encosta nas duas pontas e sai da reta no meio',()=>{
+    expect(pontoNoArco(hub,filha,0)).toEqual(hub);
+    expect(pontoNoArco(hub,filha,1)).toEqual(filha);
+    const meio=pontoNoArco(hub,filha,0.5);
+    const cordaNoMeio=interpolar(hub,filha,0.5);
+    expect(meio).not.toEqual(cordaNoMeio);
   });
 
-  it('leva Ver unidade e Incidentes para as rotas que ja existem',async()=>{
-    const f=create();respond();f.detectChanges();
-    (f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGPathElement).dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    f.detectChanges();
-    http.expectOne(r=>r.url.includes('/equipamentos')).flush({content:[],totalElements:0,totalPages:0,size:200,number:0});
-    f.detectChanges();
-    const router=TestBed.inject(Router);
-    const navigate=vi.spyOn(router,'navigate').mockResolvedValue(true);
-    const botoes=[...f.nativeElement.querySelectorAll('.unit-panel__acoes button')] as HTMLButtonElement[];
-    botoes[0].click();
-    expect(navigate).toHaveBeenCalledWith(['/unidades',1]);
-    botoes[1].click();
-    // A lista de Incidentes nao aceita filtro por link; a aba da unidade entrega o mesmo recorte.
-    expect(navigate).toHaveBeenCalledWith(['/unidades',1,'incidentes']);
+  it('afasta-se da corda proporcionalmente ao comprimento: mesma barriga em toda conexao',()=>{
+    const desvio=(a:[number,number],b:[number,number]):number=>{
+      const meio=pontoNoArco(a,b,0.5), corda=interpolar(a,b,0.5);
+      const comprimento=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      return Math.hypot(meio[0]-corda[0],meio[1]-corda[1])/comprimento;
+    };
+    // Conexao curta e conexao dez vezes mais longa: a razao desvio/comprimento e a mesma.
+    expect(desvio(hub,filha)).toBeCloseTo(desvio([0,0],[10,10]),12);
   });
 
-  it('nao mostra painel de unidade quando o municipio tem mais de uma',()=>{
-    const f=create();
-    respond([{...unit,id:1,nome:'Sede'},{...unit,id:2,nome:'Escola'}]);
-    f.detectChanges();
-    (f.nativeElement.querySelector('[data-codigo-ibge="2800308"]') as SVGPathElement).dispatchEvent(new MouseEvent('click',{bubbles:true}));
-    f.detectChanges();
-    expect(f.nativeElement.textContent).not.toContain('UNIDADE SELECIONADA');
-    (f.nativeElement.querySelectorAll('.unit-list__escolha')[1] as HTMLButtonElement).click();
-    f.detectChanges();
-    http.expectOne(r=>r.url.includes('/dashboard/unidades/2/equipamentos')).flush({content:[],totalElements:0,totalPages:0,size:200,number:0});
-    f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('UNIDADE SELECIONADA');
-    expect(f.nativeElement.textContent).toContain('Nenhum equipamento afetado');
+  it('arqueia sempre para o mesmo lado, independente do sentido do par',()=>{
+    /* Lado = sinal do produto vetorial (corda x desvio). Se invertesse com o sentido, metade das
+     * conexoes do mesmo hub curvaria para um lado e metade para o outro. */
+    const lado=(a:[number,number],b:[number,number]):number=>{
+      const meio=pontoNoArco(a,b,0.5), corda=interpolar(a,b,0.5);
+      return Math.sign((b[0]-a[0])*(meio[1]-corda[1])-(b[1]-a[1])*(meio[0]-corda[0]));
+    };
+    expect(lado(hub,filha)).toBe(lado(filha,hub));
   });
 
-  it('desmonta o mapa ao destruir o componente, sem deixar container inicializado',()=>{
-    const f=create();respond();f.detectChanges();
-    const container=f.nativeElement.querySelector('.map') as HTMLElement;
-    expect(container.classList.contains('leaflet-container')).toBe(true);
-    f.destroy();
-    expect(container.querySelector('svg path')).toBeNull();
+  it('amostra o arco como polilinha com as pontas exatas',()=>{
+    const pontos=arcoEntre(hub,filha);
+    expect(pontos.length).toBeGreaterThan(2);
+    expect(pontos[0]).toEqual(hub);
+    expect(pontos[pontos.length-1]).toEqual(filha);
+    // Cada vertice esta sobre a curva que o ping percorre: uma conta so, dois consumidores.
+    expect(pontos[8]).toEqual(pontoNoArco(hub,filha,8/(pontos.length-1)));
+  });
+
+  it('degenera sem quebrar quando as duas pontas coincidem',()=>{
+    expect(pontoNoArco(hub,hub,0.5)).toEqual(hub);
+  });
+});
+
+describe('camada de conexao (D18)',()=>{
+  it('e uma unica camada, sem filtro por status',()=>{
+    const camadas=camadasDeConexao();
+    expect(camadas.length).toBe(1);
+    expect(camadas[0].id).toBe('conexoes-linha');
+    expect((camadas[0] as {filter?:unknown}).filter).toBeUndefined();
+  });
+
+  it('pinta a linha inteira com a cor do status da feature',()=>{
+    const paint=(camadasDeConexao()[0] as unknown as {paint:Record<string,unknown>}).paint;
+    expect(paint['line-gradient']).toBeUndefined();
+    const cor=paint['line-color'] as unknown[];
+    // Corpo inteiro do match, na ordem exata: um toContain/toBe isolado passaria com o par
+    // status/cor invertido, e o estilo so quebraria em runtime.
+    expect(cor).toEqual(['match', ['get','status'],
+      'DISPONIVEL', '#34c77b',
+      'INDISPONIVEL', '#e5484d',
+      'DEGRADADA', '#e8a33d',
+      'SEM_DADOS', '#8797a6',
+      'SEM_EQUIPAMENTOS', '#667b8b',
+      'EM_MANUTENCAO', '#7fadff',
+      '#8797a6']);
+  });
+});
+
+/*
+ * O `click` de camada do MapLibre deriva do mesmo `click` DOM que acionou o marcador: o alvo
+ * original é o que separa "clique na unidade" de "clique no polígono". Comportamento real (a ordem
+ * dos dois handlers, o painel) está em `e2e/mapa-marcador-ibge-divergente.cjs`.
+ */
+describe('cliqueVeioDeMarcador',()=>{
+  it('botão de unidade, filho dele e alvo de município contam como marcador',()=>{
+    const unidade=document.createElement('button'); unidade.className='map__unidade';
+    const dica=document.createElement('span'); unidade.appendChild(dica);
+    const municipio=document.createElement('button'); municipio.className='map__alvo';
+    expect(cliqueVeioDeMarcador(unidade)).toBe(true);
+    expect(cliqueVeioDeMarcador(dica)).toBe(true);
+    expect(cliqueVeioDeMarcador(municipio)).toBe(true);
+  });
+  it('canvas e null não são marcador',()=>{
+    expect(cliqueVeioDeMarcador(document.createElement('canvas'))).toBe(false);
+    expect(cliqueVeioDeMarcador(null)).toBe(false);
   });
 });

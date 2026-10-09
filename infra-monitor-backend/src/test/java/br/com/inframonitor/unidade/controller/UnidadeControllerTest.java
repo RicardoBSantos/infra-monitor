@@ -2,6 +2,7 @@ package br.com.inframonitor.unidade.controller;
 
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
+import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UnidadeResponse;
 import br.com.inframonitor.unidade.dto.UpdateUnidadeRequest;
@@ -36,7 +37,7 @@ class UnidadeControllerTest {
     private static final UnidadeResponse UNIDADE = new UnidadeResponse(
             1L, "Matriz", "MTZ", "Unidade principal", "2800308", true,
             Instant.parse("2026-08-18T10:00:00Z"), Instant.parse("2026-08-18T10:00:00Z"),
-            "Av. Central, 100", "Aracaju", "SE", new BigDecimal("-10.947200"), new BigDecimal("-37.073500"));
+            "Av. Central, 100", "Aracaju", "SE", new BigDecimal("-10.947200"), new BigDecimal("-37.073500"), null);
 
     @Autowired
     private MockMvc mockMvc;
@@ -157,5 +158,29 @@ class UnidadeControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(unidadeService).excluir(1L);
+    }
+
+    @Test
+    void defineERemoveConexao() throws Exception {
+        when(unidadeService.definirConexao(eq(2L), any(ConexaoUnidadeRequest.class))).thenReturn(UNIDADE);
+        when(unidadeService.removerConexao(2L)).thenReturn(UNIDADE);
+
+        mockMvc.perform(put("/api/v1/unidades/2/conexao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"conectaAUnidadeId\":1}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/v1/unidades/2/conexao"))
+                .andExpect(status().isOk());
+
+        verify(unidadeService).removerConexao(2L);
+    }
+
+    /** Corpo sem destino nao e "desconectar": desconectar e DELETE. Aqui e requisicao invalida. */
+    @Test
+    void rejeitaConexaoSemDestino() throws Exception {
+        mockMvc.perform(put("/api/v1/unidades/2/conexao")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"conectaAUnidadeId\":null}"))
+                .andExpect(status().isBadRequest());
     }
 }

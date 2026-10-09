@@ -9,6 +9,8 @@ import br.com.inframonitor.medicao.entity.StatusMedicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
+import br.com.inframonitor.monitoring.config.LimiteDeEsperaPorLock;
+import br.com.inframonitor.monitoring.observacao.InicioDaObservacao;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.unidade.entity.Unidade;
@@ -26,7 +28,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,10 +45,11 @@ class LatencyEpisodeProcessorTest {
     @Mock private IncidenteRepository incidenteRepository;
     @Mock private MonitorEpisodioLatenciaRepository episodioRepository;
     @Mock private NotificacaoService notificacaoService;
+    @Mock private InicioDaObservacao inicioDaObservacao;
 
     private LatencyEpisodeProcessor processor() {
         return new LatencyEpisodeProcessor(medicaoRepository, incidenteRepository, episodioRepository,
-                notificacaoService, LIMIAR, CICLOS);
+                notificacaoService, inicioDaObservacao, LIMIAR, CICLOS, mock(LimiteDeEsperaPorLock.class));
     }
 
     @Test void abreEpisodioNoSegundoCicloAcimaDoLimiarComInicioNaPrimeiraDegradada() {
@@ -52,17 +57,68 @@ class LatencyEpisodeProcessorTest {
         Medicao primeira = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
         Medicao segunda = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
         prepararAtual(segunda);
-        semEpisodioAberto();
+        // Primeira chamada (checagem no topo de process()) sem episodio aberto; segunda
+        // chamada (releitura apos o INSERT condicional) devolve o episodio recem-criado.
+        when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L))
+                .thenReturn(Optional.empty(), Optional.of(episodio(monitor)));
+        when(episodioRepository.inserirSeElegivel(eq(1L), eq(T0), eq(LIMIAR), any())).thenReturn(1);
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(segunda, primeira));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.minusSeconds(60)));
 
         processor().process(segunda);
 
+        verify(episodioRepository).inserirSeElegivel(eq(1L), eq(T0), eq(LIMIAR), any());
         ArgumentCaptor<MonitorEpisodioLatencia> aberto = ArgumentCaptor.forClass(MonitorEpisodioLatencia.class);
-        verify(episodioRepository).saveAndFlush(aberto.capture());
+        verify(notificacaoService).criarParaLatenciaAlta(aberto.capture());
         assertThat(aberto.getValue().getIniciadoEm()).isEqualTo(T0);
         assertThat(aberto.getValue().getLimiarMs()).isEqualTo(LIMIAR);
-        verify(notificacaoService).criarParaLatenciaAlta(any());
+    }
+
+    @Test void caudaCongeladaPelaManutencaoNaoAbreEpisodio() {
+        Monitor monitor = monitor();
+        Medicao antiga = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);                 // antes da manutencao
+        Medicao nova = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(3600)); // 1a depois da saida
+        prepararAtual(nova);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(nova, antiga));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.plusSeconds(3000)));
+
+        processor().process(nova);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
+        verify(notificacaoService, never()).criarParaLatenciaAlta(any());
+    }
+
+    @Test void caudaAnteriorAoFechamentoDoIncidenteNaoAbreEpisodio() {
+        Monitor monitor = monitor();
+        Medicao duranteOIncidente = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
+        Medicao depoisDoFechamento = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
+        prepararAtual(depoisDoFechamento);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(depoisDoFechamento, duranteOIncidente));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.of(T0.plusSeconds(30)));
+
+        processor().process(depoisDoFechamento);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
+    }
+
+    @Test void semJanelaAbertaNaoAbreEpisodio() {
+        Monitor monitor = monitor();
+        Medicao primeira = medicao(monitor, 1L, StatusMedicao.SUCESSO, 300, T0);
+        Medicao segunda = medicao(monitor, 2L, StatusMedicao.SUCESSO, 310, T0.plusSeconds(60));
+        prepararAtual(segunda);
+        semEpisodioAberto();
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(segunda, primeira));
+        when(inicioDaObservacao.doMonitor(1L)).thenReturn(Optional.empty());
+
+        processor().process(segunda);
+
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
     }
 
     @Test void umUnicoCicloAcimaDoLimiarNaoAbreEpisodio() {
@@ -75,7 +131,7 @@ class LatencyEpisodeProcessorTest {
 
         processor().process(atual);
 
-        verify(episodioRepository, never()).saveAndFlush(any());
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
         verify(notificacaoService, never()).criarParaLatenciaAlta(any());
     }
 
@@ -90,7 +146,7 @@ class LatencyEpisodeProcessorTest {
 
         processor().process(atual);
 
-        verify(episodioRepository, never()).saveAndFlush(any());
+        verify(episodioRepository, never()).inserirSeElegivel(any(), any(), anyInt(), any());
     }
 
     @Test void episodioAbertoNormalizaNoSegundoCicloDentroDoLimiar() {
@@ -102,11 +158,35 @@ class LatencyEpisodeProcessorTest {
         when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L)).thenReturn(Optional.of(episodio));
         when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
                 .thenReturn(List.of(atual, primeira));
+        when(episodioRepository.encerrarPorNormalizacaoSeAberto(eq(20L), eq(atual.getExecutadoEm()), any()))
+                .thenReturn(1);
+        MonitorEpisodioLatencia relido = episodio(monitor);
+        relido.encerrar(atual.getExecutadoEm(), MotivoEncerramentoEpisodio.NORMALIZACAO);
+        when(episodioRepository.findById(20L)).thenReturn(Optional.of(relido));
 
         processor().process(atual);
 
-        assertThat(episodio.getEncerradoEm()).isEqualTo(atual.getExecutadoEm());
-        verify(notificacaoService).criarParaLatenciaNormalizada(episodio);
+        // A notificacao sai da releitura pos-CAS, nao da instancia lida antes.
+        verify(notificacaoService).criarParaLatenciaNormalizada(relido);
+        verify(episodioRepository, never()).saveAndFlush(any());
+    }
+
+    @Test void normalizacaoPerdidaParaOutroEncerramentoNaoNotifica() {
+        Monitor monitor = monitor();
+        MonitorEpisodioLatencia episodio = episodio(monitor);
+        Medicao primeira = medicao(monitor, 3L, StatusMedicao.SUCESSO, 100, T0.plusSeconds(120));
+        Medicao atual = medicao(monitor, 4L, StatusMedicao.SUCESSO, 90, T0.plusSeconds(180));
+        prepararAtual(atual);
+        when(episodioRepository.findFirstByMonitorIdAndEncerradoEmIsNull(1L)).thenReturn(Optional.of(episodio));
+        when(medicaoRepository.findByMonitorIdOrderByExecutadoEmDescIdDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(atual, primeira));
+        // CAS devolve 0: a manutencao encerrou o episodio entre a leitura e a escrita.
+        when(episodioRepository.encerrarPorNormalizacaoSeAberto(eq(20L), eq(atual.getExecutadoEm()), any()))
+                .thenReturn(0);
+
+        processor().process(atual);
+
+        verify(notificacaoService, never()).criarParaLatenciaNormalizada(any());
     }
 
     @Test void incidenteAbertoEncerraEpisodioEmSilencio() {

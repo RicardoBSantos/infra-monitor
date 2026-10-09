@@ -3,7 +3,8 @@ import { take } from 'rxjs';
 
 import { DisponibilidadeDiariaUnidadeResponse } from '../../../core/models/relatorio';
 import { RelatorioApiService } from '../../../core/services/relatorio-api.service';
-import { Estado, UnidadeDetalheStore, formatarPercentual } from './unidade-detalhe.store';
+import { Estado, UnidadeDetalheStore } from './unidade-detalhe.store';
+import { formatarPercentual } from '../../../core/format/numero';
 
 /** Faixas de cor da barra. Ajustáveis aqui, nunca inline no template. */
 const LIMIAR_VERDE = 99;

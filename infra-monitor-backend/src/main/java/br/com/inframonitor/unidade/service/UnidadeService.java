@@ -3,6 +3,7 @@ package br.com.inframonitor.unidade.service;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UnidadeResponse;
 import br.com.inframonitor.unidade.dto.UpdateUnidadeRequest;
@@ -17,6 +18,9 @@ import java.util.Locale;
 @Service
 @Transactional(readOnly = true)
 public class UnidadeService {
+
+    /** Teto da varredura de ciclo. Onze unidades hoje; a cadeia real e rasa por natureza. */
+    private static final int PROFUNDIDADE_MAXIMA_DA_CADEIA = 64;
 
     private final UnidadeRepository unidadeRepository;
     private final EquipamentoRepository equipamentoRepository;
@@ -77,7 +81,7 @@ public class UnidadeService {
         // Optional nao serve, em Jackson 3 record ausente e null explicito
         // colapsam os dois em Optional.empty.
         //
-        // TODO: DIVIDA -- latitude e longitude NAO PODEM SER LIMPAS isoladamente
+        // TODO: DIVIDA CONSOLIDADA -- latitude e longitude NAO PODEM SER LIMPAS isoladamente
         // enquanto nao houver esse wrapper. Nao existe "numero vazio" equivalente
         // a string vazia, entao null so pode significar "preserva". Consequencia
         // pratica: uma unidade que recebeu coordenadas erradas so pode ser
@@ -92,6 +96,56 @@ public class UnidadeService {
         aplicarSePresente(requisicao.longitude(), unidade::setLongitude, valor -> valor);
         validarCoordenadasCompletas(unidade);
         return paraResposta(unidade);
+    }
+
+    /**
+     * Define a unidade a que esta se conecta. Substitui a conexao anterior, se houver.
+     *
+     * Tres recusas possiveis, todas antes de gravar: destino inexistente (404), destino igual a
+     * origem (409, espelhando ck_unidade_conexao_nao_reflexiva) e ciclo mais longo (409, que
+     * nenhuma constraint do banco alcanca).
+     */
+    @Transactional
+    public UnidadeResponse definirConexao(Long id, ConexaoUnidadeRequest requisicao) {
+        Unidade unidade = obterEntidade(id);
+        Long destino = requisicao.conectaAUnidadeId();
+        if (destino.equals(id)) {
+            throw new ConflitoException("Uma unidade nao pode se conectar a si mesma");
+        }
+        if (!unidadeRepository.existsById(destino)) {
+            throw new RecursoNaoEncontradoException("Unidade de destino nao encontrada");
+        }
+        validarAusenciaDeCiclo(id, destino);
+        unidade.setConectaAUnidadeId(destino);
+        return paraResposta(unidade);
+    }
+
+    /** Desconecta a unidade, devolvendo-a a condicao de raiz. Idempotente: quem ja e raiz continua. */
+    @Transactional
+    public UnidadeResponse removerConexao(Long id) {
+        Unidade unidade = obterEntidade(id);
+        unidade.setConectaAUnidadeId(null);
+        return paraResposta(unidade);
+    }
+
+    /**
+     * Percorre a cadeia a partir do destino ate a raiz. Se reencontrar a origem, a conexao
+     * fecharia um ciclo e o enlace deixaria de ter ponta.
+     *
+     * O teto de profundidade nao e paranoia: se um ciclo ja existir no banco (gravado fora da
+     * aplicacao, direto no PostgreSQL), esta varredura nunca chegaria a raiz.
+     */
+    private void validarAusenciaDeCiclo(Long origem, Long destino) {
+        Long atual = destino;
+        for (int passo = 0; atual != null && passo <= PROFUNDIDADE_MAXIMA_DA_CADEIA; passo++) {
+            if (atual.equals(origem)) {
+                throw new ConflitoException("A conexao criaria um ciclo entre unidades");
+            }
+            atual = unidadeRepository.findById(atual).map(Unidade::getConectaAUnidadeId).orElse(null);
+        }
+        if (atual != null) {
+            throw new ConflitoException("A cadeia de conexoes desta unidade excede a profundidade suportada");
+        }
     }
 
     @Transactional
@@ -113,6 +167,11 @@ public class UnidadeService {
         Unidade unidade = obterEntidade(id);
         if (equipamentoRepository.existsByUnidadeId(id)) {
             throw new ConflitoException("Nao e possivel excluir a unidade porque existem equipamentos associados");
+        }
+        // Sem ON DELETE na FK: o banco ja barraria, mas como erro de integridade (500). A recusa
+        // explicita mantem a exclusao de unidade com filhos no mesmo formato das demais (409).
+        if (unidadeRepository.existsByConectaAUnidadeId(id)) {
+            throw new ConflitoException("Nao e possivel excluir a unidade porque existem unidades conectadas a ela");
         }
         unidadeRepository.delete(unidade);
     }
@@ -188,6 +247,7 @@ public class UnidadeService {
                 unidade.getCidade(),
                 unidade.getUf(),
                 unidade.getLatitude(),
-                unidade.getLongitude());
+                unidade.getLongitude(),
+                unidade.getConectaAUnidadeId());
     }
 }

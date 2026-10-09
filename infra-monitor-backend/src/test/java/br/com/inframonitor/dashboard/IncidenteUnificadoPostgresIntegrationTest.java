@@ -187,6 +187,26 @@ class IncidenteUnificadoPostgresIntegrationTest {
         assertThat(terceira.last()).isTrue();
     }
 
+    /**
+     * A marca de manutencao da lista unificada (front) depende desta projecao: sem o
+     * campo preenchido aqui, a condicao do template nunca e verdadeira. NULL continua
+     * sendo o caso comum — o incidente fechado do cenario base nunca foi classificado,
+     * porque fechou antes da V19, e isso nao pode virar excecao.
+     */
+    @Test
+    void motivoEncerramentoApareceQuandoProjetadoENuloNoRestante() {
+        long incidenteManutencao = incidente(monitorA, "FECHADO", T0.minusSeconds(7200), T0.minusSeconds(7000),
+                null, null, "MANUTENCAO");
+
+        var linhas = service.listar(null, null, null, null, null, 0, 20, null).content();
+
+        assertThat(linha(linhas, "INCIDENTE", incidenteManutencao).motivoEncerramento()).isEqualTo("MANUTENCAO");
+        // Incidente fechado do cenario base, sem classificacao: NULL e honesto, nao erro.
+        assertThat(linha(linhas, "INCIDENTE", 3L).motivoEncerramento()).isNull();
+        // Episodio de latencia tem coluna propria no banco, mas esta leitura nao a projeta.
+        assertThat(linha(linhas, "LATENCIA", 1L).motivoEncerramento()).isNull();
+    }
+
     @Test
     void recusaSeveridadeStatusEOrdenacaoForaDoContrato() {
         assertThatThrownBy(() -> service.listar(null, "CRITICA", null, null, null, 0, 20, null))
@@ -224,10 +244,16 @@ class IncidenteUnificadoPostgresIntegrationTest {
 
     private long incidente(long monitorId, String status, Instant iniciadoEm, Instant encerradoEm,
                            Instant reconhecidoEm, Long reconhecidoPor) {
+        return incidente(monitorId, status, iniciadoEm, encerradoEm, reconhecidoEm, reconhecidoPor, null);
+    }
+
+    private long incidente(long monitorId, String status, Instant iniciadoEm, Instant encerradoEm,
+                           Instant reconhecidoEm, Long reconhecidoPor, String motivoEncerramento) {
         return insert("insert into incidente (monitor_id, status, iniciado_em, encerrado_em, motivo, "
-                + "reconhecido_em, reconhecido_por) values (?, ?, ?, ?, 'Indisponibilidade', ?, ?) returning id",
+                + "reconhecido_em, reconhecido_por, motivo_encerramento) "
+                + "values (?, ?, ?, ?, 'Indisponibilidade', ?, ?, ?) returning id",
                 monitorId, status, Timestamp.from(iniciadoEm), encerradoEm == null ? null : Timestamp.from(encerradoEm),
-                reconhecidoEm == null ? null : Timestamp.from(reconhecidoEm), reconhecidoPor);
+                reconhecidoEm == null ? null : Timestamp.from(reconhecidoEm), reconhecidoPor, motivoEncerramento);
     }
 
     private void episodio(long monitorId, Instant iniciadoEm, Instant encerradoEm) {

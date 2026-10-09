@@ -50,6 +50,16 @@ public class Unidade {
     @Column(precision = 9, scale = 6)
     private BigDecimal longitude;
 
+    /*
+     * Unidade a que esta se conecta (hub). NULL = unidade raiz.
+     *
+     * Guardado como id, e nao como @ManyToOne: a unica navegacao que existe hoje e percorrer a
+     * cadeia para barrar ciclo, e isso o repositorio faz por id sem carregar proxy nenhum. A FK
+     * de verdade esta no banco (fk_unidade_conecta_a).
+     */
+    @Column(name = "conecta_a_unidade_id")
+    private Long conectaAUnidadeId;
+
     @Column(nullable = false)
     private boolean ativo;
 
@@ -79,6 +89,14 @@ public class Unidade {
     @PreUpdate
     void registrarAtualizacao() {
         updatedAt = Instant.now();
+    }
+
+    public Long getConectaAUnidadeId() {
+        return conectaAUnidadeId;
+    }
+
+    public void setConectaAUnidadeId(Long conectaAUnidadeId) {
+        this.conectaAUnidadeId = conectaAUnidadeId;
     }
 
     public Long getId() {

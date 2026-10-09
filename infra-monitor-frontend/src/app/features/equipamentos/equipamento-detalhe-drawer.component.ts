@@ -3,8 +3,9 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, injec
 import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 
+import { plural } from '../../core/format/plural';
+import { formatarPercentual } from '../../core/format/numero';
 import { EquipmentOperationalStatus, MeasurementStatus } from '../../core/models/api-enums';
-import { DashboardEquipamentoLista } from '../../core/models/dashboard';
 import { EquipamentoResponse } from '../../core/models/equipamento';
 import { IncidenteResponse } from '../../core/models/incidente';
 import { MonitorResponse } from '../../core/models/monitor';
@@ -16,6 +17,7 @@ import { IncidenteApiService } from '../../core/services/incidente-api.service';
 import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { rotuloMotivoEncerramento } from '../incidentes/ocorrencia';
 import { MonitorManagementComponent } from '../monitores/monitor-management.component';
 import { JANELA_DIAS } from '../unidades/detalhe/unidade-detalhe.store';
 
@@ -31,9 +33,34 @@ const MEDIA_MOVEL = 5;
 interface PontoLatencia { x: number; y: number | null; }
 
 /**
- * Painel lateral de detalhe do equipamento, aberto pela lista e endereçável por
- * `/equipamentos/:id`. Substitui a antiga página cheia, preservando o
- * `<app-monitor-management>` na seção recolhida "Ver todos os monitores".
+ * O que a gaveta precisa da linha já carregada pelo pai — e nada além disso.
+ *
+ * Tipo estreito de propósito: `DashboardEquipamentoLista` o satisfaz estruturalmente, então a
+ * lista continua passando a linha inteira sem conversão, e o Mapa — que só tem
+ * `DashboardEquipamento` e a unidade em contexto — monta estes cinco campos sem requisição extra.
+ *
+ * Os quatro primeiros campos são adiantamento: o cadastro que chega depois traz equivalente.
+ * `status` NÃO é. `EquipamentoResponse` não tem esse campo, porque status é derivado e só existe
+ * no read-model do painel. Sem `linha`, o KPI de status e o badge do cabeçalho ficam em "—" para
+ * sempre — sem erro, sem requisição falhando, parecendo dado ausente no banco. Por isso todo host
+ * é obrigado a passar a linha, mesmo carregando a gaveta todo o resto por conta própria.
+ */
+export interface EquipamentoResumo {
+  nome: string;
+  tipoNome: string;
+  unidadeNome: string;
+  status: EquipmentOperationalStatus;
+  ativo: boolean;
+}
+
+/**
+ * Painel lateral de detalhe do equipamento. Dois hosts: a lista de Equipamentos, onde é
+ * endereçável por `/equipamentos/:id`, e o Mapa, onde abre por cima do cartão sem trocar de rota.
+ * Substitui a antiga página cheia, preservando o `<app-monitor-management>` na seção recolhida
+ * "Ver todos os monitores".
+ *
+ * A gaveta é autossuficiente: recebe um id e faz as próprias seis chamadas de composição. O único
+ * dado que precisa vir do pai é `linha` — ver `EquipamentoResumo` acima.
  *
  * Cada bloco carrega e falha por conta própria: uma chamada de composição que cai
  * (latência, disponibilidade, incidentes) marca só o seu card, nunca derruba o
@@ -47,6 +74,7 @@ interface PontoLatencia { x: number; y: number | null; }
   styleUrl: './equipamento-detalhe-drawer.component.scss',
 })
 export class EquipamentoDetalheDrawerComponent {
+  protected readonly plural = plural;
   private readonly api = inject(EquipamentoApiService);
   private readonly relatorios = inject(RelatorioApiService);
   private readonly monitores = inject(MonitorApiService);
@@ -55,8 +83,15 @@ export class EquipamentoDetalheDrawerComponent {
   protected readonly authState = inject(AuthStateService);
 
   readonly equipamentoId = input.required<number>();
-  /** Linha já carregada pela lista: nome e status aparecem antes de qualquer resposta. */
-  readonly linha = input<DashboardEquipamentoLista | null>(null);
+  /** Linha já carregada pelo pai: nome e status aparecem antes de qualquer resposta. */
+  readonly linha = input<EquipamentoResumo | null>(null);
+  /**
+   * Editar e alternar monitoramento só aparecem onde o host implementa esses fluxos. A lista tem
+   * formulário e diálogo de confirmação; o Mapa não tem nenhum dos dois, e oferecer lá um botão
+   * que levaria o usuário para fora do mapa desfaz exatamente o motivo de a gaveta abrir por cima
+   * dele. "Abrir histórico" continua nos dois hosts: é link, não `output` que o pai precise atender.
+   */
+  readonly acoesDeGestao = input(true);
 
   readonly fechar = output<void>();
   readonly editar = output<void>();
@@ -308,20 +343,14 @@ export class EquipamentoDetalheDrawerComponent {
     return valor >= 99 ? 'kpi--ok' : valor >= 95 ? 'kpi--warn' : 'kpi--down';
   });
 
-  /** Perda e sempre ambar, qualquer que seja o percentual; sem dado, neutro. */
-  protected readonly corPerda = computed(() => (this.perdaDePacotes() === null ? '' : 'kpi--warn'));
+  /** Perda ambar so quando ha perda: 0% e sem dado (null) sao neutros. */
+  protected readonly corPerda = computed(() => ((this.perdaDePacotes() ?? 0) > 0 ? 'kpi--warn' : ''));
 
   /**
-   * Incidentes e sempre vermelho para qualquer contagem, inclusive zero — a cor
-   * identifica a metrica, nao o estado dela. Nao "corrigir" para neutro quando o valor
-   * for 0: e o comportamento pedido, coberto por teste. So o "—" fica neutro, porque ai
-   * nao ha contagem alguma: e request que falhou ou ainda nao voltou, nao ausencia de
-   * incidentes.
+   * Tom so quando ha o que alertar: zero incidentes e o estado saudavel e fica neutro,
+   * assim como o "—" (contagem que falhou ou ainda nao voltou).
    */
-  protected readonly corIncidentes = computed(() => {
-    const contagem = this.disponibilidade()?.incidentes;
-    return contagem === null || contagem === undefined ? '' : 'kpi--down';
-  });
+  protected readonly corIncidentes = computed(() => ((this.disponibilidade()?.incidentes ?? 0) > 0 ? 'kpi--down' : ''));
 
   /**
    * Âmbar um passo antes do limite, vermelho ao atingi-lo. Com
@@ -346,15 +375,30 @@ export class EquipamentoDetalheDrawerComponent {
     if (evento.key === 'Escape') { evento.stopPropagation(); this.pedirFechamento(); }
   }
 
+  /**
+   * Devolve o foco ao gatilho e avisa o pai.
+   *
+   * A segunda tentativa existe por causa de host que inerta o conteúdo de trás enquanto a gaveta
+   * está aberta — é o caso do Mapa, onde o gatilho é um item do painel da unidade, dentro da
+   * região inerte. Elemento sob ancestral `inert` não aceita foco, então a primeira chamada cai no
+   * vazio e o foco fica no `<body>`: o Tab recomeçaria do topo da página, que é exatamente a
+   * regressão que o requisito de acessibilidade proíbe. O `inert` só sai quando o pai reage a este
+   * `emit` e a aplicação renderiza de novo; o `setTimeout` chega depois disso.
+   *
+   * Onde a primeira tentativa já funcionou — a lista de Equipamentos, que não inerta nada — a
+   * guarda impede que qualquer temporizador seja agendado, e o comportamento continua síncrono.
+   */
   protected pedirFechamento(): void {
-    this.gatilho?.focus();
+    const gatilho = this.gatilho;
+    gatilho?.focus();
     this.fechar.emit();
+    if (gatilho && document.activeElement !== gatilho) setTimeout(() => gatilho.focus());
   }
 
   // ---- Apresentação ------------------------------------------------------------
 
   protected percentual(valor: number | null | undefined): string {
-    return valor === null || valor === undefined ? '—' : `${valor.toFixed(2).replace('.', ',')}%`;
+    return formatarPercentual(valor);
   }
 
   protected milissegundos(valor: number | null | undefined): string { return formatarMs(valor); }
@@ -366,6 +410,15 @@ export class EquipamentoDetalheDrawerComponent {
     if (minutos < 60) return `há ${minutos} min`;
     const horas = Math.floor(minutos / 60);
     return horas < 24 ? `há ${horas} h` : `há ${Math.floor(horas / 24)} d`;
+  }
+
+  /**
+   * Como o incidente terminou — resolvido de verdade ou apenas interrompido por
+   * manutenção. `null` enquanto aberto: ainda não há como saber. `incidente.motivo` é o
+   * motivo de ABERTURA; não confundir os dois.
+   */
+  protected rotuloEncerramento(incidente: IncidenteResponse): string | null {
+    return incidente.encerradoEm ? rotuloMotivoEncerramento(incidente.motivoEncerramento) : null;
   }
 }
 

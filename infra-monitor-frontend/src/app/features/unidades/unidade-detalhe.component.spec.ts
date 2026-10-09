@@ -46,8 +46,8 @@ describe('UnidadeDetalheComponent', () => {
   function criar() { const fixture = TestBed.createComponent(UnidadeDetalheComponent); fixture.detectChanges(); return fixture; }
   function texto(fixture: ComponentFixture<UnidadeDetalheComponent>) { return (fixture.nativeElement as HTMLElement).textContent ?? ''; }
 
-  function responder(fixture: ComponentFixture<UnidadeDetalheComponent>) {
-    httpTesting.expectOne((request) => request.url.endsWith('/dashboard/unidades/7')).flush(detalhe);
+  function responder(fixture: ComponentFixture<UnidadeDetalheComponent>, corpo: object = detalhe) {
+    httpTesting.expectOne((request) => request.url.endsWith('/dashboard/unidades/7')).flush(corpo);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades/7')).flush(cadastro);
     httpTesting.expectOne((request) => request.url.includes('/dashboard/unidades/7/equipamentos')).flush(pagina([equipamento]));
     httpTesting.expectOne((request) => request.url.includes('/relatorios/disponibilidade/unidades')).flush(pagina([{ unidadeId: 7, disponibilidadePercentual: 99.42 }]));
@@ -67,6 +67,16 @@ describe('UnidadeDetalheComponent', () => {
     expect(texto(fixture)).toContain('99,42%');
     expect(texto(fixture)).toContain('23');
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi').length).toBe(7);
+  });
+
+  it('concorda monitorados e ativos no singular', async () => {
+    await configurar('7');
+    const fixture = criar();
+    responder(fixture, { ...detalhe, equipamentos: { ...detalhe.equipamentos, total: 1, ativos: 1, semMonitoramento: 0 } });
+    expect(texto(fixture)).toContain('1 monitorado');
+    expect(texto(fixture)).not.toContain('1 monitorados');
+    expect(texto(fixture)).toContain('de 1 ativo');
+    expect(texto(fixture)).not.toContain('1 ativos');
   });
 
   it('omite os segmentos ausentes dos metadados em vez de exibir vazio', async () => {

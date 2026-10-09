@@ -13,6 +13,7 @@ import br.com.inframonitor.monitoring.incident.IncidentProcessor;
 import br.com.inframonitor.monitoring.latency.LatencyEpisodeProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -50,12 +51,22 @@ public class MedicaoService {
         Medicao persistida = medicaoRepository.save(medicao);
         try {
             incidentProcessor.process(persistida);
+        } catch (PessimisticLockingFailureException lockNaoObtido) {
+            // Contencao esperada com a manutencao, nao erro interno: a transacao do
+            // processor voltou inteira, a medicao ficou, e a proxima medicao reavalia a
+            // cauda. Tentar de novo aqui prenderia o worker atras do mesmo detentor.
+            log.warn("Lock not acquired while processing incidents for measurement {}; "
+                    + "re-evaluated on the next measurement", persistida.getId());
         } catch (RuntimeException exception) {
             // A medicao e o dado primario: uma falha de interpretacao nao a invalida.
             log.error("Incident processing failed after persisting measurement {}", persistida.getId(), exception);
         }
         try {
             latencyEpisodeProcessor.process(persistida);
+        } catch (PessimisticLockingFailureException lockNaoObtido) {
+            // Mesmo raciocinio do bloco de incidentes.
+            log.warn("Lock not acquired while processing latency for measurement {}; "
+                    + "re-evaluated on the next measurement", persistida.getId());
         } catch (RuntimeException exception) {
             log.error("Latency processing failed after persisting measurement {}", persistida.getId(), exception);
         }

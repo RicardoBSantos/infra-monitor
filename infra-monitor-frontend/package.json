@@ -6,7 +6,14 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "e2e:n04": "node e2e/n04-conexao-unidade.cjs",
+    "e2e:n05": "node e2e/n05-mapa-maplibre.cjs",
+    "e2e:m06": "node e2e/m06-drawer-no-mapa.cjs",
+    "e2e:n06": "node e2e/n06-marcadores-e-conexoes.cjs",
+    "e2e:n07": "node e2e/n07-pulso-ping-dica.cjs",
+    "e2e:pre-carga": "node e2e/pre-carga-timeline-e-tela.cjs",
+    "perf:mapa": "node e2e/perf-mapa/perf-mapa-animacoes.cjs"
   },
   "private": true,
   "packageManager": "npm@11.15.0",
@@ -19,7 +26,7 @@
     "@angular/router": "^21.2.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
-    "leaflet": "^1.9.4",
+    "maplibre-gl": "6.9.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -27,8 +34,8 @@
     "@angular/build": "^21.2.21",
     "@angular/cli": "^21.2.21",
     "@angular/compiler-cli": "^21.2.0",
-    "@types/leaflet": "^1.9.22",
     "jsdom": "^28.0.0",
+    "playwright": "^1.63.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"

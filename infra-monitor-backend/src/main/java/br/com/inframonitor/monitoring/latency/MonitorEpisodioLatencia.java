@@ -3,6 +3,8 @@ package br.com.inframonitor.monitoring.latency;
 import br.com.inframonitor.monitor.entity.Monitor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -43,6 +45,10 @@ public class MonitorEpisodioLatencia {
     @Column(name = "limiar_ms", nullable = false, updatable = false)
     private int limiarMs;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motivo_encerramento", length = 24)
+    private MotivoEncerramentoEpisodio motivoEncerramento;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -58,8 +64,9 @@ public class MonitorEpisodioLatencia {
         this.limiarMs = limiarMs;
     }
 
-    public void encerrar(Instant encerradoEm) {
+    public void encerrar(Instant encerradoEm, MotivoEncerramentoEpisodio motivoEncerramento) {
         this.encerradoEm = encerradoEm;
+        this.motivoEncerramento = motivoEncerramento;
     }
 
     @PrePersist
@@ -79,6 +86,7 @@ public class MonitorEpisodioLatencia {
     public Instant getIniciadoEm() { return iniciadoEm; }
     public Instant getEncerradoEm() { return encerradoEm; }
     public int getLimiarMs() { return limiarMs; }
+    public MotivoEncerramentoEpisodio getMotivoEncerramento() { return motivoEncerramento; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public boolean estaAberto() { return encerradoEm == null; }

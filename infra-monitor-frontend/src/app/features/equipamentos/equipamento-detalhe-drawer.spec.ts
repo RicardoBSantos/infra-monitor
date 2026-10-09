@@ -165,6 +165,26 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     http.expectNone((request) => request.method === 'PATCH');
   });
 
+  /*
+   * Host que não implementa editar nem alternar (o Mapa) desliga os dois pelo input, mesmo com o
+   * usuário sendo ADMIN — são condições diferentes: `acoesDeGestao` é sobre o HOST atender a ação,
+   * `canManageInventory` é sobre o USUÁRIO poder executá-la. "Abrir histórico" fica nos dois, por
+   * ser link de rota e não um `output` que o pai precise atender.
+   */
+  it('esconde as ações de gestão onde o host não as implementa, e mantém o histórico', () => {
+    const fixture = montar();
+    fixture.componentRef.setInput('acoesDeGestao', false);
+    responder(fixture);
+
+    const rodape = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.gaveta__acoes .botao'),
+    ).map((elemento) => (elemento.textContent ?? '').trim());
+
+    expect(rodape).toEqual(['Abrir histórico']);
+    // A sessão do beforeEach é ADMIN: o rodapé encolheu pelo input do host, não por permissão.
+    expect(TestBed.inject(AuthStateService).canManageInventory()).toBe(true);
+  });
+
   it('colore o estado atual pelo status operacional e o contador pela proximidade do limite', () => {
     const fixture = montar();
     // Três falhas na cauda, com falhasParaIncidente = 3: contador no limite.
@@ -205,7 +225,15 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi--info').length).toBe(2);
   });
 
-  it('mantém Incidentes em vermelho mesmo com zero incidentes', () => {
+  it('deixa Perda de pacotes neutra com zero por cento', () => {
+    const fixture = montar();
+    responder(fixture, [], [monitor({ id: 10 })], [medicao(18, 'SUCESSO', 4), medicao(19, 'SUCESSO', 6)]);
+
+    expect(fixture.componentInstance['perdaDePacotes']()).toBe(0);
+    expect(fixture.componentInstance['corPerda']()).toBe('');
+  });
+
+  it('deixa Incidentes neutro com zero incidentes', () => {
     const fixture = montar();
     responder(fixture, [], [monitor({ id: 10 })], MEDICOES_PADRAO, [
       { equipamentoId: 1, disponibilidadePercentual: 100, incidentes: 0 },
@@ -214,8 +242,9 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     const cartaoIncidentes = [...elemento.querySelectorAll('.kpi')]
       .find((cartao) => cartao.textContent?.includes('Incidentes'))!;
 
-    // A cor identifica a métrica, não o estado: zero incidente segue vermelho.
-    expect(cartaoIncidentes.className).toContain('kpi--down');
+    // Zero é o estado saudável: tom de alerta só quando há o que alertar.
+    expect(fixture.componentInstance['corIncidentes']()).toBe('');
+    expect(cartaoIncidentes.className).not.toContain('kpi--down');
     expect(cartaoIncidentes.textContent).toContain('0');
   });
 

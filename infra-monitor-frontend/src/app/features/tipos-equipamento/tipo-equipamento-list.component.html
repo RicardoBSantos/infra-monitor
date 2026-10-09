@@ -49,7 +49,7 @@
       [value]="busca()"
       (input)="buscar($any($event.target).value)"
     >
-    <p class="contagem">{{ filtrados().length }} de {{ total() }} tipos</p>
+    <p class="contagem">{{ filtrados().length }} de {{ plural(total(), 'tipo', 'tipos') }}</p>
   </div>
 
   <div class="cartao">

@@ -1,0 +1,111 @@
+{
+  "base": "http://127.0.0.1:4300",
+  "saida": "C:\\Users\\rbfilho\\Documents\\infra-monitor-merge\\infra-monitor-frontend\\e2e\\mapa-marcador-evidence\\reversao\\restaurada",
+  "inicio": "2026-09-24T14:46:17.974Z",
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "clique no marcador ITA-09 abre a unidade e mostra o aviso de IBGE",
+      "ok": true,
+      "detalhe": {
+        "esperado": "Sesc Itabaiana",
+        "ariaPressed": "true",
+        "unidadesPressionadas": [
+          "5"
+        ],
+        "municipiosPressionados": [
+          "2803005"
+        ],
+        "painelUnidade": "Sesc Itabaiana",
+        "painelMunicipio": null,
+        "aviso": "Localização divergente. A coordenada cai em Itabaiana, mas o código IBGE aponta Itabaianinha (2803005). O mapa posiciona pela coordenada."
+      }
+    },
+    {
+      "caso": 2,
+      "nome": "clique no marcador de unidade de Aracaju (município com 4) abre essa unidade",
+      "ok": true,
+      "detalhe": {
+        "esperado": "Centro Integrado de Saúde",
+        "ariaPressed": "true",
+        "unidadesPressionadas": [
+          "7"
+        ],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": "Centro Integrado de Saúde",
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades",
+        "aviso": null
+      }
+    },
+    {
+      "caso": 5,
+      "nome": "unidade com IBGE coerente não mostra aviso",
+      "ok": true,
+      "detalhe": {
+        "esperado": "Sede Administrativa",
+        "ariaPressed": "true",
+        "unidadesPressionadas": [
+          "1"
+        ],
+        "municipiosPressionados": [
+          "2800308"
+        ],
+        "painelUnidade": "Sede Administrativa",
+        "painelMunicipio": "Aracaju 4 unidades neste município. Escolha uma para ver o detalhe. Centro Integrado de Saúde Disponível 16 equipamentos Escola Sesc Aracaju Degradada 26 equipamentos Hotel Sesc Atalaia Disponível 18 equipamentos Sede Administrativa Degradada 21 equipamentos Gerenciar unidades",
+        "aviso": null
+      }
+    },
+    {
+      "caso": 3,
+      "nome": "clique na área do município sem marcador continua selecionando o município",
+      "ok": true,
+      "detalhe": {
+        "alvo": {
+          "x": 898.9637723226649,
+          "y": 461.6876258875329,
+          "codigoIbge": "2800100",
+          "nome": "Amparo de São Francisco"
+        },
+        "ariaPressed": null,
+        "unidadesPressionadas": [],
+        "municipiosPressionados": [
+          "2800100"
+        ],
+        "painelUnidade": null,
+        "painelMunicipio": "Amparo de São Francisco Nenhuma unidade cadastrada neste município.",
+        "aviso": null
+      }
+    },
+    {
+      "caso": 4,
+      "nome": "Enter no marcador ITA-09 focado dá o mesmo resultado do clique",
+      "ok": true,
+      "detalhe": {
+        "esperado": "Sesc Itabaiana",
+        "ariaPressed": "true",
+        "unidadesPressionadas": [
+          "5"
+        ],
+        "municipiosPressionados": [
+          "2803005"
+        ],
+        "painelUnidade": "Sesc Itabaiana",
+        "painelMunicipio": null,
+        "aviso": "Localização divergente. A coordenada cai em Itabaiana, mas o código IBGE aponta Itabaianinha (2803005). O mapa posiciona pela coordenada."
+      }
+    }
+  ],
+  "erros": [],
+  "cameraInicial": {
+    "center": [
+      -37.31472562891594,
+      -10.654690923136997
+    ],
+    "zoom": 8.28807003534669,
+    "bearing": -18,
+    "pitch": 45
+  },
+  "fim": "2026-09-24T14:46:31.371Z"
+}

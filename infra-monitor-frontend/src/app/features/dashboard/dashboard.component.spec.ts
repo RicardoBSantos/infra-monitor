@@ -50,7 +50,7 @@ describe('DashboardComponent', () => {
   function texto(fixture: ComponentFixture<DashboardComponent>) { return (fixture.nativeElement as HTMLElement).textContent ?? ''; }
 
   /** Responde às chamadas disparadas na abertura da página; nenhuma delas cria endpoint novo. */
-  function responderCarga(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade]) {
+  function responderCarga(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade], incidentesBody: unknown[] = [incidenteAberto]) {
     httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush(resumoBody);
     httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush(unidadesBody);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([{ id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true, createdAt: '', updatedAt: '' }]);
@@ -60,7 +60,7 @@ describe('DashboardComponent', () => {
     httpTesting.expectOne((request) => request.url.includes('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(23, 200)]));
     fixture.detectChanges();
     if (resumoBody.incidentes.abertos > 0) {
-      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes')).flush(pagina([incidenteAberto]));
+      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes')).flush(pagina(incidentesBody));
       fixture.detectChanges();
     }
   }
@@ -120,7 +120,7 @@ describe('DashboardComponent', () => {
     // O resto do painel continua de pé: contadores do resumo e a linha da unidade.
     expect(texto(fixture)).toContain('EM MANUTENÇÃO');
     expect(texto(fixture)).toContain('Centro Operacional');
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
   });
 
   it('usa o agregado por unidade do backend em vez de somar as linhas por monitor', () => {
@@ -147,7 +147,7 @@ describe('DashboardComponent', () => {
     busca.value = 'CIS-01';
     busca.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
 
     busca.value = '';
     busca.dispatchEvent(new Event('input'));
@@ -183,7 +183,7 @@ describe('DashboardComponent', () => {
     const pills = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.pill')];
     pills[pills.length - 1].click();
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
     expect(texto(fixture)).toContain('Em manutenção');
   });
 
@@ -199,6 +199,13 @@ describe('DashboardComponent', () => {
     responderCarga(fixture);
     const detalhe = (fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent ?? '';
     expect(detalhe).toContain('SW-CORE no Centro Operacional offline há');
+  });
+
+  it('concorda o excedente do banner no singular (+1 incidente)', () => {
+    const extra = (id: number) => ({ ...incidenteAberto, id });
+    const um = create();
+    responderCarga(um, resumo, [unidade], [1, 2, 3, 4].map(extra));
+    expect((um.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent?.trim()).toMatch(/· [+]1 incidente$/);
   });
 
   it('não busca incidentes quando o resumo não aponta incidentes abertos', () => {
@@ -243,12 +250,12 @@ describe('DashboardComponent', () => {
     busca.value = 'sw-core.rede.local';
     busca.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('1 de 1 unidades');
+    expect(texto(fixture)).toContain('1 de 1 unidade');
 
     busca.value = 'inexistente';
     busca.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(texto(fixture)).toContain('0 de 1 unidades');
+    expect(texto(fixture)).toContain('0 de 1 unidade');
   });
 
   it('reaproveita o cache ao recolher e expandir a mesma unidade', () => {

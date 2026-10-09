@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, take } from 'rxjs';
 
+import { plural } from '../../core/format/plural';
 import { EquipmentOperationalStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
@@ -56,6 +57,7 @@ const ZERO: Contagem = { dispositivos: 0, online: 0, degradados: 0, offline: 0 }
   styleUrl: './tipo-equipamento-list.component.scss',
 })
 export class TipoEquipamentoListComponent {
+  protected readonly plural = plural;
   private readonly api = inject(TipoEquipamentoApiService);
   private readonly dashboard = inject(DashboardApiService);
   private readonly fb = inject(FormBuilder);

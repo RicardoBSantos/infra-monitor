@@ -1,4 +1,4 @@
-import { MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../../core/models/api-enums';
+import { IncidentClosureReason, MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../../core/models/api-enums';
 import { IncidentKind } from '../../../core/models/dashboard-incidente';
 import { NotificacaoResponse } from '../../../core/models/notificacao';
 import { HistoricoMedicaoResponse } from '../../../core/models/relatorio';
@@ -38,6 +38,8 @@ const entradaDeIncidente: EntradaTimeline = {
     limiarMs: null, ciclosParaEpisodio: null,
     reconhecidoEm: '2026-09-01T08:01:50Z',
     reconhecidoPorNome: 'Ricardo',
+    motivoEncerramento: IncidentClosureReason.AutomaticRecovery,
+    fechadoPorNome: null,
   },
   medicoes: medicoesDoIncidente,
   limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 2 },
@@ -115,6 +117,8 @@ describe('derivarTimeline', () => {
       encerradoEm: '2026-09-01T09:02:00Z',
       motivo: null, limiarMs: 250, ciclosParaEpisodio: 2,
       reconhecidoEm: null, reconhecidoPorNome: null,
+      motivoEncerramento: null,
+      fechadoPorNome: null,
     },
     medicoes: medicoesDoEpisodio,
     limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 2 },
@@ -145,6 +149,11 @@ describe('derivarTimeline', () => {
     expect(eventos.at(-1)?.detalhe).toBe('2 medições consecutivas dentro do limiar encerraram o episódio');
   });
 
+  it('episódio de uma só medição concorda no singular', () => {
+    const eventos = derivarTimeline({ ...entradaDeEpisodio, ocorrencia: { ...entradaDeEpisodio.ocorrencia, ciclosParaEpisodio: 1 } });
+    expect(eventos.at(-1)?.detalhe).toBe('1 medição consecutiva dentro do limiar encerrou o episódio');
+  });
+
   /** Sem o N não há o que numerar: a abertura cai no início registrado, como no incidente. */
   it('sem o N do episódio, cai para o início registrado e não numera nada', () => {
     const eventos = derivarTimeline({
@@ -169,5 +178,92 @@ describe('derivarTimeline', () => {
     });
     expect(eventos.some(e => e.tipo === 'fechamento')).toBe(false);
     expect(eventos.some(e => e.tipo === 'recuperacao')).toBe(false);
+  });
+
+  it('não afirma recuperação quando o incidente foi encerrado por manutenção', () => {
+    const eventos = derivarTimeline({
+      ...entradaDeIncidente,
+      ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: IncidentClosureReason.Maintenance },
+    });
+    const fim = eventos.at(-1)!;
+    expect(fim.rotulo).toBe('Encerrado por manutenção');
+    // Hoje a timeline imprime "N respostas consecutivas restabeleceram o monitor"
+    // com rotulo fixo. Para um fechamento por manutencao isso e falso: nao houve
+    // sequencia de recuperacao nenhuma.
+    expect(fim.detalhe).not.toContain('restabeleceram');
+  });
+
+  it('mantém o texto de recuperação quando o motor fechou', () => {
+    const eventos = derivarTimeline({
+      ...entradaDeIncidente,
+      ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: IncidentClosureReason.AutomaticRecovery },
+    });
+    expect(eventos.at(-1)!.detalhe).toContain('restabeleceram o monitor');
+  });
+});
+
+describe('fechamento por motivo', () => {
+  it('concorda verbo e número no singular (1 resposta)', () => {
+    const incidente = derivarTimeline({ ...entradaDeIncidente, limiares: { falhasParaIncidente: 3, sucessosParaRecovery: 1 }, ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: IncidentClosureReason.AutomaticRecovery, encerradoEm: '2026-09-01T08:02:30Z' } });
+    expect(incidente.find((e) => e.tipo === 'fechamento')?.detalhe).toBe('1 resposta consecutiva restabeleceu o monitor');
+  });
+
+  const fechamento = (entrada: EntradaTimeline) => derivarTimeline(entrada).find((e) => e.tipo === 'fechamento')!;
+  const comMotivo = (motivo: IncidentClosureReason | null, fechadoPorNome: string | null, encerradoEm = '2026-09-01T08:02:30Z'): EntradaTimeline => ({
+    ...entradaDeIncidente,
+    ocorrencia: { ...entradaDeIncidente.ocorrencia, motivoEncerramento: motivo, fechadoPorNome, encerradoEm },
+  });
+
+  it('recuperação automática afirma as respostas consecutivas e lista a recuperação', () => {
+    const entrada = comMotivo(IncidentClosureReason.AutomaticRecovery, null);
+    expect(fechamento(entrada).rotulo).toBe('Incidente fechado');
+    expect(fechamento(entrada).detalhe).toBe('2 respostas consecutivas restabeleceram o monitor');
+    expect(derivarTimeline(entrada).filter((e) => e.tipo === 'recuperacao')).toHaveLength(2);
+  });
+
+  it('fechamento manual diz quem fechou e não afirma recuperação', () => {
+    // encerradoEm coincide com uma medição de sucesso de propósito: a guarda é explícita, não acidental.
+    const entrada = comMotivo(IncidentClosureReason.ManualClosure, 'Ricardo');
+    expect(fechamento(entrada).rotulo).toBe('Encerrado manualmente');
+    expect(fechamento(entrada).detalhe).toBe('por Ricardo. Nenhuma recuperação foi medida.');
+    expect(derivarTimeline(entrada).filter((e) => e.tipo === 'recuperacao')).toHaveLength(0);
+  });
+
+  it('manutenção mantém o texto de manutenção', () => {
+    const entrada = comMotivo(IncidentClosureReason.Maintenance, null);
+    expect(fechamento(entrada).rotulo).toBe('Encerrado por manutenção');
+    expect(derivarTimeline(entrada).filter((e) => e.tipo === 'recuperacao')).toHaveLength(0);
+  });
+
+  it('legado com autor é lido como manual', () => {
+    expect(fechamento(comMotivo(null, 'Ana')).rotulo).toBe('Encerrado manualmente');
+  });
+
+  it('legado sem autor e sem sequência não afirma causa', () => {
+    const entrada = comMotivo(null, null, '2026-09-01T08:02:10Z');
+    expect(fechamento(entrada).rotulo).toBe('Incidente fechado');
+    expect(fechamento(entrada).detalhe).toBeNull();
+  });
+
+  it('legado sem autor com sequência medida é lido como recuperação', () => {
+    expect(fechamento(comMotivo(null, null)).detalhe).toBe('2 respostas consecutivas restabeleceram o monitor');
+  });
+});
+
+describe('recorte das medições', () => {
+  it('não mostra medições posteriores ao encerramento nem anteriores ao início', () => {
+    const entrada: EntradaTimeline = {
+      ...entradaDeIncidente,
+      medicoes: [
+        medicao('2026-09-01T07:59:30Z', MeasurementStatus.Failure, null, 90),
+        ...medicoesDoIncidente,
+        medicao('2026-09-01T08:03:00Z', MeasurementStatus.Failure, null, 91),
+        medicao('2026-09-01T08:03:30Z', MeasurementStatus.Failure, null, 92),
+      ],
+    };
+    const chaves = derivarTimeline(entrada).map((e) => e.chave);
+    expect(chaves).not.toContain('falha-90');
+    expect(chaves).not.toContain('falha-91');
+    expect(chaves).not.toContain('falha-92');
   });
 });

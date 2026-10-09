@@ -114,13 +114,18 @@ public class VisaoGeralPdfRenderer {
         return rows;
     }
 
+    // PDF e leitura humana: virgula como o resto da tela. CSV continua com ponto (dado para maquina, delimitador virgula).
+    private static String duasCasas(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP).toPlainString().replace('.', ',');
+    }
+
     private static String percent(BigDecimal value) {
-        return value == null ? "-" : value.setScale(2, RoundingMode.HALF_UP).toPlainString() + "%";
+        return value == null ? "-" : duasCasas(value) + "%";
     }
 
     private static String millis(Integer value) { return value == null ? "-" : value + " ms"; }
     private static String decimalMillis(BigDecimal value) {
-        return value == null ? "-" : value.setScale(2, RoundingMode.HALF_UP).toPlainString() + " ms";
+        return value == null ? "-" : duasCasas(value) + " ms";
     }
     private static String safe(String value) {
         if (value == null || value.isBlank()) return "-";

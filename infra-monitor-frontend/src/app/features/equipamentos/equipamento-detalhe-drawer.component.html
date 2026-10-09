@@ -88,7 +88,7 @@
           <span class="grafico__chave grafico__chave--linha">latência</span>
           <span class="grafico__chave grafico__chave--media">média móvel</span>
           <span class="mono">pico {{ milissegundos(picoLatencia()) }}</span>
-          <span class="mono">{{ timeoutsNaJanela() }} timeouts</span>
+          <span class="mono">{{ plural(timeoutsNaJanela(), 'timeout', 'timeouts') }}</span>
         </p>
       </div>
 
@@ -234,7 +234,12 @@
           @for (incidente of incidentes(); track incidente.id) {
             <li>
               <a class="mono" [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a>
-              <span class="incidentes-recentes__evento">{{ incidente.motivo ?? 'Indisponibilidade consolidada' }}</span>
+              <span class="incidentes-recentes__evento">
+                {{ incidente.motivo ?? 'Indisponibilidade consolidada' }}
+                @if (rotuloEncerramento(incidente); as encerramento) {
+                  <span class="apagado"> · {{ encerramento }}</span>
+                }
+              </span>
               <app-status-badge [status]="incidente.status" />
               <span class="mono apagado">{{ relativo(incidente.iniciadoEm) }}</span>
             </li>
@@ -244,13 +249,15 @@
     </section>
   </div>
 
+  <!-- Duas condições distintas, não redundantes: `acoesDeGestao` diz se o HOST atende a ação,
+       `canManageInventory` diz se o USUÁRIO pode executá-la. O Mapa desliga a primeira. -->
   <footer class="gaveta__acoes">
-    @if (authState.canManageInventory()) {
+    @if (acoesDeGestao() && authState.canManageInventory()) {
       <button class="botao" type="button" (click)="editar.emit()">Editar equipamento</button>
     }
     <a class="botao" [routerLink]="['/relatorios']"
        [queryParams]="{ aba: 'medicoes', equipamentoId: equipamentoId() }">Abrir histórico</a>
-    @if (authState.canManageInventory()) {
+    @if (acoesDeGestao() && authState.canManageInventory()) {
       <button class="botao" type="button" (click)="alternarEquipamento.emit()">
         {{ linha()?.ativo === false ? 'Ativar monitoramento' : 'Desativar monitoramento' }}
       </button>

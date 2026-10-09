@@ -1,0 +1,162 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/node_modules/maplibre-gl/dist/maplibre-gl.css">
+<style>
+  html,body{margin:0;background:#0b1520;height:100%}
+  #card{position:relative;width:1200px;height:700px;overflow:hidden;
+        background:radial-gradient(circle at 52% 48%,#0e1924 0,#131c26 56%)}
+  #map{width:100%;height:100%}
+  .maplibregl-map{background:transparent}
+
+  .u{width:13px;height:13px;padding:0;border:2px solid rgba(8,15,22,.85);border-radius:50%;
+     background:var(--c,#435464);
+     box-shadow:inset 0 0 0 1.5px rgba(232,240,248,.92),0 1px 3px rgba(0,0,0,.55);cursor:pointer}
+  .u:focus-visible{outline:2px solid #3B6EFF;outline-offset:3px}
+
+  /* B - pulso no ::after, transform+opacity (compositor) */
+  body.B .u::after{content:'';position:absolute;inset:-5px;border-radius:50%;
+     border:2px solid var(--c,#435464);opacity:.9;animation:anel 1.9s ease-out infinite}
+  @keyframes anel{0%{transform:scale(.55);opacity:.85}70%{transform:scale(1.5);opacity:0}100%{transform:scale(1.5);opacity:0}}
+
+  /* C - pulso por box-shadow no proprio elemento (idioma do sidebar: repinta) */
+  body.C .u{animation:sombra 1.9s ease-out infinite}
+  @keyframes sombra{0%{box-shadow:inset 0 0 0 1.5px rgba(232,240,248,.92),0 0 0 0 rgba(255,255,255,.5)}
+                    70%{box-shadow:inset 0 0 0 1.5px rgba(232,240,248,.92),0 0 0 11px rgba(255,255,255,0)}
+                    100%{box-shadow:inset 0 0 0 1.5px rgba(232,240,248,.92),0 0 0 0 rgba(255,255,255,0)}}
+
+  .ping{width:7px;height:7px;border-radius:50%;background:#cfe6ff;
+        box-shadow:0 0 6px 2px rgba(160,205,255,.75);pointer-events:none}
+</style></head><body><div id="card"><div id="map"></div></div>
+<script type="module">
+import { LngLatBounds, Map as M, Marker, setWorkerUrl } from '/node_modules/maplibre-gl/dist/maplibre-gl.mjs';
+setWorkerUrl('/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs');
+
+const COR = ['#34c77b','#e5484d','#e8a33d','#7fadff','#435464','#263744'];
+const UNI = [
+  ['SED',-37.0497,-10.9116],['ESC',-37.0658,-10.9317],['CIS',-37.0602,-10.9418],['HOT',-37.048,-10.988],
+  ['LAG',-37.67,-10.9172],['EST',-37.4383,-11.2679],['SOC',-37.1264,-10.8556],['SCR',-37.2064,-11.0147],
+  ['PRO',-36.8403,-10.2117],['ITA',-37.4256,-10.6853],['SIM',-37.8106,-10.7386]];
+const HUB = [UNI[0][1], UNI[0][2]];
+const linhas = UNI.slice(1).map(([,x,y],i)=>({type:'Feature',properties:{i,cor:COR[i%6]},
+  geometry:{type:'LineString',coordinates:[HUB,[x,y]]}}));
+
+const geo = await (await fetch('/public/assets/maps/se-municipalities.geo.json')).json();
+const map = new M({container:'map', attributionControl:false, minZoom:6, maxZoom:14, maxPitch:60,
+  pitch:0, bearing:-18,
+  style:{version:8, sources:{
+    municipios:{type:'geojson',data:geo},
+    conexoes:{type:'geojson',data:{type:'FeatureCollection',features:linhas}},
+    pings:{type:'geojson',data:{type:'FeatureCollection',features:[]}}},
+  layers:[
+    {id:'fundo',type:'background',paint:{'background-color':'rgba(0,0,0,0)'}},
+    {id:'municipios-fill',type:'fill',source:'municipios',paint:{'fill-color':'#16283a','fill-opacity':.92}},
+    {id:'municipios-contorno',type:'line',source:'municipios',paint:{'line-color':'#294056','line-width':1}},
+    {id:'conexoes-linha',type:'line',source:'conexoes',layout:{'line-cap':'round'},
+      paint:{'line-color':['get','cor'],'line-width':1.6,'line-opacity':.75}},
+    {id:'conexoes-dash',type:'line',source:'conexoes',layout:{'line-cap':'butt'},
+      paint:{'line-color':'#cfe6ff','line-width':2.2,'line-opacity':0,'line-dasharray':[0,4,3]}},
+    {id:'pings-circulo',type:'circle',source:'pings',
+      paint:{'circle-radius':3.5,'circle-color':'#cfe6ff','circle-opacity':0,
+             'circle-blur':.4,'circle-stroke-width':1,'circle-stroke-color':'rgba(160,205,255,.6)','circle-stroke-opacity':0}}
+  ]}});
+
+await new Promise(r => map.on('load', r));
+const b = new LngLatBounds();
+const anda=(n)=>{ if(Array.isArray(n)&&typeof n[0]==='number'){b.extend(n);return;} if(Array.isArray(n)) n.forEach(anda); };
+geo.features.forEach(f=>anda(f.geometry.coordinates));
+map.fitBounds(b,{padding:34,bearing:-18,pitch:45,duration:0});
+map.easeTo({zoom:map.getZoom()+0.68, offset:[-24,60], duration:0});
+
+/* marcadores de unidade — 11 reais + 44 de estresse (mesmas coords, jitter de alguns metros) */
+function criarMarcador(x,y,i,extra){
+  const el=document.createElement('button'); el.type='button'; el.className='u';
+  el.style.setProperty('--c',COR[i%6]); el.setAttribute('aria-label','u'+i);
+  const m=new Marker({element:el,pitchAlignment:'viewport',rotationAlignment:'viewport'}).setLngLat([x,y]);
+  if(!extra) m.addTo(map);
+  return m;
+}
+UNI.forEach(([,x,y],i)=>criarMarcador(x,y,i,false));
+const marcadoresExtra=[];
+UNI.forEach(([,x,y],i)=>{ for(let k=1;k<=4;k++) marcadoresExtra.push(criarMarcador(x+k*0.012,y+k*0.008,i,true)); });
+
+/* pings — 20 reais (2 por linha, fases opostas = ida e volta) + pool ate 100 */
+const lerp=(a,bb,t)=>[a[0]+(bb[0]-a[0])*t, a[1]+(bb[1]-a[1])*t];
+function criarPing(){
+  const el=document.createElement('div'); el.className='ping'; el.setAttribute('aria-hidden','true');
+  return new Marker({element:el,pitchAlignment:'viewport',rotationAlignment:'viewport'}).setLngLat(HUB);
+}
+const pingPool = Array.from({length:100}, criarPing);
+
+let raf=null, dashTimer=null, ativos=[];
+const DASH=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],
+            [0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
+
+function parar(){
+  if(raf) cancelAnimationFrame(raf); raf=null;
+  if(dashTimer) clearInterval(dashTimer); dashTimer=null;
+  document.body.className='';
+  ativos.forEach(m=>m.remove()); ativos=[];
+  marcadoresExtra.forEach(m=>m.remove());
+  map.setPaintProperty('pings-circulo','circle-opacity',0);
+  map.setPaintProperty('pings-circulo','circle-stroke-opacity',0);
+  map.setPaintProperty('conexoes-dash','line-opacity',0);
+  map.getSource('pings').setData({type:'FeatureCollection',features:[]});
+}
+
+/* posicao do ping k no instante t: vai e volta ao longo da linha (k>>1 = qual linha) */
+function posicao(k,t,nPorLinha){
+  const li=linhas[Math.floor(k/nPorLinha)%linhas.length];
+  const fase=(t + (k%nPorLinha)/nPorLinha)%1;
+  const u=fase<.5?fase*2:(1-fase)*2;
+  return lerp(li.geometry.coordinates[0], li.geometry.coordinates[1], u);
+}
+
+function pingsDom(total){
+  const usados=pingPool.slice(0,total);
+  usados.forEach(m=>m.addTo(map)); ativos=usados;
+  const nPorLinha=total/linhas.length, t0=performance.now();
+  const passo=()=>{ const t=(performance.now()-t0)/2600;
+    usados.forEach((pm,k)=>pm.setLngLat(posicao(k,t,nPorLinha)));
+    raf=requestAnimationFrame(passo); };
+  raf=requestAnimationFrame(passo);
+}
+
+function pingsSetData(total){
+  map.setPaintProperty('pings-circulo','circle-opacity',.95);
+  map.setPaintProperty('pings-circulo','circle-stroke-opacity',.7);
+  const nPorLinha=total/linhas.length, t0=performance.now();
+  const passo=()=>{ const t=(performance.now()-t0)/2600; const fs=[];
+    for(let k=0;k<total;k++) fs.push({type:'Feature',properties:{},
+      geometry:{type:'Point',coordinates:posicao(k,t,nPorLinha)}});
+    map.getSource('pings').setData({type:'FeatureCollection',features:fs});
+    raf=requestAnimationFrame(passo); };
+  raf=requestAnimationFrame(passo);
+}
+
+window.cenario = (m)=>{
+  parar();
+  if(m==='B'||m==='BD'||m==='B5') document.body.className='B';
+  if(m==='C') document.body.className='C';
+  if(m==='B5') marcadoresExtra.forEach(mk=>mk.addTo(map));
+  if(m==='D'||m==='BD') pingsDom(20);
+  if(m==='D5') pingsDom(100);
+  if(m==='E') pingsSetData(20);
+  if(m==='E5') pingsSetData(100);
+  if(m==='F'){
+    map.setPaintProperty('conexoes-dash','line-opacity',.9);
+    let i=0; dashTimer=setInterval(()=>{ map.setPaintProperty('conexoes-dash','line-dasharray',DASH[i++%DASH.length]); },50);
+  }
+};
+
+window.medir = (ms)=> new Promise(res=>{
+  const q=[]; let prev=performance.now(); const fim=prev+ms;
+  const tick=(now)=>{ q.push(now-prev); prev=now;
+    if(now<fim) requestAnimationFrame(tick); else {
+      const s=q.slice(2).sort((a,bb)=>a-bb);
+      const p=(k)=>s[Math.min(s.length-1,Math.floor(s.length*k))];
+      res({frames:s.length, p50:+p(.5).toFixed(2), p95:+p(.95).toFixed(2), max:+s[s.length-1].toFixed(2),
+           fps:+(1000/p(.5)).toFixed(1), lentos:+(100*s.filter(v=>v>20).length/s.length).toFixed(1)});
+    }};
+  requestAnimationFrame(tick);
+});
+window.pronto = true;
+</script></body></html>
