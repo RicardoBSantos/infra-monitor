@@ -16,6 +16,8 @@ describe('motivoRecusaIp', () => {
     ['999.0.0.1', 'Cada octeto do IP vai de 0 a 255'],
     ['256.0.0.1', 'Cada octeto do IP vai de 0 a 255'],
     ['010.0.0.1', 'Octeto com zero à esquerda é ambíguo (pode ser lido como octal): escreva 10.0.0.1, não 010.000.000.001'],
+    ['10.0.0.01', 'Octeto com zero à esquerda é ambíguo (pode ser lido como octal): escreva 10.0.0.1, não 010.000.000.001'],
+    ['10.00.0.1', 'Octeto com zero à esquerda é ambíguo (pode ser lido como octal): escreva 10.0.0.1, não 010.000.000.001'],
     ['0.0.0.0', 'A faixa 0.0.0.0/8 não é endereço de host'],
     ['255.255.255.255', 'Multicast, reservado ou broadcast (224.0.0.0 em diante) não é endereço de host monitorável'],
   ])('recusa %p', (valor, mensagem) => expect(motivoRecusaIp(valor)).toBe(mensagem));

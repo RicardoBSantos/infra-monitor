@@ -31,7 +31,7 @@ public final class RegraIpv4 {
     /** Nulo quando aceito. Nulo, vazio ou so espacos e "sem IP", que e permitido. */
     public static String motivoDeRecusa(String valor) {
         if (valor == null || valor.isBlank()) return null;
-        String ip = valor.trim();
+        String ip = valor.strip();
         if (ip.indexOf(':') >= 0) return IPV6;
         if (!QUATRO_OCTETOS.matcher(ip).matches()) return FORMATO;
         String[] octetos = ip.split("\\.");

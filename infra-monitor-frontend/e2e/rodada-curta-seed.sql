@@ -8,7 +8,8 @@
 -- Guarda: aborta sem o marcador `app.banco_descartavel = 'sim'` (ver pre-carga-seed.sql).
 --
 -- Reexecutável: apaga o que uma rodada anterior gravou (marca `e2e-rodada-curta` em
--- `incidente.observacao` e `medicao.mensagem`; episódios pela assinatura exata limiar 251/252).
+-- `incidente.observacao` e `medicao.mensagem`; episódios pela assinatura exata limiar 251/252;
+-- o equipamento `E2E-RODADA-IP` que o caso 8 do roteiro cria).
 --
 -- O que é gravado (monitores achados pelo nome do equipamento):
 --   ACC-01-U1  incidente FECHADO por RECUPERACAO_AUTOMATICA (now-30h) cuja janela só tem FALHA:
@@ -44,6 +45,10 @@ BEGIN
   DELETE FROM incidente WHERE observacao = 'e2e-rodada-curta';
   DELETE FROM medicao WHERE mensagem = 'e2e-rodada-curta';
   DELETE FROM monitor_episodio_latencia WHERE monitor_id IN (m_incidente, m_normal) AND limiar_ms IN (251, 252);
+  -- Equipamento do caso 8 do roteiro (criado pelo formulário, rodada-curta.cjs). Nasce sem monitor e
+  -- nada mais referencia equipamento além de monitor (V5); o NOT EXISTS poupa um equipamento que ganhou monitor.
+  DELETE FROM equipamento e WHERE e.nome = 'E2E-RODADA-IP'
+    AND NOT EXISTS (SELECT 1 FROM monitor m WHERE m.equipamento_id = e.id);
 
   -- 1. AUTO sem sequência: S, F F F F, encerrado 30 s depois da última falha, sem sucesso medido.
   t := base - interval '30 hours';

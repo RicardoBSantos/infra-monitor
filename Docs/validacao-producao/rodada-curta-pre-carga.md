@@ -40,6 +40,9 @@ encerrado", sem detalhe. Tabelas completas na spec.
 
 Limite aceito: se N for **reduzido** depois do fechamento, uma sequência de N atuais ainda é
 citada; a afirmação continua verificável (as N estão listadas), só não é o N que o motor usou.
+Se N foi **aumentado** depois do fechamento, a sequência real completa está listada, mas o texto diz que a
+sequência completa não consta no histórico carregado: nenhum número é inventado, e a frase erra para o lado
+da cautela; o texto foi mantido como especificado.
 
 ### Commits e provas
 

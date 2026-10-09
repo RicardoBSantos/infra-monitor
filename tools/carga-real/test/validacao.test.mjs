@@ -50,8 +50,14 @@ for (const [valor, mensagem] of [
   ['servidor.local', 'deve ser um endereco IPv4 no formato 192.168.0.10'],
   ['999.1.1.1', 'cada octeto do IP vai de 0 a 255'],
   ['010.0.0.1', 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001'],
+  ['10.0.0.01', 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001'],
+  ['10.00.0.1', 'octeto com zero a esquerda e ambiguo (pode ser lido como octal): escreva 10.0.0.1, nao 010.000.000.001'],
+  ['1.2.3.4.5', 'deve ser um endereco IPv4 no formato 192.168.0.10'],
   ['0.0.0.0', 'a faixa 0.0.0.0/8 nao e endereco de host'],
+  ['0.1.2.3', 'a faixa 0.0.0.0/8 nao e endereco de host'],
+  ['224.0.0.0', 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel'],
   ['224.0.0.1', 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel'],
+  ['255.255.255.255', 'multicast, reservado ou broadcast (224.0.0.0 em diante) nao e endereco de host monitoravel'],
 ]) {
   test(`motivoRecusaIp: recusa ${valor}`, () => {
     assert.equal(motivoRecusaIp(valor), mensagem);

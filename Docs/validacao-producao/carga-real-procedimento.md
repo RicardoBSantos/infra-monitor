@@ -10,6 +10,18 @@ foi escrito e testado só com testes unitários (`node --test`, sem rede) e uma
 simulação em memória com `fetch` falso. A primeira execução real deve ser
 feita com cautela, começando em `--dry-run` (o padrão).
 
+## 0. Antes de subir a versão com a migration V20
+
+A V20 adiciona um CHECK de IPv4 de host em `equipamento.ip_address`. Se existir linha
+fora da regra, o Flyway falha no boot e a aplicação não sobe. Antes de atualizar o
+servidor, rode no banco de produção a pré-checagem do cabeçalho da V20 (tem de devolver **0**):
+
+```sql
+SELECT count(*) FROM equipamento WHERE ip_address IS NOT NULL AND ip_address !~ '^(22[0-3]|2[01][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])){3}$';
+```
+
+Se devolver mais que 0, corrija essas linhas primeiro (liste-as trocando `count(*)` por `id, nome, ip_address`).
+
 ## 1. Preparar o arquivo de entrada
 
 Copie `tools/carga-real/modelo/` para um novo diretório (ou copie
@@ -23,7 +35,7 @@ Pontos que travam a carga se errados:
 - `sigla` de unidade e `nome` de tipo são as chaves usadas para casar com o
   que já existe na API — mudar a grafia entre execuções cria um registro novo
   em vez de atualizar comparação.
-- IP tem que ser IPv4 de host: 4 octetos 0-255, sem zero a esquerda (010.0.0.1 e ambiguo, o Linux le como octal), 1º octeto 1-223. IPv6 e multicast sao recusados. O backend (migration V20) recusa o mesmo no banco.
+- IP tem que ser IPv4 de host: 4 octetos 0-255, sem zero à esquerda (010.0.0.1 é ambíguo, o Linux lê como octal), 1º octeto 1-223. IPv6 e multicast são recusados. O backend (migration V20) recusa o mesmo no banco.
 - `codigoIbge` tem que ter exatamente 7 dígitos **e existir no GeoJSON de
   SE** — se não existir, é **erro** (a linha não é enviada), mesmo que a
   linha não tenha coordenada nenhuma. Só depois de o IBGE existir é que entra

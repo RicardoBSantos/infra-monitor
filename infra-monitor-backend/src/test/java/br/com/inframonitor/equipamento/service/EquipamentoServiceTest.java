@@ -226,6 +226,19 @@ class EquipamentoServiceTest {
         assertThat(semNumero.modelo()).isNull();
     }
 
+    @Test
+    void ipComEspacoUnicodeVazioViraNuloEEspacoUnicodeNasBordasEAparado() {
+        Unidade unidade = new Unidade("Matriz", "MTZ", null);
+        TipoEquipamento tipo = new TipoEquipamento("Switch", null);
+        definirId(unidade, 1L);
+        definirId(tipo, 2L);
+        relacionamentosAtivos(unidade, tipo);
+        when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+
+        assertThat(equipamentoService.criar(criacao("SW-03", " ")).ip()).isNull();
+        assertThat(equipamentoService.criar(criacao("SW-04", " 10.0.0.1 ")).ip()).isEqualTo("10.0.0.1");
+    }
+
     private CreateEquipamentoRequest criacao(String nome, String ip) {
         return new CreateEquipamentoRequest(1L, 2L, nome, ip, "sw-core", "Switch core", "Rack 01", null, null, null);
     }

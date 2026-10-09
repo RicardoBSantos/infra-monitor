@@ -90,7 +90,8 @@ class IpEquipamentoCheckPostgresIntegrationTest {
     void regraDoBancoConcordaComARegraJava() {
         // Mesmos casos dos dois lados: se a regex da V20 e RegraIpv4 divergirem, este teste diz qual.
         List<String> casos = List.of("10.0.0.1", "2001:db8::1", "010.0.0.1", "0.1.1.1", "223.1.1.1", "224.1.1.1",
-                "10.0.0.255", "10.0.0.256", "1.2.3", "99.99.99.99", "100.100.100.100", "199.249.250.255");
+                "10.0.0.255", "10.0.0.256", "1.2.3", "99.99.99.99", "100.100.100.100", "199.249.250.255",
+                "10.0.0.01", "10.00.0.1", "1.2.3.4.5");
         for (String caso : casos) {
             boolean banco = Boolean.TRUE.equals(jdbc.queryForObject(
                     "select ?::varchar ~ (select substring(pg_get_constraintdef(oid) from '''(.*)''') "

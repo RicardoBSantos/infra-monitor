@@ -346,6 +346,24 @@ describe('EquipamentoListComponent', () => {
       http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1 })]);
     });
 
+    it.each(['010.0.0.1', '0.0.0.0'])('não mostra dica informativa quando %s é recusado', (ip) => {
+      const fixture = abrirCriacaoComIp(ip);
+      fixture.componentInstance['avaliarIp'](ip);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance['dicaIp']()).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.equipamento-modal__dica')).toBeNull();
+    });
+
+    it('mantém a dica informativa para IP aceito', () => {
+      const fixture = abrirCriacaoComIp('10.0.0.1');
+      fixture.componentInstance['avaliarIp']('10.0.0.1');
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.equipamento-modal__dica')?.textContent?.trim())
+        .toBe('IPv4 · faixa privada');
+    });
+
     it('aceita IP com espaços nas pontas e envia aparado', () => {
       const fixture = abrirCriacaoComIp(' 10.0.0.1 ');
       expect(fixture.componentInstance['form'].get('ip')?.valid).toBe(true);

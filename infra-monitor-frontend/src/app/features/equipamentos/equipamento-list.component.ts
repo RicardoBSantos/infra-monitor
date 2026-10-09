@@ -22,7 +22,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.component';
-import { classificarIp, validadorIpv4Monitoravel } from './ip-helper';
+import { classificarIp, motivoRecusaIp, validadorIpv4Monitoravel } from './ip-helper';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
 type Acao = 'excluir' | 'desativar' | 'ativar';
@@ -500,7 +500,8 @@ export class EquipamentoListComponent {
   }
 
   protected avaliarIp(valor: string): void {
-    this.dicaIp.set(classificarIp(valor));
+    // Valor recusado já tem o motivo sob o campo; a dica informativa só atrapalharia.
+    this.dicaIp.set(motivoRecusaIp(valor) !== null ? null : classificarIp(valor));
   }
 
   protected salvar(): void {

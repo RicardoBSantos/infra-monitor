@@ -24,7 +24,22 @@ class EpisodioLatenciaControllerTest {
     @MockitoBean private EpisodioLatenciaService episodioLatenciaService;
 
     @Test
-    void devolveEpisodioEmCursoEDesconhecido() throws Exception {
+    void devolveEpisodioEmCursoSemEncerramento() throws Exception {
+        when(episodioLatenciaService.buscarPorId(1L)).thenReturn(new EpisodioLatenciaResponse(1L,
+                10L, "ICMP principal", 20L, "LINK-WAN", 30L, "Sesc Centro",
+                Instant.parse("2026-09-01T08:40:11Z"), null, 250, 2, null));
+
+        mockMvc.perform(get("/api/v1/episodios-latencia/1")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.limiarMs").value(250))
+                // O N que a timeline usa para numerar as medicoes da sequencia.
+                .andExpect(jsonPath("$.ciclosParaEpisodio").value(2))
+                .andExpect(jsonPath("$.unidadeNome").value("Sesc Centro"))
+                .andExpect(jsonPath("$.encerradoEm").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.motivoEncerramento").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void devolveEpisodioEncerradoPorIncidenteEDesconhecidoDa404() throws Exception {
         when(episodioLatenciaService.buscarPorId(1L)).thenReturn(new EpisodioLatenciaResponse(1L,
                 10L, "ICMP principal", 20L, "LINK-WAN", 30L, "Sesc Centro",
                 Instant.parse("2026-09-01T08:40:11Z"), Instant.parse("2026-09-01T08:45:11Z"), 250, 2, MotivoEncerramentoEpisodio.INCIDENTE));
@@ -32,10 +47,7 @@ class EpisodioLatenciaControllerTest {
                 .thenThrow(new RecursoNaoEncontradoException("Episodio de latencia nao encontrado"));
 
         mockMvc.perform(get("/api/v1/episodios-latencia/1")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.limiarMs").value(250))
-                // O N que a timeline usa para numerar as medicoes da sequencia.
-                .andExpect(jsonPath("$.ciclosParaEpisodio").value(2))
-                .andExpect(jsonPath("$.unidadeNome").value("Sesc Centro"))
+                .andExpect(jsonPath("$.encerradoEm").value("2026-09-01T08:45:11Z"))
                 .andExpect(jsonPath("$.motivoEncerramento").value("INCIDENTE"));
         mockMvc.perform(get("/api/v1/episodios-latencia/99")).andExpect(status().isNotFound());
     }

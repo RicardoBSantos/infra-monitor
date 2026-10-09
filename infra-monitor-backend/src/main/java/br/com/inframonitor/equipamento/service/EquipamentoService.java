@@ -256,7 +256,7 @@ public class EquipamentoService {
 
     private String normalizarOpcional(String valor) {
         if (valor == null) return null;
-        String normalizado = valor.trim();
+        String normalizado = valor.strip();
         return normalizado.isEmpty() ? null : normalizado;
     }
 
