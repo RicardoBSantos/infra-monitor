@@ -80,7 +80,7 @@ uma das duas é erro.
 | `unidadeSigla` | sim | sigla de uma unidade (do arquivo ou já na API) | `EX-01` |
 | `tipoNome` | sim | nome de um tipo (do arquivo ou já na API) | `Roteador` |
 | `nome` | sim | texto; único por unidade (case-insensitive) | `Router-Exemplo-01` |
-| `ip` | não | **IPv4 apenas** (IPv6 é recusado) | `192.0.2.10` |
+| `ip` | não | IPv4 de host: 4 octetos 0-255 sem zero a esquerda, 1º octeto 1-223; IPv6 recusado ("apenas IPv4 e suportado") | `192.0.2.10` |
 | `hostname` | não | texto | `router-exemplo-01` |
 | `descricao` | não | texto | — |
 | `localizacao` | não | texto | `Rack 1` |

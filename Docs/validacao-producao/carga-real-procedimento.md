@@ -23,7 +23,7 @@ Pontos que travam a carga se errados:
 - `sigla` de unidade e `nome` de tipo são as chaves usadas para casar com o
   que já existe na API — mudar a grafia entre execuções cria um registro novo
   em vez de atualizar comparação.
-- IP tem que ser IPv4. IPv6 é recusado (mesmo que o equipamento tenha um).
+- IP tem que ser IPv4 de host: 4 octetos 0-255, sem zero a esquerda (010.0.0.1 e ambiguo, o Linux le como octal), 1º octeto 1-223. IPv6 e multicast sao recusados. O backend (migration V20) recusa o mesmo no banco.
 - `codigoIbge` tem que ter exatamente 7 dígitos **e existir no GeoJSON de
   SE** — se não existir, é **erro** (a linha não é enviada), mesmo que a
   linha não tenha coordenada nenhuma. Só depois de o IBGE existir é que entra
