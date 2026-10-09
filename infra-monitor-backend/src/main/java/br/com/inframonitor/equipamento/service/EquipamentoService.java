@@ -8,6 +8,7 @@ import br.com.inframonitor.equipamento.dto.ReferenciaResponse;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.equipamento.validation.RegraIpv4;
 import br.com.inframonitor.incidente.entity.Incidente;
 import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
@@ -259,19 +260,12 @@ public class EquipamentoService {
         return normalizado.isEmpty() ? null : normalizado;
     }
 
+    /** Defesa para chamador sem @Valid; a mesma regra do DTO (RegraIpv4). */
     private String normalizarIp(String ip) {
         String normalizado = normalizarOpcional(ip);
         if (normalizado == null) return null;
-        String[] partes = normalizado.split("\\.", -1);
-        if (partes.length != 4) throw new IllegalArgumentException("IP deve ser um endereco IPv4 valido");
-        for (String parte : partes) {
-            if (!parte.matches("\\d{1,3}")) throw new IllegalArgumentException("IP deve ser um endereco IPv4 valido");
-            try {
-                if (Integer.parseInt(parte) > 255) throw new IllegalArgumentException("IP deve ser um endereco IPv4 valido");
-            } catch (NumberFormatException ex) {
-                throw new IllegalArgumentException("IP deve ser um endereco IPv4 valido");
-            }
-        }
+        String motivo = RegraIpv4.motivoDeRecusa(normalizado);
+        if (motivo != null) throw new IllegalArgumentException("IP invalido: " + motivo);
         return normalizado;
     }
 

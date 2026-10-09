@@ -7,6 +7,7 @@ import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.equipamento.validation.RegraIpv4;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
@@ -110,6 +111,9 @@ class EquipamentoServiceTest {
 
         assertThatThrownBy(() -> equipamentoService.criar(criacao("SW-01", "999.1.1.1")))
                 .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> equipamentoService.criar(criacao("SW-01", "010.0.0.1")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(RegraIpv4.ZERO_A_ESQUERDA);
         verify(equipamentoRepository, never()).save(any());
     }
 

@@ -7,6 +7,7 @@ import br.com.inframonitor.equipamento.dto.EquipamentoResponse;
 import br.com.inframonitor.equipamento.dto.ReferenciaResponse;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
+import br.com.inframonitor.equipamento.validation.RegraIpv4;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -22,6 +23,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -104,6 +106,21 @@ class EquipamentoControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BUSINESS_CONFLICT"))
                 .andExpect(jsonPath("$.message").value("Nao e possivel excluir o equipamento porque existem monitores associados"));
+    }
+
+    @Test
+    void recusaIpNaoMonitoravelComMensagemNoCampo() throws Exception {
+        mockMvc.perform(post("/api/v1/equipamentos").contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoValido().replace("10.0.0.10", "2001:db8::1")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fields.ip").value(RegraIpv4.IPV6));
+        mockMvc.perform(put("/api/v1/equipamentos/1").contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoValido().replace("10.0.0.10", "010.0.0.10")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fields.ip").value(RegraIpv4.ZERO_A_ESQUERDA));
+        verify(equipamentoService, never()).criar(any());
+        verify(equipamentoService, never()).atualizar(any(), any());
     }
 
     private String corpoValido() {
