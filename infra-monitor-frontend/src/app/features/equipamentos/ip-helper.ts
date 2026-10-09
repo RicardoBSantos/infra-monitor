@@ -8,7 +8,7 @@ export function motivoRecusaIp(valor: string | null | undefined): string | null 
   const ip = (valor ?? '').trim();
   if (!ip) return null;
   if (ip.includes(':')) return 'Apenas IPv4 é suportado: o monitoramento ICMP não sonda IPv6';
-  if (!/^[0-9]{1,3}(.[0-9]{1,3}){3}$/.test(ip)) return 'IP deve ser um endereço IPv4 no formato 192.168.0.10';
+  if (!/^[0-9]{1,3}(\.[0-9]{1,3}){3}$/.test(ip)) return 'IP deve ser um endereço IPv4 no formato 192.168.0.10';
   const octetos = ip.split('.');
   if (octetos.some((octeto) => Number(octeto) > 255)) return 'Cada octeto do IP vai de 0 a 255';
   if (octetos.some((octeto) => octeto.length > 1 && octeto.startsWith('0'))) {
