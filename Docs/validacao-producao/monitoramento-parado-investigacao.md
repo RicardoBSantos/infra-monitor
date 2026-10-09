@@ -13,10 +13,12 @@ Pergunta: se o processo morre, a ausência de medição hoje se confunde com "ne
 candidato". A máquina pode hibernar ou reiniciar e o sistema ficar horas parado sem ninguém
 perceber. O que se vê hoje, e o que custaria ver?
 
-**Resposta curta:** hoje nada no sistema distingue motor parado de motor saudável. O painel
-continua **verde**, o SLA continua **subindo para 100 %** (ou somando indisponibilidade, se havia
-incidente aberto), o `/actuator/health` responde `UP` com o motor desligado, e o único canal de
-alerta (Telegram) mora no mesmo processo que morreu. A combinação recomendada (seção 4) é barata
+**Resposta curta:** hoje nada no sistema distingue motor parado de motor saudável. Se o processo
+morre, o painel morre junto (mesma JVM). O verde falso aparece quando a API está viva e o motor
+não mede: motor desligado por engano, e a volta de uma parada antes da primeira medição nova.
+O SLA continua **subindo para 100 %** nos monitores sem incidente aberto, e somando
+indisponibilidade nos que tinham incidente aberto. O `/actuator/health` responde `UP` com o motor
+desligado, e o único canal de alerta (Telegram) mora no mesmo processo do motor. A combinação recomendada (seção 4) é barata
 na primeira camada — idade da última medição no painel, sem schema — e só fica completa com um
 vigia **fora** do processo e, idealmente, fora da máquina.
 
@@ -93,10 +95,14 @@ produção (`application-prod.yml:9`). Não há `HealthIndicator` do motor (nenh
 `:57-58`), mas exige token e o frontend não lê o campo (nenhuma ocorrência de `motorLigado` em
 `infra-monitor-frontend/src`).
 
-**Implantação.** O backend roda no host Windows (ICMP nativo via `IcmpSendEcho`) e o Postgres em
-Docker com `restart: unless-stopped` (`infra-monitor-backend/compose.yml:21`). Não há no
+**Implantação.** O sistema operacional de produção **não está confirmado** no repositório. A
+máquina de desenvolvimento é Windows (ICMP nativo via `IcmpSendEcho`), mas o `CLAUDE.md:124` fala
+em "Docker/Linux/Nginx (deploy futuro)" e
+[icmp-falsos-positivos.md](icmp-falsos-positivos.md) (linha 41) em "ambiente Linux alvo". Por isso,
+cada item operacional abaixo traz as duas variantes, Windows e Linux. O Postgres roda em Docker
+com `restart: unless-stopped` (`infra-monitor-backend/compose.yml:21`). Não há no
 repositório artefato de instalação do backend como serviço (busca por `nssm`, `WinSW`, "serviço do
-Windows", `Task Scheduler` em `Docs/` e na raiz: nada).
+Windows", `Task Scheduler` em `Docs/` e na raiz, e por arquivos `.service`, `.timer` e `Dockerfile` versionados: nada).
 
 ### 1.2 Cenários
 
@@ -191,18 +197,22 @@ calculado em `ESTADOS` (`DashboardReadRepository.java:22-26`) e espelhado no cam
 
 ### (d) Vigia externo ao processo
 
-Tarefa agendada do Windows (o equivalente local do systemd timer; o host é Windows) ou cron no
-host do Docker, lendo o heartbeat (ou `max(executado_em)`) no Postgres, ou um `/actuator/health`
-que reflita o motor, e mandando Telegram **por conta própria** (curl na API do Bot).
+Um agendador do próprio sistema operacional (o de produção não está confirmado, ver 1.1): no
+Windows, o Agendador de Tarefas com script PowerShell; no Linux, um systemd timer (ou cron) com
+script shell. Se o backend for conteinerizado, o `healthcheck` do Docker pode fazer a checagem,
+mas sozinho só marca o container como `unhealthy` e não alerta ninguém; o alerta continua sendo
+um script do host. O vigia lê o heartbeat (ou `max(executado_em)`) no Postgres, ou um `/actuator/health`
+que reflita o motor, e manda Telegram **por conta própria** (curl na API do Bot).
 
-- **Custo:** script pequeno (PowerShell + `psql` ou `Invoke-RestMethod`), credencial do bot e do
+- **Custo:** script pequeno (PowerShell + `psql`/`Invoke-RestMethod` no Windows; shell + `psql`/`curl` no Linux), credencial do bot e do
   banco fora do processo, procedimento de instalação. Para ler pelo health, um `HealthIndicator`
   do motor (~30 linhas, sem schema se usar `max(executado_em)`), que hoje não existe.
 - **Impacto:** uma consulta a cada N minutos.
 - **Detecta:** processo morto, motor desligado, banco fora, travamento — tudo o que acontece com a
   **máquina ligada**. Avisa **durante** a parada, que nenhuma opção interna faz.
 - **Não detecta:** a própria máquina hibernada, desligada ou sem rede — o vigia dorme junto
-  (raciocínio: tarefa agendada local não roda com a máquina suspensa; ao acordar, roda e alerta
+  (raciocínio: nem a tarefa agendada do Windows nem o timer ou cron do Linux rodam com a máquina
+  suspensa; ao acordar, roda e alerta
   tarde, o que ainda é útil). Também não detecta falha no Telegram.
 - **Hibernação/reinício:** detecta tarde (na retomada). Em reinício, alerta se o serviço não subir.
 
@@ -230,9 +240,17 @@ Tempo sem observação deixa de contar como monitorado (sai do denominador) ou p
    quando os pings **param**. Custo: ~15 linhas e uma dependência externa (internet ou segundo
    host). É a **única** opção que cobre máquina desligada, hibernada, sem rede, e Telegram local
    indisponível. Detecta motor parado se o ping sair do tick do motor (não de um timer separado).
-2. **Operação: serviço com reinício automático e plano de energia sem suspensão.** Instalar o
-   backend como serviço do Windows com restart on failure (WinSW/NSSM ou equivalente) e desligar
-   suspensão/hibernação na máquina. Custo: procedimento, sem código. Não detecta nada — **reduz**
+2. **Operação: serviço com reinício automático e plano de energia sem suspensão.** O SO de produção não está
+   confirmado, então seguem as duas variantes:
+   - **Windows:** serviço com restart on failure (WinSW, NSSM ou equivalente), início atrasado ou
+     dependência do Docker, e plano de energia sem suspensão nem hibernação.
+   - **Linux:** unidade systemd com `Restart=always` e `After=`/`Wants=` de `docker.service` (ou
+     `postgresql.service`, se o banco for nativo), e
+     `systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target`.
+   - **Conteinerizado:** `restart: unless-stopped` (como o Postgres já tem,
+     `infra-monitor-backend/compose.yml:21`), `depends_on` com `condition: service_healthy` sobre o
+     healthcheck do Postgres, e `healthcheck` próprio no backend.
+   Custo: procedimento, sem código. Não detecta nada — **reduz**
    a frequência de (a), (b) e (c). Deveria vir antes de qualquer alarme.
 3. **Mensagem "monitoramento retomado" na subida.** Variação de (b) com envio direto pelo
    `TelegramClient`, fora da fila `notificacao` para não precisar de migration. Detecta (a)/(c)
@@ -269,16 +287,21 @@ D = detecta; T = detecta tarde (só depois que volta ou quando alguém olha); N 
 
 Em ordem de custo/benefício:
 
-1. **Operação primeiro (f2), custo zero de código.** Backend como serviço do Windows com reinício
-   automático, dependência ou retry de subida até o Postgres responder (o boot hoje falha se o
-   banco não estiver pronto — `application.yml:30-32`), e plano de energia sem suspensão na máquina
-   de produção. Isso tira (b) da mesa e encurta (a) e (c).
+1. **Operação primeiro (f2), custo zero de código.** Backend como serviço com reinício automático e
+   dependência ou retry de subida até o Postgres responder (o boot hoje falha se o banco não
+   estiver pronto: `application.yml:30-32`), e máquina sem suspensão. No Windows: WinSW/NSSM com
+   restart on failure e plano de energia sem suspensão. No Linux: systemd com `Restart=always`,
+   `After=docker.service` (ou `postgresql.service`) e `systemctl mask sleep.target suspend.target
+   hibernate.target hybrid-sleep.target`. Em container: restart policy, `depends_on` com
+   `service_healthy` e healthcheck (detalhes em (f2)). O SO de produção não está confirmado
+   (seção 1.1). Isso tira (b) da mesa e encurta (a) e (c).
 2. **Idade da última medição no painel (c), variante mínima.** Faixa global "última medição há X"
    e, depois, o status `DESATUALIZADO` por monitor. Sem schema. Corrige o verde falso, que é o
    defeito mais enganoso do estado atual, e cobre (e) para quem olha o painel. Na mesma passada,
    (f5): `HealthIndicator` do motor baseado em `max(executado_em)`, para o health deixar de dizer
    `UP` com o motor parado.
-3. **Vigia externo (d) lendo esse health**, com Telegram próprio. Pequeno, e é o primeiro item que
+3. **Vigia externo (d) lendo esse health**, com Telegram próprio: Agendador de Tarefas no
+   Windows, systemd timer ou cron no Linux. Pequeno, e é o primeiro item que
    **avisa durante** a parada sem ninguém olhando. Não precisa da tabela de heartbeat se o
    indicador usar `max(executado_em)`.
 4. **Dead man's switch fora da máquina (f1)**, se houver serviço externo aceitável. Único que
