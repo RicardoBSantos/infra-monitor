@@ -36,6 +36,7 @@ public class EpisodioLatenciaService {
         return new EpisodioLatenciaResponse(episodio.getId(), monitor.getId(), monitor.getNome(),
                 equipamento.getId(), equipamento.getNome(),
                 equipamento.getUnidade().getId(), equipamento.getUnidade().getNome(),
-                episodio.getIniciadoEm(), episodio.getEncerradoEm(), episodio.getLimiarMs(), ciclos);
+                episodio.getIniciadoEm(), episodio.getEncerradoEm(), episodio.getLimiarMs(), ciclos,
+                episodio.getMotivoEncerramento());
     }
 }

@@ -1,6 +1,7 @@
 package br.com.inframonitor.monitoring.latency.controller;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
+import br.com.inframonitor.monitoring.latency.MotivoEncerramentoEpisodio;
 import br.com.inframonitor.monitoring.latency.dto.EpisodioLatenciaResponse;
 import br.com.inframonitor.monitoring.latency.service.EpisodioLatenciaService;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class EpisodioLatenciaControllerTest {
     void devolveEpisodioEmCursoEDesconhecido() throws Exception {
         when(episodioLatenciaService.buscarPorId(1L)).thenReturn(new EpisodioLatenciaResponse(1L,
                 10L, "ICMP principal", 20L, "LINK-WAN", 30L, "Sesc Centro",
-                Instant.parse("2026-09-01T08:40:11Z"), null, 250, 2));
+                Instant.parse("2026-09-01T08:40:11Z"), Instant.parse("2026-09-01T08:45:11Z"), 250, 2, MotivoEncerramentoEpisodio.INCIDENTE));
         when(episodioLatenciaService.buscarPorId(99L))
                 .thenThrow(new RecursoNaoEncontradoException("Episodio de latencia nao encontrado"));
 
@@ -35,8 +36,7 @@ class EpisodioLatenciaControllerTest {
                 // O N que a timeline usa para numerar as medicoes da sequencia.
                 .andExpect(jsonPath("$.ciclosParaEpisodio").value(2))
                 .andExpect(jsonPath("$.unidadeNome").value("Sesc Centro"))
-                // Episodio em curso: encerradoEm nulo e o "Aberto" da tela unificada.
-                .andExpect(jsonPath("$.encerradoEm").doesNotExist());
+                .andExpect(jsonPath("$.motivoEncerramento").value("INCIDENTE"));
         mockMvc.perform(get("/api/v1/episodios-latencia/99")).andExpect(status().isNotFound());
     }
 }
