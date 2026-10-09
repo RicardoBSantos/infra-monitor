@@ -1,0 +1,3 @@
+package br.com.inframonitor.usuario.bootstrap;
+import jakarta.annotation.PostConstruct; import org.springframework.boot.context.properties.ConfigurationProperties;
+@ConfigurationProperties(prefix="app.bootstrap-admin") public record BootstrapAdminProperties(boolean enabled,String name,String email,String password){ @PostConstruct public void validar(){if(enabled && (vazio(name)||vazio(email)||vazio(password)))throw new IllegalStateException("BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_EMAIL e BOOTSTRAP_ADMIN_PASSWORD sao obrigatorios quando bootstrap esta habilitado");} private boolean vazio(String v){return v==null||v.isBlank();} }

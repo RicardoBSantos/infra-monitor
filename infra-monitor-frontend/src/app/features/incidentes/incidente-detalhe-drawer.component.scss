@@ -1,0 +1,139 @@
+/* Gaveta de detalhe da ocorrência. Mesma mecânica das gavetas de equipamento e de
+   unidade (fundo escurecido + painel preso à direita) e a mesma largura da de
+   equipamento: aqui há KPIs, gráfico, timeline e dois cartões lado a lado.
+   Cartões, botões, KPIs, esqueletos e estados vazios vêm de styles/_ui.scss. */
+:host { display: contents; }
+
+/* Entrada da gaveta: painel deslizando da direita e fundo em fade. Mesmos valores das
+   demais gavetas do sistema. Sob prefers-reduced-motion resta só o fade. */
+.gaveta__fundo {
+  position: fixed; inset: 0; z-index: var(--im-z-gaveta-fundo); background: rgba(0, 0, 0, .38);
+  animation: gaveta-fundo 220ms ease-out;
+}
+
+.gaveta {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: var(--im-z-gaveta); display: flex; flex-direction: column;
+  width: min(660px, 100%); max-width: 100vw; border-left: 1px solid var(--im-border);
+  background: var(--im-surface);
+  animation: gaveta-painel 220ms cubic-bezier(.32, .72, 0, 1);
+  /* Teto duro de largura: nenhum conteúdo interno pode alargar a gaveta nem gerar
+     rolagem horizontal aqui. O que for largo demais rola dentro do próprio bloco. */
+  overflow-x: hidden;
+}
+
+@keyframes gaveta-fundo { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gaveta-painel { from { transform: translateX(100%); } to { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gaveta { animation: gaveta-fundo 120ms ease-out; }
+  .gaveta__fundo { animation-duration: 120ms; }
+}
+
+.gaveta__topo {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--im-border);
+}
+.gaveta__identidade { display: grid; gap: 5px; min-width: 0; }
+.gaveta__nome { display: flex; align-items: center; gap: 10px; }
+.gaveta__nome h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.gaveta__contexto { margin: 0; color: var(--im-text-secondary); font-size: 12px; }
+.gaveta__contexto a { color: var(--im-info-soft); text-decoration: none; }
+.gaveta__contexto a:hover { text-decoration: underline; }
+
+.gaveta__fechar {
+  flex: none; width: 26px; height: 26px; padding: 0; border: 1px solid var(--im-border-strong);
+  border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-secondary);
+  font-size: 15px; line-height: 1; cursor: pointer;
+}
+.gaveta__fechar:hover { color: var(--im-text); background: var(--im-surface-hover); }
+
+.gaveta__corpo {
+  display: grid; gap: 12px; align-content: start; overflow-y: auto; overflow-x: hidden;
+  padding: 14px 18px 18px;
+  /* O corpo é quem estica: a gaveta é `position: fixed` de topo a base, e sem `flex: 1`
+     o corpo mede só o conteúdo. Ocorrência curta — episódio sem notificação, ou medições
+     fora do ar — deixava o rodapé subir e sobrava faixa vazia até o fim do painel.
+     `min-height: 0` porque o corpo rola: sem ele o mínimo do item flex é o conteúdo
+     inteiro e a rolagem vaza para a gaveta. */
+  flex: 1 1 auto; min-height: 0;
+  /* minmax(0, 1fr) e não 1fr: com 1fr o mínimo da trilha é o min-content do conteúdo,
+     e um bloco largo esticaria a coluna para fora da gaveta. */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.gaveta__erro {
+  margin: 0 14px 12px; padding: 9px 11px; border: 1px solid rgba(229, 83, 75, .32);
+  border-radius: var(--im-radius-lg); background: rgba(229, 83, 75, .08);
+  color: var(--im-danger-text); font-size: 12px;
+}
+
+.gaveta__acoes {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
+  padding: 12px 18px; border-top: 1px solid var(--im-border); background: var(--im-surface-raised);
+}
+
+/* KPIs ----------------------------------------------------------------------
+   Variante compacta da primitiva `.kpi` de _ui.scss, igual à do drawer de
+   equipamento: o valor de 30px do Painel não cabe em quatro colunas dentro de 660px.
+   Os modificadores de severidade (--warn/--down) continuam vindo de lá. */
+.kpis {
+  display: grid; gap: 8px; margin: 0; padding: 0; list-style: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.kpi { gap: 6px; padding: 10px 11px; border-top-width: 2px; }
+/* Duas linhas reservadas: os rótulos têm larguras bem diferentes e sem isso os
+   valores de cada linha de cards deixam de compartilhar a mesma base. */
+.kpi__rotulo {
+  min-height: 2em; color: var(--im-text-dim); font-size: 9px; font-weight: 600;
+  letter-spacing: .1em; line-height: 1.1; text-transform: uppercase;
+}
+.kpi__valor { display: flex; align-items: center; font: 600 15px/1.2 var(--im-mono); letter-spacing: -.01em; }
+/* O valor colorido de _ui.scss mira `strong`; o card de Status usa `span` por causa do
+   badge, e o badge tem cor própria. */
+.kpi--warn .kpi__valor { color: var(--im-warning); }
+.kpi--down .kpi__valor { color: var(--im-danger); }
+.kpi__unidade { font-size: 11px; }
+/* Nome de pessoa não é métrica: sai do mono e do tamanho de número, e trunca em vez de
+   esticar o card — a fileira de KPIs tem colunas de largura fixa. */
+.kpi__valor--texto {
+  display: block; overflow: hidden; font: 600 13px/1.3 inherit; color: var(--im-text);
+  text-overflow: ellipsis; white-space: nowrap;
+}
+/* O bloco de dado ausente é cinza mesmo dentro de um card colorido: sem esta linha ele
+   herdaria o vermelho de `.kpi--down .kpi__valor` e "indisponível" pareceria alarme. */
+.kpi .kpi__falha { color: var(--im-text-dim); }
+/* Duração e "Encerrado em" de ocorrência em curso: vermelho suave, o mesmo da coluna de
+   duração no mockup. Só o valor — não é severidade, o card não muda de borda. */
+.kpi__valor--em-curso, .em-curso { color: var(--im-danger-soft); }
+
+/* Cartões -------------------------------------------------------------------- */
+.cartao__titulo { margin: 0; }
+
+/* minmax(0, ...) nas duas trilhas pelo mesmo motivo do corpo: sem isso uma coluna
+   cresce até o min-content do conteúdo e empurra a outra para o seu próprio
+   min-content — que é de um caractere, porque `dd` usa overflow-wrap: anywhere. */
+.colunas { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.colunas > .cartao { min-width: 0; }
+
+.dados { display: grid; gap: 7px 12px; margin: 0; padding: 0 14px 14px; grid-template-columns: auto minmax(0, 1fr); }
+.dados dt { min-width: 0; color: var(--im-text-secondary); font-size: 11.5px; }
+.dados dd { margin: 0; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
+.dados a { color: var(--im-info-soft); text-decoration: none; }
+.dados a:hover { text-decoration: underline; }
+
+/* Aviso de bloco que caiu: a timeline segue na tela, só incompleta. */
+.aviso-bloco { margin: 0 14px 10px; color: var(--im-warning); font-size: 11.5px; }
+
+.notificacoes { display: grid; gap: 10px; margin: 0; padding: 0 14px 14px; list-style: none; }
+.notificacoes li { display: flex; align-items: center; gap: 12px; }
+.notificacoes a { color: var(--im-info-soft); text-decoration: none; }
+.notificacoes a:hover { text-decoration: underline; }
+.notificacoes__evento { flex: 1; min-width: 0; font-size: 11.5px; }
+
+.mono { font-family: 'IBM Plex Mono', monospace; }
+
+@media (max-width: 860px) {
+  .gaveta { width: 100%; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .colunas { grid-template-columns: minmax(0, 1fr); }
+}

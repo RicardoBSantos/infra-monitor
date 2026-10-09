@@ -1,0 +1,143 @@
+<section class="unidades" aria-labelledby="unidades-titulo">
+  <header class="unidades__topo">
+    <div>
+      <h1 id="unidades-titulo">Unidades</h1>
+      <p>Locais físicos monitorados pela plataforma. Todo equipamento pertence a exatamente uma unidade.</p>
+    </div>
+    @if (authState.canManageInventory()) {
+      <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Nova unidade</button>
+    }
+  </header>
+
+  @if (aviso()) { <p class="unidades__aviso" role="status">{{ aviso() }}</p> }
+
+  @if (erro() && estado() !== 'error') {
+    <div class="aviso aviso--erro" role="alert">
+      <div><strong>Não foi possível concluir a operação.</strong><p>{{ erro() }}</p></div>
+    </div>
+  }
+
+  <div class="unidades__busca">
+    <label class="visualmente-oculto" for="busca-unidades">Buscar unidades</label>
+    <input
+      id="busca-unidades"
+      class="campo-busca"
+      type="search"
+      placeholder="Buscar unidades por nome, código ou cidade"
+      [value]="busca()"
+      (input)="aoBuscar($any($event.target).value)"
+    >
+    <p class="contagem">{{ filtradas().length }} de {{ total() }} unidades</p>
+  </div>
+
+  <div class="cartao">
+    @if (estado() === 'loading') {
+      <div class="esqueleto" aria-label="Carregando unidades">
+        @for (linha of [1,2,3,4,5]; track linha) { <span></span> }
+      </div>
+    } @else if (estado() === 'error') {
+      <div class="vazio" role="alert">
+        <strong>Não foi possível carregar as unidades.</strong>
+        <p>{{ erro() }}</p>
+        <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+      </div>
+    } @else if (estado() === 'empty') {
+      <div class="vazio">
+        <strong>Nenhuma unidade cadastrada.</strong>
+        <p>Cadastre a primeira unidade para começar a monitorar equipamentos.</p>
+        @if (authState.canManageInventory()) {
+          <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Nova unidade</button>
+        }
+      </div>
+    } @else if (!filtradas().length) {
+      <div class="vazio">
+        <strong>Nenhuma unidade corresponde à busca.</strong>
+        <p>Nenhum resultado para “{{ busca() }}”.</p>
+        <button class="botao" type="button" (click)="limparBusca()">Limpar busca</button>
+      </div>
+    } @else {
+      <div class="unidades__rolagem">
+        <table class="tabela">
+          <thead>
+            <tr>
+              <th>UNIDADE</th>
+              <th>CÓDIGO</th>
+              <th>CIDADE</th>
+              <th>ENDEREÇO</th>
+              <th>STATUS</th>
+              <th class="numerico">EQUIPAMENTOS</th>
+              <th class="numerico">DISPONIBILIDADE</th>
+              <th class="numerico">INCIDENTES</th>
+              @if (authState.canManageInventory()) { <th class="numerico">AÇÕES</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (linha of visiveis(); track linha.cadastro.id) {
+              <tr [class.unidades__linha--inativa]="!linha.cadastro.ativo">
+                <td>
+                  <span class="forte">{{ linha.cadastro.nome }}</span>
+                  @if (!linha.cadastro.ativo) { <span class="chip-manutencao">Inativa</span> }
+                </td>
+                <td class="mono">{{ linha.cadastro.sigla }}</td>
+                <td>{{ linha.cadastro.cidade || '—' }}</td>
+                <td>{{ linha.cadastro.endereco || '—' }}</td>
+                <td>
+                  @if (!linha.cadastro.ativo) {
+                    <span class="apagado">—</span>
+                  } @else if (linha.operacional) {
+                    <app-status-badge [status]="linha.operacional.status" />
+                  } @else {
+                    <span class="apagado">—</span>
+                  }
+                </td>
+                <td class="numerico mono">{{ linha.equipamentos ?? '—' }}</td>
+                <td class="numerico mono" [class.apagado]="linha.disponibilidade === '—'">{{ linha.disponibilidade }}</td>
+                <td class="numerico mono" [class.down]="(linha.incidentes ?? 0) > 0">{{ linha.incidentes ?? '—' }}</td>
+                @if (authState.canManageInventory()) {
+                  <td class="unidades__acoes">
+                    <a class="botao botao--discreto" [routerLink]="['/unidades', linha.cadastro.id]">Ver</a>
+                    @if (linha.cadastro.ativo) {
+                      <button class="botao botao--discreto" type="button" (click)="confirmar('desativar', linha.cadastro)" [disabled]="alternandoId() !== null">Desativar</button>
+                    } @else {
+                      <button class="botao botao--discreto" type="button" (click)="ativar(linha.cadastro)" [disabled]="alternandoId() !== null">
+                        {{ alternandoId() === linha.cadastro.id ? 'Ativando…' : 'Ativar' }}
+                      </button>
+                    }
+                    <button class="botao botao--discreto botao--perigo" type="button" (click)="confirmar('excluir', linha.cadastro)" [disabled]="alternandoId() !== null">Excluir</button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalPaginas() > 1) {
+        <app-paginacao
+          [paginaAtual]="paginaAtual()"
+          [totalPaginas]="totalPaginas()"
+          [contagem]="visiveis().length + ' de ' + filtradas().length + ' unidades'"
+          rotulo="Paginação de unidades"
+          (mudarPagina)="irPara($event)" />
+      }
+    }
+  </div>
+
+  <app-unidade-form-drawer
+    [aberto]="drawerAberto()"
+    [unidade]="emEdicao()"
+    (fechado)="drawerAberto.set(false)"
+    (salvo)="aoSalvar($event)"
+  />
+
+  <app-confirm-dialog
+    [open]="acao() !== null"
+    [title]="tituloConfirmacao()"
+    [message]="mensagemConfirmacao()"
+    [confirmLabel]="acao() === 'excluir' ? 'Excluir unidade' : 'Desativar unidade'"
+    [busy]="processando()"
+    [erro]="erroAcao()"
+    (cancel)="fecharConfirmacao()"
+    (confirm)="executar()"
+  />
+</section>

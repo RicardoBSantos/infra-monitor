@@ -1,0 +1,47 @@
+/* Gráfico de barras da disponibilidade diária. Cartão, esqueleto e estado vazio
+   vêm de styles/_ui.scss; o resto é específico desta aba. */
+:host { display: block; }
+
+.historico__cabecalho { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+/* O eixo é truncado para tornar visível a variação perto de 100%. Declarado na UI
+   para a leitura não confundir barra curta com queda severa. */
+.historico__escala { padding-right: 14px; color: var(--im-text-dim); font: 10px var(--im-mono); }
+
+.historico__grafico { margin: 0; padding: 0 14px; }
+
+.grafico__barras { display: flex; align-items: flex-end; gap: 3px; height: 190px; padding-bottom: 6px; border-bottom: 1px solid var(--im-border-strong); }
+.grafico__coluna { display: flex; align-items: flex-end; height: 100%; flex: 1 1 0; min-width: 0; }
+.grafico__coluna:hover .grafico__barra { filter: brightness(1.25); }
+
+.grafico__barra { display: block; width: 100%; border-radius: 2px 2px 0 0; background: var(--im-success); }
+.grafico__barra--ok { background: var(--im-success); }
+.grafico__barra--warn { background: var(--im-warning); }
+.grafico__barra--down { background: var(--im-danger); }
+
+/* Hachura em vez de opacidade: barra mais apagada se confundiria com valor baixo. */
+.grafico__barra--parcial {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(0, 0, 0, .34) 0 3px,
+    rgba(0, 0, 0, 0) 3px 6px
+  );
+}
+
+.grafico__eixo { display: flex; gap: 3px; padding-top: 6px; }
+.grafico__rotulo { flex: 1 1 0; min-width: 0; color: var(--im-text-dim); font: 9.5px var(--im-mono); text-align: center; white-space: nowrap; }
+
+.historico__legenda { display: flex; align-items: center; gap: 7px; margin: 0; padding: 12px 14px 14px; color: var(--im-text-dim); font-size: 11px; }
+.historico__amostra { display: inline-block; width: 20px; height: 9px; flex: none; border-radius: 2px; background: var(--im-success); }
+.historico__amostra--parcial {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(0, 0, 0, .34) 0 3px,
+    rgba(0, 0, 0, 0) 3px 6px
+  );
+}
+
+@media (max-width: 860px) {
+  .grafico__barras { height: 150px; }
+  .historico__cabecalho { flex-direction: column; align-items: flex-start; gap: 0; }
+  .historico__escala { padding: 0 0 8px 14px; }
+}

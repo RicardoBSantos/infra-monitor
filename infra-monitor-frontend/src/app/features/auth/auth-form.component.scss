@@ -1,0 +1,25 @@
+/* Formulário de troca de senha. Login tem tela própria (login.component.scss);
+   .eyebrow e as primitivas compartilhadas vivem em styles/_ui.scss. */
+.auth-page{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);background:var(--im-bg);color:var(--im-text)}
+.auth-brand{display:flex;align-items:center;padding:clamp(32px,7vw,112px);background:radial-gradient(700px 440px at 24% 30%,rgba(76,141,255,.2),transparent 70%),linear-gradient(rgba(124,150,180,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(124,150,180,.055) 1px,transparent 1px),var(--im-surface);background-size:auto,56px 56px,56px 56px}
+.auth-brand>div{max-width:540px}
+.auth-brand h1,.auth-card h1{margin:12px 0;font-size:clamp(28px,4vw,48px);line-height:1.08}
+.auth-brand p,.auth-card>p{color:var(--im-text-secondary);line-height:1.6}
+.auth-content{display:grid;place-items:center;padding:24px}
+.auth-card{width:min(100%,390px);box-sizing:border-box;padding:26px;background:var(--im-surface-raised);border:1px solid var(--im-border-strong);border-radius:6px;box-shadow:0 26px 60px rgba(0,0,0,.42)}
+.auth-card h1{font-size:28px}
+.auth-card label{display:grid;gap:7px;margin-top:18px;color:var(--im-text-soft);font-size:13px}
+.auth-card input{box-sizing:border-box;width:100%;height:42px;border:1px solid var(--im-border-muted);border-radius:4px;background:var(--im-surface);color:var(--im-text);padding:0 11px;font:inherit}
+.auth-card input:focus{outline:2px solid var(--im-primary);outline-offset:1px}
+.auth-submit{width:100%;height:42px;margin-top:24px;border:0;border-radius:4px;background:var(--im-primary);color:var(--im-on-primary);font-weight:700;cursor:pointer}
+.auth-submit:disabled{opacity:.65;cursor:wait}
+.auth-error{margin-top:18px;padding:10px;border:1px solid var(--im-danger-border);border-radius:4px;background:var(--im-danger-bg);color:var(--im-danger-text)}
+.auth-link{display:block;margin:16px auto 0;border:0;background:transparent;color:var(--im-link);cursor:pointer}
+@media(max-width:700px){
+  .auth-page{grid-template-columns:1fr}
+  .auth-brand{min-height:180px;padding:32px}
+  .auth-brand h1{font-size:30px}
+  .auth-content{align-items:start;padding:24px 16px}
+  .auth-card{padding:22px}
+  .auth-brand p{margin-bottom:0}
+}

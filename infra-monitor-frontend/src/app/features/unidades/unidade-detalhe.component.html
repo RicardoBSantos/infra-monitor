@@ -1,0 +1,111 @@
+<section class="unidade-detalhe" aria-labelledby="unidade-titulo">
+  @if (store.estado() === 'not-found') {
+    <div class="aviso aviso--erro" role="alert">
+      <app-icon name="incident" />
+      <div>
+        <strong>Unidade não encontrada.</strong>
+        <p>O identificador informado não corresponde a nenhuma unidade.</p>
+      </div>
+      <a class="botao" routerLink="/dashboard">Voltar ao painel</a>
+    </div>
+  } @else if (store.estado() === 'error') {
+    <div class="aviso aviso--erro" role="alert">
+      <app-icon name="incident" />
+      <div>
+        <strong>Não foi possível carregar a unidade.</strong>
+        <p>{{ store.erro() }}</p>
+      </div>
+      <button class="botao" type="button" (click)="recarregar()">Tentar novamente</button>
+    </div>
+  } @else if (store.estado() === 'loading') {
+    <div class="kpis" aria-label="Carregando unidade">
+      @for (card of [1,2,3,4,5,6,7]; track card) {
+        <div class="kpi kpi--carregando"><span></span><strong></strong><small></small></div>
+      }
+    </div>
+  } @else if (store.unidade(); as dados) {
+    <a class="unidade-detalhe__voltar" routerLink="/dashboard">← Voltar ao painel</a>
+
+    <header class="unidade-detalhe__header">
+      <div class="unidade-detalhe__identidade">
+        <div>
+          <div class="unidade-detalhe__titulo">
+            <h1 id="unidade-titulo">{{ dados.nome }}</h1>
+            <app-status-badge [status]="dados.status" />
+          </div>
+          @if (store.metadados().length) {
+            <p class="unidade-detalhe__meta">{{ store.metadados().join(' · ') }}</p>
+          }
+        </div>
+      </div>
+      <div class="unidade-detalhe__acoes">
+        <a class="botao botao--primario" routerLink="/equipamentos">+ Novo equipamento</a>
+        <!-- TODO: feature de janelas de manutenção -->
+        <button class="botao" type="button" disabled title="Em breve">Agendar manutenção</button>
+        <button class="botao" type="button" (click)="abrirEdicao()" [disabled]="!store.cadastro()">Editar unidade</button>
+      </div>
+    </header>
+
+    <div class="kpis">
+      <article class="kpi">
+        <span>DISPONIBILIDADE</span>
+        <strong [class.kpi__vazio]="store.disponibilidadeTexto() === '—'">{{ store.disponibilidadeTexto() }}</strong>
+        <small>janela de {{ janelaDias }} dias</small>
+      </article>
+      <article class="kpi">
+        <span>EQUIPAMENTOS</span>
+        <strong>{{ dados.equipamentos.total }}</strong>
+        <small>{{ dados.equipamentos.total - dados.equipamentos.semMonitoramento }} monitorados</small>
+      </article>
+      <article class="kpi kpi--ok">
+        <span>ONLINE</span>
+        <strong>{{ dados.equipamentos.disponiveis }}</strong>
+        <small>de {{ dados.equipamentos.ativos }} ativos</small>
+      </article>
+      <article class="kpi kpi--warn">
+        <span>DEGRADADOS</span>
+        <strong>{{ dados.equipamentos.degradados }}</strong>
+        <small>{{ dados.equipamentos.emManutencao }} em manutenção</small>
+      </article>
+      <article class="kpi kpi--down">
+        <span>OFFLINE</span>
+        <strong>{{ dados.equipamentos.indisponiveis }}</strong>
+        <small>{{ dados.equipamentos.semDados }} sem dados</small>
+      </article>
+      <article class="kpi kpi--down">
+        <span>INCIDENTES ABERTOS</span>
+        <strong>{{ dados.incidentesAbertos }}</strong>
+        <small>nesta unidade</small>
+      </article>
+      <article class="kpi">
+        <span>LATÊNCIA MÉDIA</span>
+        <strong [class.kpi__vazio]="store.latenciaTexto() === '—'">{{ store.latenciaTexto() }}<em class="kpi__unidade">ms</em></strong>
+        <small>ICMP · todos os monitores</small>
+      </article>
+    </div>
+
+    <nav class="abas" role="tablist" aria-label="Seções da unidade">
+      @for (aba of abas; track aba.caminho; let i = $index) {
+        <a
+          #gatilhoAba
+          class="aba"
+          role="tab"
+          routerLinkActive="aba--ativa"
+          #ativa="routerLinkActive"
+          [routerLink]="[aba.caminho]"
+          [attr.aria-selected]="ativa.isActive"
+          (keydown)="navegarPorTeclado($event, i)"
+        >{{ aba.rotulo }}</a>
+      }
+    </nav>
+
+    <router-outlet />
+
+    <app-unidade-form-drawer
+      [aberto]="gavetaAberta()"
+      [unidade]="store.cadastro()"
+      (fechado)="gavetaAberta.set(false)"
+      (salvo)="aoSalvarCadastro()"
+    />
+  }
+</section>

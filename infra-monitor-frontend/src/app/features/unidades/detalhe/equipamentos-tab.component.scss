@@ -1,0 +1,14 @@
+/* Filtros + tabela. Campos, tabela, pontos e estados vazios vêm de styles/_ui.scss. */
+:host { display: block; }
+
+.equipamentos-aba { display: grid; gap: 12px; }
+.equipamentos-aba__filtros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.equipamentos-aba__filtros .campo-busca { min-width: 220px; flex: 1 1 220px; max-width: 320px; }
+.equipamentos-aba__contagem { margin-left: auto; }
+
+.equipamentos-aba__rolagem { overflow-x: auto; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
+.equipamentos-aba__rolagem .tabela th { padding-top: 12px; }
+
+@media (max-width: 860px) {
+  .equipamentos-aba__contagem { margin-left: 0; }
+}

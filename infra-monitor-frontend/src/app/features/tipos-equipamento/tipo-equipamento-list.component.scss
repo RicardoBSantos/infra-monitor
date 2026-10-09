@@ -1,0 +1,210 @@
+// Primitivas globais (.cartao, .tabela, .vazio, .esqueleto, .campo-busca, .botao,
+// .contagem, .mono, .forte, .apagado, .ok, .warn, .down) vêm de _ui.scss.
+// Aqui só o que é desta tela. O modal segue o padrão de Equipamentos, não o drawer
+// de Unidades — formulário curto, ação única.
+
+.tipos {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 22px;
+  color: var(--im-text);
+}
+
+.tipos__topo {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  h1 { margin: 0; color: var(--im-text-strong); font-size: 20px; }
+  p { margin: 4px 0 0; color: var(--im-text-secondary); font-size: 12px; }
+}
+
+.tipos__aviso {
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--im-border);
+  border-left: 3px solid var(--im-success);
+  border-radius: var(--im-radius);
+  background: var(--im-surface-raised);
+  color: var(--im-success-soft);
+  font-size: 12px;
+}
+
+.aviso--erro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .botao { margin-left: auto; }
+}
+
+.tipos__abas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+
+  span {
+    margin-right: 4px;
+    color: var(--im-text-dim);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .1em;
+  }
+
+  button {
+    height: 26px;
+    padding: 0 12px;
+    border: 1px solid var(--im-border-strong);
+    border-radius: var(--im-radius-pill);
+    background: var(--im-surface);
+    color: var(--im-text-secondary);
+    font: 11.5px inherit;
+    cursor: pointer;
+
+    &:hover { border-color: var(--im-border-muted); color: var(--im-text); }
+    &:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+  }
+
+  button.ativa {
+    border-color: var(--im-primary);
+    background: var(--im-primary-soft);
+    color: var(--im-link);
+    font-weight: 600;
+  }
+}
+
+.tipos__busca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .campo-busca { flex: 1 1 340px; max-width: 420px; height: 32px; }
+  .contagem { margin-left: auto; }
+}
+
+.tipos__rolagem {
+  overflow-x: auto;
+
+  .tabela { min-width: 980px; }
+}
+
+// A descrição é o único campo longo da tabela: limita para não empurrar as contagens.
+.tipos__descricao {
+  max-width: 42ch;
+  color: var(--im-text-secondary);
+}
+
+.chip-status {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 8px;
+  border: 1px solid rgba(63, 185, 80, .4);
+  border-radius: var(--im-radius-pill);
+  color: var(--im-success);
+  font: 10px var(--im-mono);
+}
+
+.chip-status--off {
+  border-color: var(--im-border-strong);
+  color: var(--im-text-muted);
+}
+
+// ---- Modal de cadastro/edição -----------------------------------------------
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--im-z-modal);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, .65);
+}
+
+.tipo-modal {
+  width: min(100%, 520px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--im-border-strong);
+  border-top: 2px solid var(--im-primary);
+  border-radius: var(--im-radius-lg);
+  background: var(--im-surface-raised);
+  box-shadow: var(--im-shadow-raised);
+
+  form { display: grid; gap: 10px; }
+
+  label {
+    display: grid;
+    gap: 5px;
+    color: var(--im-text-dim);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .1em;
+  }
+
+  input,
+  textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--im-border-strong);
+    border-radius: var(--im-radius);
+    background: var(--im-surface);
+    color: var(--im-text);
+    font: 13px inherit;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+}
+
+.tipo-modal__topo {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h2 { margin: 0; color: var(--im-text-strong); font-size: 16px; }
+  p { margin: 6px 0 0; color: var(--im-text-secondary); font-size: 12px; }
+}
+
+.tipo-modal__fechar {
+  border: 0;
+  background: none;
+  color: var(--im-text-secondary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover { color: var(--im-text); }
+}
+
+.campo-erro {
+  color: var(--im-danger-soft);
+  font-size: 11px;
+}
+
+.tipo-modal__rodape {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+
+  p { margin: 0; color: var(--im-text-dim); font-size: 11px; }
+  div { display: flex; gap: 8px; margin-left: auto; }
+}
+
+@media (max-width: 760px) {
+  .tipos { padding: 16px; }
+  .tipos__topo { flex-direction: column; align-items: flex-start; }
+  .tipos__abas { flex-wrap: wrap; }
+  .tipos__busca { flex-wrap: wrap; .contagem { margin-left: 0; width: 100%; } }
+}

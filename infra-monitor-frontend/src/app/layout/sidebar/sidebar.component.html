@@ -1,0 +1,22 @@
+<aside class="sidebar" [class.sidebar--open]="open()" aria-label="Navegação principal">
+  <a class="brand" routerLink="/dashboard" (click)="close()" aria-label="Infra Monitor, ir para o painel">
+    <span class="brand__mark"></span><span><strong>INFRA MONITOR</strong><small>NOC · SERGIPE</small></span>
+  </a>
+  <nav class="navigation">
+    <p class="navigation__heading">OPERAÇÕES</p>
+    @for (item of operations; track item.path) {
+      <a class="navigation__item" [routerLink]="item.path" routerLinkActive="navigation__item--active" (click)="close()">
+        <app-icon [name]="item.icon" /><span>{{ item.label }}</span>
+        @if (item.path === '/incidentes' && incidentesAbertos()) { <em class="navigation__badge" [attr.aria-label]="incidentesAbertos() + ' incidentes abertos'">{{ incidentesAbertos() }}</em> }
+      </a>
+    }
+    @for (item of reports; track item.path) { <a class="navigation__item" [routerLink]="item.path" routerLinkActive="navigation__item--active" (click)="close()"><app-icon [name]="item.icon" /><span>{{ item.label }}</span></a> }
+    <p class="navigation__heading navigation__heading--management">GERENCIAMENTO</p>
+    @for (item of management; track item.path) { <a class="navigation__item" [routerLink]="item.path" routerLinkActive="navigation__item--active" (click)="close()"><app-icon [name]="item.icon" /><span>{{ item.label }}</span></a> }
+    @if (authState.canManageUsers()) { <p class="navigation__heading navigation__heading--management">ADMINISTRAÇÃO</p>@for (item of administration; track item.path) { <a class="navigation__item" [routerLink]="item.path" routerLinkActive="navigation__item--active" (click)="close()"><app-icon [name]="item.icon" /><span>{{ item.label }}</span></a> } }
+  </nav>
+  <div class="sidebar__footer">
+    <p class="sidebar__engine"><i class="sidebar__pulse" aria-hidden="true"></i>Monitoramento ICMP ativo</p>
+    <small>varredura {{ ultimaVarredura() }}</small>
+  </div>
+</aside>

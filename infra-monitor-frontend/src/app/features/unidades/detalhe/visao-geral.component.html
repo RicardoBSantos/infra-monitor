@@ -1,0 +1,80 @@
+<div class="visao-geral">
+  <section class="cartao" aria-labelledby="titulo-latencia">
+    <h2 class="cartao__titulo" id="titulo-latencia">DISPOSITIVOS COM MAIOR LATÊNCIA</h2>
+    @if (store.equipamentosEstado() === 'loading') {
+      <div class="esqueleto" aria-label="Carregando dispositivos">@for (linha of [1,2,3,4]; track linha) { <span></span> }</div>
+    } @else if (store.equipamentosEstado() === 'error') {
+      <div class="vazio" role="alert">
+        <strong>Não foi possível carregar os dispositivos.</strong>
+        <button class="botao" type="button" (click)="store.recarregarEquipamentos()">Tentar novamente</button>
+      </div>
+    } @else if (maioresLatencias().length === 0) {
+      <div class="vazio">
+        <strong>Nenhum equipamento cadastrado nesta unidade.</strong>
+        <p>Cadastre um equipamento para que a leitura ICMP comece a produzir latência.</p>
+      </div>
+    } @else {
+      <ul class="latencias">
+        @for (linha of maioresLatencias(); track linha.id) {
+          <li>
+            <i class="ponto" [class]="'ponto ponto--' + linha.severidade" aria-hidden="true"></i>
+            <span class="mono forte latencias__nome">{{ linha.nome }}</span>
+            <span class="latencias__tipo">{{ linha.tipo }}</span>
+            <span class="barra" [class.barra--down]="linha.offline"><i [style.width]="linha.largura"></i></span>
+            <span class="mono numerico latencias__valor" [class.down]="linha.offline">
+              {{ linha.offline ? 'timeout' : (linha.latenciaMs === null ? '—' : linha.latenciaMs + ' ms') }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <div class="visao-geral__coluna">
+    <section class="cartao" aria-labelledby="titulo-tipos">
+      <h2 class="cartao__titulo" id="titulo-tipos">EQUIPAMENTOS POR TIPO</h2>
+      @if (store.equipamentosEstado() === 'loading') {
+        <div class="esqueleto" aria-label="Carregando tipos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+      } @else if (porTipo().length === 0) {
+        <div class="vazio"><strong>Nenhum equipamento cadastrado nesta unidade.</strong></div>
+      } @else {
+        <ul class="tipos">
+          @for (linha of porTipo(); track linha.nome) {
+            <li>
+              <span class="tipos__nome">{{ linha.nome }}</span>
+              <span class="barra"><i [style.width]="linha.largura"></i></span>
+              <span class="mono numerico tipos__total">{{ linha.total }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="cartao" aria-labelledby="titulo-incidentes">
+      <h2 class="cartao__titulo" id="titulo-incidentes">INCIDENTES RECENTES</h2>
+      @if (incidentesEstado() === 'loading') {
+        <div class="esqueleto" aria-label="Carregando incidentes">@for (linha of [1,2]; track linha) { <span></span> }</div>
+      } @else if (incidentesEstado() === 'error') {
+        <div class="vazio" role="alert">
+          <strong>Não foi possível carregar os incidentes.</strong>
+          <button class="botao" type="button" (click)="carregarIncidentes()">Tentar novamente</button>
+        </div>
+      } @else if (incidentes().length === 0) {
+        <div class="vazio">
+          <strong>Nenhum incidente registrado nesta unidade.</strong>
+          <p>Incidentes aparecem aqui quando o monitoramento consolida uma indisponibilidade.</p>
+        </div>
+      } @else {
+        <ul class="incidentes-recentes">
+          @for (incidente of incidentes(); track incidente.id) {
+            <li>
+              <a class="mono" [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a>
+              <span class="incidentes-recentes__evento">{{ incidente.motivo ?? 'Indisponibilidade consolidada' }}</span>
+              <app-status-badge [status]="incidente.status" />
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+</div>

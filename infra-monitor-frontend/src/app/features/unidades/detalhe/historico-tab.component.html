@@ -1,0 +1,54 @@
+<section class="cartao historico" aria-labelledby="titulo-historico">
+  <div class="historico__cabecalho">
+    <h2 class="cartao__titulo" id="titulo-historico">DISPONIBILIDADE DIÁRIA · ÚLTIMOS 30 DIAS</h2>
+    @if (estado() === 'success' && barras().length > 0 && piso() > 0) {
+      <span class="historico__escala">eixo truncado em {{ pisoTexto() }}</span>
+    }
+  </div>
+
+  @if (estado() === 'loading') {
+    <div class="esqueleto" aria-label="Carregando histórico">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+  } @else if (estado() === 'error') {
+    <div class="vazio" role="alert">
+      <strong>Não foi possível carregar o histórico.</strong>
+      <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else if (barras().length === 0) {
+    <div class="vazio">
+      <strong>Nenhum dia monitorado nos últimos 30 dias.</strong>
+      <p>Dias sem monitoramento não entram no gráfico: ausência de dado não é o mesmo que indisponibilidade.</p>
+    </div>
+  } @else {
+    <figure class="historico__grafico">
+      <figcaption class="visualmente-oculto">
+        Disponibilidade diária por dia do calendário. Eixo vertical iniciando em {{ pisoTexto() }}.
+      </figcaption>
+      <div class="grafico__barras" role="list">
+        @for (barra of barras(); track barra.data) {
+          <div
+            class="grafico__coluna"
+            role="listitem"
+            [attr.aria-label]="barra.dica"
+            [title]="barra.dica"
+          >
+            <i
+              [class]="'grafico__barra grafico__barra--' + barra.faixa"
+              [class.grafico__barra--parcial]="barra.parcial"
+              [style.height]="barra.altura"
+            ></i>
+          </div>
+        }
+      </div>
+      <div class="grafico__eixo" aria-hidden="true">
+        @for (barra of barras(); track barra.data) {
+          <span class="grafico__rotulo">{{ barra.mostrarRotulo ? barra.rotulo : '' }}</span>
+        }
+      </div>
+    </figure>
+
+    <p class="historico__legenda">
+      <span class="historico__amostra historico__amostra--parcial" aria-hidden="true"></span>
+      Faixa hachurada indica dia parcial — monitoramento cobriu só parte do dia.
+    </p>
+  }
+</section>

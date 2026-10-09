@@ -47,8 +47,22 @@ public class Equipamento {
     @Column(length = 255)
     private String localizacao;
 
+    @Column(name = "numero_serie", length = 150)
+    private String numeroSerie;
+
+    // Colunas presentes desde V2. Ficam fora do construtor: sao opcionais e o
+    // construtor de oito argumentos ja e usado por testes de outros modulos.
+    @Column(length = 100)
+    private String fabricante;
+
+    @Column(length = 150)
+    private String modelo;
+
     @Column(nullable = false)
     private boolean ativo;
+
+    @Column(name = "em_manutencao", nullable = false)
+    private boolean emManutencao;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -60,7 +74,7 @@ public class Equipamento {
     }
 
     public Equipamento(Unidade unidade, TipoEquipamento tipoEquipamento, String nome, String ip,
-                       String hostname, String descricao, String localizacao) {
+                       String hostname, String descricao, String localizacao, String numeroSerie) {
         this.unidade = unidade;
         this.tipoEquipamento = tipoEquipamento;
         this.nome = nome;
@@ -68,7 +82,9 @@ public class Equipamento {
         this.hostname = hostname;
         this.descricao = descricao;
         this.localizacao = localizacao;
+        this.numeroSerie = numeroSerie;
         this.ativo = true;
+        this.emManutencao = false;
     }
 
     @PrePersist
@@ -98,8 +114,16 @@ public class Equipamento {
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public String getLocalizacao() { return localizacao; }
     public void setLocalizacao(String localizacao) { this.localizacao = localizacao; }
+    public String getNumeroSerie() { return numeroSerie; }
+    public void setNumeroSerie(String numeroSerie) { this.numeroSerie = numeroSerie; }
+    public String getFabricante() { return fabricante; }
+    public void setFabricante(String fabricante) { this.fabricante = fabricante; }
+    public String getModelo() { return modelo; }
+    public void setModelo(String modelo) { this.modelo = modelo; }
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public boolean isEmManutencao() { return emManutencao; }
+    public void setEmManutencao(boolean emManutencao) { this.emManutencao = emManutencao; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

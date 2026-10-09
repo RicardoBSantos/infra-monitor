@@ -25,7 +25,7 @@ public class RestTelegramClient implements TelegramClient {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(properties.getConnectTimeoutMs());
         factory.setReadTimeout(properties.getReadTimeoutMs());
-        this.restClient = RestClient.builder().baseUrl("https://api.telegram.org").requestFactory(factory).build();
+        this.restClient = RestClient.builder().baseUrl(properties.getApiBaseUrl()).requestFactory(factory).build();
     }
 
     @Override
@@ -43,7 +43,29 @@ public class RestTelegramClient implements TelegramClient {
         } catch (ResourceAccessException ex) {
             return SendResult.failure("Falha de conectividade ou timeout do Telegram", null);
         } catch (Exception ex) {
+            if (isTimeout(ex)) return SendResult.failure("Falha de conectividade ou timeout do Telegram", null);
             return SendResult.failure("Falha ao comunicar com Telegram", null);
+        }
+    }
+
+    @Override
+    public TelegramBotInfo getMe() {
+        if (!properties.possuiBotToken()) {
+            return TelegramBotInfo.indisponivel();
+        }
+        try {
+            String body = restClient.get().uri("/bot{token}/getMe", properties.getBotToken())
+                    .retrieve().body(String.class);
+            JsonNode response = body == null ? null : objectMapper.readTree(body);
+            if (response == null || !response.path("ok").asBoolean(false)) {
+                return TelegramBotInfo.indisponivel();
+            }
+            JsonNode resultado = response.path("result");
+            return new TelegramBotInfo(true, resultado.path("username").asText(null),
+                    resultado.path("id").canConvertToLong() ? resultado.path("id").asLong() : null);
+        } catch (Exception ex) {
+            // Token invalido, HTTP de erro e API fora do ar sao a mesma coisa para a tela.
+            return TelegramBotInfo.indisponivel();
         }
     }
 
@@ -56,5 +78,18 @@ public class RestTelegramClient implements TelegramClient {
         return SendResult.failure(sanitize(description), retryAfter);
     }
     private JsonNode read(String value) { try { return objectMapper.readTree(value); } catch (Exception ex) { return null; } }
-    private String sanitize(String value) { return value == null ? "Falha no Telegram" : value.replaceAll("[\\r\\n]", " ").substring(0, Math.min(value.length(), 1000)); }
+    private boolean isTimeout(Throwable error) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (current.getClass().getSimpleName().toLowerCase().contains("timeout")) return true;
+        }
+        return false;
+    }
+    private String sanitize(String value) {
+        if (value == null || value.isBlank()) return "Falha no Telegram";
+        String clean = value.replaceAll("[\\r\\n]", " ");
+        String token = properties.getBotToken();
+        if (token != null && !token.isBlank()) clean = clean.replace(token, "[REDACTED]");
+        clean = clean.replaceAll("(?i)https?://[^\\s]*api\\.telegram\\.org[^\\s]*", "Telegram API");
+        return clean.substring(0, Math.min(clean.length(), 1000));
+    }
 }

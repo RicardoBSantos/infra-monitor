@@ -8,6 +8,7 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -33,7 +34,7 @@ public class MonitorExecutionCoordinator {
     private final Set<Long> runningMonitors = ConcurrentHashMap.newKeySet();
 
     public MonitorExecutionCoordinator(MonitorRepository monitorRepository, MedicaoService medicaoService,
-                                       ExecutorService monitoringWorkerExecutor, Clock monitoringClock,
+                                       ExecutorService monitoringWorkerExecutor, @Qualifier("monitoringClock") Clock monitoringClock,
                                        List<MonitorExecutor> executors) {
         this.monitorRepository = monitorRepository;
         this.medicaoService = medicaoService;

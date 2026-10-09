@@ -2,6 +2,9 @@ package br.com.inframonitor.notificacao.service;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
+import br.com.inframonitor.notificacao.dto.EpisodioLatenciaNotificacaoResponse;
 import br.com.inframonitor.notificacao.dto.IncidenteNotificacaoResponse;
 import br.com.inframonitor.notificacao.dto.NotificacaoResponse;
 import br.com.inframonitor.notificacao.entity.CanalNotificacao;
@@ -9,7 +12,6 @@ import br.com.inframonitor.notificacao.entity.Notificacao;
 import br.com.inframonitor.notificacao.entity.StatusNotificacao;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -40,20 +44,36 @@ public class NotificacaoService {
         criarPendente(incidente, TipoEventoNotificacao.INCIDENTE_FECHADO);
     }
 
+    @Transactional
+    public void criarParaLatenciaAlta(MonitorEpisodioLatencia episodio) {
+        criarPendente(episodio, TipoEventoNotificacao.LATENCIA_ALTA);
+    }
+
+    @Transactional
+    public void criarParaLatenciaNormalizada(MonitorEpisodioLatencia episodio) {
+        criarPendente(episodio, TipoEventoNotificacao.LATENCIA_NORMALIZADA);
+    }
+
+    /**
+     * A idempotencia mora no ON CONFLICT DO NOTHING de
+     * {@link NotificacaoRepository#inserirPendenteSeAusente}, nao aqui. O par
+     * SELECT-de-verificacao + catch de DataIntegrityViolationException que existia antes
+     * nao funcionava na corrida que dizia cobrir: a violacao de constraint deixa a sessao
+     * do Hibernate inconsistente, e absorver a excecao apenas adia o estouro, que vem
+     * depois como {@code org.hibernate.AssertionFailure: Entry for instance of
+     * Notificacao has a null identifier}. Verificado em
+     * NotificacaoConcorrenciaPostgresIntegrationTest.
+     */
     private void criarPendente(Incidente incidente, TipoEventoNotificacao tipoEvento) {
         CanalNotificacao canal = CanalNotificacao.TELEGRAM;
-        if (notificacaoRepository.existsByIncidenteIdAndCanalAndTipoEvento(incidente.getId(), canal, tipoEvento)) {
-            return;
-        }
-        Notificacao notificacao = new Notificacao(incidente, canal, tipoEvento, messageBuilder.construir(incidente, tipoEvento));
-        try {
-            notificacaoRepository.saveAndFlush(notificacao);
-        } catch (DataIntegrityViolationException ex) {
-            // A constraint unica resolve a corrida concorrente; o resultado permanece idempotente.
-            if (!notificacaoRepository.existsByIncidenteIdAndCanalAndTipoEvento(incidente.getId(), canal, tipoEvento)) {
-                throw ex;
-            }
-        }
+        notificacaoRepository.inserirPendenteSeAusente(incidente.getId(), null, canal.name(), tipoEvento.name(),
+                messageBuilder.construir(incidente, tipoEvento), Instant.now());
+    }
+
+    private void criarPendente(MonitorEpisodioLatencia episodio, TipoEventoNotificacao tipoEvento) {
+        CanalNotificacao canal = CanalNotificacao.TELEGRAM;
+        notificacaoRepository.inserirPendenteSeAusente(null, episodio.getId(), canal.name(), tipoEvento.name(),
+                messageBuilder.construirParaEpisodio(episodio, tipoEvento), Instant.now());
     }
 
     public NotificacaoResponse buscarPorId(Long id) {
@@ -61,17 +81,24 @@ public class NotificacaoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Notificacao nao encontrada")));
     }
 
-    public Page<NotificacaoResponse> listar(Long incidenteId, StatusNotificacao status, CanalNotificacao canal,
+    public Page<NotificacaoResponse> listar(Long incidenteId, Long episodioLatenciaId, StatusNotificacao status, CanalNotificacao canal,
                                              TipoEventoNotificacao tipoEvento, Instant inicio, Instant fim,
                                              Pageable pageable) {
         validarPeriodo(inicio, fim);
-        Specification<Notificacao> filtro = Specification.allOf(
-                incidenteId == null ? null : (root, query, cb) -> cb.equal(root.get("incidente").get("id"), incidenteId),
-                status == null ? null : (root, query, cb) -> cb.equal(root.get("status"), status),
-                canal == null ? null : (root, query, cb) -> cb.equal(root.get("canal"), canal),
-                tipoEvento == null ? null : (root, query, cb) -> cb.equal(root.get("tipoEvento"), tipoEvento),
-                inicio == null ? null : (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), inicio),
-                fim == null ? null : (root, query, cb) -> cb.lessThanOrEqualTo(root.get("createdAt"), fim));
+        // As duas ancoras sao mutuamente exclusivas por ck_notificacao_ancora_exclusiva:
+        // filtrar pelas duas juntas nunca casaria e mascararia um erro de chamada.
+        if (incidenteId != null && episodioLatenciaId != null) {
+            throw new IllegalArgumentException("informe incidenteId ou episodioLatenciaId, nunca os dois");
+        }
+        List<Specification<Notificacao>> filtros = new ArrayList<>();
+        if (incidenteId != null) filtros.add((root, query, cb) -> cb.equal(root.get("incidente").get("id"), incidenteId));
+        if (episodioLatenciaId != null) filtros.add((root, query, cb) -> cb.equal(root.get("episodioLatencia").get("id"), episodioLatenciaId));
+        if (status != null) filtros.add((root, query, cb) -> cb.equal(root.get("status"), status));
+        if (canal != null) filtros.add((root, query, cb) -> cb.equal(root.get("canal"), canal));
+        if (tipoEvento != null) filtros.add((root, query, cb) -> cb.equal(root.get("tipoEvento"), tipoEvento));
+        if (inicio != null) filtros.add((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), inicio));
+        if (fim != null) filtros.add((root, query, cb) -> cb.lessThanOrEqualTo(root.get("createdAt"), fim));
+        Specification<Notificacao> filtro = Specification.allOf(filtros);
         return notificacaoRepository.findAll(filtro, pageable).map(this::paraResposta);
     }
 
@@ -83,9 +110,19 @@ public class NotificacaoService {
 
     private NotificacaoResponse paraResposta(Notificacao notificacao) {
         Incidente incidente = notificacao.getIncidente();
+        MonitorEpisodioLatencia episodio = notificacao.getEpisodioLatencia();
+        // O monitor vem da ancora que estiver preenchida; a listagem nao precisa saber qual.
+        Monitor monitor = incidente != null ? incidente.getMonitor()
+                : episodio != null ? episodio.getMonitor() : null;
         return new NotificacaoResponse(notificacao.getId(), notificacao.getCanal(), notificacao.getTipoEvento(),
                 notificacao.getStatus(), notificacao.getTentativas(), notificacao.getMensagem(), notificacao.getErro(),
-                notificacao.getEnviadoEm(), new IncidenteNotificacaoResponse(incidente.getId(), incidente.getStatus()),
+                notificacao.getEnviadoEm(),
+                incidente == null ? null : new IncidenteNotificacaoResponse(incidente.getId(), incidente.getStatus()),
+                episodio == null ? null : new EpisodioLatenciaNotificacaoResponse(episodio.getId(),
+                        episodio.getIniciadoEm(), episodio.getEncerradoEm(), episodio.getLimiarMs()),
+                monitor == null ? null : monitor.getNome(),
+                monitor == null ? null : monitor.getEquipamento().getNome(),
+                monitor == null ? null : monitor.getEquipamento().getUnidade().getNome(),
                 notificacao.getCreatedAt(), notificacao.getUpdatedAt());
     }
 }

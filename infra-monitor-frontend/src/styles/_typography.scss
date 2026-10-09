@@ -1,0 +1,10 @@
+@use '@fontsource/ibm-plex-sans/400.css' as *;
+@use '@fontsource/ibm-plex-sans/500.css' as *;
+@use '@fontsource/ibm-plex-sans/600.css' as *;
+@use '@fontsource/ibm-plex-sans/700.css' as *;
+@use '@fontsource/ibm-plex-mono/400.css' as *;
+@use '@fontsource/ibm-plex-mono/500.css' as *;
+@use '@fontsource/ibm-plex-mono/600.css' as *;
+
+body { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; line-height: 1.45; }
+.im-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }

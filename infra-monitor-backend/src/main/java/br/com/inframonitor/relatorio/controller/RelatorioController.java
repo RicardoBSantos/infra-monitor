@@ -1,0 +1,23 @@
+package br.com.inframonitor.relatorio.controller;
+import br.com.inframonitor.common.api.PaginaResposta;
+import br.com.inframonitor.relatorio.service.RelatorioService;
+import br.com.inframonitor.relatorio.dto.*;
+import br.com.inframonitor.incidente.entity.StatusIncidente;
+import br.com.inframonitor.medicao.entity.StatusMedicao;
+import br.com.inframonitor.notificacao.entity.*;
+import org.springframework.web.bind.annotation.*;
+import java.time.Instant;
+import java.util.List;
+@RestController @RequestMapping("/api/v1/relatorios")
+public class RelatorioController {
+ private final RelatorioService s; public RelatorioController(RelatorioService s){this.s=s;}
+ @GetMapping("/disponibilidade/equipamentos") public PaginaResposta<DisponibilidadeEquipamentoResponse> disponibilidadeEquipamentos(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long unidadeId,@RequestParam(required=false) Long equipamentoId,@RequestParam(required=false) Long monitorId,@RequestParam(required=false) Long tipoEquipamentoId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="equipamentoNome,asc") String sort){return s.disponibilidade(inicio,fim,unidadeId,equipamentoId,monitorId,tipoEquipamentoId,page,size,sort);}
+ @GetMapping("/disponibilidade/unidades") public PaginaResposta<DisponibilidadeUnidadeResponse> disponibilidadeUnidades(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long unidadeId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="unidadeNome,asc") String sort){return s.unidades(inicio,fim,unidadeId,page,size,sort);}
+ @GetMapping("/disponibilidade/unidades/{id}/diaria") public List<DisponibilidadeDiariaUnidadeResponse> disponibilidadeDiariaUnidade(@PathVariable Long id){return s.disponibilidadeDiariaUnidade(id);}
+ @GetMapping("/visao-geral/indicadores") public IndicadoresVisaoGeralResponse indicadoresVisaoGeral(@RequestParam Instant inicio,@RequestParam Instant fim){return s.indicadoresVisaoGeral(inicio,fim);}
+ @GetMapping("/incidentes") public PaginaResposta<HistoricoIncidenteResponse> incidentes(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long unidadeId,@RequestParam(required=false) Long equipamentoId,@RequestParam(required=false) Long monitorId,@RequestParam(required=false) StatusIncidente status,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="iniciadoEm,desc") String sort){return s.incidentes(inicio,fim,unidadeId,equipamentoId,monitorId,status,page,size,sort);}
+ @GetMapping("/medicoes") public PaginaResposta<HistoricoMedicaoResponse> medicoes(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long unidadeId,@RequestParam(required=false) Long equipamentoId,@RequestParam(required=false) Long monitorId,@RequestParam(required=false) StatusMedicao status,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="50") int size,@RequestParam(defaultValue="executadoEm,desc") String sort){return s.medicoes(inicio,fim,unidadeId,equipamentoId,monitorId,status,page,size,sort);}
+ @GetMapping("/latencia") public PaginaResposta<LatenciaIcmpResponse> latencia(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long unidadeId,@RequestParam(required=false) Long equipamentoId,@RequestParam(required=false) Long monitorId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="monitorNome,asc") String sort){return s.latencia(inicio,fim,unidadeId,equipamentoId,monitorId,page,size,sort);}
+ @GetMapping("/latencia/unidades") public PaginaResposta<LatenciaUnidadeResponse> latenciaUnidades(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long unidadeId,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="unidadeNome,asc") String sort){return s.latenciaUnidades(inicio,fim,unidadeId,page,size,sort);}
+ @GetMapping("/notificacoes") public PaginaResposta<HistoricoNotificacaoResponse> notificacoes(@RequestParam Instant inicio,@RequestParam Instant fim,@RequestParam(required=false) Long incidenteId,@RequestParam(required=false) StatusNotificacao status,@RequestParam(required=false) CanalNotificacao canal,@RequestParam(required=false) TipoEventoNotificacao tipoEvento,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="createdAt,desc") String sort){return s.notificacoes(inicio,fim,incidenteId,status,canal,tipoEvento,page,size,sort);}
+}

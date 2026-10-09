@@ -71,6 +71,12 @@ public class EquipamentoController {
     @PatchMapping("/{id}/desativar")
     public EquipamentoResponse desativar(@PathVariable Long id) { return equipamentoService.desativar(id); }
 
+    @PatchMapping("/{id}/manutencao/iniciar")
+    public EquipamentoResponse iniciarManutencao(@PathVariable Long id) { return equipamentoService.entrarEmManutencao(id); }
+
+    @PatchMapping("/{id}/manutencao/encerrar")
+    public EquipamentoResponse encerrarManutencao(@PathVariable Long id) { return equipamentoService.sairDeManutencao(id); }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         equipamentoService.excluir(id);

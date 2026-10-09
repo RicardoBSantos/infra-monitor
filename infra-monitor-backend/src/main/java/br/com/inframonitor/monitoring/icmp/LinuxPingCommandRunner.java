@@ -5,13 +5,16 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-/** Linux implementation. It deliberately never invokes a shell. */
+/** Native ping invocation. It deliberately never invokes a shell. */
 @Component
 public class LinuxPingCommandRunner implements IcmpCommandRunner {
 
     @Override
     public IcmpProcessResult run(String ip, int timeoutMs) throws IOException, InterruptedException {
-        Process process = new ProcessBuilder("ping", "-n", "-c", "1", ip)
+        ProcessBuilder builder = isWindows()
+                ? new ProcessBuilder("ping", "-n", "1", "-w", String.valueOf(timeoutMs), ip)
+                : new ProcessBuilder("ping", "-n", "-c", "1", ip);
+        Process process = builder
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .start();
@@ -34,5 +37,9 @@ public class LinuxPingCommandRunner implements IcmpCommandRunner {
 
     private long elapsedMs(long startedAt) {
         return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+    }
+
+    private boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win");
     }
 }

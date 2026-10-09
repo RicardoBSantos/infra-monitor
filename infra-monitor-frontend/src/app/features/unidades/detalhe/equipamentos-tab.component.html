@@ -1,0 +1,85 @@
+<div class="equipamentos-aba">
+  <div class="equipamentos-aba__filtros">
+    <input
+      class="campo-busca"
+      type="search"
+      placeholder="Buscar equipamento..."
+      aria-label="Buscar equipamento por nome, hostname ou IP"
+      [value]="busca()"
+      (input)="busca.set($any($event.target).value)"
+    />
+    <label class="campo-select">
+      <span class="visualmente-oculto">Tipo</span>
+      <select [value]="tipo()" (change)="tipo.set($any($event.target).value)">
+        <option value="">Tipo: todos</option>
+        @for (nome of tipos(); track nome) { <option [value]="nome">{{ nome }}</option> }
+      </select>
+    </label>
+    <label class="campo-select">
+      <span class="visualmente-oculto">Status</span>
+      <select [value]="status()" (change)="status.set($any($event.target).value)">
+        <option value="">Status: todos</option>
+        @for (opcao of statusDisponiveis; track opcao.valor) { <option [value]="opcao.valor">{{ opcao.rotulo }}</option> }
+      </select>
+    </label>
+    <span class="contagem equipamentos-aba__contagem">{{ filtrados().length }} de {{ store.equipamentos().length }} dispositivos</span>
+    <a class="botao botao--primario" routerLink="/equipamentos">+ Novo equipamento</a>
+  </div>
+
+  @if (store.equipamentosEstado() === 'loading') {
+    <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3,4,5]; track linha) { <span></span> }</div>
+  } @else if (store.equipamentosEstado() === 'error') {
+    <div class="vazio" role="alert">
+      <strong>Não foi possível carregar os equipamentos.</strong>
+      <button class="botao" type="button" (click)="store.recarregarEquipamentos()">Tentar novamente</button>
+    </div>
+  } @else if (store.equipamentos().length === 0) {
+    <div class="vazio">
+      <strong>Nenhum equipamento cadastrado nesta unidade.</strong>
+      <p>Todo equipamento pertence a exatamente uma unidade. Cadastre o primeiro para iniciar o monitoramento.</p>
+      <a class="botao botao--primario" routerLink="/equipamentos">+ Novo equipamento</a>
+    </div>
+  } @else if (filtrados().length === 0) {
+    <div class="vazio">
+      <strong>Nenhum dispositivo corresponde aos filtros.</strong>
+      <p>Ajuste a busca, o tipo ou o status para ver os {{ store.equipamentos().length }} dispositivos desta unidade.</p>
+      <button class="botao" type="button" (click)="limparFiltros()">Limpar filtros</button>
+    </div>
+  } @else {
+    <div class="equipamentos-aba__rolagem">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th>NOME</th><th>TIPO</th><th>HOSTNAME</th><th>ENDEREÇO IP</th><th>STATUS</th>
+            <th class="numerico">LATÊNCIA</th><th class="numerico">DISPONIBILIDADE</th>
+            <th class="numerico">ÚLTIMA VERIFICAÇÃO</th><th class="numerico">AÇÕES</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (equipamento of filtrados(); track equipamento.id) {
+            <tr>
+              <td class="mono forte">
+                <i class="ponto" [class]="'ponto ponto--' + severidade(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}
+              </td>
+              <td>{{ equipamento.tipoEquipamento.nome }}</td>
+              <td class="mono apagado">{{ equipamento.hostname ?? '—' }}</td>
+              <td class="mono">{{ equipamento.ip ?? '—' }}</td>
+              <td><app-status-badge [status]="equipamento.status" /></td>
+              <td class="numerico mono" [class.down]="equipamento.status === 'INDISPONIVEL'">{{ latencia(equipamento) }}</td>
+              <td class="numerico mono">{{ disponibilidade(equipamento.id) }}</td>
+              <td class="numerico mono apagado">{{ ultimaVerificacao(equipamento) }}</td>
+              <td class="numerico">
+                <!-- Ação única por decisão: um botão "Ver" solto lê melhor que um menu com
+                     um item só. O componente que faltava agora existe
+                     (shared/action-menu, usado na tela de Equipamentos): ao surgir a
+                     segunda ação por linha, troque este link por <app-action-menu>, não
+                     por um segundo botão — três botões na linha competem com o dado. -->
+                <a class="botao botao--discreto" [routerLink]="['/equipamentos', equipamento.id]">Ver</a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

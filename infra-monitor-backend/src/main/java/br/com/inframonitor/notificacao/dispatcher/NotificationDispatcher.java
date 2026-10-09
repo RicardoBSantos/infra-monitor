@@ -10,6 +10,7 @@ import br.com.inframonitor.notificacao.telegram.TelegramProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +32,8 @@ public class NotificationDispatcher {
 
     public NotificationDispatcher(NotificacaoRepository repository, NotificationDispatchStateService stateService,
                                   List<NotificationSender> senders, ExecutorService notificationWorkerExecutor,
-                                  NotificationDispatcherProperties properties, TelegramProperties telegramProperties, Clock notificationClock) {
+                                  NotificationDispatcherProperties properties, TelegramProperties telegramProperties,
+                                  @Qualifier("notificationClock") Clock notificationClock) {
         this.repository = repository; this.stateService = stateService; this.executor = notificationWorkerExecutor;
         this.properties = properties; this.telegramProperties = telegramProperties; this.clock = notificationClock;
         this.telegramSender = senders.stream().filter(s -> s.canal() == CanalNotificacao.TELEGRAM).findFirst()
@@ -61,10 +63,12 @@ public class NotificationDispatcher {
             if (notification == null) return;
             SendResult result = telegramSender.send(notification); // no transaction is active during HTTP
             stateService.complete(id, result);
-            if (result.success()) log.info("Notificacao {} enviada ao Telegram", id);
-            else log.debug("Envio da notificacao {} falhou; retry/falha final foi registrado", id);
+            if (result.success()) log.info("Telegram enviado: notificationId={}, incidentId={}, tipoEvento={}, tentativa={}",
+                    id, notification.getIncidente().getId(), notification.getTipoEvento(), notification.getTentativas() + 1);
+            else log.warn("Telegram falhou: notificationId={}, incidentId={}, tipoEvento={}, tentativa={}",
+                    id, notification.getIncidente().getId(), notification.getTipoEvento(), notification.getTentativas() + 1);
         } catch (RuntimeException ex) {
-            log.error("Erro interno ao processar notificacao {}", id, ex);
+            log.error("Erro interno ao processar notificacao {}: {}", id, ex.getClass().getSimpleName());
             stateService.complete(id, SendResult.failure("Erro interno do dispatcher", null));
         } finally { inFlight.remove(id); }
     }

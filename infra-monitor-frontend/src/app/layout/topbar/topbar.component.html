@@ -1,0 +1,42 @@
+<header class="topbar">
+  <button class="menu-button" type="button" aria-label="Abrir menu de navegação" (click)="openNavigation.emit()"><app-icon name="menu" /></button>
+  <app-breadcrumbs />
+
+  <label class="search" aria-label="Busca global indisponível nesta fase">
+    <app-icon name="search" /><input type="search" placeholder="Buscar equipamento, host" disabled /><kbd>⌘K</kbd>
+  </label>
+
+  <div class="status-chips" role="status" aria-label="Situação da frota monitorada">
+    @if (painel.resumoState() === 'success') {
+      <span class="status-chip status-chip--ok"><i aria-hidden="true"></i>{{ painel.online() }} online</span>
+      <span class="status-chip status-chip--warn"><i aria-hidden="true"></i>{{ painel.degradados() }} degradados</span>
+      <span class="status-chip status-chip--down"><i aria-hidden="true"></i>{{ painel.offline() }} offline</span>
+    } @else if (painel.resumoState() === 'error') {
+      <span class="status-chip status-chip--muted"><i aria-hidden="true"></i>frota indisponível</span>
+    } @else {
+      <span class="status-chip status-chip--muted"><i aria-hidden="true"></i>carregando</span>
+    }
+  </div>
+
+  <button class="refresh" type="button" (click)="atualizar()" [attr.aria-busy]="painel.resumoState() === 'loading'"
+          [attr.aria-label]="'Atualizar dados. Última varredura às ' + ultimaVarredura()">
+    <app-icon name="refresh" /><span>{{ ultimaVarredura() }}</span>
+  </button>
+
+  <div class="clock"><strong>{{ hora() }}</strong><small>{{ data() }}</small></div>
+
+  <button class="theme-button" type="button" [attr.aria-label]="theme.tema()==='dark'?'Ativar tema claro':'Ativar tema escuro'" [attr.aria-pressed]="theme.tema()==='light'" (click)="theme.toggle()"><app-icon [name]="theme.tema()==='dark'?'sun':'moon'" /></button>
+
+  @if (authState.usuario(); as user) {
+    <div class="user-menu">
+      <button type="button" class="user-menu__trigger" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()">
+        <span class="user-menu__avatar" aria-hidden="true">{{ iniciais() }}</span>
+        <span class="user-menu__identity"><strong>{{ user.nome }}</strong><small>{{ user.papel }}</small></span>
+      </button>
+      @if (menuOpen()) {
+        <div class="user-menu__panel"><strong>{{ user.nome }}</strong><span>{{ user.papel }}</span><button type="button" (click)="changePassword()">Trocar senha</button></div>
+      }
+    </div>
+    <button class="logout" type="button" aria-label="Sair da sessão" (click)="logout()"><app-icon name="power" /></button>
+  }
+</header>

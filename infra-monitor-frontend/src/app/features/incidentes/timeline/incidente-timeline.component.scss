@@ -1,0 +1,50 @@
+// `.vazio` vem de _ui.scss; aqui só a régua e os marcadores.
+:host { display: block; }
+
+.timeline {
+  display: grid; gap: 0; margin: 0; padding: 0 14px 14px; list-style: none;
+}
+
+/* Grade de quatro colunas: marca, hora, rótulo e detalhe. A hora em largura fixa
+   alinha a régua verticalmente mesmo com rótulos de tamanhos muito diferentes. */
+.timeline__item {
+  display: grid; align-items: baseline; gap: 4px 10px; padding: 7px 0;
+  grid-template-columns: 10px 92px minmax(0, 1fr) auto;
+  border-bottom: 1px solid var(--im-border);
+}
+.timeline__item:last-child { border-bottom: 0; }
+
+/* A linha contínua da régua é o próprio marcador esticado: sem pseudo-elemento
+   posicionado, nada quebra quando o item cresce para duas linhas. */
+.timeline__marca {
+  position: relative; align-self: stretch; width: 10px;
+}
+.timeline__marca::before {
+  content: ''; position: absolute; left: 4px; top: -7px; bottom: -7px; width: 1px;
+  background: var(--im-border);
+}
+.timeline__item:first-child .timeline__marca::before { top: 50%; }
+.timeline__item:last-child .timeline__marca::before { bottom: 50%; }
+.timeline__marca::after {
+  content: ''; position: absolute; left: 1px; top: calc(50% - 3.5px);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--im-text-dim); box-shadow: 0 0 0 2px var(--im-surface);
+}
+
+.timeline__hora { color: var(--im-text-dim); font-size: 10.5px; white-space: nowrap; }
+.timeline__rotulo { min-width: 0; color: var(--im-text); font-size: 12px; }
+.timeline__detalhe { color: var(--im-text-secondary); font-size: 11px; text-align: right; }
+
+// Severidade colore só o ponto: o texto do evento continua legível como qualquer outro.
+.timeline__item--critico .timeline__marca::after { background: var(--im-danger); }
+.timeline__item--alerta .timeline__marca::after { background: var(--im-warning); }
+.timeline__item--ok .timeline__marca::after { background: var(--im-success); }
+.timeline__item--neutro .timeline__marca::after { background: var(--im-info-soft); }
+
+.mono { font-family: 'IBM Plex Mono', monospace; }
+
+@media (max-width: 620px) {
+  // Detalhe desce para a linha de baixo: em 4 colunas ele espremeria o rótulo.
+  .timeline__item { grid-template-columns: 10px 92px minmax(0, 1fr); }
+  .timeline__detalhe { grid-column: 2 / -1; text-align: left; }
+}

@@ -1,5 +1,15 @@
 # Contrato REST para o frontend
 
+## Autenticação (A02)
+
+Todas as rotas `/api/v1/**`, exceto `POST /api/v1/auth/login`, exigem `Authorization: Bearer <accessToken>`. O token é JWT HS256, expira em 15 minutos por padrão e não há refresh token ou cookies.
+
+`POST /api/v1/auth/login` recebe `{"email":"admin@empresa.com","senha":"..."}` e retorna `{"accessToken":"eyJ...","expiresIn":900,"usuario":{"id":1,"nome":"Administrador","email":"admin@empresa.com","papel":"ADMIN","ativo":true,"trocaSenhaObrigatoria":false}}`.
+
+`GET /api/v1/auth/me` retorna o objeto `usuario`. `401 UNAUTHORIZED` cobre token ausente, inválido ou expirado; `403 FORBIDDEN` indica papel insuficiente. Login inválido retorna `401 AUTHENTICATION_FAILED`; conta inativa retorna `401 ACCOUNT_DISABLED`.
+
+`ADMIN` administra tudo. `OPERADOR` lê as áreas operacionais, altera inventário/monitores e fecha incidentes. `VISUALIZADOR` só lê. Apenas ADMIN usa `/usuarios/**`, salvo `PUT /api/v1/usuarios/me/senha`, disponível a qualquer autenticado com `senhaAtual` e `novaSenha`.
+
 ## Base e CORS
 
 - Base URL: `http://<host>:<porta>/api/v1`; o Angular deve configurar essa URL no próprio ambiente.
@@ -50,6 +60,12 @@ Endpoints paginados retornam sempre:
 
 ### Payloads de criação mais usados
 
+Uma Unidade possui `id`, `nome`, `sigla`, `descricao`, `codigoIbge`, `ativo`, `createdAt` e `updatedAt`. `codigoIbge` é `string | null`: código IBGE municipal de sete dígitos, usado pelo frontend para associação cartográfica. Requests de criação e atualização podem omiti-lo ou enviá-lo como `null`.
+
+```json
+{"nome":"Sede Administrativa","sigla":"SEDE","descricao":"Administração","codigoIbge":"2800308"}
+```
+
 ```json
 {"unidadeId":1,"tipoEquipamentoId":2,"nome":"SW-CORE-01","ip":"10.0.0.1","hostname":"sw-core-01","descricao":"Switch core","localizacao":"CPD"}
 ```
@@ -67,3 +83,7 @@ Endpoints paginados retornam sempre:
 - Dashboard: `StatusOperacionalMonitor` (`DISPONIVEL`, `INDISPONIVEL`, `SEM_DADOS`, `DESABILITADO`), `StatusOperacionalEquipamento` (inclui `SEM_MONITORAMENTO`) e `StatusOperacionalUnidade` (inclui `DEGRADADA`, `SEM_EQUIPAMENTOS`).
 
 O dashboard aplica os thresholds e a regra de incidentes no backend; o frontend deve apresentar o `status` recebido, sem recalcular estado operacional.
+
+### Unidade da Dashboard
+
+As respostas de `GET /dashboard/unidades` e `GET /dashboard/unidades/{id}` também contêm `codigoIbge: string | null`, propagado do cadastro da Unidade. É o código IBGE municipal usado pelo frontend para associação cartográfica; a Dashboard não faz geocoding nem descoberta de município.

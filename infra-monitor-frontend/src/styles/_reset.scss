@@ -1,0 +1,7 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--im-bg); color: var(--im-text); }
+button, input { font: inherit; }
+button { color: inherit; }
+:focus-visible { outline: none; box-shadow: var(--im-focus-ring); }
+::selection { background: var(--im-selection); }
