@@ -13,7 +13,7 @@ class RegraIpv4Test {
     @NullAndEmptySource
     @ValueSource(strings = {"   ", "10.0.0.1", " 10.0.0.1 ", "1.0.0.0", "223.255.255.255", "127.0.0.1",
             "192.168.0.10", "169.254.1.1", "8.8.8.8", "100.64.0.1", "10.0.0.0", "10.10.100.200",
-            " ", " 10.0.0.1 "})
+            "\u2003", "\u200310.0.0.1\u2003"})
     void aceita(String valor) {
         assertThat(RegraIpv4.motivoDeRecusa(valor)).isNull();
     }

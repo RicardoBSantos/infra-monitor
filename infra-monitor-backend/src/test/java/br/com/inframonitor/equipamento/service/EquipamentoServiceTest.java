@@ -235,8 +235,8 @@ class EquipamentoServiceTest {
         relacionamentosAtivos(unidade, tipo);
         when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
 
-        assertThat(equipamentoService.criar(criacao("SW-03", " ")).ip()).isNull();
-        assertThat(equipamentoService.criar(criacao("SW-04", " 10.0.0.1 ")).ip()).isEqualTo("10.0.0.1");
+        assertThat(equipamentoService.criar(criacao("SW-03", "\u2003")).ip()).isNull();
+        assertThat(equipamentoService.criar(criacao("SW-04", "\u200310.0.0.1\u2003")).ip()).isEqualTo("10.0.0.1");
     }
 
     private CreateEquipamentoRequest criacao(String nome, String ip) {

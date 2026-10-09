@@ -119,22 +119,22 @@ Commit `e548451`. Seeds `e2e/pre-carga-seed.sql` e `e2e/rodada-curta-seed.sql`.
 
 ## Suítes
 
-Rodadas de 2026-10-09 sobre `e548451`:
+Rodadas finais de 2026-10-09, depois da onda de correções da revisão final (`f4cda6c` + escapes U+2003):
 
 | Suíte | Resultado |
 |---|---|
-| `./mvnw test` (backend, Testcontainers com Docker) | **648** testes, 0 falhas, 0 erros, 0 ignorados (75 classes); última rodada documentada: 590 |
-| `npx ng test --watch=false` (frontend) | **450** testes em 50 arquivos, todos passando; última rodada documentada: 413 em 49 |
-| `node --test test/*.test.mjs` (`tools/carga-real`) | **85** testes, todos passando |
+| `./mvnw test` (backend, Testcontainers com Docker) | **652** testes, 0 falhas, 0 erros, 0 ignorados (75 classes); última rodada documentada: 590 |
+| `npx ng test --watch=false` (frontend) | **455** testes em 50 arquivos, todos passando; última rodada documentada: 413 em 49 |
+| `node --test test/*.test.mjs` (`tools/carga-real`) | **91** testes, todos passando |
 | `npx ng build` (produção) | sucesso; bundle inicial **351,96 kB** bruto / **97,42 kB** transferido, igual à rodada anterior |
-| `npm run e2e:rodada-curta` | **11/11** |
+| `npm run e2e:rodada-curta` | **11/11**, duas vezes seguidas no mesmo banco (seed reexecutável) |
 | `npm run e2e:pre-carga` (regressão) | **17/17** |
 
 Aviso de build: só o budget de `mapa.component.scss` (95,78 kB contra 6 kB), preexistente e já
 registrado em [correcoes-pre-carga-real.md](correcoes-pre-carga-real.md).
 
 Durante a T5, uma rodada da suíte do frontend com a máquina carregada teve um timeout em
-`app.routes.spec` (passa isolado); na rodada final acima, 450/450 sem falha.
+`app.routes.spec` (passa isolado); na rodada final acima, 455/455 sem falha. Uma execução do e2e falhou no login porque o `ng serve` ainda exibia o overlay de um erro de compilação transitório (gerado durante a edição e corrigido no rebuild seguinte); a reexecução passou 11/11.
 
 ## Pendências
 
