@@ -8,6 +8,12 @@ describe('motivoRecusaIp', () => {
   it.each([
     ['2001:db8::1', 'Apenas IPv4 é suportado: o monitoramento ICMP não sonda IPv6'],
     ['servidor.local', 'IP deve ser um endereço IPv4 no formato 192.168.0.10'],
+    ['1a2a3a4', 'IP deve ser um endereço IPv4 no formato 192.168.0.10'],
+    ['10 0 0 1', 'IP deve ser um endereço IPv4 no formato 192.168.0.10'],
+    ['1,2,3,4', 'IP deve ser um endereço IPv4 no formato 192.168.0.10'],
+    ['1.2.3', 'IP deve ser um endereço IPv4 no formato 192.168.0.10'],
+    ['1.2.3.4.5', 'IP deve ser um endereço IPv4 no formato 192.168.0.10'],
+    ['999.0.0.1', 'Cada octeto do IP vai de 0 a 255'],
     ['256.0.0.1', 'Cada octeto do IP vai de 0 a 255'],
     ['010.0.0.1', 'Octeto com zero à esquerda é ambíguo (pode ser lido como octal): escreva 10.0.0.1, não 010.000.000.001'],
     ['0.0.0.0', 'A faixa 0.0.0.0/8 não é endereço de host'],
