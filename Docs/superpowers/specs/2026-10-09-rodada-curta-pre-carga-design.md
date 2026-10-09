@@ -40,24 +40,24 @@ N só é citado quando as N medições da sequência estão na própria timeline
 | Caso | Eventos de recuperação | Título | Detalhe |
 |---|---|---|---|
 | `MANUTENCAO` / `FECHAMENTO_MANUAL` / legado com autor | nenhum (inalterado) | inalterado | inalterado |
-| `RECUPERACAO_AUTOMATICA`, sequência completa (= N) | numerados `k/N` | "Incidente fechado" | "As N respostas consecutivas acima restabeleceram o monitor" (plural/singular) |
+| `RECUPERACAO_AUTOMATICA`, sequência completa (= N) | numerados `k/N` | "Incidente fechado" | texto atual, agora verificável: "N respostas consecutivas restabeleceram o monitor" (plural/singular) |
 | `RECUPERACAO_AUTOMATICA`, parcial (0 < k < N) | sem numeração: "Resposta ICMP" | "Incidente fechado" | "Recuperação automática registrada pelo motor; a sequência completa de respostas não está no histórico carregado" |
 | `RECUPERACAO_AUTOMATICA`, nenhuma | nenhum | "Incidente fechado" | mesmo texto do parcial |
 | legado (`null`, sem autor), completa | numerados | "Incidente fechado" | texto da completa |
 | legado, parcial | sem numeração | "Incidente fechado" | `null` |
 | legado, nenhuma | nenhum | "Incidente fechado" | `null` (inalterado) |
-| N desconhecido (monitor não carregou) | sem numeração | "Incidente fechado" | AUTO: texto do parcial; legado: `null` |
+| N desconhecido (monitor não carregou) | nenhum (inalterado) | "Incidente fechado" | AUTO: texto do parcial; legado: `null` |
 
 **Episódio de latência**, novo `motivoEncerramentoEpisodio`:
 
 | Caso | Eventos | Título | Detalhe |
 |---|---|---|---|
-| `NORMALIZACAO`, completa | numerados `k/N` | "Latência normalizada" | "As N medições consecutivas acima, dentro do limiar, encerraram o episódio" |
+| `NORMALIZACAO`, completa | numerados `k/N` | "Latência normalizada" | texto atual: "N medições consecutivas dentro do limiar encerraram o episódio" |
 | `NORMALIZACAO`, parcial/nenhuma | sem numeração: "Dentro do limiar" | "Latência normalizada" | "Normalização registrada pelo motor; a sequência completa de medições não está no histórico carregado" |
-| `INCIDENTE` | nenhum | "Encerrado pela abertura de incidente" | "O monitor deixou de responder e um incidente foi aberto. A latência não normalizou." |
+| `INCIDENTE` (severidade `critico`) | nenhum | "Encerrado pela abertura de incidente" | "O monitor deixou de responder e um incidente foi aberto. A latência não normalizou." |
 | `MANUTENCAO` | nenhum | "Encerrado por manutenção" | "O equipamento entrou em manutenção e saiu da observação. Nenhuma normalização foi medida." |
 | `null` (pré-V19), completa | numerados | "Latência normalizada" | texto da completa |
-| `null`, parcial/nenhuma | sem numeração (se houver) | "Episódio encerrado" | `null` |
+| `null`, parcial/nenhuma, ou N desconhecido | sem numeração (se houver) | "Episódio encerrado" | `null` |
 
 Parcial = a caminhada de `sequenciaDeFechamento` parou antes de N (lacuna no histórico ou critério
 quebrado). Nos dois tipos a parcial **não** recebe `k/N`.
