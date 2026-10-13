@@ -8,8 +8,8 @@ import br.com.inframonitor.medicao.service.MedicaoService;
 import br.com.inframonitor.notificacao.entity.StatusNotificacao;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.health.actuate.endpoint.HealthDescriptor;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
@@ -17,7 +17,6 @@ import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import javax.sql.DataSource;
@@ -38,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * Requer Docker. Sem Docker disponivel o teste e ignorado em vez de falhar.
  */
-@EnabledIf("dockerDisponivel")
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",
@@ -48,10 +47,6 @@ class InfraMonitorApplicationTests {
 
     private static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>("postgres:16-alpine");
-
-    static boolean dockerDisponivel() {
-        return DockerClientFactory.instance().isDockerAvailable();
-    }
 
     @DynamicPropertySource
     static void propriedadesDoBanco(DynamicPropertyRegistry registry) {

@@ -1,6 +1,7 @@
 package br.com.inframonitor.dashboard;
 
 import br.com.inframonitor.dashboard.dto.DashboardIncidenteResponse;
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * justamente forcar a colisao de id entre {@code incidente} e
  * {@code monitor_episodio_latencia} — duas sequencias independentes que comecam em 1.
  */
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",

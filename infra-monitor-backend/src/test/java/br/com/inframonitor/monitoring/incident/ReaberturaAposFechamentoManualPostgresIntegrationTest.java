@@ -18,6 +18,7 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -41,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * incidente com as falhas que pertenciam ao incidente fechado. A ancora e a gravacao do
  * fechamento (updated_at, relogio real), nao o encerrado_em informado.
  */
+@RequerDocker
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-reabertura-manual-test",

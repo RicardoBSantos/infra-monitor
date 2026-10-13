@@ -20,6 +20,7 @@ import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.relatorio.service.RelatorioService;
 import br.com.inframonitor.relatorio.temporal.DisponibilidadeTemporalCalculator;
 import br.com.inframonitor.relatorio.temporal.ResultadoDisponibilidadeTemporal;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -41,6 +42,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@RequerDocker
 @SpringBootTest(properties = {"app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes", "app.auth.jwt.issuer=infra-monitor-test", "monitoring.engine.enabled=false", "notification.telegram.enabled=false", "notification.dispatcher.enabled=false"})
 class DisponibilidadePaginacaoSortPostgresIntegrationTest {
     static final PostgreSQLContainer<?> DB = new PostgreSQLContainer<>("postgres:16-alpine");

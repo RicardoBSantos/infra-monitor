@@ -1,5 +1,6 @@
 package br.com.inframonitor.relatorio.pdf;
 
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.usuario.entity.Papel;
 import br.com.inframonitor.usuario.entity.Usuario;
 import br.com.inframonitor.usuario.repository.UsuarioRepository;
@@ -33,6 +34,7 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RequerDocker
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "app.auth.jwt.secret=test-only-pdf-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-pdf-test", "monitoring.engine.enabled=false",

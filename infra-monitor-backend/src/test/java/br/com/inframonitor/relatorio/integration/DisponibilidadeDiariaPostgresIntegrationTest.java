@@ -19,6 +19,7 @@ import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.relatorio.service.DisponibilidadeSqlRepository;
 import br.com.inframonitor.relatorio.service.RelatorioService;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -44,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Serie diaria de disponibilidade (7.3). O ponto critico coberto aqui e a fronteira
  * do dia: os baldes seguem o calendario local, nao UTC.
  */
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",

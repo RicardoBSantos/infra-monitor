@@ -18,12 +18,12 @@ import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
 import br.com.inframonitor.notificacao.sender.SendResult;
 import br.com.inframonitor.notificacao.telegram.TelegramClient;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.service.UnidadeService;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -32,7 +32,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.Instant;
@@ -47,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Fluxo completo em PostgreSQL real, com Telegram falso: nenhuma chamada de rede
  * e nenhum ping real sao feitos por este teste.
  */
-@EnabledIf("dockerDisponivel")
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",
@@ -74,10 +73,6 @@ class BackendEndToEndIntegrationTest {
     @Autowired private NotificacaoRepository notificacaoRepository;
     @Autowired private NotificationDispatcher dispatcher;
     @Autowired private FakeTelegramClient telegramClient;
-
-    static boolean dockerDisponivel() {
-        return DockerClientFactory.instance().isDockerAvailable();
-    }
 
     @DynamicPropertySource
     static void propriedadesDoBanco(DynamicPropertyRegistry registry) {

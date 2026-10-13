@@ -3,10 +3,10 @@ package br.com.inframonitor.monitoring.latency;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.medicao.entity.Medicao;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.Timestamp;
@@ -56,7 +55,7 @@ import static org.mockito.Mockito.doAnswer;
  *
  * <p>Requer Docker. Sem Docker disponivel o teste e ignorado, nunca falha.
  */
-@EnabledIf("dockerDisponivel")
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",
@@ -78,10 +77,6 @@ class EpisodioLatenciaConcorrenciaPostgresIntegrationTest {
     // faz cinco leituras antes do CAS e, atrasado 0..4 ms, perdia 29/30. Manutencao
     // atrasada 0..6 ms: 6 MANUTENCAO / 24 NORMALIZACAO; 0..3 ms: 12 / 18.
     private static final long ATRASO_MAX_MANUTENCAO_MS = 3;
-
-    static boolean dockerDisponivel() {
-        return DockerClientFactory.instance().isDockerAvailable();
-    }
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {

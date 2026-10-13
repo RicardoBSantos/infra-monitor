@@ -18,6 +18,7 @@ import br.com.inframonitor.relatorio.dto.*;
 import br.com.inframonitor.relatorio.entity.*;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.relatorio.service.RelatorioService;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -34,6 +35,7 @@ import java.time.Instant;
 import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@RequerDocker
 @SpringBootTest(properties={"app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes","app.auth.jwt.issuer=infra-monitor-test","monitoring.engine.enabled=false","notification.telegram.enabled=false","notification.dispatcher.enabled=false"})
 class RelatoriosAnaliticosPostgresIntegrationTest {
  static final PostgreSQLContainer<?> POSTGRES=new PostgreSQLContainer<>("postgres:16-alpine"); static final Instant INICIO=Instant.parse("2026-03-01T10:00:00Z"), FIM=Instant.parse("2026-03-01T20:00:00Z");

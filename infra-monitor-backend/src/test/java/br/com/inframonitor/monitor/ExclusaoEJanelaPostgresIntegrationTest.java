@@ -3,15 +3,14 @@ package br.com.inframonitor.monitor;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.monitor.service.MonitorService;
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * <p>Requer Docker. Sem Docker disponivel o teste e ignorado, nunca falha.
  */
-@EnabledIf("dockerDisponivel")
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",
@@ -39,10 +38,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ExclusaoEJanelaPostgresIntegrationTest {
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    static boolean dockerDisponivel() {
-        return DockerClientFactory.instance().isDockerAvailable();
-    }
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
