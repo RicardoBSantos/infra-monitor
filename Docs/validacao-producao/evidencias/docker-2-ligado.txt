@@ -1,0 +1,17 @@
+# ./mvnw -o test com Docker Desktop LIGADO, 2026-10-13 (inclui ConfiguracaoPadraoDesligadaTest)
+# Sem aviso de classes puladas: nenhuma linha '!!' na saida.
+
+linhas '!!' na saida: 0
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.210 s -- in br.com.inframonitor.common.config.ConfiguracaoPadraoDesligadaTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.025 s -- in br.com.inframonitor.InfraMonitorApplicationTests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.521 s -- in br.com.inframonitor.relatorio.integration.V13JanelaMonitoramentoPostgresIntegrationTest
+
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 656, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  03:24 min
+[INFO] Finished at: 2026-10-13T09:37:43-03:00
