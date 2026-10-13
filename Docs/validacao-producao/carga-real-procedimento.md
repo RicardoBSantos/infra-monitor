@@ -1,4 +1,8 @@
-# Procedimento de carga real (não executado)
+# Procedimento de carga real
+
+> 2026-10-13: primeira execução real, só com a SEDE, contra o banco novo `inframonitor-carga` —
+> simulação, `--aplicar` e reexecução idempotente. Ver [carga-real-preparacao.md](carga-real-preparacao.md).
+> As demais unidades ainda não foram carregadas.
 
 Script: `tools/carga-real/carga.mjs`. Cadastra dados reais no Infra Monitor
 **pela API REST** (nunca por SQL). Detalhes de formato de arquivo, campos e

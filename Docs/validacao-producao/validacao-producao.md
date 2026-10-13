@@ -27,6 +27,7 @@ pasta.
 | [rodada-curta-pre-carga.md](rodada-curta-pre-carga.md) | Rodada curta antes da carga real: timeline só cita N quando lista a sequência (e episódio de latência com o motivo real de encerramento), IP só IPv4 de host nas quatro camadas (API, V20, formulário, script), e2e e suítes |
 | [monitoramento-parado-investigacao.md](monitoramento-parado-investigacao.md) | Investigação (sem código) de como detectar monitoramento parado: estado atual, opções com custo e cobertura (inclui hibernação e reinício), recomendação |
 | [env-testes-docker-environment-prod.md](env-testes-docker-environment-prod.md) | `.env` desarmado (token nunca commitado; variáveis injetadas pelo serviço, Telegram desligado por padrão e travado em teste), 27 classes Postgres puladas com aviso sem Docker, `environment.prod.ts` com `apiUrl` relativa e as opções para servir o frontend |
+| [carga-real-preparacao.md](carga-real-preparacao.md) | Preparação da carga real: banco novo `inframonitor-carga` (5436, V1–V20) separado do dev, passo 0 da V20, SEDE simulada/aplicada/idempotente, planilha de levantamento e perguntas antes da carga |
 | [evidencias/](evidencias/) | Capturas brutas (log de subida, respostas de `/api/v1/status`) que sustentam as seções resumidas dos relatórios acima |
 | [design — icmp-nativo-windows](../superpowers/specs/2026-09-21-icmp-nativo-windows-design.md) | O design que este ciclo implementou: contrato `IcmpResult`/`StatusIcmp`, mapeamento de códigos Win32, componentes criados |
 
