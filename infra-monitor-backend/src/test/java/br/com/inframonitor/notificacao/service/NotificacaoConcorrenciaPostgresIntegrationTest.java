@@ -3,6 +3,7 @@ package br.com.inframonitor.notificacao.service;
 import br.com.inframonitor.incidente.dto.CloseIncidenteRequest;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * outra sessao esta genuinamente bloqueada no indice unico. Sem essa confirmacao o teste
  * falha em vez de passar por acidente de escalonamento.
  */
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",

@@ -1,0 +1,74 @@
+# ./mvnw -o test com Docker Desktop PARADO (docker info falhando), 2026-10-13
+# Linhas de resumo por classe com Skipped>0, o aviso do AvisoTestesSemDocker e o resultado final.
+
+09:38:30.895 [main] ERROR org.testcontainers.dockerclient.DockerClientProviderStrategy -- Could not find a valid Docker environment. Please check configuration. Attempted configurations were:
+[WARNING] Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.017 s -- in br.com.inframonitor.BackendEndToEndIntegrationTest
+[WARNING] Tests run: 11, Failures: 0, Errors: 0, Skipped: 11, Time elapsed: 0.001 s -- in br.com.inframonitor.dashboard.IncidenteUnificadoPostgresIntegrationTest
+[WARNING] Tests run: 4, Failures: 0, Errors: 0, Skipped: 4, Time elapsed: 0.001 s -- in br.com.inframonitor.dashboard.InventarioDashboardPostgresIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.equipamento.IpEquipamentoCheckPostgresIntegrationTest
+[WARNING] Tests run: 9, Failures: 0, Errors: 0, Skipped: 9, Time elapsed: 0.001 s -- in br.com.inframonitor.equipamento.ManutencaoPostgresIntegrationTest
+[WARNING] Tests run: 5, Failures: 0, Errors: 0, Skipped: 5, Time elapsed: 0 s -- in br.com.inframonitor.equipamento.service.EntradaEmManutencaoTest
+[WARNING] Tests run: 7, Failures: 0, Errors: 0, Skipped: 7, Time elapsed: 0.001 s -- in br.com.inframonitor.incidente.FechamentoManualConcorrenciaPostgresIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.incidente.integration.IncidenteAutoriaHttpIntegrationTest
+[WARNING] Tests run: 5, Failures: 0, Errors: 0, Skipped: 5, Time elapsed: 0.001 s -- in br.com.inframonitor.InfraMonitorApplicationTests
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.monitor.ExclusaoEJanelaPostgresIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.monitoring.incident.AberturaCondicionalTest
+[WARNING] Tests run: 2, Failures: 0, Errors: 0, Skipped: 2, Time elapsed: 0 s -- in br.com.inframonitor.monitoring.incident.CaudaCongeladaTest
+[WARNING] Tests run: 2, Failures: 0, Errors: 0, Skipped: 2, Time elapsed: 0 s -- in br.com.inframonitor.monitoring.incident.LockTimeoutMotorPostgresIntegrationTest
+[WARNING] Tests run: 2, Failures: 0, Errors: 0, Skipped: 2, Time elapsed: 0 s -- in br.com.inframonitor.monitoring.incident.ReaberturaAposFechamentoManualPostgresIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.monitoring.latency.EpisodioLatenciaConcorrenciaPostgresIntegrationTest
+[WARNING] Tests run: 4, Failures: 0, Errors: 0, Skipped: 4, Time elapsed: 0.001 s -- in br.com.inframonitor.notificacao.service.NotificacaoConcorrenciaPostgresIntegrationTest
+[WARNING] Tests run: 7, Failures: 0, Errors: 0, Skipped: 7, Time elapsed: 0 s -- in br.com.inframonitor.notificacao.service.NotificacaoManutencaoTest
+[WARNING] Tests run: 4, Failures: 0, Errors: 0, Skipped: 4, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.exportacao.RelatorioExportPostgresIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.integration.DisponibilidadeDiariaPostgresIntegrationTest
+[WARNING] Tests run: 5, Failures: 0, Errors: 0, Skipped: 5, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.integration.DisponibilidadePaginacaoSortPostgresIntegrationTest
+[WARNING] Tests run: 5, Failures: 0, Errors: 0, Skipped: 5, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.integration.MotorTemporalPostgresIntegrationTest
+[WARNING] Tests run: 8, Failures: 0, Errors: 0, Skipped: 8, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.integration.RelatoriosAnaliticosPostgresIntegrationTest
+[WARNING] Tests run: 4, Failures: 0, Errors: 0, Skipped: 4, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.integration.RelatoriosHttpIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.integration.V13JanelaMonitoramentoPostgresIntegrationTest
+[WARNING] Tests run: 7, Failures: 0, Errors: 0, Skipped: 7, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.pdf.VisaoGeralPdfPostgresIntegrationTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.service.InvarianteJanelaTest
+[WARNING] Tests run: 3, Failures: 0, Errors: 0, Skipped: 3, Time elapsed: 0 s -- in br.com.inframonitor.relatorio.service.RelatorioMotivoEncerramentoTest
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!! 27 classes puladas: Docker indisponivel.
+!! O banco (PostgreSQL/Flyway) NAO foi testado. Suite verde aqui nao vale.
+!! Suba o Docker e rode de novo para a contagem completa.
+!!   - br.com.inframonitor.BackendEndToEndIntegrationTest
+!!   - br.com.inframonitor.InfraMonitorApplicationTests
+!!   - br.com.inframonitor.dashboard.IncidenteUnificadoPostgresIntegrationTest
+!!   - br.com.inframonitor.dashboard.InventarioDashboardPostgresIntegrationTest
+!!   - br.com.inframonitor.equipamento.IpEquipamentoCheckPostgresIntegrationTest
+!!   - br.com.inframonitor.equipamento.ManutencaoPostgresIntegrationTest
+!!   - br.com.inframonitor.equipamento.service.EntradaEmManutencaoTest
+!!   - br.com.inframonitor.incidente.FechamentoManualConcorrenciaPostgresIntegrationTest
+!!   - br.com.inframonitor.incidente.integration.IncidenteAutoriaHttpIntegrationTest
+!!   - br.com.inframonitor.monitor.ExclusaoEJanelaPostgresIntegrationTest
+!!   - br.com.inframonitor.monitoring.incident.AberturaCondicionalTest
+!!   - br.com.inframonitor.monitoring.incident.CaudaCongeladaTest
+!!   - br.com.inframonitor.monitoring.incident.LockTimeoutMotorPostgresIntegrationTest
+!!   - br.com.inframonitor.monitoring.incident.ReaberturaAposFechamentoManualPostgresIntegrationTest
+!!   - br.com.inframonitor.monitoring.latency.EpisodioLatenciaConcorrenciaPostgresIntegrationTest
+!!   - br.com.inframonitor.notificacao.service.NotificacaoConcorrenciaPostgresIntegrationTest
+!!   - br.com.inframonitor.notificacao.service.NotificacaoManutencaoTest
+!!   - br.com.inframonitor.relatorio.exportacao.RelatorioExportPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.integration.DisponibilidadeDiariaPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.integration.DisponibilidadePaginacaoSortPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.integration.MotorTemporalPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.integration.RelatoriosAnaliticosPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.integration.RelatoriosHttpIntegrationTest
+!!   - br.com.inframonitor.relatorio.integration.V13JanelaMonitoramentoPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.pdf.VisaoGeralPdfPostgresIntegrationTest
+!!   - br.com.inframonitor.relatorio.service.InvarianteJanelaTest
+!!   - br.com.inframonitor.relatorio.service.RelatorioMotivoEncerramentoTest
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 432, Failures: 0, Errors: 0, Skipped: 119
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  21.151 s
+[INFO] Finished at: 2026-10-13T09:38:48-03:00

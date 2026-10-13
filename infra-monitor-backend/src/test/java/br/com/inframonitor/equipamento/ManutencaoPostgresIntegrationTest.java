@@ -9,10 +9,10 @@ import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,7 +21,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.Timestamp;
@@ -51,7 +50,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * <p>Requer Docker. Sem Docker disponivel o teste e ignorado, nunca falha.
  */
-@EnabledIf("dockerDisponivel")
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",
@@ -72,10 +71,6 @@ class ManutencaoPostgresIntegrationTest {
     private static final long ATRASO_MAX_MOTOR_MANUTENCAO_MS = 12;
     // reconhecer e um UPDATE so, bem mais curto que a manutencao: janela menor.
     private static final long ATRASO_MAX_MOTOR_RECONHECER_MS = 4;
-
-    static boolean dockerDisponivel() {
-        return DockerClientFactory.instance().isDockerAvailable();
-    }
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {

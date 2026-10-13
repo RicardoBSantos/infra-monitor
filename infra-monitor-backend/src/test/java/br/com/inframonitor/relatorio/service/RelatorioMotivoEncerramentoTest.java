@@ -21,6 +21,7 @@ import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.exportacao.RelatorioExportService;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.security.UsuarioPrincipal;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -53,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * que motivou a manutencao continua contando, e quem exclui o periodo de manutencao
  * em si e a janela de monitoramento fechada, nao um filtro por motivo.
  */
+@RequerDocker
 @SpringBootTest(properties = {"app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test", "monitoring.engine.enabled=false",
         "notification.telegram.enabled=false", "notification.dispatcher.enabled=false"})

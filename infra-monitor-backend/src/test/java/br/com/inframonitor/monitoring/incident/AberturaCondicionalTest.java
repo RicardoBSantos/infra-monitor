@@ -16,6 +16,7 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitoring.latency.LatencyEpisodeProcessor;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatenciaRepository;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -44,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * INSERT ... SELECT ... WHERE nativo com ON CONFLICT DO NOTHING: mock nenhum
  * exercita o indice parcial nem o predicado de elegibilidade lido do banco.
  */
+@RequerDocker
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-abertura-condicional-test",

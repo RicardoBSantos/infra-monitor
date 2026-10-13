@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { authInterceptor } from './auth.interceptor';
+import { authInterceptor, isProtectedApi } from './auth.interceptor';
 import { apiErrorInterceptor } from './api-error.interceptor';
 import { AuthStateService } from '../services/auth-state.service';
 
@@ -57,5 +57,19 @@ describe('authInterceptor', () => {
     backend.expectOne(request => request.url.endsWith('/relatorios/incidentes/export')).flush(new Blob([JSON.stringify({ timestamp: '', status: 401, error: 'Unauthorized', code: 'UNAUTHORIZED', message: 'Sessão expirada', path: '/api/v1/relatorios/incidentes/export' })], { type: 'application/json' }), { status: 401, statusText: 'Unauthorized' });
     await new Promise(resolve => setTimeout(resolve));
     expect(state.authenticated()).toBe(false); expect(router.url).toContain('/login');
+  });
+});
+
+describe('isProtectedApi com a apiUrl relativa do build de produção', () => {
+  const api = '/api/v1';
+  it('protege a API na mesma origem, relativa ou absoluta', () => {
+    expect(isProtectedApi('/api/v1/dashboard/resumo', api)).toBe(true);
+    expect(isProtectedApi(`${window.location.origin}/api/v1/equipamentos`, api)).toBe(true);
+  });
+  it('deixa sem token o login, o GeoJSON local, outra origem e prefixo parecido', () => {
+    expect(isProtectedApi('/api/v1/auth/login', api)).toBe(false);
+    expect(isProtectedApi('assets/maps/se-municipalities.geo.json', api)).toBe(false);
+    expect(isProtectedApi('https://example.invalid/api/v1/dashboard/resumo', api)).toBe(false);
+    expect(isProtectedApi('/api/v10/dashboard', api)).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitor.service.MonitorService;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -42,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * o estado persistido de janela_monitoramento com o resultado da query nativa/JPQL de
  * candidatos — nenhum mock exercita as duas pontas ao mesmo tempo.
  */
+@RequerDocker
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-invariante-janela-test",

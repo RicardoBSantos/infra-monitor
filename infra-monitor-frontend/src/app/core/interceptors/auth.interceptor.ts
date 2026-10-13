@@ -7,8 +7,9 @@ import { isApiError } from '../models/api-error';
 import { AuthStateService } from '../services/auth-state.service';
 
 let redirecting401 = false;
-function isProtectedApi(url: string): boolean {
-  const api = new URL(environment.apiUrl, window.location.origin);
+/** `apiUrl` pode ser absoluta (dev) ou relativa à origem (`/api/v1`, build de produção). */
+export function isProtectedApi(url: string, apiUrl: string = environment.apiUrl): boolean {
+  const api = new URL(apiUrl, window.location.origin);
   const request = new URL(url, window.location.origin);
   return request.origin === api.origin && request.pathname.startsWith(api.pathname + '/') && request.pathname !== `${api.pathname}/auth/login`;
 }

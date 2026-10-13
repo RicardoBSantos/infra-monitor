@@ -11,6 +11,7 @@ import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -54,6 +55,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Por isso as assercoes olham a coluna, e nao so o corpo da resposta: e a coluna
  * que o CHECK do banco defende.
  */
+@RequerDocker
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-autoria-test",

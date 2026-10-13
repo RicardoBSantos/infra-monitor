@@ -1,5 +1,6 @@
 package br.com.inframonitor.relatorio.integration;
 
+import br.com.inframonitor.testsupport.RequerDocker;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@RequerDocker
 class V13JanelaMonitoramentoPostgresIntegrationTest {
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");

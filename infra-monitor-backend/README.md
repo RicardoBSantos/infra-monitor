@@ -42,9 +42,76 @@ ambiente, com defaults de desenvolvimento em `application.yml`.
 | `DB_POOL_SIZE`| `20`            | tamanho máximo do pool Hikari      |
 | `SERVER_PORT` | `8080`          | porta HTTP da aplicação            |
 
-`.env.example` traz o conjunto pronto para copiar para `.env` (o `.env` é ignorado pelo git).
-
 Em produção essas variáveis são obrigatórias — os defaults existem só para o ambiente local.
+
+## Variáveis de ambiente e `.env`
+
+**O Spring lê apenas variáveis de ambiente do processo** (e os `application*.yml`
+versionados). O arquivo `.env` **não** é lido pela aplicação, e isso é intencional.
+`.env.example` é o modelo; o `.env` real é ignorado pelo git (`.gitignore` do backend)
+e nunca deve ser commitado.
+
+Motor ICMP, Telegram e dispatcher ficam **desligados** se a variável não existir.
+Ligar é sempre um ato explícito de quem sobe o processo:
+`MONITORING_ENGINE_ENABLED=true`, e para alertas `TELEGRAM_ENABLED=true` **e**
+`NOTIFICATION_DISPATCHER_ENABLED=true` com `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+`ConfiguracaoPadraoDesligadaTest` trava esses defaults e proíbe `spring.config.import`
+nos YAML.
+
+### Produção: o gerenciador do serviço injeta as variáveis
+
+Guarde as variáveis num arquivo **fora do repositório e fora do diretório da
+aplicação**, legível só pela conta do serviço, no mesmo formato do `.env.example`
+(`KEY=VALUE`, sem aspas). O gerenciador do serviço o carrega antes de iniciar a JVM:
+
+| Ambiente | Como injetar |
+|---|---|
+| Linux + systemd | `EnvironmentFile=/etc/infra-monitor/backend.env` na unit; arquivo `root:root`, `0600` |
+| Windows (WinSW) | um `<env name="..." value="..."/>` por variável no XML do serviço, com ACL restrita ao administrador e à conta do serviço |
+| Windows (NSSM) | `nssm set <serviço> AppEnvironmentExtra KEY=VALUE ...` |
+| Docker Compose | `env_file: /etc/infra-monitor/backend.env` no serviço do backend |
+
+O sistema operacional de produção ainda não está confirmado; os quatro caminhos usam o
+mesmo arquivo-modelo. Trocar um valor exige reiniciar o serviço.
+
+Por que não `spring.config.import=optional:file:.env[.properties]` no `application.yml`:
+
+- o caminho é relativo ao diretório de trabalho. `./mvnw test` e `./mvnw spring-boot:run`
+  rodam dentro de `infra-monitor-backend/`, então todo contexto de teste e todo boot
+  local passariam a carregar o `.env` com o token real do grupo de produção — basta um
+  `TELEGRAM_ENABLED=true` esquecido nele para teste ou dev mandar alerta de verdade;
+- com `optional:`, arquivo ausente vira silenciosamente "tudo no default"; num serviço
+  com diretório de trabalho diferente do esperado, a produção sobe sem as variáveis e
+  ninguém percebe;
+- mantém um segredo de produção dentro da árvore do código-fonte.
+
+Se um dia for preciso importar arquivo, que seja explícito na linha de comando do
+serviço, com caminho absoluto e **sem** `optional:`
+(`--spring.config.import=file:/etc/infra-monitor/backend.env[.properties]`), nunca no
+YAML versionado.
+
+### Desenvolvimento local
+
+Exporte o `.env` para o shell antes de subir (sem `export`, o Spring não vê nada):
+
+```bash
+# Git Bash / Linux
+set -a; . ./.env; set +a
+./mvnw spring-boot:run
+```
+
+```powershell
+# PowerShell (vale para a sessão atual)
+Get-Content .env | Where-Object { $_ -match '^\s*[A-Z_]+=' } | ForEach-Object {
+  $k, $v = $_ -split '=', 2; Set-Item "env:$($k.Trim())" $v
+}
+./mvnw spring-boot:run
+```
+
+Mantenha `TELEGRAM_ENABLED=false` e `NOTIFICATION_DISPATCHER_ENABLED=false` no `.env`
+local. Para testar envio, prefira sobrescrever só no comando
+(`TELEGRAM_ENABLED=true NOTIFICATION_DISPATCHER_ENABLED=true ./mvnw spring-boot:run`) e
+de preferência com um bot/grupo de teste, não o de produção.
 
 ## Subir o banco local
 
@@ -109,8 +176,12 @@ java -jar target/infra-monitor-backend-0.0.1-SNAPSHOT.jar --spring.profiles.acti
 ./mvnw test
 ```
 
-O teste de integração usa Testcontainers e sobe um PostgreSQL real. Sem Docker
-disponível ele é **ignorado** (não falha); os testes de API rodam sempre. O fluxo
+As classes de integração Postgres (27 hoje) são marcadas com `@RequerDocker` e sobem
+um PostgreSQL real via Testcontainers. Sem Docker disponível elas são **puladas**, não
+falham, e o fim da execução imprime um aviso com a contagem e a lista
+(`!! 27 classes puladas: Docker indisponivel.`): uma suíte verde nesse estado **não**
+testou o banco. A contagem completa só vale com Docker no ar. Classe nova que use
+`PostgreSQLContainer` precisa levar `@RequerDocker`; os testes de API rodam sempre. O fluxo
 end-to-end usa medições simuladas e um cliente Telegram falso, sem ping ou envio
 externo.
 

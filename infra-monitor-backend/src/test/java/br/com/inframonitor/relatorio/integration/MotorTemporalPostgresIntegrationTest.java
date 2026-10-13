@@ -19,6 +19,7 @@ import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.relatorio.temporal.DisponibilidadeEquipamentoTemporalService;
+import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
@@ -46,6 +47,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@RequerDocker
 @SpringBootTest(properties = {
         "app.auth.jwt.secret=test-only-jwt-secret-with-at-least-32-bytes",
         "app.auth.jwt.issuer=infra-monitor-test",
