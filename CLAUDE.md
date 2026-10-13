@@ -184,6 +184,10 @@ Regras já definidas:
   também 404/405/415 do próprio Spring MVC — não trocar por `@ExceptionHandler` solto.
 - Credenciais só por variável de ambiente: `DB_HOST DB_PORT DB_NAME DB_USERNAME
   DB_PASSWORD DB_POOL_SIZE SERVER_PORT`. Nunca versionar senha real.
+- O Spring **não lê o `.env`**, de propósito: em produção o gerenciador do serviço injeta
+  as variáveis (README do backend, "Variáveis de ambiente e `.env`"). Proibido
+  `spring.config.import` nos YAML (`ConfiguracaoPadraoDesligadaTest` barra). Motor,
+  Telegram e dispatcher ficam desligados sem variável; ligar é ato explícito.
 
 ## Banco e migrations
 
@@ -212,6 +216,9 @@ Regras já definidas:
 ## Testes
 
 - `StatusControllerTest` (`@WebMvcTest`) e `TratadorGlobalDeErrosTest` rodam sempre.
-- `InfraMonitorApplicationTests` usa Testcontainers com PostgreSQL real; sem Docker
-  é ignorado via `@EnabledIf("dockerDisponivel")`, nunca falha.
+- As 27 classes de integração com PostgreSQL real (Testcontainers) levam `@RequerDocker`
+  (`testsupport/`). Sem Docker são puladas, nunca dão erro, e `AvisoTestesSemDocker`
+  imprime no fim `!! N classes puladas: Docker indisponivel.` com a lista. Suíte verde com
+  esse aviso **não** testou o banco: contagem completa só com Docker. Classe nova com
+  `PostgreSQLContainer` precisa da anotação.
 - Não criar mock ou teste artificial só para aumentar contagem.
