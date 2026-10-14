@@ -3,6 +3,13 @@
 Data: 2026-10-13. Investigação e preparação; a carga das demais unidades **não** foi executada.
 Motor ICMP, Telegram e dispatcher desligados o tempo todo. Só a SEDE foi cadastrada, no banco novo.
 
+> **Situação posterior (2026-10-14):** o `inframonitor-carga` foi destruído e recriado do zero
+> (mesmo nome, porta e V1–V20). A SEDE desta rodada não existe mais: o banco tem SED e ITA,
+> cadastradas pela API, e o backend da carga rodou com motor ligado e Telegram no grupo real. Ver
+> [producao-sed-ita.md](producao-sed-ita.md). As perguntas da seção 5 sobre hub e parâmetros
+> tiveram resposta parcial: ITA → SED, 30 s / 2000 ms / 3 / 2 validados em 4 h
+> ([validacao-4h-equipamentos-reais.md](validacao-4h-equipamentos-reais.md)).
+
 ## 1. Banco da carga: novo, limpo, separado do dev
 
 O banco de dev (`inframonitor-postgres`, porta 5434) tem 12 unidades e 222 equipamentos fictícios

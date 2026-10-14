@@ -2,6 +2,7 @@
 
 Data: 2026-10-14. Fatos fornecidos pela equipe de rede; referência para o cadastro da carga real
 ([carga-real-preparacao.md](carga-real-preparacao.md)). Nada aqui foi alterado no código nem no banco.
+Ressalvas por VLAN e origem do monitoramento: [segmentacao-rede-sesc.md](segmentacao-rede-sesc.md).
 
 ## 1. Esquema
 

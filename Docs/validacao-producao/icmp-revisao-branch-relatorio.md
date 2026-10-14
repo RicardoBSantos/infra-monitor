@@ -3,6 +3,10 @@
 Data: 2026-09-22. Branch `fix/icmp-nativo-windows`, **sem merge**. Motor e Telegram desligados em toda
 execução. Banco de dev usado só para leitura e para a subida da aplicação.
 
+> **Situação posterior:** o branch foi mesclado na `main` em 2026-09-24 (`6b696f5`). A contradição
+> do campo de IP (seção 1) foi resolvida pela `V20` em 2026-10-09: CHECK de IPv4 de host no banco,
+> `VARCHAR(45)` mantido ([rodada-curta-pre-carga.md](rodada-curta-pre-carga.md)).
+
 Suíte final: **308 testes, 0 falhas, BUILD SUCCESS**. Nenhuma V19.
 
 ---

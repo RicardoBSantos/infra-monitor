@@ -2,6 +2,10 @@
 
 > 2026-10-13: primeira execução real, só com a SEDE, contra o banco novo `inframonitor-carga` —
 > simulação, `--aplicar` e reexecução idempotente. Ver [carga-real-preparacao.md](carga-real-preparacao.md).
+>
+> 2026-10-14: banco `inframonitor-carga` recriado do zero e segunda execução real, com SED e ITA
+> (2 tipos, 2 unidades, 2 equipamentos, 2 monitores, 1 conexão): simulação `criados=9`, `--aplicar`
+> `criados=9`, reexecução `criados=0 pulados=9`. Ver [producao-sed-ita.md](producao-sed-ita.md).
 > As demais unidades ainda não foram carregadas.
 
 Script: `tools/carga-real/carga.mjs`. Cadastra dados reais no Infra Monitor
@@ -9,10 +13,10 @@ Script: `tools/carga-real/carga.mjs`. Cadastra dados reais no Infra Monitor
 regras de validação: `tools/carga-real/README.md`. Este documento é o
 passo a passo operacional para quem for de fato rodar a carga.
 
-Este procedimento **não foi executado** contra nenhum servidor até agora —
-foi escrito e testado só com testes unitários (`node --test`, sem rede) e uma
-simulação em memória com `fetch` falso. A primeira execução real deve ser
-feita com cautela, começando em `--dry-run` (o padrão).
+Quando foi escrito, este procedimento ainda não tinha sido executado contra
+nenhum servidor: só testes unitários (`node --test`, sem rede) e uma simulação
+em memória com `fetch` falso. Desde então rodou duas vezes de verdade (notas
+acima). Toda execução começa em `--dry-run` (o padrão).
 
 ## 0. Antes de subir a versão com a migration V20
 

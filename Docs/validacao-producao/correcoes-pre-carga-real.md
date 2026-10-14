@@ -2,6 +2,8 @@
 
 Data: 2026-10-08. Branch: `fix/pre-carga-real` (a partir de `main` 9c8ec02). Sem push, sem merge.
 
+> **Situação posterior:** mesclado na `main` pelo PR #3 em 2026-10-09 (`22f5a95`).
+
 Desenho: [2026-10-08-correcoes-pre-carga-real-design.md](../superpowers/specs/2026-10-08-correcoes-pre-carga-real-design.md).
 Dívida registrada à parte: [divida-latencia-sub-milissegundo.md](divida-latencia-sub-milissegundo.md).
 
