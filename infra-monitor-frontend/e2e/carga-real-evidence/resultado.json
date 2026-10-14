@@ -1,0 +1,639 @@
+{
+  "base": "http://127.0.0.1:4200",
+  "api": "http://127.0.0.1:4200/api/v1",
+  "modo": "telas",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "quando": "2026-10-14T11:51:50.467Z",
+  "resultados": [
+    {
+      "passo": 1,
+      "nome": "login concluído",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4200/dashboard"
+    },
+    {
+      "passo": 2,
+      "nome": "API do mapa devolve exatamente as 2 unidades (SED e ITA)",
+      "ok": true,
+      "detalhe": "Sede Administrativa, Sesc Itabaiana"
+    },
+    {
+      "passo": 2,
+      "nome": "ITA conecta a SED (hub) e SED é raiz",
+      "ok": true,
+      "detalhe": "ITA.conectaAUnidadeId=1 SED.id=1 SED.conectaAUnidadeId=null"
+    },
+    {
+      "passo": 2,
+      "nome": "exatamente 2 marcadores de unidade",
+      "ok": true,
+      "detalhe": "2 marcador(es)"
+    },
+    {
+      "passo": 2,
+      "nome": "os marcadores são SED e ITA",
+      "ok": true,
+      "detalhe": "1,2"
+    },
+    {
+      "passo": 2,
+      "nome": "SED: aria-label começa pelo nome",
+      "ok": true,
+      "detalhe": "Sede Administrativa: Disponível, 1 equipamento, 0 incidentes abertos"
+    },
+    {
+      "passo": 2,
+      "nome": "SED: cor do marcador = cor do status da API (DISPONIVEL)",
+      "ok": true,
+      "detalhe": "cor=#34c77b -> DISPONIVEL"
+    },
+    {
+      "passo": 2,
+      "nome": "SED: marcador pulsa (classe + animação no ::after)",
+      "ok": true,
+      "detalhe": "true/_ngcontent-ng-c605536096_map-pulsar"
+    },
+    {
+      "passo": 2,
+      "nome": "ITA: aria-label começa pelo nome",
+      "ok": true,
+      "detalhe": "Sesc Itabaiana: Disponível, 1 equipamento, 0 incidentes abertos"
+    },
+    {
+      "passo": 2,
+      "nome": "ITA: cor do marcador = cor do status da API (DISPONIVEL)",
+      "ok": true,
+      "detalhe": "cor=#34c77b -> DISPONIVEL"
+    },
+    {
+      "passo": 2,
+      "nome": "ITA: marcador pulsa (classe + animação no ::after)",
+      "ok": true,
+      "detalhe": "true/_ngcontent-ng-c605536096_map-pulsar"
+    },
+    {
+      "passo": 2,
+      "nome": "conexão ITA→SED desenhada: 2 pings (1 linha × 2)",
+      "ok": true,
+      "detalhe": "2 ping(s)"
+    },
+    {
+      "passo": 2,
+      "nome": "cor da conexão = cor do status de ITA (unidade conectada)",
+      "ok": true,
+      "detalhe": "pings=#34c77b esperado=#34c77b (DISPONIVEL)"
+    },
+    {
+      "passo": 2,
+      "nome": "pings são aria-hidden",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "passo": 2,
+      "nome": "ping animado percorre a linha (nenhum parado)",
+      "ok": true,
+      "detalhe": "130.4px 131.1px"
+    },
+    {
+      "passo": 2,
+      "nome": "marcador de Sede Administrativa abre o painel da unidade certa",
+      "ok": true,
+      "detalhe": "painel=\"Sede Administrativa\""
+    },
+    {
+      "passo": 2,
+      "nome": "Sede Administrativa: só o marcador clicado fica aria-pressed",
+      "ok": true,
+      "detalhe": "[\"1\"]"
+    },
+    {
+      "passo": 2,
+      "nome": "Sede Administrativa: município selecionado é o do cadastro (clique não vazou para outro polígono)",
+      "ok": true,
+      "detalhe": "pressionado=[\"2800308\"] esperado=2800308"
+    },
+    {
+      "passo": 2,
+      "nome": "Sede Administrativa: sem bloco de escolha entre unidades",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "passo": 2,
+      "nome": "painel da unidade fechado (Atualizar limpa a seleção)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "passo": 2,
+      "nome": "marcador de Sesc Itabaiana abre o painel da unidade certa",
+      "ok": true,
+      "detalhe": "painel=\"Sesc Itabaiana\""
+    },
+    {
+      "passo": 2,
+      "nome": "Sesc Itabaiana: só o marcador clicado fica aria-pressed",
+      "ok": true,
+      "detalhe": "[\"2\"]"
+    },
+    {
+      "passo": 2,
+      "nome": "Sesc Itabaiana: município selecionado é o do cadastro (clique não vazou para outro polígono)",
+      "ok": true,
+      "detalhe": "pressionado=[\"2802908\"] esperado=2802908"
+    },
+    {
+      "passo": 2,
+      "nome": "Sesc Itabaiana: sem bloco de escolha entre unidades",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "passo": 3,
+      "nome": "KPI UNIDADES = 2",
+      "ok": true,
+      "detalhe": "UNIDADES=2"
+    },
+    {
+      "passo": 3,
+      "nome": "KPI EQUIPAMENTOS = 2",
+      "ok": true,
+      "detalhe": "EQUIPAMENTOS=2"
+    },
+    {
+      "passo": 3,
+      "nome": "lista do painel com 2 unidades",
+      "ok": true,
+      "detalhe": "2 linha(s)"
+    },
+    {
+      "passo": 4,
+      "nome": "lista de unidades com 2 linhas",
+      "ok": true,
+      "detalhe": "2 linha(s)"
+    },
+    {
+      "passo": 4,
+      "nome": "linhas são SED e ITA",
+      "ok": true,
+      "detalhe": "SED/Sede Administrativa, ITA/Sesc Itabaiana"
+    },
+    {
+      "passo": 5,
+      "nome": "lista de equipamentos com 2 linhas",
+      "ok": true,
+      "detalhe": "2 linha(s)"
+    },
+    {
+      "passo": 5,
+      "nome": "nome, IP e unidade de cada equipamento batem com o cadastro",
+      "ok": true,
+      "detalhe": "[[\"Gateway Servidores\",\"10.70.10.1\",\"Sesc Itabaiana\"],[\"Servidor AD Core\",\"10.79.10.6\",\"Sede Administrativa\"]]"
+    },
+    {
+      "passo": 5,
+      "nome": "gaveta aberta é a de Servidor AD Core",
+      "ok": true,
+      "detalhe": "titulo=\"Servidor AD Core\""
+    },
+    {
+      "passo": 5,
+      "nome": "Servidor AD Core: gráfico de latência renderizado (svg com polilinha não vazia)",
+      "ok": true,
+      "detalhe": "{\"svg\":true,\"segmentos\":1,\"pontos\":35,\"largura\":621,\"altura\":132,\"vazio\":null,\"legenda\":\"latênciamédia móvelpico 16 ms0 timeouts\"}"
+    },
+    {
+      "passo": 5,
+      "nome": "Servidor AD Core: IP no inventário da gaveta",
+      "ok": true,
+      "detalhe": "ip=\"10.79.10.6\""
+    },
+    {
+      "passo": 5,
+      "nome": "lista íntegra ao voltar da gaveta de Servidor AD Core",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "passo": 5,
+      "nome": "gaveta aberta é a de Gateway Servidores",
+      "ok": true,
+      "detalhe": "titulo=\"Gateway Servidores\""
+    },
+    {
+      "passo": 5,
+      "nome": "Gateway Servidores: gráfico de latência renderizado (svg com polilinha não vazia)",
+      "ok": true,
+      "detalhe": "{\"svg\":true,\"segmentos\":1,\"pontos\":35,\"largura\":621,\"altura\":132,\"vazio\":null,\"legenda\":\"latênciamédia móvelpico 19 ms0 timeouts\"}"
+    },
+    {
+      "passo": 5,
+      "nome": "Gateway Servidores: IP no inventário da gaveta",
+      "ok": true,
+      "detalhe": "ip=\"10.70.10.1\""
+    },
+    {
+      "passo": 5,
+      "nome": "lista íntegra ao voltar da gaveta de Gateway Servidores",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "passo": 6,
+      "nome": "Disponibilidade Unidades: API 200 e 2 linhas na tabela",
+      "ok": true,
+      "detalhe": "status=200 linhas=2"
+    },
+    {
+      "passo": 6,
+      "nome": "Disponibilidade Equipamentos: API 200 e 2 linhas na tabela",
+      "ok": true,
+      "detalhe": "status=200 linhas=2"
+    },
+    {
+      "passo": 6,
+      "nome": "Disponibilidade Equipamentos: monitor \"ping-principal\" em cada equipamento",
+      "ok": true,
+      "detalhe": "[\"ping-principal\",\"ping-principal\"]"
+    },
+    {
+      "passo": 9,
+      "nome": "nenhum erro de página/console no roteiro",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "falhas": 0,
+  "leituras": {
+    "unidadesDaApi": [
+      {
+        "id": 1,
+        "nome": "Sede Administrativa",
+        "status": "DISPONIVEL",
+        "codigoIbge": "2800308",
+        "latitude": -10.922154,
+        "longitude": -37.049186,
+        "conectaAUnidadeId": null,
+        "equipamentosTotal": 1,
+        "incidentesAbertos": 0
+      },
+      {
+        "id": 2,
+        "nome": "Sesc Itabaiana",
+        "status": "DISPONIVEL",
+        "codigoIbge": "2802908",
+        "latitude": -10.6859,
+        "longitude": -37.4247,
+        "conectaAUnidadeId": 1,
+        "equipamentosTotal": 1,
+        "incidentesAbertos": 0
+      }
+    ],
+    "marcadores": [
+      {
+        "id": "1",
+        "rotulo": "Sede Administrativa: Disponível, 1 equipamento, 0 incidentes abertos",
+        "pressionado": false,
+        "cor": "#34c77b",
+        "pulsa": true,
+        "animacaoNoAfter": "_ngcontent-ng-c605536096_map-pulsar",
+        "x": 732,
+        "y": 608,
+        "statusPelaCor": "DISPONIVEL"
+      },
+      {
+        "id": "2",
+        "rotulo": "Sesc Itabaiana: Disponível, 1 equipamento, 0 incidentes abertos",
+        "pressionado": false,
+        "cor": "#34c77b",
+        "pulsa": true,
+        "animacaoNoAfter": "_ngcontent-ng-c605536096_map-pulsar",
+        "x": 614,
+        "y": 502,
+        "statusPelaCor": "DISPONIVEL"
+      }
+    ],
+    "conexao": {
+      "de": 1,
+      "para": 2,
+      "statusQueColore": "DISPONIVEL",
+      "corEsperada": "#34c77b",
+      "pings": [
+        {
+          "cor": "#34c77b",
+          "oculto": "true"
+        },
+        {
+          "cor": "#34c77b",
+          "oculto": "true"
+        }
+      ],
+      "legendaLinha": 1,
+      "percursoPx": [
+        130.4,
+        131.1
+      ]
+    },
+    "painelUnidade": {
+      "Sede Administrativa": {
+        "kpis": [
+          {
+            "rotulo": "EQUIPAMENTOS",
+            "valor": "1"
+          },
+          {
+            "rotulo": "DISPONÍVEIS",
+            "valor": "1"
+          },
+          {
+            "rotulo": "DEGRADADOS",
+            "valor": "0"
+          },
+          {
+            "rotulo": "INDISPONÍVEIS",
+            "valor": "0"
+          },
+          {
+            "rotulo": "EM MANUTENÇÃO",
+            "valor": "0"
+          },
+          {
+            "rotulo": "INCIDENTES ABERTOS",
+            "valor": "0"
+          }
+        ],
+        "afetados": []
+      },
+      "Sesc Itabaiana": {
+        "kpis": [
+          {
+            "rotulo": "EQUIPAMENTOS",
+            "valor": "1"
+          },
+          {
+            "rotulo": "DISPONÍVEIS",
+            "valor": "1"
+          },
+          {
+            "rotulo": "DEGRADADOS",
+            "valor": "0"
+          },
+          {
+            "rotulo": "INDISPONÍVEIS",
+            "valor": "0"
+          },
+          {
+            "rotulo": "EM MANUTENÇÃO",
+            "valor": "0"
+          },
+          {
+            "rotulo": "INCIDENTES ABERTOS",
+            "valor": "0"
+          }
+        ],
+        "afetados": []
+      }
+    },
+    "painelKpis": [
+      {
+        "rotulo": "UNIDADES",
+        "valor": "2",
+        "nota": "cadastradas e ativas"
+      },
+      {
+        "rotulo": "EQUIPAMENTOS",
+        "valor": "2",
+        "nota": "2 monitorados"
+      },
+      {
+        "rotulo": "ONLINE",
+        "valor": "2",
+        "nota": "de 2 ativos"
+      },
+      {
+        "rotulo": "DEGRADADOS",
+        "valor": "0",
+        "nota": "acima de 250 ms"
+      },
+      {
+        "rotulo": "EM MANUTENÇÃO",
+        "valor": "0",
+        "nota": "fora da leitura ICMP"
+      },
+      {
+        "rotulo": "OFFLINE",
+        "valor": "0",
+        "nota": "0 unidades afetadas"
+      },
+      {
+        "rotulo": "DISPONIBILIDADE",
+        "valor": "100,00%",
+        "nota": "janela de 30 dias"
+      },
+      {
+        "rotulo": "LATÊNCIA MÉDIA",
+        "valor": "3ms",
+        "nota": "ICMP · todas as unidades"
+      },
+      {
+        "rotulo": "INCIDENTES ABERTOS",
+        "valor": "0",
+        "nota": "0 unidades com incidente"
+      }
+    ],
+    "unidadesLista": [
+      {
+        "nome": "Sede Administrativa",
+        "sigla": "SED",
+        "cidade": "Aracaju",
+        "status": "Disponível",
+        "equipamentos": "1",
+        "disponibilidade": "100,00%"
+      },
+      {
+        "nome": "Sesc Itabaiana",
+        "sigla": "ITA",
+        "cidade": "Itabaiana",
+        "status": "Disponível",
+        "equipamentos": "1",
+        "disponibilidade": "100,00%"
+      }
+    ],
+    "equipamentosLista": [
+      {
+        "nome": "Gateway Servidores",
+        "unidade": "Sesc Itabaiana",
+        "ip": "10.70.10.1",
+        "status": "Disponível",
+        "latencia": "5 ms"
+      },
+      {
+        "nome": "Servidor AD Core",
+        "unidade": "Sede Administrativa",
+        "ip": "10.79.10.6",
+        "status": "Disponível",
+        "latencia": "0 ms"
+      }
+    ],
+    "drawers": {
+      "Servidor AD Core": {
+        "grafico": {
+          "svg": true,
+          "segmentos": 1,
+          "pontos": 35,
+          "largura": 621,
+          "altura": 132,
+          "vazio": null,
+          "legenda": "latênciamédia móvelpico 16 ms0 timeouts"
+        },
+        "kpis": [
+          {
+            "rotulo": "Status",
+            "valor": "Disponível"
+          },
+          {
+            "rotulo": "Latência",
+            "valor": "0 ms"
+          },
+          {
+            "rotulo": "Latência média · 30D",
+            "valor": "1 ms"
+          },
+          {
+            "rotulo": "Disponibilidade · 30D",
+            "valor": "100,00%"
+          },
+          {
+            "rotulo": "Perda · 26min",
+            "valor": "0,00%"
+          },
+          {
+            "rotulo": "Incidentes · 30D",
+            "valor": "0"
+          },
+          {
+            "rotulo": "Intervalo",
+            "valor": "30 s"
+          },
+          {
+            "rotulo": "Última verificação",
+            "valor": "agora há pouco"
+          }
+        ],
+        "ip": "10.79.10.6"
+      },
+      "Gateway Servidores": {
+        "grafico": {
+          "svg": true,
+          "segmentos": 1,
+          "pontos": 35,
+          "largura": 621,
+          "altura": 132,
+          "vazio": null,
+          "legenda": "latênciamédia móvelpico 19 ms0 timeouts"
+        },
+        "kpis": [
+          {
+            "rotulo": "Status",
+            "valor": "Disponível"
+          },
+          {
+            "rotulo": "Latência",
+            "valor": "5 ms"
+          },
+          {
+            "rotulo": "Latência média · 30D",
+            "valor": "5 ms"
+          },
+          {
+            "rotulo": "Disponibilidade · 30D",
+            "valor": "100,00%"
+          },
+          {
+            "rotulo": "Perda · 26min",
+            "valor": "0,00%"
+          },
+          {
+            "rotulo": "Incidentes · 30D",
+            "valor": "0"
+          },
+          {
+            "rotulo": "Intervalo",
+            "valor": "30 s"
+          },
+          {
+            "rotulo": "Última verificação",
+            "valor": "agora há pouco"
+          }
+        ],
+        "ip": "10.70.10.1"
+      }
+    },
+    "relatorios": {
+      "unidades": {
+        "status": 200,
+        "linhas": [
+          [
+            "Sede Administrativa",
+            "1",
+            "1",
+            "0",
+            "0",
+            "16m 39s",
+            "0s",
+            "16m 39s",
+            "100,00%",
+            "0"
+          ],
+          [
+            "Sesc Itabaiana",
+            "1",
+            "1",
+            "0",
+            "0",
+            "16m 39s",
+            "0s",
+            "16m 39s",
+            "100,00%",
+            "0"
+          ]
+        ]
+      },
+      "equipamentos": {
+        "status": 200,
+        "linhas": [
+          [
+            "Gateway Servidores",
+            "Sesc Itabaiana",
+            "ping-principal",
+            "Calculado",
+            "Precisa",
+            "16m 39s",
+            "0s",
+            "16m 39s",
+            "100,00%",
+            "0"
+          ],
+          [
+            "Servidor AD Core",
+            "Sede Administrativa",
+            "ping-principal",
+            "Calculado",
+            "Precisa",
+            "16m 39s",
+            "0s",
+            "16m 39s",
+            "100,00%",
+            "0"
+          ]
+        ]
+      }
+    }
+  },
+  "erros": [],
+  "fatal": null
+}

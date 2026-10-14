@@ -1,0 +1,314 @@
+[
+  {
+    "quando": "2026-10-14T11:51:39.417Z",
+    "metodo": "POST",
+    "url": "http://127.0.0.1:4200/api/v1/auth/login",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.656Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/resumo",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.674Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.674Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.674Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/unidades?inicio=2026-09-14T11:51:39.657Z&fim=2026-10-14T11:51:39.657Z&size=200",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.675Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/latencia/unidades?inicio=2026-09-14T11:51:39.658Z&fim=2026-10-14T11:51:39.658Z&size=500",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.675Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/equipamentos?size=500&sort=nome,asc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:39.939Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:44.217Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades/1/equipamentos?size=200&sort=nome",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:44.218Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades/1/equipamentos?size=200&sort=nome",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:44.866Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:46.213Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades/2/equipamentos?size=200&sort=nome",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:46.213Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades/2/equipamentos?size=200&sort=nome",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:46.909Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:46.909Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/unidades?inicio=2026-09-14T11:51:46.903Z&fim=2026-10-14T11:51:46.903Z&size=200",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:46.909Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/latencia/unidades?inicio=2026-09-14T11:51:46.904Z&fim=2026-10-14T11:51:46.904Z&size=500",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:46.916Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/equipamentos?size=500&sort=nome,asc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.555Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.556Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/unidades",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.556Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/unidades?inicio=2026-09-14T11:51:47.551Z&fim=2026-10-14T11:51:47.551Z&size=500",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.687Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.688Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/tipos-equipamento?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.688Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/equipamentos",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.897Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.898Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/tipos-equipamento?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.898Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/equipamentos",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.911Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/equipamentos/1",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.911Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/equipamentos?inicio=2026-09-14T11:51:47.902Z&fim=2026-10-14T11:51:47.902Z&size=1&equipamentoId=1",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.911Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/latencia?inicio=2026-09-14T11:51:47.903Z&fim=2026-10-14T11:51:47.903Z&size=1&equipamentoId=1",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.911Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/medicoes?inicio=2026-10-14T11:25:47.903Z&fim=2026-10-14T11:51:47.903Z&size=60&sort=executadoEm,asc&equipamentoId=1",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.911Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/monitores?equipamentoId=1&size=100&sort=id,asc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:47.911Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/incidentes?equipamentoId=1&size=3&sort=iniciadoEm,desc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.555Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.555Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/tipos-equipamento?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.555Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/equipamentos",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.702Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.703Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/tipos-equipamento?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.704Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/equipamentos",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.719Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/equipamentos/2",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.720Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/equipamentos?inicio=2026-09-14T11:51:48.712Z&fim=2026-10-14T11:51:48.712Z&size=1&equipamentoId=2",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.720Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/latencia?inicio=2026-09-14T11:51:48.712Z&fim=2026-10-14T11:51:48.712Z&size=1&equipamentoId=2",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.720Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/medicoes?inicio=2026-10-14T11:25:48.713Z&fim=2026-10-14T11:51:48.713Z&size=60&sort=executadoEm,asc&equipamentoId=2",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.720Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/monitores?equipamentoId=2&size=100&sort=id,asc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:48.720Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/incidentes?equipamentoId=2&size=3&sort=iniciadoEm,desc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.351Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.352Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/tipos-equipamento?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.352Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/dashboard/equipamentos",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.456Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/unidades?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.457Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/tipos-equipamento?ativo=true",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.457Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/equipamentos?inicio=2026-10-14T10:51:00.000Z&fim=2026-10-14T11:51:00.000Z&page=0&size=20&sort=equipamentoNome,asc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:49.513Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/unidades?inicio=2026-10-14T10:51:00.000Z&fim=2026-10-14T11:51:00.000Z&page=0&size=20&sort=unidadeNome,asc",
+    "status": 200
+  },
+  {
+    "quando": "2026-10-14T11:51:50.013Z",
+    "metodo": "GET",
+    "url": "http://127.0.0.1:4200/api/v1/relatorios/disponibilidade/equipamentos?inicio=2026-10-14T10:51:00.000Z&fim=2026-10-14T11:51:00.000Z&page=0&size=20&sort=equipamentoNome,asc",
+    "status": 200
+  }
+]

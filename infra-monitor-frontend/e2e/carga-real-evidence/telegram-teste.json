@@ -1,0 +1,9 @@
+{
+  "quando": "2026-10-14T11:50:19.115Z",
+  "status": 200,
+  "corpo": {
+    "enviado": true,
+    "motivo": null,
+    "cooldownRestanteSegundos": null
+  }
+}
