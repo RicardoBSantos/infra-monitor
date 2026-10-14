@@ -1,8 +1,18 @@
 # Manutenção de equipamento — proposta de desenho
 
-Proposta, não implementação. Nada aqui foi escrito em `src/`, nenhuma migration foi criada e o banco
-não foi tocado. Todo caminho `arquivo:linha` citado foi conferido por leitura no branch
-`fix/icmp-nativo-windows`.
+> **Situação posterior: implementada, verificada ponta a ponta e mesclada.** Este documento fica como
+> registro do desenho. A implementação veio no branch `feat/manutencao-equipamento`, mesclado na
+> `main` em 2026-09-24 (`c5f845b`): migration `V19__add_motivo_encerramento_e_eventos_manutencao.sql`,
+> `EquipamentoService.entrarEmManutencao`/`sairDeManutencao`, `MotivoEncerramentoIncidente`, os
+> eventos `INCIDENTE_ENCERRADO_MANUTENCAO`/`LATENCIA_ENCERRADA_MANUTENCAO` e `StatusNotificacao.CANCELADA`.
+> Verificação: [manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md);
+> números do backfill: [manutencao-backfill-diagnostico.md](manutencao-backfill-diagnostico.md);
+> enums: [manutencao-auditoria-enums.md](manutencao-auditoria-enums.md). Os `arquivo:linha` abaixo
+> descrevem o código **antes** da implementação e não batem mais com o atual.
+
+Escrito como proposta, antes da implementação: no momento da escrita nada estava em `src/`, nenhuma
+migration fora criada e o banco não fora tocado. Todo caminho `arquivo:linha` citado foi conferido
+por leitura no branch `fix/icmp-nativo-windows`.
 
 Premissas de produto, já decididas e fora de discussão neste documento:
 

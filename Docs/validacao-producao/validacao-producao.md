@@ -1,8 +1,10 @@
 # Validação em produção — ciclo
 
 Documentação persistente do ciclo de validação que antecede a sondagem de equipamentos reais:
-uma rodada de correções levantadas ao testar o motor de monitoramento ICMP contra a rede real desta
-máquina, mais uma proposta de desenho (ainda não implementada) para o comportamento de manutenção.
+as correções levantadas ao testar o motor de monitoramento ICMP contra a rede real desta máquina, o
+desenho do comportamento de manutenção (implementado, verificado e mesclado em 2026-09-24), a
+preparação da carga real e, em 2026-10-14, o teste em condição de produção com duas unidades reais:
+4 h de observação e queda controlada com Telegram no grupo real.
 
 Segue o padrão de `mapa-architecture/`: uma pasta por ciclo, com um arquivo-índice de mesmo nome da
 pasta.
@@ -12,7 +14,7 @@ pasta.
 | Arquivo | O que é |
 |---|---|
 | [icmp-falsos-positivos.md](icmp-falsos-positivos.md) | Os falsos positivos do `ping.exe` no Windows, a decisão pela API nativa `IcmpSendEcho` via JNA, a evidência medida e o teste contra a rede real |
-| [manutencao-proposta.md](manutencao-proposta.md) | Proposta de desenho (sem código) para suprimir notificação e incidente durante a manutenção de um equipamento |
+| [manutencao-proposta.md](manutencao-proposta.md) | Registro do desenho que suprime notificação e incidente durante a manutenção de um equipamento. Implementado em `feat/manutencao-equipamento` (V19, `EquipamentoService.entrarEmManutencao`), verificado ponta a ponta e mesclado na `main` em 2026-09-24 (`c5f845b`) |
 | [manutencao-auditoria-enums.md](manutencao-auditoria-enums.md) | Auditoria dos três enums novos de manutenção — StatusNotificacao.CANCELADA, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO, LATENCIA_ENCERRADA_MANUTENCAO — e cada ponto de leitura/escrita no backend e frontend |
 | [manutencao-backfill-diagnostico.md](manutencao-backfill-diagnostico.md) | Diagnóstico do backfill de motivo_encerramento da V19 — contagens reais por faixa de 76 incidentes fechados no banco de dev |
 | [manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md) | Verificação ponta a ponta do módulo de manutenção com backend ICMP real, dispatcher de notificação, Postgres descartável e mock do Telegram |
@@ -27,6 +29,15 @@ pasta.
 | [rodada-curta-pre-carga.md](rodada-curta-pre-carga.md) | Rodada curta antes da carga real: timeline só cita N quando lista a sequência (e episódio de latência com o motivo real de encerramento), IP só IPv4 de host nas quatro camadas (API, V20, formulário, script), e2e e suítes |
 | [monitoramento-parado-investigacao.md](monitoramento-parado-investigacao.md) | Investigação (sem código) de como detectar monitoramento parado: estado atual, opções com custo e cobertura (inclui hibernação e reinício), recomendação |
 | [env-testes-docker-environment-prod.md](env-testes-docker-environment-prod.md) | `.env` desarmado (token nunca commitado; variáveis injetadas pelo serviço, Telegram desligado por padrão e travado em teste), 27 classes Postgres puladas com aviso sem Docker, `environment.prod.ts` com `apiUrl` relativa e as opções para servir o frontend |
+| [a1-a2-cas-fechamento.md](a1-a2-cas-fechamento.md) | CAS no fechamento manual de incidente (A1) e no encerramento de episódio de latência (A2/A2b), linhas da auditoria de concorrência corrigidas |
+| [mapa-marcador-e-ibge.md](mapa-marcador-e-ibge.md) | Mapa: coordenada prevalece sobre o código IBGE, funções puras de município e divergência, e a correção do clique no marcador que vazava para o município |
+| [carga-real-procedimento.md](carga-real-procedimento.md) | Passo a passo operacional do script `tools/carga-real/carga.mjs`: simulação, `--aplicar`, idempotência, papel mínimo |
+| [carga-real-preparacao.md](carga-real-preparacao.md) | Preparação da carga real: banco novo `inframonitor-carga` (5436, V1–V20) separado do dev, passo 0 da V20, SEDE simulada/aplicada/idempotente (banco recriado em 2026-10-14), planilha de levantamento e perguntas antes da carga |
+| [rede-sesc-enderecamento.md](rede-sesc-enderecamento.md) | Endereçamento da rede para o cadastro: contagem da colisão dos IPs do dev com unidades reais e regras de cadastro |
+| [segmentacao-rede-sesc.md](segmentacao-rede-sesc.md) | Segmentação da rede: unidades e VLANs por octeto, máscaras, VLAN 5 só na TI da sede, VLAN 53 atrás do pfSense, Tobias sem equipamento, **motor nunca contra o banco de dev**, origem da validação e reconfirmação na máquina de deploy |
+| [producao-sed-ita.md](producao-sed-ita.md) | Relatório consolidado do teste em condição de produção (SED + ITA): banco recriado, cadastro pela API, silêncio de 15 min, Telegram no grupo real, 4 h, telas e queda controlada |
+| [validacao-4h-equipamentos-reais.md](validacao-4h-equipamentos-reais.md) | Validação de 4 h com equipamentos reais: 948 medições, 2 falhas isoladas no enlace de Itabaiana, nenhuma virou alarme com limiar 3. **Evidência que justifica os parâmetros atuais** |
+| [queda-controlada.md](queda-controlada.md) | Procedimento da queda controlada (troca do IP por TEST-NET-1), resultado da rodada de 2026-10-14 e quadro para a próxima rodada, na máquina de deploy |
 | [evidencias/](evidencias/) | Capturas brutas (log de subida, respostas de `/api/v1/status`) que sustentam as seções resumidas dos relatórios acima |
 | [design — icmp-nativo-windows](../superpowers/specs/2026-09-21-icmp-nativo-windows-design.md) | O design que este ciclo implementou: contrato `IcmpResult`/`StatusIcmp`, mapeamento de códigos Win32, componentes criados |
 

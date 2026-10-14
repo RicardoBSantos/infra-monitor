@@ -1,0 +1,74 @@
+{
+  "tipos": [
+    { "nome": "Servidor" },
+    { "nome": "Roteador" }
+  ],
+  "unidades": [
+    {
+      "nome": "Sede Administrativa",
+      "sigla": "SED",
+      "codigoIbge": "2800308",
+      "endereco": "Rua Dom José Thomaz, 235 — São José — CEP 49015-090",
+      "cidade": "Aracaju",
+      "uf": "SE",
+      "latitude": -10.922154,
+      "longitude": -37.049186
+    },
+    {
+      "nome": "Sesc Itabaiana",
+      "sigla": "ITA",
+      "codigoIbge": "2802908",
+      "endereco": "Rua Maria Oliveira Mendonça, 1.651 — Anísio Amâncio de Oliveira (Loteamento Chiara Lubich) — CEP 49500-000",
+      "cidade": "Itabaiana",
+      "uf": "SE",
+      "latitude": -10.6859,
+      "longitude": -37.4247
+    }
+  ],
+  "equipamentos": [
+    {
+      "unidadeSigla": "SED",
+      "tipoNome": "Servidor",
+      "nome": "Servidor AD Core",
+      "ip": "10.79.10.6",
+      "hostname": "srv-ad-01",
+      "localizacao": "Sala de TI — rack 1",
+      "fabricante": "Dell",
+      "modelo": "PowerEdge R650",
+      "numeroSerie": "FICT-0001",
+      "descricao": "IP real. Fabricante, modelo e número de série são fictícios."
+    },
+    {
+      "unidadeSigla": "ITA",
+      "tipoNome": "Roteador",
+      "nome": "Gateway Servidores",
+      "ip": "10.70.10.1",
+      "descricao": "Gateway da VLAN 10 (Servidores) de Itabaiana. Âncora de alcance da unidade."
+    }
+  ],
+  "monitores": [
+    {
+      "unidadeSigla": "SED",
+      "equipamentoNome": "Servidor AD Core",
+      "tipo": "ICMP",
+      "nome": "ping-principal",
+      "intervaloSegundos": 30,
+      "timeoutMs": 2000,
+      "falhasParaIncidente": 3,
+      "sucessosParaRecovery": 2
+    },
+    {
+      "unidadeSigla": "ITA",
+      "equipamentoNome": "Gateway Servidores",
+      "tipo": "ICMP",
+      "nome": "ping-principal",
+      "intervaloSegundos": 30,
+      "timeoutMs": 2000,
+      "falhasParaIncidente": 3,
+      "sucessosParaRecovery": 2
+    }
+  ],
+  "conexoes": [
+    { "unidadeSigla": "ITA", "conectaSigla": "SED" }
+  ]
+}

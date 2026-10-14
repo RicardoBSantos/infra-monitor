@@ -4,6 +4,8 @@ Data: 2026-10-09. Branch `fix/pre-carga-real`, commits `86bcb86..` (spec e plano
 `Docs/superpowers/specs/2026-10-09-rodada-curta-pre-carga-design.md` e
 `Docs/superpowers/plans/2026-10-09-rodada-curta-pre-carga.md`). Sem push.
 
+> **Situação posterior:** mesclado na `main` pelo PR #4 em 2026-10-09 (`1bbd6e5`).
+
 Regras de execução: banco de dev (`inframonitor-postgres`, 5434) só `SELECT`, aplicação nunca subiu
 contra ele (o Flyway aplicaria a V20); motor nunca contra o dev; Telegram real nunca acionado; e2e
 contra Postgres descartável `infra-e2e` (5437) restaurado de `pg_dump` do dev, com o marcador

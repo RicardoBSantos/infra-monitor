@@ -1,0 +1,43 @@
+{
+  "tipos": [
+    { "nome": "Servidor" }
+  ],
+  "unidades": [
+    {
+      "nome": "Sede Administrativa",
+      "sigla": "SEDE",
+      "codigoIbge": "2800308",
+      "endereco": "Rua Dom José Thomaz, 235 — São José",
+      "cidade": "Aracaju",
+      "uf": "SE",
+      "latitude": -10.9197,
+      "longitude": -37.0522
+    }
+  ],
+  "equipamentos": [
+    {
+      "unidadeSigla": "SEDE",
+      "tipoNome": "Servidor",
+      "nome": "Servidor AD Core",
+      "ip": "10.79.10.6",
+      "hostname": "srv-ad-01",
+      "localizacao": "Sala de TI — rack 1",
+      "numeroSerie": "FICT-0001",
+      "fabricante": "Dell",
+      "modelo": "PowerEdge R650"
+    }
+  ],
+  "monitores": [
+    {
+      "unidadeSigla": "SEDE",
+      "equipamentoNome": "Servidor AD Core",
+      "tipo": "ICMP",
+      "nome": "ping-principal",
+      "intervaloSegundos": 30,
+      "timeoutMs": 2000,
+      "falhasParaIncidente": 3,
+      "sucessosParaRecovery": 2
+    }
+  ],
+  "conexoes": []
+}

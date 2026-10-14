@@ -2,6 +2,8 @@
 
 Data: 2026-10-13. Branch `fix/env-docker-prod` a partir de `main` (`1bbd6e5`). Sem push.
 
+> **Situação posterior:** mesclado na `main` pelo PR #5 em 2026-10-13 (`801005f`).
+
 Regras de execução: banco de dev (`inframonitor-postgres`, 5434) não foi tocado (nenhuma consulta,
 nenhum boot da aplicação contra ele); motor e Telegram desligados em todas as execuções; o token do
 Telegram nunca foi impresso. A única ação sobre o ambiente foi parar o Docker Desktop para a

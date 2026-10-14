@@ -109,6 +109,10 @@ Legenda: **F** = fica de fora, **E** = entra, **T** = tratamento próprio.
 
 ### Frontend — `NotificationStatus` / `NotificationEventType`
 
+> **Situação posterior:** os valores entraram em `core/models/api-enums.ts` no mesmo dia
+> (`0673c40`, 2026-09-22): `IncidentClosedByMaintenance`, `LatencyClosedByMaintenance` e `Cancelled`.
+> O parágrafo abaixo descreve o estado no momento da auditoria.
+>
 > Os enums do frontend **ainda não têm** os valores novos (conferido nesta data). As linhas abaixo
 > descrevem o que acontece **quando** a tarefa que estende `api-enums.ts` rodar — é a razão de
 > existirem nesta auditoria mesmo sem o valor presente ainda: a tarefa 5+ precisa saber, antes de
