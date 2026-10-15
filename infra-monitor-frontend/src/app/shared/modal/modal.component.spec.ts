@@ -116,6 +116,14 @@ describe('ModalComponent', () => {
     expect(fixture.componentInstance.fechamentos).toBe(1);
   });
 
+  it('mousedown dentro do painel não é cancelado: o campo recebe foco e o select abre', () => {
+    const fixture = montar();
+    abrir(fixture);
+    const evento = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    el(fixture).querySelector<HTMLElement>('#campo')!.dispatchEvent(evento);
+    expect(evento.defaultPrevented).toBe(false);
+  });
+
   it('arrastar de dentro do campo até o fundo não fecha', () => {
     const fixture = montar();
     abrir(fixture);

@@ -17,7 +17,7 @@ let proximoId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'pedirFechar()' },
   template: `@if (aberto()) {
-    <div class="modal__fundo" (mousedown)="cliqueComecouNoFundo = $event.target === $event.currentTarget" (click)="aoClicarNoFundo($event)">
+    <div class="modal__fundo" (mousedown)="aoPressionarFundo($event)" (click)="aoClicarNoFundo($event)">
       <section #painel class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="idTitulo" tabindex="-1" [style.width]="largura()">
         <header class="modal__topo">
           <div>
@@ -68,6 +68,15 @@ export class ModalComponent {
 
   protected pedirFechar(): void {
     if (this.aberto() && !this.bloqueado()) this.fechar.emit();
+  }
+
+  /**
+   * Método, não atribuição no template: `(mousedown)="x = a === b"` devolve o valor atribuído,
+   * e o Angular chama preventDefault() quando o handler devolve `false`. Dentro do painel isso
+   * cancelava o mousedown — o campo clicado não recebia foco e o select nativo não abria.
+   */
+  protected aoPressionarFundo(evento: MouseEvent): void {
+    this.cliqueComecouNoFundo = evento.target === evento.currentTarget;
   }
 
   /** Só fecha se o clique começou no fundo: soltar ali uma seleção de texto feita no campo não conta. */
