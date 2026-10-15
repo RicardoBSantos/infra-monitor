@@ -38,7 +38,7 @@
     {
       "nome": "uma coluna com 4 campos",
       "ok": true,
-      "detalhe": ""
+      "detalhe": "[{\"x\":481,\"y\":331.484375},{\"x\":481,\"y\":397.09375},{\"x\":481,\"y\":462.703125},{\"x\":481,\"y\":526.46875}]"
     },
     {
       "nome": "foco entra no campo Nome",
@@ -102,6 +102,11 @@
     },
     {
       "nome": "nenhuma escrita na API",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "sem erros de console",
       "ok": true,
       "detalhe": ""
     }

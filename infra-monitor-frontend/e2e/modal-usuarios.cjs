@@ -63,7 +63,11 @@ const geometria = (seletor) => (el) => {
     checar('aria-modal=true', (await modal.getAttribute('aria-modal')) === 'true');
     checar('título Novo usuário', (await modal.locator('h2').innerText()).includes('Novo usuário'));
     checar('botão × visível', await modal.locator('button.modal__fechar[aria-label="Fechar"]').isVisible());
-    checar('uma coluna com 4 campos', (await modal.locator('form.modal-form > label').count()) === 4);
+    const caixas = await modal.locator('form.modal-form > label').evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y }; }));
+    const umaColuna = caixas.length === 4
+      && caixas.every((c) => Math.abs(c.x - caixas[0].x) <= 1)
+      && caixas.every((c, i) => i === 0 || c.y > caixas[i - 1].y);
+    checar('uma coluna com 4 campos', umaColuna, JSON.stringify(caixas));
     const focoNome = await page.evaluate(() => document.activeElement?.getAttribute('formcontrolname'));
     checar('foco entra no campo Nome', focoNome === 'nome', String(focoNome));
     await page.screenshot({ path: path.join(OUT, '01-usuario-novo-modal.png') });
@@ -129,6 +133,7 @@ const geometria = (seletor) => (el) => {
     checar('roteiro completo', false, String(e));
     await page.screenshot({ path: path.join(OUT, 'falha.png') }).catch(() => {});
   } finally {
+    checar('sem erros de console', erros.length === 0, erros.join(' | '));
     fs.writeFileSync(path.join(OUT, 'resultado.json'), JSON.stringify({ resultados, erros }, null, 2));
     fs.writeFileSync(path.join(OUT, 'rede.json'), JSON.stringify(rede, null, 2));
     await browser.close();
