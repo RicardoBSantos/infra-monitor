@@ -1,0 +1,13 @@
+[
+  "POST /auth/login",
+  "GET /dashboard/resumo",
+  "GET /dashboard/unidades",
+  "GET /unidades?ativo=true",
+  "GET /relatorios/disponibilidade/unidades?inicio=2026-09-15T11:56:48.359Z&fim=2026-10-15T11:56:48.359Z&size=200",
+  "GET /relatorios/latencia/unidades?inicio=2026-09-15T11:56:48.360Z&fim=2026-10-15T11:56:48.360Z&size=500",
+  "GET /equipamentos?size=500&sort=nome,asc",
+  "GET /usuarios",
+  "GET /unidades?ativo=true",
+  "GET /tipos-equipamento?ativo=true",
+  "GET /dashboard/equipamentos"
+]
