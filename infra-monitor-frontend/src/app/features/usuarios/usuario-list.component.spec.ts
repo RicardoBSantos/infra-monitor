@@ -16,6 +16,19 @@ describe('UsuarioListComponent', () => {
   });
   afterEach(() => http.verify());
   const create = () => { const fixture = TestBed.createComponent(UsuarioListComponent); fixture.detectChanges(); return fixture; };
+  /** Abre o menu "…" da linha e escolhe a ação pelo rótulo. */
+  const acao = (fixture: { nativeElement: HTMLElement; detectChanges(): void }, rotulo: string, linha = 0) => {
+    (fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.menu-acoes__gatilho')[linha]).click(); fixture.detectChanges();
+    const item = [...fixture.nativeElement.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find((b) => b.textContent?.trim() === rotulo);
+    if (!item) throw new Error('ação ausente no menu: ' + rotulo);
+    item.click(); fixture.detectChanges();
+  };
+  const rotulosDoMenu = (fixture: { nativeElement: HTMLElement; detectChanges(): void }, linha = 0) => {
+    (fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.menu-acoes__gatilho')[linha]).click(); fixture.detectChanges();
+    const rotulos = [...fixture.nativeElement.querySelectorAll('[role="menuitem"]')].map((b) => b.textContent?.trim());
+    (fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.menu-acoes__gatilho')[linha]).click(); fixture.detectChanges();
+    return rotulos;
+  };
 
   it('renders loading, success, empty and error states', () => {
     const loading = create();
@@ -45,7 +58,7 @@ describe('UsuarioListComponent', () => {
 
   it('updates only nome, email and papel and presents a last-admin conflict', () => {
     const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([{ ...user, papel: 'ADMIN' }]); fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.actions button') as HTMLButtonElement).click(); fixture.detectChanges();
+    acao(fixture, 'Editar');
     const form = (fixture.componentInstance as any).form; form.controls.nome.setValue('Administrador'); form.controls.email.setValue('admin2@example.test'); form.controls.papel.setValue('OPERADOR');
     (fixture.componentInstance as any).submit(); const request = http.expectOne('http://localhost:8080/api/v1/usuarios/2'); expect(request.request.method).toBe('PUT'); expect(request.request.body).toEqual({ nome: 'Administrador', email: 'admin2@example.test', papel: 'OPERADOR' });
     request.flush(error('BUSINESS_CONFLICT', 'NÃ£o Ã© permitido rebaixar o Ãºltimo ADMIN ativo'), { status: 409, statusText: 'Conflict' }); fixture.detectChanges();
@@ -54,7 +67,7 @@ describe('UsuarioListComponent', () => {
 
   it('validates reset boundaries and sends the administrative reset request', () => {
     const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([user]); fixture.detectChanges();
-    (fixture.nativeElement.querySelectorAll('.actions button')[1] as HTMLButtonElement).click(); fixture.detectChanges();
+    acao(fixture, 'Redefinir senha');
     const form = (fixture.componentInstance as any).passwordForm; form.setValue({ novaSenha: 'curta', confirmacaoNovaSenha: 'curta' }); (fixture.componentInstance as any).resetPassword(); expect(http.match('http://localhost:8080/api/v1/usuarios/2/senha').length).toBe(0);
     form.setValue({ novaSenha: 'x'.repeat(129), confirmacaoNovaSenha: 'x'.repeat(129) }); (fixture.componentInstance as any).resetPassword(); expect(http.match('http://localhost:8080/api/v1/usuarios/2/senha').length).toBe(0);
     form.setValue({ novaSenha: 'SenhaTemporaria123!', confirmacaoNovaSenha: 'diferente' }); (fixture.componentInstance as any).resetPassword(); expect(http.match('http://localhost:8080/api/v1/usuarios/2/senha').length).toBe(0);
@@ -64,8 +77,8 @@ describe('UsuarioListComponent', () => {
 
   it('confirms deactivation, patches status, and never offers self-deactivation', () => {
     const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([{ ...user, id: 1 }, user]); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('DesativarOPERADOR');
-    const deactivate = [...fixture.nativeElement.querySelectorAll('.actions button')].find((b: Element) => b.textContent === 'Desativar') as HTMLButtonElement; deactivate.click(); fixture.detectChanges();
+    expect(rotulosDoMenu(fixture, 0)).not.toContain('Desativar');
+    acao(fixture, 'Desativar', 1);
     expect(fixture.nativeElement.textContent).toContain('Desativar Operador?');
     (fixture.componentInstance as any).changeStatus(); const request = http.expectOne('http://localhost:8080/api/v1/usuarios/2/desativar'); expect(request.request.method).toBe('PATCH'); request.flush({ ...user, ativo: false }); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('desativado com sucesso');
@@ -92,7 +105,7 @@ describe('UsuarioListComponent', () => {
 
   it('Editar opens the modal without the senha field and × closes it', () => {
     const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.actions button') as HTMLButtonElement).click(); fixture.detectChanges();
+    acao(fixture, 'Editar');
     const modal = dialog(fixture)!;
     expect(modal.querySelector('h2')!.textContent).toContain('Editar usuário');
     expect(modal.querySelector('input[formcontrolname="senhaInicial"]')).toBeNull();
@@ -131,7 +144,7 @@ describe('UsuarioListComponent', () => {
 
   it('Redefinir senha opens the modal with the user name and closes by Escape', () => {
     const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
-    (fixture.nativeElement.querySelectorAll('.actions button')[1] as HTMLButtonElement).click(); fixture.detectChanges();
+    acao(fixture, 'Redefinir senha');
     const modal = dialog(fixture)!;
     expect(modal.querySelector('h2')!.textContent).toContain('Redefinir senha');
     expect(modal.textContent).toContain('Operador');
@@ -159,5 +172,15 @@ describe('UsuarioListComponent', () => {
     expect(fixture.nativeElement.querySelector('.feedback--error')).toBeNull();
     expect(fixture.nativeElement.querySelectorAll('[role="alert"]').length).toBe(1);
     expect(dialog(fixture)!.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it('row actions live in the shared action menu: Ativar for inactive, no Desativar for the current admin', () => {
+    const fixture = create(); http.expectOne(URL).flush([{ ...user, id: 1, nome: 'Admin', papel: 'ADMIN' }, user, { ...user, id: 3, nome: 'Inativo', ativo: false }]); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('td.actions > button').length).toBe(0);
+    const gatilho = fixture.nativeElement.querySelectorAll('.menu-acoes__gatilho')[1] as HTMLButtonElement;
+    expect(gatilho.getAttribute('aria-label')).toContain('Operador');
+    expect(rotulosDoMenu(fixture, 0)).toEqual(['Editar', 'Redefinir senha']);
+    expect(rotulosDoMenu(fixture, 1)).toEqual(['Editar', 'Redefinir senha', 'Desativar']);
+    expect(rotulosDoMenu(fixture, 2)).toEqual(['Editar', 'Redefinir senha', 'Ativar']);
   });
 });

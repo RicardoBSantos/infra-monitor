@@ -80,6 +80,22 @@ const geometria = (seletor) => (el) => {
     checar('salvar vazio mostra a validação', await modal.locator('.field-error').first().isVisible());
     checar('salvar vazio não chama a API', rede.length === antesSalvar, rede.slice(antesSalvar).join(', '));
 
+    // Clique real de mouse em cada campo. Os unitários usam .click()/dispatchEvent, que não
+    // dependem do foco nativo; foi assim que um mousedown cancelado passou sem ser visto.
+    const focoAtual = () => page.evaluate(() => document.activeElement?.getAttribute('formcontrolname'));
+    await modal.locator('input[formcontrolname="email"]').click();
+    checar('clique dá foco ao E-mail', (await focoAtual()) === 'email', String(await focoAtual()));
+    await page.keyboard.type('teste@exemplo.local');
+    checar('digitação cai no E-mail', (await modal.locator('input[formcontrolname="email"]').inputValue()) === 'teste@exemplo.local');
+    await modal.locator('select[formcontrolname="papel"]').click();
+    checar('clique dá foco ao Papel', (await focoAtual()) === 'papel', String(await focoAtual()));
+    await modal.locator('select[formcontrolname="papel"]').selectOption('VISUALIZADOR');
+    checar('Papel aceita troca', (await modal.locator('select[formcontrolname="papel"]').inputValue()) === 'VISUALIZADOR');
+    await modal.locator('input[formcontrolname="senhaInicial"]').click();
+    checar('clique dá foco à Senha inicial', (await focoAtual()) === 'senhaInicial', String(await focoAtual()));
+    await modal.locator('input[formcontrolname="nome"]').click();
+    checar('clique devolve foco ao Nome', (await focoAtual()) === 'nome', String(await focoAtual()));
+
     await page.keyboard.press('Escape');
     await modal.waitFor({ state: 'detached' });
     checar('Escape fecha', true);
@@ -90,7 +106,19 @@ const geometria = (seletor) => (el) => {
     await modal.waitFor({ state: 'detached' });
     checar('× fecha', true);
 
-    await page.locator('td.actions button', { hasText: 'Redefinir senha' }).first().click();
+    const escolherNoMenu = async (rotulo) => {
+      await page.locator('td.actions .menu-acoes__gatilho').first().click();
+      await page.getByRole('menuitem', { name: rotulo, exact: true }).click();
+    };
+    await page.locator('td.actions .menu-acoes__gatilho').first().click();
+    await page.getByRole('menu').waitFor();
+    checar('ações da linha no menu …', (await page.getByRole('menuitem').allInnerTexts()).join('|').startsWith('Editar|Redefinir senha'));
+    await page.screenshot({ path: path.join(OUT, '08-usuario-menu-acoes.png') });
+    // Fecha clicando de novo no gatilho: aberto por mouse, o foco fica no gatilho e o
+    // action-menu compartilhado não trata Escape ali (pendência do componente, não desta tela).
+    await page.locator('td.actions .menu-acoes__gatilho').first().click();
+    await page.getByRole('menu').waitFor({ state: 'detached' });
+    await escolherNoMenu('Redefinir senha');
     await modal.waitFor(); await page.waitForTimeout(300);
     checar('Redefinir senha no mesmo modal', (await modal.locator('h2').innerText()).includes('Redefinir senha'));
     await page.screenshot({ path: path.join(OUT, '03-usuario-redefinir-senha-modal.png') });
@@ -98,7 +126,7 @@ const geometria = (seletor) => (el) => {
     await modal.waitFor({ state: 'detached' });
     checar('clique no fundo fecha', true);
 
-    await page.locator('td.actions button', { hasText: 'Editar' }).first().click();
+    await escolherNoMenu('Editar');
     await modal.waitFor(); await page.waitForTimeout(300);
     checar('Editar sem campo de senha', (await modal.locator('input[formcontrolname="senhaInicial"]').count()) === 0);
     await page.screenshot({ path: path.join(OUT, '04-usuario-editar-modal.png') });

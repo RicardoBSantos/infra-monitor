@@ -56,6 +56,36 @@
       "detalhe": ""
     },
     {
+      "nome": "clique dá foco ao E-mail",
+      "ok": true,
+      "detalhe": "email"
+    },
+    {
+      "nome": "digitação cai no E-mail",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "clique dá foco ao Papel",
+      "ok": true,
+      "detalhe": "papel"
+    },
+    {
+      "nome": "Papel aceita troca",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "clique dá foco à Senha inicial",
+      "ok": true,
+      "detalhe": "senhaInicial"
+    },
+    {
+      "nome": "clique devolve foco ao Nome",
+      "ok": true,
+      "detalhe": "nome"
+    },
+    {
       "nome": "Escape fecha",
       "ok": true,
       "detalhe": ""
@@ -67,6 +97,11 @@
     },
     {
       "nome": "× fecha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "ações da linha no menu …",
       "ok": true,
       "detalhe": ""
     },
