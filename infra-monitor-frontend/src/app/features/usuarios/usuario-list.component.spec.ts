@@ -138,4 +138,26 @@ describe('UsuarioListComponent', () => {
     escape(); fixture.detectChanges();
     expect(dialog(fixture)).toBeNull();
   });
+
+  it('keeps the retry banner after opening and closing the modal when the list failed to load', () => {
+    const fixture = create(); http.expectOne(URL).flush(error('INTERNAL_ERROR', 'Falha ao listar'), { status: 500, statusText: 'Server Error' }); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
+    escape(); fixture.detectChanges();
+    expect(dialog(fixture)).toBeNull();
+    const banner = fixture.nativeElement.querySelector('.feedback--error') as HTMLElement;
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toContain('Tentar novamente');
+    expect(banner.textContent).toContain('Falha ao listar');
+  });
+
+  it('hides the page-level error banner while a modal is open, leaving only the alert inside it', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.componentInstance as any).form.setValue({ nome: 'Outro', email: 'OPERADOR@example.test', papel: 'OPERADOR', senhaInicial: 'SenhaInicial123!' });
+    (fixture.componentInstance as any).submit();
+    http.expectOne(URL).flush(error('BUSINESS_CONFLICT', 'E-mail já cadastrado'), { status: 409, statusText: 'Conflict' }); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.feedback--error')).toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('[role="alert"]').length).toBe(1);
+    expect(dialog(fixture)!.querySelector('[role="alert"]')).not.toBeNull();
+  });
 });
