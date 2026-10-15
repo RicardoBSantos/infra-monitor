@@ -183,4 +183,38 @@ describe('UsuarioListComponent', () => {
     expect(rotulosDoMenu(fixture, 1)).toEqual(['Editar', 'Redefinir senha', 'Desativar']);
     expect(rotulosDoMenu(fixture, 2)).toEqual(['Editar', 'Redefinir senha', 'Ativar']);
   });
+
+  it('reset: a short password says why instead of silently doing nothing', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    acao(fixture, 'Redefinir senha');
+    (fixture.componentInstance as any).passwordForm.setValue({ novaSenha: 'curta123', confirmacaoNovaSenha: 'curta123' });
+    (dialog(fixture)!.querySelector('button[type="submit"]') as HTMLButtonElement).click(); fixture.detectChanges();
+    expect(http.match(URL + '/2/senha').length).toBe(0);
+    expect(dialog(fixture)!.textContent).toContain('A senha deve ter de 12 a 128 caracteres.');
+  });
+
+  it('reset: fixing the mismatch from the first field unlocks the form', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    acao(fixture, 'Redefinir senha');
+    const form = (fixture.componentInstance as any).passwordForm;
+    form.setValue({ novaSenha: 'SenhaLonga12345!', confirmacaoNovaSenha: 'SenhaLonga12345?' });
+    (dialog(fixture)!.querySelector('button[type="submit"]') as HTMLButtonElement).click(); fixture.detectChanges();
+    expect(dialog(fixture)!.textContent).toContain('As senhas devem ser iguais.');
+    form.controls.novaSenha.setValue('SenhaLonga12345?'); fixture.detectChanges();
+    expect(dialog(fixture)!.textContent).not.toContain('As senhas devem ser iguais.');
+    (dialog(fixture)!.querySelector('button[type="submit"]') as HTMLButtonElement).click(); fixture.detectChanges();
+    const request = http.expectOne(URL + '/2/senha'); expect(request.request.body).toEqual({ novaSenha: 'SenhaLonga12345?' }); request.flush(user);
+  });
+
+  it('create: each invalid field says what is wrong', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.componentInstance as any).form.patchValue({ nome: '', email: 'nao-e-email', senhaInicial: 'Senha123' });
+    (dialog(fixture)!.querySelector('button[type="submit"]') as HTMLButtonElement).click(); fixture.detectChanges();
+    expect(http.match(URL).length).toBe(0);
+    const texto = dialog(fixture)!.textContent;
+    expect(texto).toContain('Informe o nome.');
+    expect(texto).toContain('Informe um e-mail válido.');
+    expect(texto).toContain('A senha deve ter de 12 a 128 caracteres.');
+  });
 });
