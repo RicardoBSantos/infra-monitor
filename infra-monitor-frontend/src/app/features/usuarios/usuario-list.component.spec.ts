@@ -70,4 +70,72 @@ describe('UsuarioListComponent', () => {
     (fixture.componentInstance as any).changeStatus(); const request = http.expectOne('http://localhost:8080/api/v1/usuarios/2/desativar'); expect(request.request.method).toBe('PATCH'); request.flush({ ...user, ativo: false }); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('desativado com sucesso');
   });
+
+  const URL = 'http://localhost:8080/api/v1/usuarios';
+  const dialog = (fixture: { nativeElement: HTMLElement }) => fixture.nativeElement.querySelector<HTMLElement>('app-modal section[role="dialog"]');
+  const escape = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+  it('opens Novo usuário in the shared modal, one column, focus on nome, Escape closes and returns focus', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    const novo = fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement;
+    novo.focus(); novo.click(); fixture.detectChanges();
+    const modal = dialog(fixture)!;
+    expect(modal.getAttribute('aria-modal')).toBe('true');
+    expect(modal.querySelector('h2')!.textContent).toContain('Novo usuário');
+    expect(modal.querySelector('button[aria-label="Fechar"]')).not.toBeNull();
+    expect(modal.querySelectorAll('form.modal-form > label').length).toBe(4);
+    expect(document.activeElement).toBe(modal.querySelector('input[formcontrolname="nome"]'));
+    escape(); fixture.detectChanges();
+    expect(dialog(fixture)).toBeNull();
+    expect(document.activeElement).toBe(novo);
+  });
+
+  it('Editar opens the modal without the senha field and × closes it', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.actions button') as HTMLButtonElement).click(); fixture.detectChanges();
+    const modal = dialog(fixture)!;
+    expect(modal.querySelector('h2')!.textContent).toContain('Editar usuário');
+    expect(modal.querySelector('input[formcontrolname="senhaInicial"]')).toBeNull();
+    (modal.querySelector('button[aria-label="Fechar"]') as HTMLButtonElement).click(); fixture.detectChanges();
+    expect(dialog(fixture)).toBeNull();
+  });
+
+  it('keeps the form open while saving: Escape and × do nothing until the API answers', () => {
+    const fixture = create(); http.expectOne(URL).flush([]); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.componentInstance as any).form.setValue({ nome: 'Novo', email: 'novo@example.test', papel: 'OPERADOR', senhaInicial: 'SenhaInicial123!' });
+    (fixture.componentInstance as any).submit(); fixture.detectChanges();
+    escape(); fixture.detectChanges();
+    expect(dialog(fixture)).not.toBeNull();
+    expect((dialog(fixture)!.querySelector('button[aria-label="Fechar"]') as HTMLButtonElement).disabled).toBe(true);
+    http.expectOne(URL).flush({ ...user, id: 3, nome: 'Novo', email: 'novo@example.test' }, { status: 201, statusText: 'Created' }); fixture.detectChanges();
+    expect(dialog(fixture)).toBeNull();
+  });
+
+  it('shows the API refusal inside the modal, not hidden behind the backdrop', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.componentInstance as any).form.setValue({ nome: 'Outro', email: 'OPERADOR@example.test', papel: 'OPERADOR', senhaInicial: 'SenhaInicial123!' });
+    (fixture.componentInstance as any).submit();
+    http.expectOne(URL).flush(error('BUSINESS_CONFLICT', 'E-mail já cadastrado'), { status: 409, statusText: 'Conflict' }); fixture.detectChanges();
+    const alerta = dialog(fixture)!.querySelector('[role="alert"]');
+    expect(alerta?.textContent).toContain('E-mail já cadastrado');
+  });
+
+  it('clears a previous error when the modal opens again', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    (fixture.componentInstance as any).error.set('Erro antigo'); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('header .botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
+    expect(dialog(fixture)!.textContent).not.toContain('Erro antigo');
+  });
+
+  it('Redefinir senha opens the modal with the user name and closes by Escape', () => {
+    const fixture = create(); http.expectOne(URL).flush([user]); fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('.actions button')[1] as HTMLButtonElement).click(); fixture.detectChanges();
+    const modal = dialog(fixture)!;
+    expect(modal.querySelector('h2')!.textContent).toContain('Redefinir senha');
+    expect(modal.textContent).toContain('Operador');
+    escape(); fixture.detectChanges();
+    expect(dialog(fixture)).toBeNull();
+  });
 });
