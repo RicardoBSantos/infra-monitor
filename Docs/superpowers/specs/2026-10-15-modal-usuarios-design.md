@@ -57,9 +57,9 @@ Conteúdo por `<ng-content>` (o `<form>` e o rodapé de ações ficam no compone
 Estrutura:
 
 ```html
-<div class="modal__fundo" (click)="pedirFechar()">
-  <section class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="idTitulo"
-           tabindex="-1" (click)="$event.stopPropagation()">
+<div class="modal__fundo" (mousedown)="…" (click)="aoClicarNoFundo($event)">
+  <section #painel class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="idTitulo"
+           tabindex="-1">
     <header class="modal__topo">
       <div><h2 [id]="idTitulo">…</h2> @if (subtitulo()) { <p>…</p> }</div>
       <button class="modal__fechar" type="button" aria-label="Fechar"
@@ -80,7 +80,9 @@ Comportamento:
   o ×); sem campo, foca o próprio painel (`tabindex=-1`).
 - **Foco volta:** quando `aberto` passa de `true` para `false`, devolve o foco ao gatilho
   se ele ainda estiver no documento.
-- **Clique no fundo:** pede fechamento (igual Equipamento). Ignorado com `bloqueado`.
+- **Clique no fundo:** pede fechamento (igual Equipamento). Ignorado com `bloqueado`. Só conta
+  se o `mousedown` também começou no fundo: arrastar uma seleção de texto de dentro do campo até
+  o fundo não fecha o formulário. (Substitui o `stopPropagation` no painel.)
 - **Animação:** fundo com fade ~220ms; painel com fade + leve translação/escala ~220ms.
   Sob `prefers-reduced-motion: reduce`, só fade de 120ms (mesmo critério do drawer).
 - **id do título** único por instância (contador de módulo), pois a tela tem mais de um modal.
@@ -105,7 +107,12 @@ regras do modal não alcançam o formulário.
     `(fechar)="closeReset()"`.
   - Remove `autofocus` (o modal cuida do foco).
 - `usuario-list.component.ts`: importa `ModalComponent`; novo `closeReset()` com a mesma guarda
-  de `saving()` que `closeForm()` já tem. Nada mais muda.
+  de `saving()` que `closeForm()` já tem; `openCreate`/`openEdit`/`openReset` passam a limpar
+  `error()`. Nada mais muda.
+- **Erro da API dentro do modal.** Hoje `error()` (e-mail duplicado, último ADMIN, etc.) aparece
+  no topo da página. Com backdrop, ficaria escondido atrás do modal: a regra seguiria valendo no
+  backend, mas o motivo da recusa sumiria da vista. Cada modal passa a exibir `error()` como
+  `<p class="field-error" role="alert">` acima das ações. A mensagem é a mesma; só o lugar muda.
 - `admin-list.component.scss`: seletores `.form-dialog …` passam a `.modal-form …` (classe no
   `<form>`), aproximando rótulos/inputs do visual de Equipamento (rótulo 9.5px, `--im-text-dim`,
   foco `--im-info-soft`). `.form-dialog` deixa de existir.
@@ -130,3 +137,13 @@ regras do modal não alcançam o formulário.
 
 - Migrar Equipamentos, Tipos, Monitores e `confirm-dialog` para `app-modal`.
 - Qualquer mudança no backend ou nas regras de usuário.
+
+## Pendências
+
+- Migrar para `app-modal` os modais locais de Equipamentos (`.equipamento-modal`), Tipos
+  (`.tipo-modal`) e Monitores (`.monitor-modal`). Eles têm hoje a mesma falha de mecânica que
+  o `app-modal` corrige: Escape só funciona com o foco já dentro do painel (e nada coloca o
+  foco lá ao abrir), o foco não volta ao gatilho, e não há animação. Monitores também não
+  fecha por clique no fundo. `confirm-dialog` tem a 4ª cópia de `.dialog-backdrop`.
+- Escape do `app-modal` não distingue camadas: se um dia um `confirm-dialog` abrir por cima
+  de um `app-modal`, um Escape fecha os dois. Em Usuários os dois nunca abrem juntos.
