@@ -251,6 +251,15 @@ const OFFSET_CAMERA: [number, number] = [0, -28];
 const ZOOM_AO_INCLINAR = 0.42;
 
 /**
+ * Proporção largura/altura do cartão em que a compensação de zoom e o offset valem por inteiro, e
+ * aquela em que somem (D20). Plena em 0,96: o 1280x800 medido (cartão 688x712, 0,966) é o caso
+ * mais estreito com a calibração acima; em 768x1024 (736x936, 0,79) ela inteira cortava a ponta
+ * oeste (0,1% de folga). Em celular o estado cabe só com o enquadramento do `cameraForBounds`.
+ */
+const ASPECTO_PLENO = 0.96;
+const ASPECTO_MINIMO = 0.75;
+
+/**
  * Teto do zoom ao clicar num município (D20). Sem ele, município pequeno iria a zoom de rua e o
  * operador perderia a referência dos vizinhos. Medido no e2e:n08 contra Aracaju: com o teto, os
  * quatro marcadores ficam a >= 60px do vizinho mais próximo — clicáveis um a um (DV09).
@@ -843,8 +852,14 @@ export class MapaComponent implements OnDestroy {
     if (!map || !this.limitesEstado) return;
     const camera = map.cameraForBounds(this.limitesEstado, { padding: 34, bearing: BEARING, pitch: PITCH });
     if (!camera) return;
-    map.easeTo({ ...camera, zoom: (camera.zoom ?? map.getZoom()) + ZOOM_AO_INCLINAR, bearing: BEARING, pitch: PITCH,
-      offset: OFFSET_CAMERA, duration: animado && !animacaoReduzida() ? DURACAO_CAMERA_MS : 0 });
+    // A compensação some em cartão estreito (D20): o teto do zoom é a largura, e um cartão em pé
+    // (celular, tablet) cortaria as pontas. Plena a partir de ASPECTO_PLENO (o 1280x800 medido), nula
+    // em ASPECTO_MINIMO, linear entre os dois. O deslocamento acompanha o zoom.
+    const recipiente = map.getContainer();
+    const aspecto = recipiente.clientWidth / Math.max(1, recipiente.clientHeight);
+    const fator = Math.min(1, Math.max(0, (aspecto - ASPECTO_MINIMO) / (ASPECTO_PLENO - ASPECTO_MINIMO)));
+    map.easeTo({ ...camera, zoom: (camera.zoom ?? map.getZoom()) + ZOOM_AO_INCLINAR * fator, bearing: BEARING, pitch: PITCH,
+      offset: [OFFSET_CAMERA[0] * fator, OFFSET_CAMERA[1] * fator], duration: animado && !animacaoReduzida() ? DURACAO_CAMERA_MS : 0 });
     this.foraDoEnquadramento.set(false);
   }
 

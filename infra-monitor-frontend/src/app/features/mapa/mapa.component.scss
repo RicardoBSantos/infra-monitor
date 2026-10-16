@@ -295,7 +295,8 @@
 .map__voltar { position:absolute; top:104px; right:10px; z-index:5; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 
 /* --- Legenda 3D e regiao viva (N05) -------------------------------------------------- */
-.legend__nota { white-space:nowrap; /* uma linha por nota (D20); o e2e confere */ display:flex; align-items:flex-start; gap:7px; margin:9px 0 0; color:var(--im-text-muted); font-size:11px; line-height:1.45; }
+/* Uma linha por nota no painel de 320px (D20): garantido pelo comprimento do texto, não por nowrap — se quebrar, quebra sem alargar a página. O e2e confere a altura. */
+.legend__nota { display:flex; align-items:flex-start; gap:7px; margin:9px 0 0; color:var(--im-text-muted); font-size:11px; line-height:1.45; }
 .legend__nota strong { color:var(--im-text-secondary); }
 /* Amostra do colar: mesmo lilas e mesma translucidez do que e desenhado no topo da extrusao. */
 
