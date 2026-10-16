@@ -92,6 +92,12 @@ public class DashboardReadRepository {
         return rows.stream().map(this::unidade).toList();
     }
 
+    /** Existencia barata, para quem so precisa do 404: {@link #unidade} calcula o agregado de todas as unidades. */
+    public boolean existeUnidade(Long unidadeId) {
+        return (Boolean) entityManager.createNativeQuery("select exists (select 1 from unidade where id = ?1)")
+                .setParameter(1, unidadeId).getSingleResult();
+    }
+
     public UnidadeCounts unidade(Long unidadeId, int limiarLatenciaDegradadaMs) {
         return unidades(false, limiarLatenciaDegradadaMs).stream().filter(u -> u.id().equals(unidadeId)).findFirst().orElse(null);
     }

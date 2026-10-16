@@ -200,6 +200,40 @@ class InventarioDashboardPostgresIntegrationTest {
                 .allSatisfy(linha -> assertThat(linha.latenciaMs()).isNull());
     }
 
+    /**
+     * DV17: a consulta virou LATERAL ... LIMIT 1 por monitor. O inventario acima tem uma medicao por
+     * monitor e por isso nao distingue "a ultima" de "uma qualquer"; este caso trava a semantica que a
+     * versao em NOT EXISTS tinha: a mais recente, empate em executado_em decidido pelo maior id,
+     * monitor sem medicao ausente, e nenhuma linha de monitor que nao foi pedido.
+     */
+    @Test
+    void ultimaMedicaoPorMonitorEscolheAMaisRecenteEDesempataPeloMaiorId() {
+        long equipamentoId = equipamentoRepository.findAll().getFirst().getId();
+        Monitor comEmpate = monitor(equipamentoId);
+        Monitor comHistorico = monitor(equipamentoId);
+        Monitor semMedicao = monitor(equipamentoId);
+        Monitor naoPedido = monitor(equipamentoId);
+
+        medicaoEm(comEmpate, 10, AGORA.minusSeconds(60));
+        medicaoEm(comEmpate, 20, AGORA);
+        Medicao empateDeMaiorId = medicaoEm(comEmpate, 30, AGORA);
+        Medicao maisRecente = medicaoEm(comHistorico, 40, AGORA.minusSeconds(5));
+        medicaoEm(comHistorico, 50, AGORA.minusSeconds(10));
+        medicaoEm(naoPedido, 60, AGORA.plusSeconds(60));
+
+        List<Medicao> ultimas = medicoes.findLatestByMonitorIds(
+                List.of(comEmpate.getId(), comHistorico.getId(), semMedicao.getId()));
+
+        assertThat(ultimas).extracting(Medicao::getId)
+                .containsExactlyInAnyOrder(empateDeMaiorId.getId(), maisRecente.getId());
+        assertThat(ultimas).extracting(m -> m.getMonitor().getId())
+                .containsExactlyInAnyOrder(comEmpate.getId(), comHistorico.getId());
+    }
+
+    private Medicao medicaoEm(Monitor monitor, int latenciaMs, Instant executadoEm) {
+        return medicoes.saveAndFlush(new Medicao(monitor, StatusMedicao.SUCESSO, latenciaMs, null, executadoEm));
+    }
+
     private Monitor monitor(long equipamentoId) {
         Equipamento equipamento = equipamentoRepository.findById(equipamentoId).orElseThrow();
         return monitorRepository.saveAndFlush(new Monitor(equipamento, TipoMonitor.ICMP, "ICMP", 60, 2_000));

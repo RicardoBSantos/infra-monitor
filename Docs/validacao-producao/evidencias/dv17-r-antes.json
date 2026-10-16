@@ -1,0 +1,26 @@
+{
+  "rotulo": "ANTES",
+  "total": 121,
+  "duracaoMs": 3886,
+  "porStatus": {
+    "200": 10,
+    "500": 111
+  },
+  "porCaminho": {
+    "/dashboard/unidades/{id}/equipamentos?size=200&sort=nome": {
+      "200": 10,
+      "500": 111
+    }
+  },
+  "latenciaMs": {
+    "p50": 1408,
+    "p95": 2414,
+    "max": 3875
+  },
+  "pg": {
+    "amostras": 19,
+    "maxEmUso": 20,
+    "maxAbertas": 20
+  },
+  "exemplo500": "{\"timestamp\":\"2026-10-16T16:09:39.946403300Z\",\"status\":500,\"error\":\"Internal Server Error\",\"code\":\"INTERNAL_ERROR\",\"message\":\"Erro interno do servidor\",\"path\":\"/api/v1/dashboard/unidades/3/equipamentos\"}"
+}

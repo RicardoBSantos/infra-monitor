@@ -31,15 +31,25 @@ public interface MedicaoRepository extends JpaRepository<Medicao, Long>, JpaSpec
 
     List<Medicao> findByMonitorIdOrderByExecutadoEmDescIdDesc(Long monitorId, Pageable pageable);
 
-    @Query("""
-            select md from Medicao md join fetch md.monitor m
-            where m.id in :monitorIds
-              and not exists (
-                select 1 from Medicao posterior
-                where posterior.monitor = m
-                  and (posterior.executadoEm > md.executadoEm
-                    or (posterior.executadoEm = md.executadoEm and posterior.id > md.id))
-              )
+    /**
+     * Ultima medicao de cada monitor pedido, com o desempate de sempre (executado_em desc, id desc).
+     *
+     * <p>Uma busca por monitor no indice {@code ix_medicao_monitor_executado_em}, via LATERAL ... LIMIT 1:
+     * o custo e O(monitores), nao O(medicoes). A versao anterior, um NOT EXISTS em JPQL, virava
+     * Parallel Hash Anti Join sobre a tabela inteira (606 ms com 317 mil linhas) e, com 20 chamadas
+     * simultaneas, os hashes paralelos estouravam o /dev/shm de 64 MB do PostgreSQL em Docker
+     * ("could not resize shared memory segment") — o 500 da DV17. O monitor volta como proxy LAZY:
+     * quem chama so le o id dele, o que nao dispara consulta.
+     */
+    @Query(nativeQuery = true, value = """
+            select md.* from monitor alvo
+            cross join lateral (
+                select m.* from medicao m
+                where m.monitor_id = alvo.id
+                order by m.executado_em desc, m.id desc
+                limit 1
+            ) md
+            where alvo.id in (:monitorIds)
             """)
     List<Medicao> findLatestByMonitorIds(@Param("monitorIds") Collection<Long> monitorIds);
     @Query("select md from Medicao md where md.monitor.id in :ids and md.executadoEm >= :inicio and md.executadoEm < :fim") List<Medicao> noPeriodo(@Param("ids") Collection<Long> ids,@Param("inicio") java.time.Instant inicio,@Param("fim") java.time.Instant fim);
