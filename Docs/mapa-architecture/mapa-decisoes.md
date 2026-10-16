@@ -947,6 +947,22 @@ entre blocos. Fluxo de cima para baixo; a sobra fica no fim da coluna, não no m
 "BASE CARTOGRÁFICA / Limites municipais de Sergipe" e "FONTE OPERACIONAL / Dashboard API" saíram
 (`.map-source`).
 
+### Teclado e leitor de tela (revisão final)
+
+- **Escape** volta ao estado inteiro com o foco dentro do mapa (canvas, alvo ou marcador). O botão
+  "Ver estado inteiro" em si usa Enter/Espaço, como qualquer botão.
+- **"Atualizar" vem depois do mapa na ordem de Tab:** ele foi para o painel, à direita do cartão
+  (posição exigida pela especificação). Se quem opera só por teclado reclamar, o caminho é um skip
+  link, não reordenar o DOM.
+- **Voltar ao estado inteiro é anunciado** ("Estado inteiro.") na região viva, pelo botão ou pelo
+  Escape. O enquadramento inicial e o do `resize` ficam em silêncio.
+- **Anel de foco do botão:** o `box-shadow` próprio do `.map__voltar` vencia o anel global
+  (`_reset.scss`) e o botão ficava sem indicador. Agora tem contorno de 2px em `--cor-foco-mapa`
+  (D16), porque ele aparece sobre o polígono escuro. O n08 confere o contorno computado após Tab.
+- Acabamentos: dica do marcador em hover/foco sobe a `z-index: 6` (acima do título, 5); cartão
+  empilhado usa `100svh` (a barra de endereço do celular não reenquadra o mapa) e desconta 24px
+  em ≤600px, onde o padding é 12px.
+
 ### Verificado
 
 `ng test` 469/469 · `ng build` sem erro (aviso de budget pré-existente, DV04) · `e2e:n05` 21/21 ·

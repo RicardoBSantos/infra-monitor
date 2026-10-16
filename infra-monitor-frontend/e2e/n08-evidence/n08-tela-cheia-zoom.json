@@ -170,6 +170,18 @@
     },
     {
       "caso": 10,
+      "nome": "botão \"Ver estado inteiro\" alcançado por Tab tem contorno visível (solid, cor não transparente)",
+      "ok": true,
+      "detalhe": "tab alcançou=true; outline solid 2px rgb(59, 110, 255)"
+    },
+    {
+      "caso": 10,
+      "nome": "voltar pelo botão é anunciado na região viva",
+      "ok": true,
+      "detalhe": ".map-sr=\"Estado inteiro.\""
+    },
+    {
+      "caso": 10,
       "nome": "botão \"Ver estado inteiro\": distâncias voltam (±2px), botão some, foco no canvas",
       "ok": true,
       "detalhe": "distância 375.4 vs inicial 375.3; foco CANVAS.maplibregl-canvas"
@@ -179,6 +191,12 @@
       "nome": "canvas recebeu foco antes do Escape",
       "ok": true,
       "detalhe": ""
+    },
+    {
+      "caso": 10,
+      "nome": "voltar pelo Escape é anunciado na região viva",
+      "ok": true,
+      "detalhe": ".map-sr=\"Estado inteiro.\""
     },
     {
       "caso": 10,
@@ -250,7 +268,7 @@
       "caso": 1,
       "nome": "390x844: .map-page sem estouro horizontal (empilhado rola na vertical de propósito)",
       "ok": true,
-      "detalhe": ".map-page H 0 · .map-layout direita 378/390 · doc H 65 (registrado; pré-existente: topbar) · rolagem vertical empilhada: main 0, documento 796"
+      "detalhe": ".map-page H 0 · .map-layout direita 378/390 · doc H 65 (registrado; pré-existente: topbar) · rolagem vertical empilhada: main 0, documento 804"
     },
     {
       "caso": 16,
@@ -382,7 +400,7 @@
       },
       "390x844": {
         "mainV": 0,
-        "docV": 796,
+        "docV": 804,
         "docH": 65,
         "mainH": 0,
         "mapPageH": 0,

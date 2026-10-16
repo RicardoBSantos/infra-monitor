@@ -264,7 +264,7 @@ const ASPECTO_MINIMO = 0.75;
  *
  * Pelo polígono (município com 0–1 unidade, unidades coladas ou com coordenada fora do município):
  * 11,5. Sem teto, município pequeno iria a zoom de rua e o operador perderia a referência dos
- * vizinhos. O valor é o de antes desta rodada e não mudou.
+ * vizinhos. 11,5 é a primeira medição desta rodada (D20), mantida para o caminho do polígono.
  *
  * Pelas unidades (2+ dentro do município): 12,5. Medido no e2e:n08 contra Aracaju (1600x900, as 4
  * unidades enquadradas): com 11,5 o vizinho mais próximo ficava a 34,0px (o teto mandava); com 12,5
@@ -544,7 +544,7 @@ export class MapaComponent implements OnDestroy {
    * remontaria o mapa inteiro — canvas WebGL, cartografia e câmera — só para mostrar um painel.
    */
   protected readonly equipamentoSelecionado = signal<DashboardEquipamento | null>(null);
-  /** Contagem por status sobre TODAS as unidades, não só as do município selecionado. */
+  /** Contagem por status sobre TODAS as unidades. */
   protected readonly statusGeografico = computed(() => contarPorStatus(this.municipios().flatMap(municipio => municipio.units)));
   protected readonly totalUnidades = computed(() => this.municipios().reduce((soma, municipio) => soma + municipio.units.length, 0));
   private readonly host = viewChild<ElementRef<HTMLDivElement>>('host');
@@ -882,6 +882,9 @@ export class MapaComponent implements OnDestroy {
   private enquadrarEstado(animado: boolean): void {
     const map = this.map;
     if (!map || !this.limitesEstado) return;
+    // Voltar ao estado inteiro (botão ou Escape) acontece só no canvas: sem anúncio o leitor de tela
+    // não sabe que saiu do município. Enquadramento inicial e resize (animado=false) ficam em silêncio.
+    if (animado) this.anuncio.set('Estado inteiro.');
     const camera = map.cameraForBounds(this.limitesEstado, { padding: 34, bearing: BEARING, pitch: PITCH });
     if (!camera) return;
     // A compensação some em cartão estreito (D20): o teto do zoom é a largura, e um cartão em pé

@@ -19,7 +19,7 @@
     <!-- A seleção acontece dentro do canvas WebGL: sem esta região viva, quem usa leitor de tela
          não recebe nenhum retorno ao acionar um município pelo teclado. -->
     <p class="map-sr" role="status" aria-live="polite">{{ anuncio() }}</p>
-  </section><aside class="map-panel" aria-label="Legenda e detalhes do município">
+  </section><aside class="map-panel" aria-label="Legenda e detalhes da unidade">
     <div class="map-panel__topo"><button class="botao" type="button" (click)="load()" [disabled]="state() === 'loading'">Atualizar</button></div>
     @if (statusGeografico().length) {
       <div class="geo-status"><p class="panel-label">STATUS GEOGRÁFICO · SERGIPE</p>

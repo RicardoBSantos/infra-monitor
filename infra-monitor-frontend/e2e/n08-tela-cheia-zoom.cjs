@@ -436,8 +436,31 @@ async function voltarAoEstado(page) {
       falhasClique.length ? falhasClique.join(' | ') : `${aracaju.length}/${aracaju.length} ok`);
 
     // ------------------------------------------------------------------ 10. volta
+    // Foco visível do botão (D20, WCAG 2.4.7): `:focus-visible` exige foco por teclado, então parte do
+    // foca o elemento tabulável imediatamente anterior no DOM (há dezenas de alvos antes do botão) e
+    // aperta Tab. O box-shadow próprio do botão já derrubou o anel global uma vez.
+    await page.evaluate(() => {
+      const sel = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])';
+      const voltar = document.querySelector('.map__voltar');
+      const antes = [...document.querySelectorAll(sel)].filter((e) => e !== voltar && (voltar.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_PRECEDING));
+      antes[antes.length - 1].focus();
+    });
+    await page.keyboard.press('Tab');
+    const chegou = await page.evaluate(() => document.activeElement?.classList.contains('map__voltar'));
+    const anel = await page.evaluate(() => {
+      const b = document.querySelector('.map__voltar');
+      const c = getComputedStyle(b);
+      return { estilo: c.outlineStyle, cor: c.outlineColor, largura: c.outlineWidth, focusVisible: b.matches(':focus-visible') };
+    });
+    checar(10, 'botão "Ver estado inteiro" alcançado por Tab tem contorno visível (solid, cor não transparente)',
+      chegou && anel.focusVisible && anel.estilo === 'solid' && parseFloat(anel.largura) >= 2 && !/rgba(s*0,s*0,s*0,s*0s*)|transparent/.test(anel.cor),
+      `tab alcançou=${chegou}; outline ${anel.estilo} ${anel.largura} ${anel.cor}`);
+    await page.locator('.map__voltar').screenshot({ path: path.join(OUT, '10-voltar-com-foco.png') });
+    await page.screenshot({ path: path.join(OUT, '10-voltar-com-foco-pagina.png') });
     await page.click('.map__voltar');
     await pausa(page, ESPERA_CAMERA);
+    const srBotao = (await page.locator('.map-sr').innerText()).trim();
+    checar(10, 'voltar pelo botão é anunciado na região viva', /Estado inteiro/.test(srBotao), `.map-sr="${srBotao}"`);
     const dVolta = await dist();
     const foco = await page.evaluate(() => ({ tag: document.activeElement?.tagName, classe: document.activeElement?.className }));
     checar(10, 'botão "Ver estado inteiro": distâncias voltam (±2px), botão some, foco no canvas',
@@ -456,6 +479,8 @@ async function voltarAoEstado(page) {
       await page.keyboard.press('Escape');
       await pausa(page, ESPERA_CAMERA);
       const dEsc = await dist();
+      const srEsc = (await page.locator('.map-sr').innerText()).trim();
+      checar(10, 'voltar pelo Escape é anunciado na região viva', /Estado inteiro/.test(srEsc), `.map-sr="${srEsc}"`);
       checar(10, `Escape com foco no canvas desfaz o zoom em ${outro.rotulo.split(':')[0]}`,
         dZ2 > d0 + 5 && Math.abs(dEsc - d0) <= 2 && !(await voltarVisivel(page)), `inicial ${d0.toFixed(1)} · aproximado ${dZ2.toFixed(1)} · após Escape ${dEsc.toFixed(1)}`);
     }
