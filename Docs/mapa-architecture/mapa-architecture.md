@@ -11,7 +11,7 @@ arquivo-índice de mesmo nome da pasta.
 
 | Arquivo | O que é |
 |---|---|
-| [mapa-decisoes.md](mapa-decisoes.md) | Log cronológico de decisões (D01–D16): o que foi decidido, o que foi descartado, por quê |
+| [mapa-decisoes.md](mapa-decisoes.md) | Log cronológico de decisões (D01–D20): o que foi decidido, o que foi descartado, por quê |
 | [mapa-contexto-atual.md](mapa-contexto-atual.md) | Estado da rodada em curso, com números medidos |
 | [mapa-dividas.md](mapa-dividas.md) | O que ficou em aberto de propósito, e quando cobrar |
 
@@ -46,6 +46,7 @@ outra não apaga a entrada antiga: acrescenta uma nova que diz o que mudou e por
 | **N07 — município neutro, legenda de marcador (D15)** | **implementado e verificado na aplicação real** |
 | **N07 — pulso seletivo, ping colorido em linha neutra, dica de relance (D16)** | **implementado, `e2e:n07` 37/37** |
 | **N07 — contraste do marcador, do anel de foco e da divisa municipal (D16)** | **corrigido e medido** |
+| **D20 — tela cheia, clique direto na unidade, zoom por município, legenda recolhível** | **implementado, `e2e:n08` 48/48** |
 | Zoom BRASIL/REGIÃO com dado fora de Sergipe | bloqueado por dado (ver DV01) |
 
 ## Onde o código vive
@@ -54,7 +55,7 @@ outra não apaga a entrada antiga: acrescenta uma nova que diz o que mudou e por
 infra-monitor-frontend/src/app/features/mapa/        componente, folha e spec
 infra-monitor-frontend/src/app/core/services/geo-municipio.service.ts
 infra-monitor-frontend/public/assets/maps/           cartografia GeoJSON de Sergipe
-infra-monitor-frontend/e2e/n0{4,5,6,7}-*.cjs         roteiros executáveis em clone limpo
+infra-monitor-frontend/e2e/n0{4,5,6,7,8}-*.cjs       roteiros executáveis em clone limpo
 infra-monitor-frontend/e2e/perf-mapa/                banco de medição das animações (sem backend)
 infra-monitor-backend/db/dev-seed/                   dado de demonstração (não é migration)
 infra-monitor-backend/src/main/java/.../dashboard/   read-model que alimenta o mapa
@@ -64,7 +65,7 @@ Verificação do ciclo inteiro:
 
 ```bash
 cd infra-monitor-frontend
-npm run e2e:n04 && npm run e2e:n05 && npm run e2e:n06 && npm run e2e:n07   # backend, ng serve, N0X_SENHA
+npm run e2e:n04 && npm run e2e:n05 && npm run e2e:n06 && npm run e2e:n07 && npm run e2e:n08   # backend, ng serve, N0X_SENHA
 npm run e2e:m06
 npm run perf:mapa    # custo das animações; não precisa de backend nem de login
 ```

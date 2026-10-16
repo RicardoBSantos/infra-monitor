@@ -2,7 +2,10 @@
 
 Estado da rodada em curso. Atualizado como parte do commit que muda o Mapa, nunca depois.
 
-Última atualização: 2026-09-15, branch `feat/unidade-hub`.
+Última atualização: 2026-10-16, branch `feat/mapa-tela-cheia` (§13).
+
+> **§13 (D20) revê layout, câmera e interação.** Os números de câmera de §5 e §8, a legenda de §8
+> e o fluxo "município seleciona e lista unidades" das seções anteriores ficam como registro.
 
 > **§5 (layout e câmera) e §7 (suítes) foram revistos na rodada N07 — ver §8.** Os números de
 > câmera e de legenda das seções anteriores valem para a versão com extrusão e ficam como registro
@@ -620,3 +623,47 @@ pinta por cima e recortaria o anel de seleção no estado selecionado + focado.
   marcadores e exige `map__unidade--pulsa` em todos; caso 9 confere 19px no selecionado, ausência do
   lilás na `box-shadow` computada e coincidência de matiz com `--cor-unidade`, mais captura por
   status. Evidência em `e2e/n07-evidence/d19-anel-*.png` e `d19-tudo-junto.png`.
+
+---
+
+## 13. D20 — tela cheia, clique direto, zoom por município, legenda recolhível
+
+Decisão em [D20](mapa-decisoes.md). Esta seção substitui, para layout, câmera, seleção e legenda,
+o que §5, §8 e §10–§12 dizem sobre esses pontos.
+
+### O que está no código
+
+| | Antes (D19) | Agora (D20) |
+|---|---|---|
+| Cabeçalho | faixa acima do cartão, "Atualizar" à direita | placa `.map-titulo` no canto sup. esquerdo do cartão; "Atualizar" em `.map-panel__topo` |
+| Altura | `clamp(460px, 100dvh - 196px, 780px)` | `100dvh - --im-topbar-height`, linha `minmax(0,1fr)`, sem teto |
+| Clique no marcador | `selectMunicipio` → lista "Escolha uma" → `selectUnidade` | `selectUnidade` direto |
+| Clique no município | seleciona e lista unidades | aproxima (polígono, ou envelope das unidades se 2+ dentro dele) |
+| Volta | — | "Ver estado inteiro" (`.map__voltar`) + Escape |
+| `.map__alvo` | `aria-pressed` | sem `aria-pressed` (ação, não estado) |
+| `OFFSET_CAMERA` / `ZOOM_AO_INCLINAR` | `[-24,60]` (sem efeito em y) / `0.68` | `[0,-28]` / `0.42`, escalados pela proporção do cartão |
+| Resize | não reenquadra | reenquadra enquanto a câmera não foi tocada |
+| Legenda | 6 itens + 2 notas sempre abertos | `<details>` fechado por padrão; notas de uma linha |
+| Rodapé de fontes | `.map-source` | removido |
+
+### Números medidos
+
+- Folga topo/base por pixel: 1920×1080 15,8/14,7 · 1500×950 15,8/15,9 · 1366×768 15,9/18,4 ·
+  1280×800 15,9/17,8 · 1280×720 15,8/19,1. Estreito (compensação zero): 390×844 37,3/38,6 ·
+  600×900 30,8/31,2 · 768×1024 27,0/27,5.
+- Aracaju aproximado: vizinho mais próximo 15,2px pelo polígono → 34,0px com teto 11,5 → **62,1px**
+  pelo envelope das unidades com teto 12,5.
+- Rolagem vertical da página: 0 em todas as viewports de desktop. Horizontal: 0 dentro do Mapa; o
+  documento estoura 16–65px em ≤1280 pela topbar (DV18).
+
+### Suítes
+
+`ng test` 469/469 · `e2e:n05` 21/21 · `e2e:n06` 25/25 · `e2e:n07` 48/48 · `e2e:m06` 19/19 ·
+`e2e:n08` 48/48 (novo — `npm run e2e:n08`, senha em `N08_SENHA`).
+
+`e2e:n08` trava os requisitos desta rodada: sem rolagem em 5 viewports; placa sem cobrir marcador
+nem controle; marcador abre a unidade sem lista e sem disparar zoom (clique lógico e físico, IBGE
+divergente); município aproxima e não fecha o painel; Aracaju 4/4 clicável sem sobreposição e
+vizinho ≥40px; volta por botão e por Escape com foco no canvas; município sem unidade; teclado;
+reduced-motion; legenda fechada/aberta com notas de uma linha; erro de API sem a placa por cima;
+resize reenquadra só sem gesto; nenhum erro de console nem 5xx.

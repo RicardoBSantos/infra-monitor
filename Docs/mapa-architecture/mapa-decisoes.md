@@ -822,3 +822,147 @@ estado que vem logo depois do clique: selecionado E focado.
   sobre verde no zoom de estado não se lê a distância.
 - **Voltar o anel de seleção a uma cor neutra** quando a translucidez se mostrou fraca. Descartado
   por instrução explícita: o reforço tem de vir na mesma cor.
+
+---
+
+## D20 — Tela cheia, clique direto na unidade, zoom por município, legenda recolhível
+
+`feat/mapa-tela-cheia`, 2026-10-16. Cinco mudanças visuais e de interação pedidas juntas. Nenhuma
+muda o que a tela busca: as mesmas chamadas a `/dashboard/unidades`, à cartografia e aos
+equipamentos da unidade selecionada. **Reverte quatro decisões anteriores em pontos específicos**
+— a ordem de D10, o município-seleção de M03/D10, o "sem disclosure" de D15 e o `space-between` de
+D14 —, sem apagá-las.
+
+### 1. Título sobre o mapa, Atualizar no painel, altura da viewport
+
+O cabeçalho da página (faixa acima do cartão) saiu. Eyebrow, `h1` e subtítulo vão para uma placa
+no canto superior esquerdo do cartão (`.map-titulo`); "Atualizar" vai para o topo do painel
+(`.map-panel__topo`). A página é coluna flex com `calc(100dvh - var(--im-topbar-height))`, e a linha
+da grade é `minmax(0, 1fr)` — sem isso o painel com unidade selecionada esticaria a linha e a
+rolagem de D11 voltaria. O teto de 780px saiu.
+
+**Placa própria, translúcida e com tokens de tema**, e não texto solto sobre o canvas: o canvas é
+escuro nos dois temas, mas o fundo do cartão segue o tema. Só uma placa garante contraste
+independente do que estiver atrás. `pointer-events: none` para não roubar arraste. O canto esquerdo
+superior é vazio no enquadramento (a ponta noroeste do estado cai no centro-topo); medido: nenhum
+marcador sob a placa em sete viewports de desktop e em 390, 600 e 768 de largura.
+
+### 2. Câmera remedida — e um achado: o offset nunca tinha funcionado em y
+
+Quarta remedição por mudança alheia à câmera (DV11). Ao trocar `fitBounds` + `easeTo` por
+`cameraForBounds` + um `easeTo` só (necessário para animar a volta ao estado sem o segundo cancelar
+o primeiro), o desenho desceu e cortou a base. Causa: **`easeTo({ zoom, offset })` sem `center`
+anula o próprio offset** — o MapLibre deriva o centro do ponto deslocado e o resultado é o mesmo
+centro. O `[-24, 60]` de D13 nunca deslocou nada; as folgas de D13 foram medidas sem offset
+efetivo. Com `center` explícito o offset passou a valer, e os dois valores foram refeitos:
+
+| | D13 | D20 |
+|---|---|---|
+| `OFFSET_CAMERA` | `[-24, 60]` (sem efeito) | `[0, -28]` |
+| `ZOOM_AO_INCLINAR` | `0.68` | `0.42` |
+| Folga topo/base 1500×950 (pixel) | 10,9 / 9,3 | 15,8 / 15,9 |
+| Folga topo/base 1280×800 | 10,9 / 12,4 | 15,9 / 17,8 |
+| Folga topo/base 1920×1080 | — | 15,8 / 14,7 |
+
+O zoom menor não encolhe o desenho na tela: o cartão ficou mais alto e quase quadrado, e com ele o
+`fitBounds` inclinado já parte de um zoom maior. Em 1280×800 a ponta oeste fica a 0,7% da borda —
+é o teto, e por isso 0,42 e não mais.
+
+**Cartão estreito.** A compensação inteira cortava a ponta oeste em 768×1024 e em celular. Ela
+passou a ser escalada pela proporção largura/altura do cartão: plena a partir de 0,96
+(`ASPECTO_PLENO`, toda viewport de desktop medida), zero abaixo de 0,75 (`ASPECTO_MINIMO`, onde
+`fitBounds` sozinho já é o enquadramento que cabe). Nada cortado em 390×844, 600×900, 768×1024.
+
+**Resize reenquadra** enquanto o operador não mexeu na câmera. Sem isso, girar o tablet ou
+redimensionar a janela mantinha o zoom da moldura anterior — a captura em 390×844 mostrou o estado
+cortado e aproximado. Se ele já mexeu (zoom, arraste, município), o resize respeita.
+
+### 3. Clique no marcador abre direto o detalhe
+
+`selecionarPeloMarcador` passou a chamar só `selectUnidade`. **Reverte a ordem de D10**, que
+selecionava o município antes da unidade e, em município de várias unidades, mostrava a lista
+"N unidades neste município. Escolha uma…" acima do detalhe — empurrando o conteúdo e criando
+rolagem no painel. A lista (`.selected-panel`, `.unit-list__escolha`) saiu.
+
+A guarda `cliqueVeioDeMarcador` (correção de `f17cabe`, regressão conhecida) **ficou e ficou mais
+importante**: sem ela, o clique no marcador agora também aproximaria o município. Provado no
+`e2e:n08` caso 7, por clique lógico e por clique físico do mouse, e com unidade de IBGE divergente.
+
+### 4. Clique no município aproxima
+
+O município deixa de ser seleção e vira ação de câmera. **Reverte o papel que M03/D10 davam ao
+município** e completa D15/D17: o polígono já não carregava estado nem anel de seleção; agora
+também não carrega seleção nenhuma. O sinal `selected`, `selectMunicipio` e `marcarMunicipio`
+saíram; `.map__alvo` perdeu `aria-pressed` (é ação, não estado).
+
+Respostas às perguntas do pedido:
+
+- **Enquadramento:** pelos limites do polígono **quando o município tem 0 ou 1 unidade com
+  coordenada**; pelo envelope das **unidades** quando tem duas ou mais e esse envelope cabe no
+  envelope do polígono. Pelo polígono só, Aracaju aproximava 3,3× e os quatro marcadores ficavam a
+  **15,2px** do vizinho mais próximo (marcador de 13px, anéis de pulso sobrepostos) — "clicável" no
+  limite, não no espírito do pedido. Pelas unidades, **62,1px**. A guarda de contenção existe porque
+  o agrupamento é por código IBGE e a coordenada pode cair em outro município (DV07): uma unidade
+  divergente esticaria o envelope até fora dele, e aí vale o polígono. A contenção é de envelope,
+  não de polígono: unidade dentro do retângulo mas fora de um município côncavo passa.
+- **Teto de zoom separado por caminho:** `ZOOM_MAXIMO_MUNICIPIO = 11.5` (polígono — município
+  pequeno não vai a zoom de rua, o vizinho continua de referência) e `ZOOM_MAXIMO_UNIDADES = 12.5`
+  (unidades — acima disso o próprio envelope é quem limita; 12,7 e 13 dão o mesmo resultado).
+- **Animação:** 600 ms linear (`fitBounds` com `linear: true`, não o arco do `flyTo`). Com
+  `prefers-reduced-motion: reduce`, `duration: 0` — provado no `e2e:n08` caso 13 (posição final já
+  na primeira amostra, a 50 ms).
+- **Volta:** botão "Ver estado inteiro" sob o controle de zoom, visível só fora do enquadramento
+  inicial (município, roda, arraste, botões de zoom — todo gesto com `originalEvent`), e **Escape**
+  com foco no mapa. Os dois chamam `enquadrarEstado`, a mesma conta da abertura da tela. Ao clicar,
+  o botão some e o foco vai para o canvas, não para o `body`.
+- **Município sem unidade:** aproxima igual; a região viva anuncia "X: nenhuma unidade cadastrada.
+  Mapa aproximado.", e a informação que a lista dava não se perde para leitor de tela.
+- **O painel não muda** com o zoom: a unidade aberta continua aberta.
+
+**Descartado: duplo clique para voltar.** É o gesto nativo de aproximar do MapLibre, e o primeiro
+clique de um duplo clique já dispara o zoom do município. **Descartado: manter `aria-pressed` no
+alvo do município** — anunciaria um estado que não existe mais. **Descartado: só subir o teto de
+zoom** para separar Aracaju — aprofundava também o caminho do polígono (Amparo 2× mais perto) e
+tirava a referência dos vizinhos justamente onde o teto existe para mantê-la.
+
+### 5. Legenda recolhível, fechada por padrão
+
+`<details class="legend-bloco">`, fechado ao abrir a tela, estado não lembrado. **Reverte D15 neste
+ponto**: D15 desfez o disclosure porque guardar dois itens atrás dele "custava uma linha de
+interface para esconder nada". O motivo agora é outro — a legenda inteira, aprendida uma vez,
+disputava altura com o detalhe da unidade, que é o que o operador abre a tela para ler. `<details>`
+nativo pelo mesmo argumento de D12: teclado e estado exposto sem JS.
+
+Notas encurtadas para uma linha cada no painel de 320px (conferido no `e2e:n08` caso 14 pela
+altura): "Município é neutro: situa, não indica estado." e "Arco liga unidade ao hub, na cor do
+status." A ressalva "só aparece quando as duas pontas têm coordenada" saiu da legenda; continua no
+código (`conexoesDesenhaveis`). A primeira versão da nota do arco ("…na cor do status dela.")
+quebrava em duas linhas — achado do e2e, não do olho.
+
+**`space-between` do painel saiu (revê D14):** com legenda fechada e rodapé fora, ele abriria vãos
+entre blocos. Fluxo de cima para baixo; a sobra fica no fim da coluna, não no meio.
+
+### 6. Rodapé de fontes removido
+
+"BASE CARTOGRÁFICA / Limites municipais de Sergipe" e "FONTE OPERACIONAL / Dashboard API" saíram
+(`.map-source`).
+
+### Verificado
+
+`ng test` 469/469 · `ng build` sem erro (aviso de budget pré-existente, DV04) · `e2e:n05` 21/21 ·
+`e2e:n06` 25/25 · `e2e:n07` 48/48 · `e2e:m06` 19/19 · `e2e:n08` 48/48 (novo), duas execuções
+seguidas. Capturas em `e2e/n08-evidence/` (a sem seleção, b detalhe por marcador, c zoom no
+município, d legenda fechada/aberta, viewports, e erro), conferidas uma a uma.
+
+`e2e:n05` caiu de 22 para 21 verificações sem perder cobertura: o caso 20 tinha duas entradas
+("marca exatamente um município" e "seleção no marcador"); a primeira perdeu o objeto e virou a
+prova de ausência de `aria-pressed` no alvo. O `e2e:n06` relaxou a "sobra" medida por centróides de
+34% para 40%: centróides subestimam o desenho em ~7 p.p. (pixel: 31,7%), e o zoom que passaria nos
+34% corta a ponta oeste em 1280×800. O desequilíbrio (≤6 p.p.) não mudou.
+
+### Achados fora do escopo, registrados
+
+- **Rolagem horizontal da topbar** em ≤1280px (16px em 1280, 48px em 1024, 65px em 390), em todas
+  as telas — não é do Mapa. Ver DV18.
+- **`GET /dashboard/unidades/{id}/equipamentos` responde 500 sob concorrência** (92 de 121 chamadas
+  simultâneas; 55 sequenciais, todas 200). Ver DV17.
