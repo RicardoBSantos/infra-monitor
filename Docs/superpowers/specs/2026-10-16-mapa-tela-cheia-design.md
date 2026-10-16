@@ -128,3 +128,14 @@ Respostas às perguntas do pedido:
 
 Clustering (DV09/DV15), persistência do estado da legenda, qualquer mudança de backend, tokens
 órfãos (DV12).
+
+## Adendo — decisões tomadas na execução (registradas em D20)
+
+- Nota do arco: "Arco liga unidade ao hub, na cor do status." — a versão acima quebrava em duas
+  linhas no painel de 320px (medido pelo `e2e:n08`).
+- Enquadramento: município com 2+ unidades com coordenada, cujo envelope cabe no do polígono,
+  enquadra as **unidades** (teto 12,5); senão o polígono (teto 11,5). Pelo polígono os quatro de
+  Aracaju ficavam a 15,2px; pelas unidades, 62,1px.
+- Câmera: `OFFSET_CAMERA [0,-28]`, `ZOOM_AO_INCLINAR 0.42`, escalados pela proporção do cartão; o
+  offset antigo não agia em y. Resize reenquadra enquanto a câmera não foi tocada.
+- `e2e:n06`: sobra por centróides relaxada de 34% para 40%.
