@@ -75,6 +75,20 @@ const marcadoresFocaveis = (page) => page.evaluate(() => {
   return { total: alvos.length, aceitaram };
 });
 
+/** Foca o último controle focável ANTES do cartão do mapa (o "Atualizar" foi para o painel, D20). */
+const focarAntesDoMapa = (page) => page.evaluate(() => {
+  const cartao = document.querySelector('.map-card');
+  const focaveis = [...document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+    .filter((e) => e.tabIndex >= 0 && !e.disabled && e.getClientRects().length > 0)
+    .filter((e) => cartao.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_PRECEDING);
+  if (!focaveis.length) throw new Error('nenhum focável antes do mapa');
+  focaveis[focaveis.length - 1].focus();
+});
+
+/** Unidade (marcador) hoje selecionada, ou null. Desde D20 a seleção é só da unidade. */
+const unidadeSelecionada = (page) => page.evaluate(() =>
+  document.querySelector('.map__unidade[aria-pressed="true"]')?.getAttribute('data-unidade-id') ?? null);
+
 const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorAll('.map__alvo')].map((botao) => {
   const caixa = botao.getBoundingClientRect();
   return {
@@ -119,31 +133,17 @@ const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorA
     const alvosIniciais = await estadoDosAlvos(page);
 
     // --------------------------------------------------------------- chegar a um equipamento afetado
-    // Município com unidade seleciona e abre o painel; o de mais unidades maximiza a chance de
-    // haver algum equipamento fora de DISPONIVEL, que é o que a lista de afetados mostra.
-    const comUnidade = alvosIniciais
-      .map((a) => ({ ...a, unidades: Number((a.rotulo.match(/: (\d+) unidade/) ?? [])[1] ?? 0) }))
-      .filter((a) => a.unidades > 0)
-      .sort((x, y) => y.unidades - x.unidades);
-
+    // D20: o marcador da unidade abre o painel direto (município agora só aproxima a câmera, e não
+    // existe mais etapa de escolha). Percorre os marcadores até achar um painel com equipamento fora
+    // de DISPONIVEL, que é o que a lista de afetados mostra. `el.click()` nativo: o click sintético do
+    // Playwright pode não selecionar o Marker (nota do n07).
+    const totalMarcadores = await page.locator('.map__unidade').count();
     let afetadoEncontrado = false;
-    for (const municipio of comUnidade) {
-      await page.click(`.map__alvo[data-codigo-ibge="${municipio.codigo}"]`);
-      await page.waitForTimeout(400);
-      // Município com várias unidades pede escolha antes de abrir o painel da unidade.
-      if (await page.locator('.unit-list__escolha').count()) {
-        const escolhas = await page.locator('.unit-list__escolha').count();
-        for (let i = 0; i < escolhas; i += 1) {
-          await page.locator('.unit-list__escolha').nth(i).click();
-          await page.waitForSelector('.unit-panel', { timeout: 10000 });
-          await page.waitForFunction(() => !document.querySelector('.unit-panel__vazio[role="status"]'), null, { timeout: 15000 });
-          if (await page.locator('.afetados__item').count()) { afetadoEncontrado = true; break; }
-        }
-      } else if (await page.locator('.unit-panel').count()) {
-        await page.waitForFunction(() => !document.querySelector('.unit-panel__vazio[role="status"]'), null, { timeout: 15000 });
-        if (await page.locator('.afetados__item').count()) afetadoEncontrado = true;
-      }
-      if (afetadoEncontrado) break;
+    for (let i = 0; i < totalMarcadores && !afetadoEncontrado; i += 1) {
+      await page.evaluate((n) => document.querySelectorAll('.map__unidade')[n].click(), i);
+      await page.waitForSelector('.unit-panel', { timeout: 10000 });
+      await page.waitForFunction(() => !document.querySelector('.unit-panel__vazio[role="status"]'), null, { timeout: 15000 });
+      if (await page.locator('.afetados__item').count()) afetadoEncontrado = true;
     }
 
     if (!afetadoEncontrado) {
@@ -152,7 +152,7 @@ const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorA
       throw new Error('sem equipamento afetado: o roteiro M06 não tem o que abrir');
     }
 
-    const municipioSelecionado = (await estadoDosAlvos(page)).find((a) => a.pressionado)?.codigo ?? null;
+    const unidadeAntes = await unidadeSelecionada(page);
     const painelAntes = (await page.textContent('.unit-panel')).replace(/\s+/g, ' ');
     const urlAntes = page.url();
     const nomeDoAfetado = (await page.locator('.afetados__nome').first().textContent()).trim();
@@ -254,7 +254,7 @@ const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorA
     // --------------------------------------------------------------- 13 (b) — ordem de Tab do mapa intacta
     // Mesma verificação do N05 (casos 3 e 4), refeita depois do ciclo de inert: o canvas volta a
     // ser o primeiro stop do cartão e o primeiro município vem logo em seguida.
-    await page.locator('.map-page__header .botao').focus();
+    await focarAntesDoMapa(page);
     await page.keyboard.press('Tab');
     const stopCanvas = await focado(page);
     await page.keyboard.press('Tab');
@@ -270,9 +270,11 @@ const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorA
     // --------------------------------------------------------------- 14 (seleção preservada)
     const alvosDepois = await estadoDosAlvos(page);
     const pressionados = alvosDepois.filter((a) => a.pressionado);
-    checar(14, 'seleção do município sobrevive ao ciclo de inert',
-      pressionados.length === 1 && pressionados[0].codigo === municipioSelecionado,
-      `antes=${municipioSelecionado} depois=${pressionados.map((a) => a.codigo).join(',') || '(nenhum)'}`);
+    // D20: a seleção é a da unidade (marcador); município não carrega mais aria-pressed.
+    const unidadeDepois = await unidadeSelecionada(page);
+    checar(14, 'seleção da unidade sobrevive ao ciclo de inert (e nenhum município fica pressionado)',
+      !!unidadeAntes && unidadeDepois === unidadeAntes && pressionados.length === 0,
+      `antes=${unidadeAntes} depois=${unidadeDepois ?? '(nenhuma)'}; municípios pressionados=${pressionados.length}`);
 
     // --------------------------------------------------------------- 15 (identidade dos nós)
     const comMarca = alvosDepois.filter((a) => a.marca === '1').length;

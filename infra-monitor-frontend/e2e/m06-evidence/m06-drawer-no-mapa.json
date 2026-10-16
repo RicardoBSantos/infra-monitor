@@ -34,7 +34,7 @@
       "caso": 6,
       "nome": "(a) Tab a partir do último focável da gaveta NÃO alcança canvas nem marcadores",
       "ok": true,
-      "detalhe": "partida=\"Abrir histórico\" (111 focáveis na gaveta); trajeto=body > A > A > A > A"
+      "detalhe": "partida=\"Abrir histórico\" (106 focáveis na gaveta); trajeto=body > A > A > A > A"
     },
     {
       "caso": 7,
@@ -80,9 +80,9 @@
     },
     {
       "caso": 14,
-      "nome": "seleção do município sobrevive ao ciclo de inert",
+      "nome": "seleção da unidade sobrevive ao ciclo de inert (e nenhum município fica pressionado)",
       "ok": true,
-      "detalhe": "antes=2800308 depois=2800308"
+      "detalhe": "antes=2 depois=2; municípios pressionados=0"
     },
     {
       "caso": 15,
@@ -100,7 +100,7 @@
       "caso": 17,
       "nome": "contexto WebGL intacto — não foi perdido nem zerado pelo inert",
       "ok": true,
-      "detalhe": "{\"existe\":true,\"largura\":894,\"altura\":778,\"perdido\":false}"
+      "detalhe": "{\"existe\":true,\"largura\":906,\"altura\":890,\"perdido\":false}"
     },
     {
       "caso": 18,
@@ -116,28 +116,28 @@
     }
   ],
   "rede": [
-    "2026-09-16T12:07:57.159Z POST /auth/login",
-    "2026-09-16T12:07:57.498Z GET /dashboard/resumo",
-    "2026-09-16T12:07:57.519Z GET /dashboard/unidades",
-    "2026-09-16T12:07:57.520Z GET /unidades?ativo=true",
-    "2026-09-16T12:07:57.520Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-17T12:07:57.500Z&fim=2026-09-16T12:07:57.500Z&size=200",
-    "2026-09-16T12:07:57.520Z GET /relatorios/latencia/unidades?inicio=2026-08-17T12:07:57.501Z&fim=2026-09-16T12:07:57.501Z&size=500",
-    "2026-09-16T12:07:57.520Z GET /equipamentos?size=500&sort=nome,asc",
-    "2026-09-16T12:07:57.679Z GET /dashboard/unidades",
-    "2026-09-16T12:08:00.023Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
-    "2026-09-16T12:08:01.051Z GET /dashboard/unidades/2/equipamentos?size=200&sort=nome",
-    "2026-09-16T12:08:02.276Z GET /equipamentos/111",
-    "2026-09-16T12:08:02.277Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-08-17T12:08:02.260Z&fim=2026-09-16T12:08:02.260Z&size=1&equipamentoId=111",
-    "2026-09-16T12:08:02.277Z GET /relatorios/latencia?inicio=2026-08-17T12:08:02.260Z&fim=2026-09-16T12:08:02.260Z&size=1&equipamentoId=111",
-    "2026-09-16T12:08:02.277Z GET /relatorios/medicoes?inicio=2026-09-16T11:42:02.261Z&fim=2026-09-16T12:08:02.261Z&size=60&sort=executadoEm,asc&equipamentoId=111",
-    "2026-09-16T12:08:02.278Z GET /monitores?equipamentoId=111&size=100&sort=id,asc",
-    "2026-09-16T12:08:02.278Z GET /incidentes?equipamentoId=111&size=3&sort=iniciadoEm,desc",
-    "2026-09-16T12:08:05.793Z GET /equipamentos/111",
-    "2026-09-16T12:08:05.793Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-08-17T12:08:05.779Z&fim=2026-09-16T12:08:05.779Z&size=1&equipamentoId=111",
-    "2026-09-16T12:08:05.794Z GET /relatorios/latencia?inicio=2026-08-17T12:08:05.780Z&fim=2026-09-16T12:08:05.780Z&size=1&equipamentoId=111",
-    "2026-09-16T12:08:05.795Z GET /relatorios/medicoes?inicio=2026-09-16T11:42:05.781Z&fim=2026-09-16T12:08:05.781Z&size=60&sort=executadoEm,asc&equipamentoId=111",
-    "2026-09-16T12:08:05.795Z GET /monitores?equipamentoId=111&size=100&sort=id,asc",
-    "2026-09-16T12:08:05.795Z GET /incidentes?equipamentoId=111&size=3&sort=iniciadoEm,desc"
+    "2026-10-16T12:10:55.317Z POST /auth/login",
+    "2026-10-16T12:10:55.771Z GET /dashboard/resumo",
+    "2026-10-16T12:10:55.792Z GET /dashboard/unidades",
+    "2026-10-16T12:10:55.793Z GET /unidades?ativo=true",
+    "2026-10-16T12:10:55.793Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T12:10:55.777Z&fim=2026-10-16T12:10:55.777Z&size=200",
+    "2026-10-16T12:10:55.794Z GET /relatorios/latencia/unidades?inicio=2026-09-16T12:10:55.778Z&fim=2026-10-16T12:10:55.778Z&size=500",
+    "2026-10-16T12:10:55.794Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-16T12:10:55.944Z GET /dashboard/unidades",
+    "2026-10-16T12:10:57.773Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-16T12:10:58.461Z GET /dashboard/unidades/2/equipamentos?size=200&sort=nome",
+    "2026-10-16T12:10:59.801Z GET /equipamentos/111",
+    "2026-10-16T12:10:59.802Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-09-16T12:10:59.787Z&fim=2026-10-16T12:10:59.787Z&size=1&equipamentoId=111",
+    "2026-10-16T12:10:59.802Z GET /relatorios/latencia?inicio=2026-09-16T12:10:59.788Z&fim=2026-10-16T12:10:59.788Z&size=1&equipamentoId=111",
+    "2026-10-16T12:10:59.803Z GET /relatorios/medicoes?inicio=2026-10-16T11:44:59.789Z&fim=2026-10-16T12:10:59.789Z&size=60&sort=executadoEm,asc&equipamentoId=111",
+    "2026-10-16T12:10:59.803Z GET /monitores?equipamentoId=111&size=100&sort=id,asc",
+    "2026-10-16T12:10:59.804Z GET /incidentes?equipamentoId=111&size=3&sort=iniciadoEm,desc",
+    "2026-10-16T12:11:03.469Z GET /equipamentos/111",
+    "2026-10-16T12:11:03.471Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-09-16T12:11:03.461Z&fim=2026-10-16T12:11:03.461Z&size=1&equipamentoId=111",
+    "2026-10-16T12:11:03.471Z GET /relatorios/latencia?inicio=2026-09-16T12:11:03.462Z&fim=2026-10-16T12:11:03.462Z&size=1&equipamentoId=111",
+    "2026-10-16T12:11:03.471Z GET /relatorios/medicoes?inicio=2026-10-16T11:45:03.462Z&fim=2026-10-16T12:11:03.462Z&size=60&sort=executadoEm,asc&equipamentoId=111",
+    "2026-10-16T12:11:03.471Z GET /monitores?equipamentoId=111&size=100&sort=id,asc",
+    "2026-10-16T12:11:03.471Z GET /incidentes?equipamentoId=111&size=3&sort=iniciadoEm,desc"
   ],
   "erros": [],
   "fatal": null

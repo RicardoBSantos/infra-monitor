@@ -16,25 +16,25 @@
       "caso": 1,
       "nome": "as 4 unidades de Aracaju aparecem separadas",
       "ok": true,
-      "detalhe": "4 em Aracaju, espalhamento 28px"
+      "detalhe": "4 em Aracaju, espalhamento 26px"
     },
     {
       "caso": 1,
       "nome": "rótulo traz nome e status por extenso",
       "ok": true,
-      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)"
+      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamentos, 0 incidentes abertos"
     },
     {
       "caso": 2,
       "nome": "marcador de unidade é alcançável por Tab",
       "ok": true,
-      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)\",\"unidade\":\"7\",\"deUnidade\":true}"
+      "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Centro Integrado de Saúde: Disponível, 16 equipamentos, 0 incidentes abertos\",\"unidade\":\"7\",\"deUnidade\":true}"
     },
     {
       "caso": 2,
       "nome": "Enter no marcador abre o painel da unidade",
       "ok": true,
-      "detalhe": "painel: Centro Integrado de Saúde | marcador: Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)"
+      "detalhe": "painel: Centro Integrado de Saúde | marcador: Centro Integrado de Saúde: Disponível, 16 equipamentos, 0 incidentes abertos"
     },
     {
       "caso": 2,
@@ -88,19 +88,25 @@
       "caso": 4,
       "nome": "enquadramento equilibrado entre topo e base",
       "ok": true,
-      "detalhe": "topo 15.6% · base 12.4% · desequilíbrio 3.2 p.p."
+      "detalhe": "topo 20.2% · base 18.5% · desequilíbrio 1.7 p.p."
     },
     {
       "caso": 4,
       "nome": "desenho ocupa a maior parte da altura do cartão",
       "ok": true,
-      "detalhe": "sobra total 28.0%"
+      "detalhe": "sobra total 38.7%"
     },
     {
       "caso": 5,
       "nome": "nenhuma costura vazia dominante no painel",
       "ok": true,
-      "detalhe": "maior costura 111px em 754px de painel"
+      "detalhe": "maior costura 16px em 862px de painel"
+    },
+    {
+      "caso": 5,
+      "nome": "legenda nasce recolhida",
+      "ok": true,
+      "detalhe": ""
     },
     {
       "caso": 5,

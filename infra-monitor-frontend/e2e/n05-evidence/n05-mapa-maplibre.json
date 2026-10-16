@@ -26,13 +26,13 @@
     },
     {
       "caso": 5,
-      "nome": "Enter seleciona o município focado",
+      "nome": "Enter no município focado aproxima o mapa",
       "ok": true,
-      "detalhe": "pressionados: Amparo de São Francisco: nenhuma unidade cadastrada"
+      "detalhe": "distância entre os dois primeiros alvos 64px -> 770px"
     },
     {
       "caso": 6,
-      "nome": "foco permanece no município após selecionar",
+      "nome": "foco permanece no município após aproximar",
       "ok": true,
       "detalhe": "{\"tag\":\"BUTTON\",\"rotulo\":\"Amparo de São Francisco: nenhuma unidade cadastrada\",\"codigo\":\"2800100\",\"alvoDeMapa\":true}"
     },
@@ -40,19 +40,19 @@
       "caso": 7,
       "nome": "mudança é anunciada em aria-live",
       "ok": true,
-      "detalhe": "\"Amparo de São Francisco selecionado. Nenhuma unidade cadastrada.\""
+      "detalhe": "\"Amparo de São Francisco: nenhuma unidade cadastrada. Mapa aproximado.\""
     },
     {
       "caso": 8,
-      "nome": "Espaço seleciona o município focado",
+      "nome": "Espaço no município focado leva a câmera até ele e oferece \"Ver estado inteiro\"",
       "ok": true,
-      "detalhe": "pressionados: Aquidabã: nenhuma unidade cadastrada"
+      "detalhe": "-72,702 -> 678,529; voltar=1"
     },
     {
       "caso": 9,
-      "nome": "apenas um município marcado por vez",
+      "nome": "nenhum alvo de município carrega aria-pressed (a seleção é da unidade)",
       "ok": true,
-      "detalhe": "1 marcados"
+      "detalhe": "0 alvos com aria-pressed"
     },
     {
       "caso": 10,
@@ -64,7 +64,7 @@
       "caso": 11,
       "nome": "alvo reposicionado pela lib ao mover a câmera",
       "ok": true,
-      "detalhe": "838,456 -> 875,436"
+      "detalhe": "678,529 -> 677,534"
     },
     {
       "caso": 13,
@@ -86,21 +86,21 @@
     },
     {
       "caso": 15,
-      "nome": "município com uma única unidade seleciona a unidade e abre o painel",
+      "nome": "clique no marcador abre o painel da unidade, sem etapa de escolha",
       "ok": true,
-      "detalhe": "UNIDADE SELECIONADAUnidade EstânciaDegradadaEQUIPAMENTOS15DISPONÍVEIS14DEGRADADOS1INDISPONÍVEIS0EM MANUTENÇÃO0INCIDENTES ABERTOS0Ver unidade"
+      "detalhe": "UNIDADE SELECIONADACentro Integrado de SaúdeDisponívelEQUIPAMENTOS16DISPONÍVEIS16DEGRADADOS0INDISPONÍVEIS0EM MANUTENÇÃO0INCIDENTES ABERTOS0V"
     },
     {
       "caso": 16,
       "nome": "painel lista equipamentos afetados ou diz explicitamente que não há",
       "ok": true,
-      "detalhe": "itens=1 vazio=0"
+      "detalhe": "itens=0 vazio=1"
     },
     {
       "caso": 17,
-      "nome": "município com mais de uma unidade pede escolha antes do painel",
+      "nome": "clique no município com 2+ unidades aproxima sem abrir painel",
       "ok": true,
-      "detalhe": "escolhas=4"
+      "detalhe": "zoom 64px -> 178px; selected-panel=0; unit-panel=0"
     },
     {
       "caso": 18,
@@ -112,19 +112,13 @@
       "caso": 19,
       "nome": "sem faixa morta: há município desenhado no terço de cima e no de baixo do cartão",
       "ok": true,
-      "detalhe": "4 alvos acima de 28% e 6 abaixo de 72% da altura (780px)"
+      "detalhe": "3 alvos acima de 28% e 4 abaixo de 72% da altura (892px)"
     },
     {
       "caso": 20,
-      "nome": "seleção por clique marca exatamente um município",
+      "nome": "a seleção aparece só no marcador da unidade; nenhum município fica pressionado",
       "ok": true,
-      "detalhe": "Aracaju: 4 unidade(s)"
-    },
-    {
-      "caso": 20,
-      "nome": "a seleção aparece no marcador da unidade, não no polígono",
-      "ok": true,
-      "detalhe": "1 marcador(es)"
+      "detalhe": "1 marcador(es), 0 alvo(s) com aria-pressed"
     },
     {
       "caso": 0,
@@ -134,26 +128,35 @@
     }
   ],
   "rede": [
-    "2026-09-17T11:36:10.142Z POST /auth/login",
-    "2026-09-17T11:36:10.400Z GET /dashboard/resumo",
-    "2026-09-17T11:36:10.419Z GET /dashboard/unidades",
-    "2026-09-17T11:36:10.419Z GET /unidades?ativo=true",
-    "2026-09-17T11:36:10.419Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-18T11:36:10.402Z&fim=2026-09-17T11:36:10.402Z&size=200",
-    "2026-09-17T11:36:10.419Z GET /relatorios/latencia/unidades?inicio=2026-08-18T11:36:10.403Z&fim=2026-09-17T11:36:10.403Z&size=500",
-    "2026-09-17T11:36:10.419Z GET /equipamentos?size=500&sort=nome,asc",
-    "2026-09-17T11:36:10.535Z GET /dashboard/unidades",
-    "2026-09-17T11:36:16.357Z GET /dashboard/unidades",
-    "2026-09-17T11:36:19.412Z GET /dashboard/unidades/9/equipamentos?size=200&sort=nome",
-    "2026-09-17T11:36:19.412Z GET /dashboard/unidades/9/equipamentos?size=200&sort=nome",
-    "2026-09-17T11:36:21.148Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
-    "2026-09-17T11:36:21.273Z GET /dashboard/unidades/7",
-    "2026-09-17T11:36:21.274Z GET /unidades/7",
-    "2026-09-17T11:36:21.277Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
-    "2026-09-17T11:36:21.278Z GET /relatorios/disponibilidade/unidades?inicio=2026-08-18T11:36:21.264Z&fim=2026-09-17T11:36:21.264Z&size=1&unidadeId=7",
-    "2026-09-17T11:36:21.279Z GET /relatorios/latencia/unidades?inicio=2026-08-18T11:36:21.264Z&fim=2026-09-17T11:36:21.264Z&size=1&unidadeId=7",
-    "2026-09-17T11:36:21.279Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-08-18T11:36:21.264Z&fim=2026-09-17T11:36:21.264Z&size=200&unidadeId=7",
-    "2026-09-17T11:36:21.343Z GET /dashboard/unidades",
-    "2026-09-17T11:36:27.822Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome"
+    "2026-10-16T12:07:16.810Z POST /auth/login",
+    "2026-10-16T12:07:17.338Z GET /dashboard/resumo",
+    "2026-10-16T12:07:17.373Z GET /dashboard/unidades",
+    "2026-10-16T12:07:17.374Z GET /unidades?ativo=true",
+    "2026-10-16T12:07:17.375Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T12:07:17.342Z&fim=2026-10-16T12:07:17.342Z&size=200",
+    "2026-10-16T12:07:17.376Z GET /relatorios/latencia/unidades?inicio=2026-09-16T12:07:17.344Z&fim=2026-10-16T12:07:17.344Z&size=500",
+    "2026-10-16T12:07:17.376Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-16T12:07:17.586Z GET /dashboard/unidades",
+    "2026-10-16T12:07:25.097Z GET /dashboard/unidades",
+    "2026-10-16T12:07:27.178Z GET /unidades?ativo=true",
+    "2026-10-16T12:07:27.179Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T12:07:27.169Z&fim=2026-10-16T12:07:27.169Z&size=200",
+    "2026-10-16T12:07:27.180Z GET /relatorios/latencia/unidades?inicio=2026-09-16T12:07:27.171Z&fim=2026-10-16T12:07:27.171Z&size=500",
+    "2026-10-16T12:07:27.211Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-16T12:07:27.266Z GET /dashboard/unidades",
+    "2026-10-16T12:07:30.412Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-16T12:07:32.085Z GET /unidades?ativo=true",
+    "2026-10-16T12:07:32.087Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T12:07:32.070Z&fim=2026-10-16T12:07:32.070Z&size=200",
+    "2026-10-16T12:07:32.089Z GET /relatorios/latencia/unidades?inicio=2026-09-16T12:07:32.072Z&fim=2026-10-16T12:07:32.072Z&size=500",
+    "2026-10-16T12:07:32.135Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-16T12:07:32.215Z GET /dashboard/unidades",
+    "2026-10-16T12:07:38.138Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-16T12:07:38.247Z GET /dashboard/unidades/7",
+    "2026-10-16T12:07:38.248Z GET /unidades/7",
+    "2026-10-16T12:07:38.249Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-16T12:07:38.250Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T12:07:38.237Z&fim=2026-10-16T12:07:38.237Z&size=1&unidadeId=7",
+    "2026-10-16T12:07:38.250Z GET /relatorios/latencia/unidades?inicio=2026-09-16T12:07:38.237Z&fim=2026-10-16T12:07:38.237Z&size=1&unidadeId=7",
+    "2026-10-16T12:07:38.251Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-09-16T12:07:38.237Z&fim=2026-10-16T12:07:38.237Z&size=200&unidadeId=7",
+    "2026-10-16T12:07:38.302Z GET /dashboard/unidades",
+    "2026-10-16T12:07:43.456Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome"
   ],
   "erros": [],
   "fatal": null
