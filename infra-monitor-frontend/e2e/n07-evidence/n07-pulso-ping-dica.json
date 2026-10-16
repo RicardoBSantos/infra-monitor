@@ -2,6 +2,12 @@
   "resultados": [
     {
       "caso": 1,
+      "nome": "legenda abre ao clicar no summary (details.open)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
       "nome": "legenda descreve o marcador, não o polígono",
       "ok": true,
       "detalhe": "Cor do marcador de unidade."
@@ -202,7 +208,7 @@
       "caso": 8,
       "nome": "todo ping percorre a linha — nenhum fica parado",
       "ok": true,
-      "detalhe": "18/18 em movimento · percurso mínimo 9.0px em 2,1s"
+      "detalhe": "18/18 em movimento · percurso mínimo 8.5px em 2,1s"
     },
     {
       "caso": 9,

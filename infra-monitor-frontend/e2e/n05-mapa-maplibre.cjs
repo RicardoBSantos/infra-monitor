@@ -170,15 +170,23 @@ const focado = (page) => page.evaluate(() => {
     // --------------------------------------------------------------- 8
     await page.keyboard.press('Tab');
     const segundo = await focado(page);
+    /*
+     * O Enter do caso 5 já deixou `.map__voltar` na tela, então ele nada provaria para o Espaço.
+     * Volta ao enquadramento inicial (some o botão), devolve o foco ao segundo município e só então
+     * exige zoom real (par de referência cresce >= 1,3x) e o botão reaparecendo.
+     */
+    await page.click('.map__voltar');
+    await page.waitForFunction(() => !document.querySelector('.map__voltar'), null, { timeout: 5000 });
+    await page.waitForTimeout(1000);
+    await page.locator(`.map__alvo[data-codigo-ibge="${segundo.codigo}"]`).focus();
     const antesDoEspaco = await lerAlvos(page);
+    const dist8a = distanciaEntre(antesDoEspaco, ref[0], ref[1]);
     await page.keyboard.press('Space');
     await page.waitForTimeout(1200);
-    const depoisDoEspaco = await lerAlvos(page);
-    const a8 = antesDoEspaco.find((a) => a.codigo === segundo.codigo);
-    const d8 = depoisDoEspaco.find((a) => a.codigo === segundo.codigo);
-    checar(8, 'Espaço no município focado leva a câmera até ele e oferece "Ver estado inteiro"',
-      (a8.x !== d8.x || a8.y !== d8.y) && (await page.locator('.map__voltar').count()) === 1,
-      `${a8.x},${a8.y} -> ${d8.x},${d8.y}; voltar=${await page.locator('.map__voltar').count()}`);
+    const dist8b = distanciaEntre(await lerAlvos(page), ref[0], ref[1]);
+    checar(8, 'Espaço no município focado aproxima o mapa (>= 1,3x) e "Ver estado inteiro" reaparece',
+      dist8b >= dist8a * 1.3 && (await page.locator('.map__voltar').count()) === 1,
+      `${Math.round(dist8a)}px -> ${Math.round(dist8b)}px (${(dist8b / dist8a).toFixed(2)}x); voltar=${await page.locator('.map__voltar').count()}`);
 
     // --------------------------------------------------------------- 9
     const marcados9 = await page.locator('.map__alvo[aria-pressed]').count();
@@ -304,7 +312,7 @@ const focado = (page) => page.evaluate(() => {
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-cartao-sem-faixa-morta.png') });
     // D20: a legenda nasce recolhida; a evidência é com ela aberta.
     await page.click('summary.legend-bloco__resumo');
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
     await page.locator('.map-panel').screenshot({ path: path.join(OUT, '03-legenda.png') });
 
     /*

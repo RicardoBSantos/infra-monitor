@@ -110,6 +110,12 @@
     },
     {
       "caso": 5,
+      "nome": "legenda abre ao clicar no summary (details.open)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 5,
       "nome": "os 6 status de unidade numa lista só",
       "ok": true,
       "detalhe": "6 item(ns)"

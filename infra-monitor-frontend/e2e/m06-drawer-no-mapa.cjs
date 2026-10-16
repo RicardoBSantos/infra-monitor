@@ -140,9 +140,16 @@ const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorA
     const totalMarcadores = await page.locator('.map__unidade').count();
     let afetadoEncontrado = false;
     for (let i = 0; i < totalMarcadores && !afetadoEncontrado; i += 1) {
-      await page.evaluate((n) => document.querySelectorAll('.map__unidade')[n].click(), i);
-      await page.waitForSelector('.unit-panel', { timeout: 10000 });
-      await page.waitForFunction(() => !document.querySelector('.unit-panel__vazio[role="status"]'), null, { timeout: 15000 });
+      // Após o 1º marcador o `.unit-panel` já existe: esperar só por ele (ou pelo fim do loading)
+      // resolveria com o painel da unidade ANTERIOR e o count leria a unidade errada. Espera-se que o
+      // painel seja o da unidade clicada (nome do aria-label do marcador) E que o loading tenha acabado.
+      const nomeClicado = await page.evaluate((n) => {
+        const m = document.querySelectorAll('.map__unidade')[n];
+        m.click();
+        return m.getAttribute('aria-label').split(':')[0].trim();
+      }, i);
+      await page.waitForFunction((nome) => (document.querySelector('.unit-panel__nome')?.textContent ?? '').trim() === nome
+        && !document.querySelector('.unit-panel__vazio[role="status"]'), nomeClicado, { timeout: 15000 });
       if (await page.locator('.afetados__item').count()) afetadoEncontrado = true;
     }
 

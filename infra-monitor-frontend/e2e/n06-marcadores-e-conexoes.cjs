@@ -248,7 +248,9 @@ const medirFaixa = (page) => page.evaluate(() => {
     checar(5, 'legenda nasce recolhida', (await page.locator('details.legend-bloco').count()) === 1
       && (await page.locator('details.legend-bloco').evaluate((d) => !d.open)));
     await page.click('summary.legend-bloco__resumo');
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
+    checar(5, 'legenda abre ao clicar no summary (details.open)',
+      await page.evaluate(() => document.querySelector('details.legend-bloco').open));
     const legendaVisivel = await page.locator('details.legend-bloco .legend li').count();
     checar(5, 'os 6 status de unidade numa lista só', legendaVisivel === 6, `${legendaVisivel} item(ns)`);
     checar(5, 'legenda anuncia que fala do marcador, não do polígono',

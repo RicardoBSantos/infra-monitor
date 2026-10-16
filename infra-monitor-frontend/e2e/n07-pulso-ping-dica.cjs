@@ -129,7 +129,9 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     // D20: a legenda nasce recolhida (details.legend-bloco); abre-se por clique no summary antes de
     // ler textos e estilos visíveis dela (caso 8 lê .legend__linha).
     await page.click('summary.legend-bloco__resumo');
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
+    checar(1, 'legenda abre ao clicar no summary (details.open)',
+      await page.evaluate(() => document.querySelector('details.legend-bloco').open));
     const legenda = await page.evaluate(() => ({
       itens: document.querySelectorAll('details.legend-bloco .legend li').length,
       disclosure: document.querySelectorAll('.legend-extra').length,
