@@ -1,6 +1,6 @@
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, arcoEntre, camadasDeConexao, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { agruparUnidades, arcoEntre, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
@@ -246,5 +246,21 @@ describe('cliqueVeioDeMarcador',()=>{
   it('canvas e null não são marcador',()=>{
     expect(cliqueVeioDeMarcador(document.createElement('canvas'))).toBe(false);
     expect(cliqueVeioDeMarcador(null)).toBe(false);
+  });
+});
+
+describe('limites do municipio (zoom por clique)',()=>{
+  it('devolve o envelope de um Polygon como [[minLng,minLat],[maxLng,maxLat]]',()=>{
+    expect(limitesDoMunicipio(geoJson.features[0].geometry)).toEqual([[-38,-11],[-37,-10]]);
+  });
+  it('cobre todas as partes de um MultiPolygon',()=>{
+    const multi={coordinates:[[[[-38,-10],[-37.5,-10],[-37.5,-10.5],[-38,-10]]],[[[-37,-11],[-36.5,-11],[-36.5,-11.5],[-37,-11]]]]};
+    expect(limitesDoMunicipio(multi)).toEqual([[-38,-11.5],[-36.5,-10]]);
+  });
+  it('geometria vazia nao tem envelope',()=>{
+    expect(limitesDoMunicipio({coordinates:[]})).toBeNull();
+  });
+  it('o centroide continua sendo o centro do mesmo envelope',()=>{
+    expect(centroideAproximado(geoJson.features[0].geometry)).toEqual([-37.5,-10.5]);
   });
 });

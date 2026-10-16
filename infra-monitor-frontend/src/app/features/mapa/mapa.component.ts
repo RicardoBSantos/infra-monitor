@@ -204,14 +204,14 @@ function animacaoReduzida(): boolean {
  * usa, ele é o elemento mais chamativo do desenho justamente no instante do clique, e o dado ali é
  * a unidade, não a região.
  *
- * A seleção continua inteira, só que no marcador: `aria-pressed` nos dois marcadores (o alvo
- * invisível do município e o da unidade), anel na cor do status em
+ * A seleção continua inteira, só que no marcador: `aria-pressed` só no marcador de unidade (o
+ * alvo invisível do município não tem seleção desde D20), anel na cor do status em
  * `.map__unidade[aria-pressed='true']` (D19 — era lilás fixo até D18) e o
  * painel lateral. Nenhum canal saiu — e o anel de seleção continua vivo no SCSS, onde a superfície
  * embaixo dele tem 13px e não meio estado.
  *
  * Com a camada `municipio-selecionado` foi embora a única razão de a marcação de seleção esperar o
- * estilo do mapa carregar: `marcarMunicipio` mexe só em atributo de DOM.
+ * estilo do mapa carregar: a marcação (`marcarUnidade`) mexe só em atributo de DOM.
  */
 
 /** Inclinação padrão da experiência — não é toggle: em pitch 0 o mapa é o Leaflet de antes. */
@@ -246,6 +246,17 @@ const OFFSET_CAMERA: [number, number] = [-24, 60];
  * desequilibrarem.
  */
 const ZOOM_AO_INCLINAR = 0.68;
+
+/**
+ * Teto do zoom ao clicar num município (D20). Sem ele, município pequeno iria a zoom de rua e o
+ * operador perderia a referência dos vizinhos. Medido no e2e:n08 contra Aracaju: com o teto, os
+ * quatro marcadores ficam a >= 60px do vizinho mais próximo — clicáveis um a um (DV09).
+ */
+const ZOOM_MAXIMO_MUNICIPIO = 11.5;
+/** Duração das transições de câmera disparadas por clique. Zero sob `prefers-reduced-motion`. */
+const DURACAO_CAMERA_MS = 600;
+/** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
+const PADDING_MUNICIPIO = { top: 110, right: 70, bottom: 50, left: 60 };
 
 const LARGURA_CONEXAO = 1.4;
 /**
@@ -444,11 +455,17 @@ export function percorrerCoordenadas(geometria: { coordinates: unknown }, visita
   anda(geometria.coordinates);
 }
 
-/** Centro do envelope do municipio. Nao e o polo de inacessibilidade: em municipio concavo pode cair fora. */
-export function centroideAproximado(geometria: { coordinates: unknown }): [number, number] | null {
+/** Envelope do município, `[[minLng, minLat], [maxLng, maxLat]]`. É o que o zoom por clique enquadra (D20). */
+export function limitesDoMunicipio(geometria: { coordinates: unknown }): [[number, number], [number, number]] | null {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   percorrerCoordenadas(geometria, ([x, y]) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); });
-  return Number.isFinite(minX) ? [(minX + maxX) / 2, (minY + maxY) / 2] : null;
+  return Number.isFinite(minX) ? [[minX, minY], [maxX, maxY]] : null;
+}
+
+/** Centro do envelope do municipio. Nao e o polo de inacessibilidade: em municipio concavo pode cair fora. */
+export function centroideAproximado(geometria: { coordinates: unknown }): [number, number] | null {
+  const limites = limitesDoMunicipio(geometria);
+  return limites ? [(limites[0][0] + limites[1][0]) / 2, (limites[0][1] + limites[1][1]) / 2] : null;
 }
 
 /**
@@ -469,14 +486,13 @@ export class MapaComponent implements OnDestroy {
   private readonly router = inject(Router);
   protected readonly state = signal<MapState>('loading');
   protected readonly municipios = signal<MapMunicipio[]>([]);
-  protected readonly selected = signal<MapMunicipio | null>(null);
   protected readonly semLocalizacao = signal<DashboardUnidade[]>([]);
   protected readonly semCorrespondencia = signal<DashboardUnidade[]>([]);
   protected readonly error = signal<string | null>(null);
   /** Região viva: o painel lateral é visual, e sem isto quem navega por teclado não ouve a troca. */
   protected readonly anuncio = signal('');
 
-  /** Unidade em foco no painel. Município com uma única unidade seleciona sozinho; com várias, espera o clique. */
+  /** Unidade em foco no painel. Só o clique/Enter no marcador de unidade a define (D20): o município não seleciona nada. */
   protected readonly unidadeSelecionada = signal<DashboardUnidade | null>(null);
   protected readonly afetados = signal<DashboardEquipamento[]>([]);
   protected readonly afetadosState = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -500,6 +516,9 @@ export class MapaComponent implements OnDestroy {
     return unidade && fonte ? divergenciaIbge(unidade, fonte) : null;
   });
   private units: DashboardUnidade[] | null = null;
+  /** Câmera fora do enquadramento do estado inteiro: mostra o "Ver estado inteiro" (D20). */
+  protected readonly foraDoEnquadramento = signal(false);
+  private limitesEstado: LngLatBounds | null = null;
 
   private map: MaplibreMap | null = null;
   /** Um Marker por municipio: unico no DOM focavel, ja que o poligono vive no canvas WebGL. */
@@ -528,26 +547,16 @@ export class MapaComponent implements OnDestroy {
       if (!elemento || municipios.length === 0) { this.destruirMapa(); return; }
       this.montarMapa(elemento, municipios);
     });
-    effect(() => this.marcarMunicipio(this.selected()?.codigoIbge ?? null));
-    // Estado do marcador de unidade acompanha o painel, e nao o municipio: clicar na lista de
-    // "varias unidades" troca a unidade sem trocar o municipio, e o marcador tem de acompanhar.
+    // Estado do marcador de unidade acompanha o painel (unidadeSelecionada), que é a única seleção (D20).
     effect(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
   }
 
   ngOnDestroy(): void { this.destruirMapa(); }
 
   protected load(): void {
-    this.state.set('loading'); this.error.set(null); this.selected.set(null); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
+    this.state.set('loading'); this.error.set(null); this.foraDoEnquadramento.set(false); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
     this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { this.fonteMunicipios.set(municipios); this.resolve(); }, error: () => this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.') });
     this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { this.units = units; this.resolve(); }, error: () => this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.') });
-  }
-
-  protected selectMunicipio(municipio: MapMunicipio): void {
-    this.selected.set(municipio);
-    this.anuncio.set(`${municipio.nome} selecionado. ${municipio.units.length ? `${plural(municipio.units.length, 'unidade', 'unidades')}.` : 'Nenhuma unidade cadastrada.'}`);
-    // Com uma única unidade, exigir um segundo clique só para ver o detalhe seria atrito sem ganho.
-    if (municipio.units.length === 1) { this.selectUnidade(municipio.units[0]); return; }
-    this.limparUnidade();
   }
 
   protected selectUnidade(unidade: DashboardUnidade): void {
@@ -674,21 +683,24 @@ export class MapaComponent implements OnDestroy {
 
     const limites = new LngLatBounds();
     for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => limites.extend(ponto as [number, number]));
-    /*
-     * Agora `fitBounds` já recebe o `pitch`, em vez de enquadrar plano e inclinar depois. As duas
-     * etapas de N05 existiam porque a extrusão fazia o enquadramento inclinado recuar demais; sem
-     * blocos, enquadrar já inclinado dá um resultado CENTRADO (desequilíbrio de 4,1% topo-base,
-     * contra 8,6% herdando a sequência antiga), e o que sobra é encolhimento uniforme — que uma
-     * compensação de zoom sozinha resolve, sem o offset ter de corrigir centralização também.
-     */
-    map.fitBounds(limites, { padding: 34, bearing: BEARING, pitch: PITCH, duration: 0 });
-    map.easeTo({ zoom: map.getZoom() + ZOOM_AO_INCLINAR, offset: OFFSET_CAMERA, duration: 0 });
+    this.limitesEstado = limites;
+    this.enquadrarEstado(false);
+
+    // Gesto do operador (arraste, roda, botões do NavigationControl) tira a câmera do enquadramento
+    // inicial: o "Ver estado inteiro" aparece. Movimento programático não tem `originalEvent`.
+    map.on('movestart', evento => { if (evento.originalEvent) this.foraDoEnquadramento.set(true); });
+    elemento.addEventListener('keydown', evento => {
+      if (evento.key !== 'Escape' || !this.foraDoEnquadramento()) return;
+      evento.preventDefault();
+      this.enquadrarEstado(true);
+    }, { signal: signalAbort });
 
     map.on('click', 'municipios-fill', evento => {
+      // Sem a guarda, clicar no marcador de unidade também aproximaria o município sob o pixel.
       if (cliqueVeioDeMarcador(evento.originalEvent.target)) return;
       const codigo = normalizeCodigoIbge(evento.features?.[0]?.properties?.['id'] as string);
       const municipio = municipios.find(candidato => candidato.codigoIbge === codigo);
-      if (municipio) this.selectMunicipio(municipio);
+      if (municipio) this.aproximarMunicipio(municipio);
     });
 
     /*
@@ -704,7 +716,7 @@ export class MapaComponent implements OnDestroy {
       botao.className = 'map__alvo';
       botao.setAttribute('aria-label', rotuloDoMunicipio(municipio));
       botao.setAttribute('data-codigo-ibge', municipio.codigoIbge);
-      botao.addEventListener('click', () => this.selectMunicipio(municipio), { signal: signalAbort });
+      botao.addEventListener('click', () => this.aproximarMunicipio(municipio), { signal: signalAbort });
       // Alvo fora da viewport continua focavel pelo Tab: ao receber foco, traz a camera ate ele.
       botao.addEventListener('focus', () => { if (!map.getBounds().contains(centro)) map.easeTo({ center: centro, duration: 200 }); }, { signal: signalAbort });
       /*
@@ -747,8 +759,7 @@ export class MapaComponent implements OnDestroy {
 
     this.montarPings(map, conexoes.features as Feature[]);
 
-    // Marcação inicial dos dois marcadores. Sem `map.on('load')`: nada aqui depende do estilo.
-    untracked(() => this.marcarMunicipio(this.selected()?.codigoIbge ?? null));
+    // Marcação inicial do marcador de unidade. Sem `map.on('load')`: nada aqui depende do estilo.
     untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
   }
 
@@ -817,36 +828,59 @@ export class MapaComponent implements OnDestroy {
   }
 
   /**
-   * Clique (ou Enter/Espaco) no marcador de unidade. Seleciona o municipio TAMBEM, e nesta ordem:
-   * `selectMunicipio` desenha o colar no bloco e, em municipio de uma unidade so, ja escolhe a
-   * unidade; em municipio de varias ele limpa a escolha, e o `selectUnidade` seguinte repoe
-   * exatamente a que foi clicada. Invertida, a ordem apagaria a unidade recem-escolhida.
+   * Enquadramento do estado inteiro — o da abertura da tela, e o destino do "Ver estado inteiro" e
+   * do Escape (D20). Uma conta só para os três: se divergissem, voltar não daria no mesmo lugar.
+   *
+   * `cameraForBounds` + um único `easeTo`, e não mais `fitBounds` seguido de `easeTo`: animado, o
+   * segundo `easeTo` cancelaria o primeiro no meio. A conta é a mesma — câmera que cabe o estado
+   * já inclinado, mais `ZOOM_AO_INCLINAR`, mais `OFFSET_CAMERA` (ver D13).
+   */
+  private enquadrarEstado(animado: boolean): void {
+    const map = this.map;
+    if (!map || !this.limitesEstado) return;
+    const camera = map.cameraForBounds(this.limitesEstado, { padding: 34, bearing: BEARING, pitch: PITCH });
+    if (!camera) return;
+    map.easeTo({ ...camera, zoom: (camera.zoom ?? map.getZoom()) + ZOOM_AO_INCLINAR, bearing: BEARING, pitch: PITCH,
+      offset: OFFSET_CAMERA, duration: animado && !animacaoReduzida() ? DURACAO_CAMERA_MS : 0 });
+    this.foraDoEnquadramento.set(false);
+  }
+
+  /** Botão "Ver estado inteiro". O botão some ao clicar: o foco vai para o canvas, não para o body. */
+  protected verEstadoInteiro(): void {
+    this.enquadrarEstado(true);
+    this.map?.getCanvas().focus();
+  }
+
+  /**
+   * Clique (ou Enter no alvo invisível) num município: aproxima nele (D20). Não é mais seleção —
+   * o município não carrega estado (D15) nem seleção (D17); o painel da unidade aberta fica como
+   * está. Resolve o aglomerado de Aracaju: aproximado, cada marcador fica clicável. Município sem
+   * unidade aproxima igual; o anúncio diz que não há unidade.
+   */
+  private aproximarMunicipio(municipio: MapMunicipio): void {
+    this.anuncio.set(`${rotuloDoMunicipio(municipio)}. Mapa aproximado.`);
+    const map = this.map;
+    const limites = limitesDoMunicipio(municipio.feature.geometry);
+    if (!map || !limites) return;
+    map.fitBounds(limites, { padding: PADDING_MUNICIPIO, bearing: BEARING, pitch: PITCH, maxZoom: ZOOM_MAXIMO_MUNICIPIO,
+      linear: true, duration: animacaoReduzida() ? 0 : DURACAO_CAMERA_MS });
+    this.foraDoEnquadramento.set(true);
+  }
+
+  /**
+   * Clique (ou Enter/Espaço) no marcador de unidade: abre direto o detalhe da unidade (D20). Até
+   * D19 passava antes por `selectMunicipio`, que em município de várias unidades mostrava a lista
+   * "Escolha uma" acima do detalhe — empurrava o conteúdo e criava rolagem no painel.
    */
   private selecionarPeloMarcador(unidade: DashboardUnidade): void {
-    const municipio = this.municipios().find(candidato => candidato.units.some(u => u.id === unidade.id));
-    if (municipio) this.selectMunicipio(municipio);
     this.selectUnidade(unidade);
     this.anuncio.set(`${unidade.nome} selecionada. ${ROTULO_STATUS[unidade.status]}.`);
   }
 
-  /** Estado do marcador de unidade. Par de `marcarMunicipio`: nenhum dos dois depende do estilo do mapa. */
+  /** Estado do marcador de unidade. Não depende do estilo do mapa: é atributo de DOM. */
   private marcarUnidade(selecionada: number | null): void {
     for (const [id, marcador] of this.marcadoresUnidade) {
       marcador.getElement().setAttribute('aria-pressed', String(id === selecionada));
-    }
-  }
-
-  /**
-   * Estado de seleção do município. Só `aria-pressed`, desde que o anel do polígono saiu.
-   *
-   * Sem camada a filtrar, some também a guarda de `isStyleLoaded()` e a repetição no evento `load`
-   * do mapa — que existiam porque selecionar antes de o estilo terminar de carregar deixava o
-   * marcador sem estado nenhum. Atributo de DOM não espera WebGL.
-   */
-  private marcarMunicipio(selecionado: string | null): void {
-    for (const municipio of this.municipios()) {
-      const marcador = this.marcadores.get(municipio.codigoIbge);
-      marcador?.getElement().setAttribute('aria-pressed', String(municipio.codigoIbge === selecionado));
     }
   }
 

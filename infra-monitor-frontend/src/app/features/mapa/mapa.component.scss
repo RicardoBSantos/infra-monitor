@@ -268,9 +268,10 @@
 .afetados__item:hover,.afetados__item:focus-visible { border-color:var(--im-border-muted); border-left-color:var(--im-danger); }
 .afetados__nome { color:var(--im-text-strong); font-size:12px; }
 .afetados__meta { width:100%; color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }
-.unit-list__escolha { display:flex; flex-wrap:wrap; align-items:center; gap:7px; width:100%; padding:6px 7px; border:1px solid transparent; border-radius:var(--im-radius); background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
-.unit-list__escolha:hover,.unit-list__escolha:focus-visible { border-color:var(--im-border-strong); background:var(--im-surface); }
-.unit-list__escolha--ativa { border-color:var(--im-primary); background:var(--im-surface); }
+
+/* "Ver estado inteiro" (D20): abaixo do NavigationControl (3 botões de 26px a 10px do topo). Fundo
+ * de tema e não literal: está sobre o cartão, não sobre o canvas desenhado. */
+.map__voltar { position:absolute; top:104px; right:10px; z-index:5; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 
 /* --- Legenda 3D e regiao viva (N05) -------------------------------------------------- */
 .legend__nota { display:flex; align-items:flex-start; gap:7px; margin:9px 0 0; color:var(--im-text-muted); font-size:11px; line-height:1.45; }

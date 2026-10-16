@@ -10,6 +10,9 @@
     @if (state() === 'loading') { <div class="map-loading" role="status">Carregando cartografia e dados operacionais…</div> }
     @else if (state() === 'error') { <div class="map-feedback map-feedback--error" role="alert"><strong>Mapa indisponível</strong><p>{{ error() }}</p><button class="botao" type="button" (click)="load()">Tentar novamente</button></div> }
     @else { <div #host class="map" role="img" aria-label="Municípios de Sergipe e respectivas unidades operacionais"></div> }
+    <!-- Caminho de volta do zoom por município (D20). Só aparece fora do enquadramento inicial.
+         Escape com foco no mapa faz o mesmo. Duplo clique descartado: é o zoom nativo do MapLibre. -->
+    @if ((state() === 'success' || state() === 'empty') && foraDoEnquadramento()) { <button class="botao map__voltar" type="button" (click)="verEstadoInteiro()">Ver estado inteiro</button> }
     <!-- A seleção acontece dentro do canvas WebGL: sem esta região viva, quem usa leitor de tela
          não recebe nenhum retorno ao acionar um município pelo teclado. -->
     <p class="map-sr" role="status" aria-live="polite">{{ anuncio() }}</p>
@@ -20,9 +23,6 @@
         <p class="geo-status__foot">{{ plural(totalUnidades(), 'unidade monitorada', 'unidades monitoradas') }}</p>
       </div>
     }
-    <!-- Municipio com exatamente uma unidade nao aparece aqui: o painel da unidade abaixo ja diz
-         tudo que este bloco diria, e repetir o nome duas vezes so alonga a coluna. -->
-    @if (selected(); as municipio) { @if (municipio.units.length !== 1) { <div class="map-feedback selected-panel"><strong>{{ municipio.nome }}</strong>@if (municipio.units.length === 0) { <p>Nenhuma unidade cadastrada neste município.</p> } @else { <p>{{ plural(municipio.units.length, 'unidade', 'unidades') }} neste município. Escolha uma para ver o detalhe.</p><ul class="unit-list">@for (unit of municipio.units; track unit.id) { <li><button class="unit-list__escolha" type="button" [class.unit-list__escolha--ativa]="unidadeSelecionada()?.id === unit.id" [attr.aria-pressed]="unidadeSelecionada()?.id === unit.id" (click)="selectUnidade(unit)"><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /> <span>{{ plural(unit.equipamentosTotal, 'equipamento', 'equipamentos') }}</span></button></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Gerenciar unidades</button> }</div> } }
     @if (unidadeSelecionada(); as unidade) {
       <div class="unit-panel"><p class="panel-label">UNIDADE SELECIONADA</p>
         <strong class="unit-panel__nome">{{ unidade.nome }}</strong>
