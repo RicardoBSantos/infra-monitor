@@ -1,6 +1,6 @@
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, arcoEntre, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { agruparUnidades, arcoEntre, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
@@ -246,6 +246,26 @@ describe('cliqueVeioDeMarcador',()=>{
   it('canvas e null não são marcador',()=>{
     expect(cliqueVeioDeMarcador(document.createElement('canvas'))).toBe(false);
     expect(cliqueVeioDeMarcador(null)).toBe(false);
+  });
+});
+
+describe('limites do enquadramento (zoom por clique, D20)',()=>{
+  const com=(id:number,lng:number|null,lat:number|null):DashboardUnidade=>({...unit,id,longitude:lng,latitude:lat});
+  const mun=(units:DashboardUnidade[]):MapMunicipio=>({...municipio('2800308','Aracaju'),units});
+  const poligono=[[-38,-11],[-37,-10]];
+  it('0 unidades: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([]))).toEqual(poligono as never); });
+  it('1 unidade: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5)]))).toEqual(poligono as never); });
+  it('2+ unidades com coordenada: envelope das unidades',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.6,-10.4),com(2,-37.4,-10.6),com(3,-37.5,-10.5)]))).toEqual([[-37.6,-10.6],[-37.4,-10.4]]);
+  });
+  it('2 unidades no mesmo ponto: envelope degenerado, usa o poligono',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,-37.5,-10.5)]))).toEqual(poligono as never);
+  });
+  it('2 unidades, uma sem coordenada: so 1 conta, usa o poligono',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,null,null)]))).toEqual(poligono as never);
+  });
+  it('coordenada 0 e valida: 2 unidades na linha do equador enquadram as unidades',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,0),com(2,-37.4,0)]))).toEqual([[-37.5,0],[-37.4,0]]);
   });
 });
 

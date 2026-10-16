@@ -260,11 +260,14 @@ const ASPECTO_PLENO = 0.96;
 const ASPECTO_MINIMO = 0.75;
 
 /**
- * Teto do zoom ao clicar num município (D20). Sem ele, município pequeno iria a zoom de rua e o
- * operador perderia a referência dos vizinhos. Medido no e2e:n08 contra Aracaju: com o teto, os
- * quatro marcadores ficam a >= 60px do vizinho mais próximo — clicáveis um a um (DV09).
+ * Teto do zoom ao clicar num município (D20). Sem ele, município pequeno (ou de uma unidade só) iria
+ * a zoom de rua e o operador perderia a referência dos vizinhos. Medido no e2e:n08 contra Aracaju
+ * (1600x900, as 4 unidades enquadradas): teto 11,5 deixava o vizinho mais próximo a 34,0px (o teto
+ * mandava); de 12,5 em diante o envelope das unidades é que limita o zoom e o número estabiliza em
+ * 62,1px (12,7 e 13 deram o mesmo). 12,5 fica logo acima do zoom de ajuste de Aracaju (~12,4): ela
+ * entra inteira no cartão e o teto só atua em município cujas unidades estejam coladas.
  */
-const ZOOM_MAXIMO_MUNICIPIO = 11.5;
+const ZOOM_MAXIMO_MUNICIPIO = 12.5;
 /** Duração das transições de câmera disparadas por clique. Zero sob `prefers-reduced-motion`. */
 const DURACAO_CAMERA_MS = 600;
 /** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
@@ -472,6 +475,22 @@ export function limitesDoMunicipio(geometria: { coordinates: unknown }): [[numbe
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   percorrerCoordenadas(geometria, ([x, y]) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); });
   return Number.isFinite(minX) ? [[minX, minY], [maxX, maxY]] : null;
+}
+
+/**
+ * O que o zoom por município enquadra (D20). Com 2+ unidades de coordenada conhecida, o envelope
+ * delas: ele está contido no polígono, então só aproxima mais, e é nas unidades que o operador
+ * clica. Com 0 ou 1 unidade (ou várias no mesmo ponto, envelope sem área nem largura) o polígono
+ * é a única referência que sobra. Coordenada 0 é válida: nunca testar por veracidade.
+ */
+export function limitesDoEnquadramento(municipio: MapMunicipio): [[number, number], [number, number]] | null {
+  const pontos = municipio.units.map(coordenadaDaUnidade).filter((c): c is [number, number] => c !== null);
+  if (pontos.length >= 2) {
+    const lngs = pontos.map(p => p[0]), lats = pontos.map(p => p[1]);
+    const minX = Math.min(...lngs), maxX = Math.max(...lngs), minY = Math.min(...lats), maxY = Math.max(...lats);
+    if (maxX > minX || maxY > minY) return [[minX, minY], [maxX, maxY]];
+  }
+  return limitesDoMunicipio(municipio.feature.geometry);
 }
 
 /** Centro do envelope do municipio. Nao e o polo de inacessibilidade: em municipio concavo pode cair fora. */
@@ -701,6 +720,9 @@ export class MapaComponent implements OnDestroy {
     // Gesto do operador (arraste, roda, botões do NavigationControl) tira a câmera do enquadramento
     // inicial: o "Ver estado inteiro" aparece. Movimento programático não tem `originalEvent`.
     map.on('movestart', evento => { if (evento.originalEvent) this.foraDoEnquadramento.set(true); });
+    // Rotação/redimensionamento mantinha o zoom da moldura anterior (montado em desktop, o celular
+    // abria cortado). Reenquadra o estado; se o operador já mexeu na câmera, respeita (D20).
+    map.on('resize', () => { if (!this.foraDoEnquadramento()) this.enquadrarEstado(false); });
     elemento.addEventListener('keydown', evento => {
       if (evento.key !== 'Escape' || !this.foraDoEnquadramento()) return;
       evento.preventDefault();
@@ -870,7 +892,10 @@ export class MapaComponent implements OnDestroy {
   }
 
   /**
-   * Clique (ou Enter no alvo invisível) num município: aproxima nele (D20). Não é mais seleção —
+   * Clique (ou Enter no alvo invisível) num município: aproxima nele (D20). Com várias unidades
+   * enquadra o envelope delas e não o polígono: o polígono de Aracaju é grande e deixava os quatro
+   * marcadores a 15px um do outro; o envelope das unidades está contido nele, então só aproxima
+   * mais. Com 0–1 unidade o polígono é a única referência (ver `limitesDoEnquadramento`). Não é mais seleção —
    * o município não carrega estado (D15) nem seleção (D17); o painel da unidade aberta fica como
    * está. Resolve o aglomerado de Aracaju: aproximado, cada marcador fica clicável. Município sem
    * unidade aproxima igual; o anúncio diz que não há unidade.
@@ -878,7 +903,7 @@ export class MapaComponent implements OnDestroy {
   private aproximarMunicipio(municipio: MapMunicipio): void {
     this.anuncio.set(`${rotuloDoMunicipio(municipio)}. Mapa aproximado.`);
     const map = this.map;
-    const limites = limitesDoMunicipio(municipio.feature.geometry);
+    const limites = limitesDoEnquadramento(municipio);
     if (!map || !limites) return;
     map.fitBounds(limites, { padding: PADDING_MUNICIPIO, bearing: BEARING, pitch: PITCH, maxZoom: ZOOM_MAXIMO_MUNICIPIO,
       linear: true, duration: animacaoReduzida() ? 0 : DURACAO_CAMERA_MS });
