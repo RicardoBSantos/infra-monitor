@@ -52,6 +52,33 @@ const lerAlvos = (page) => page.evaluate(() => [...document.querySelectorAll('.m
   };
 }));
 
+/** Foca o último controle focável ANTES do cartão do mapa (o "Atualizar" foi para o painel, D20). */
+const focarAntesDoMapa = (page) => page.evaluate(() => {
+  const cartao = document.querySelector('.map-card');
+  const focaveis = [...document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+    .filter((e) => e.tabIndex >= 0 && !e.disabled && e.getClientRects().length > 0)
+    .filter((e) => cartao.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_PRECEDING);
+  if (!focaveis.length) throw new Error('nenhum focável antes do mapa');
+  focaveis[focaveis.length - 1].focus();
+});
+
+/** Distância na tela entre dois alvos de referência: mede o zoom sem expor o objeto do mapa. */
+const distanciaEntre = (alvos, a, b) => {
+  const pa = alvos.find((x) => x.codigo === a.codigo); const pb = alvos.find((x) => x.codigo === b.codigo);
+  return Math.hypot(pa.x - pb.x, pa.y - pb.y);
+};
+
+/** /mapa -> /mapa não remonta: sair e voltar por clique devolve o enquadramento inicial e zera a seleção. */
+const remontarMapa = async (page) => {
+  await page.click('a[href="/dashboard"]');
+  await page.waitForURL(/\/dashboard$/, { timeout: 20000 });
+  await page.click('a[href="/mapa"]');
+  await page.waitForURL(/\/mapa$/, { timeout: 20000 });
+  await page.waitForSelector('.maplibregl-canvas', { timeout: 30000 });
+  await page.waitForFunction(() => document.querySelectorAll('.map__alvo').length > 1, null, { timeout: 30000 });
+  await page.waitForTimeout(2500);
+};
+
 const focado = (page) => page.evaluate(() => {
   const alvo = document.activeElement;
   return alvo ? {
@@ -104,9 +131,10 @@ const focado = (page) => page.evaluate(() => {
      * 3 e 4 — adaptação em relação ao spike, e a razão fica registrada aqui: na página avulsa o
      * mapa era o único conteúdo e bastava o primeiro Tab do documento. Na aplicação real há menu
      * lateral e cabeçalho antes do cartão, então o Tab parte do último controle ANTES do mapa (o
-     * botão "Atualizar"). A ordem provada é a mesma; o ponto de partida é que mudou.
+     * botão "Atualizar"; desde D20 ele foi para o painel, depois do mapa, e o ponto de partida passou a ser
+     * o último focável do shell). A ordem provada é a mesma; o ponto de partida é que mudou.
      */
-    await page.locator('.map-page__header .botao').focus();
+    await focarAntesDoMapa(page);
     await page.keyboard.press('Tab');
     const stopDoMapa = await focado(page);
     checar(3, 'canvas do mapa é o primeiro stop do cartão (igual ao container do Leaflet)',
@@ -118,15 +146,23 @@ const focado = (page) => page.evaluate(() => {
       primeiro.alvoDeMapa && primeiro.rotulo === alvos[0].rotulo, JSON.stringify(primeiro));
 
     // --------------------------------------------------------------- 5, 6, 7
+    /*
+     * 5 e 6 — D20: Enter/Espaço no município focado APROXIMA a câmera até ele; não seleciona mais
+     * (o alvo não tem aria-pressed, a seleção é só da unidade, no marcador). O zoom é medido pela
+     * distância na tela entre dois alvos de referência (o objeto do mapa não é exposto): ela cresce.
+     */
+    const ref = [alvos[0], alvos[1]];
+    const distAntes = distanciaEntre(await lerAlvos(page), ref[0], ref[1]);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1200);
     const depoisDoEnter = await lerAlvos(page);
-    checar(5, 'Enter seleciona o município focado',
-      depoisDoEnter.filter((a) => a.pressionado).map((a) => a.codigo).join(',') === primeiro.codigo,
-      `pressionados: ${depoisDoEnter.filter((a) => a.pressionado).map((a) => a.rotulo).join(', ') || '(nenhum)'}`);
+    const distDepois = distanciaEntre(depoisDoEnter, ref[0], ref[1]);
+    checar(5, 'Enter no município focado aproxima o mapa',
+      distDepois > distAntes,
+      `distância entre os dois primeiros alvos ${Math.round(distAntes)}px -> ${Math.round(distDepois)}px`);
 
     const focoDepois = await focado(page);
-    checar(6, 'foco permanece no município após selecionar', focoDepois.codigo === primeiro.codigo, JSON.stringify(focoDepois));
+    checar(6, 'foco permanece no município após aproximar', focoDepois.codigo === primeiro.codigo, JSON.stringify(focoDepois));
 
     const anuncio = (await page.textContent('.map-sr')).trim();
     checar(7, 'mudança é anunciada em aria-live', anuncio.includes(primeiro.rotulo.split(':')[0]), `"${anuncio}"`);
@@ -134,16 +170,28 @@ const focado = (page) => page.evaluate(() => {
     // --------------------------------------------------------------- 8
     await page.keyboard.press('Tab');
     const segundo = await focado(page);
+    /*
+     * O Enter do caso 5 já deixou `.map__voltar` na tela, então ele nada provaria para o Espaço.
+     * Volta ao enquadramento inicial (some o botão), devolve o foco ao segundo município e só então
+     * exige zoom real (par de referência cresce >= 1,3x) e o botão reaparecendo.
+     */
+    await page.click('.map__voltar');
+    await page.waitForFunction(() => !document.querySelector('.map__voltar'), null, { timeout: 5000 });
+    await page.waitForTimeout(1000);
+    await page.locator(`.map__alvo[data-codigo-ibge="${segundo.codigo}"]`).focus();
+    const antesDoEspaco = await lerAlvos(page);
+    const dist8a = distanciaEntre(antesDoEspaco, ref[0], ref[1]);
     await page.keyboard.press('Space');
-    await page.waitForTimeout(800);
-    const depoisDoEspaco = await lerAlvos(page);
-    checar(8, 'Espaço seleciona o município focado',
-      depoisDoEspaco.filter((a) => a.pressionado).map((a) => a.codigo).join(',') === segundo.codigo,
-      `pressionados: ${depoisDoEspaco.filter((a) => a.pressionado).map((a) => a.rotulo).join(', ') || '(nenhum)'}`);
+    await page.waitForTimeout(1200);
+    const dist8b = distanciaEntre(await lerAlvos(page), ref[0], ref[1]);
+    checar(8, 'Espaço no município focado aproxima o mapa (>= 1,3x) e "Ver estado inteiro" reaparece',
+      dist8b >= dist8a * 1.3 && (await page.locator('.map__voltar').count()) === 1,
+      `${Math.round(dist8a)}px -> ${Math.round(dist8b)}px (${(dist8b / dist8a).toFixed(2)}x); voltar=${await page.locator('.map__voltar').count()}`);
 
     // --------------------------------------------------------------- 9
-    checar(9, 'apenas um município marcado por vez', depoisDoEspaco.filter((a) => a.pressionado).length === 1,
-      `${depoisDoEspaco.filter((a) => a.pressionado).length} marcados`);
+    const marcados9 = await page.locator('.map__alvo[aria-pressed]').count();
+    checar(9, 'nenhum alvo de município carrega aria-pressed (a seleção é da unidade)', marcados9 === 0,
+      `${marcados9} alvos com aria-pressed`);
 
     // --------------------------------------------------------------- 10 e 11 (roda do mouse não move o foco)
     await page.evaluate(() => document.querySelectorAll('.map__alvo').forEach((b) => { b.dataset.marcaN05 = '1'; }));
@@ -192,22 +240,28 @@ const focado = (page) => page.evaluate(() => {
      * Comportamentos que eram testados em jsdom e passaram para cá com a migração.
      * =================================================================================== */
 
-    // Recarrega o mapa para voltar ao enquadramento padrão antes das evidências visuais.
-    await page.click('.map-page__header .botao');
-    await page.waitForTimeout(3000);
+    // "Atualizar" (agora .map-panel__topo .botao, depois do mapa) recarrega os dados; como os zooms
+    // acima moveram a câmera e /mapa -> /mapa não remonta, remontar devolve o enquadramento padrão.
+    await page.click('.map-panel__topo .botao');
+    await page.waitForTimeout(2000);
+    await remontarMapa(page);
 
     // --------------------------------------------------------------- 15 e 16
-    const umaUnidade = (await lerAlvos(page)).find((a) => /: 1 unidade\(s\)/.test(a.rotulo));
-    if (!umaUnidade) {
-      checar(15, 'município com uma única unidade seleciona a unidade e abre o painel', false,
-        'nenhum município com exatamente 1 unidade no banco de dev');
+    /*
+     * D20: o marcador da unidade abre o painel direto (não existe mais `.selected-panel` nem etapa
+     * de escolha). `locator.click()` em `.map__unidade` pode não selecionar; `el.click()` aciona o
+     * handler do Marker (mesma técnica do n07).
+     */
+    if ((await page.locator('.map__unidade').count()) === 0) {
+      checar(15, 'clique no marcador abre o painel da unidade', false, 'nenhum marcador de unidade');
     } else {
-      await page.click(`.map__alvo[data-codigo-ibge="${umaUnidade.codigo}"]`);
+      await page.evaluate(() => document.querySelector('.map__unidade').click());
       await page.waitForSelector('.unit-panel', { timeout: 10000 });
       await page.waitForTimeout(1500);
       const painel = (await page.textContent('.unit-panel')).replace(/\s+/g, ' ');
-      checar(15, 'município com uma única unidade seleciona a unidade e abre o painel',
-        painel.includes('UNIDADE SELECIONADA') && painel.includes('EQUIPAMENTOS AFETADOS'), painel.slice(0, 140));
+      checar(15, 'clique no marcador abre o painel da unidade, sem etapa de escolha',
+        painel.includes('UNIDADE SELECIONADA') && painel.includes('EQUIPAMENTOS AFETADOS')
+          && (await page.locator('.selected-panel').count()) === 0, painel.slice(0, 140));
     }
 
     const afetados = await page.locator('.afetados__item').count();
@@ -216,19 +270,34 @@ const focado = (page) => page.evaluate(() => {
       afetados > 0 || semAfetados > 0, `itens=${afetados} vazio=${semAfetados}`);
 
     // --------------------------------------------------------------- 17
-    const varias = (await lerAlvos(page)).find((a) => /: ([2-9]|\d\d+) unidade\(s\)/.test(a.rotulo));
+    /*
+     * Antes: município com 2+ unidades pedia escolha antes do painel. Agora o clique no município
+     * só aproxima a câmera: nada de `.selected-panel`, e `.unit-panel` não aparece por causa dele.
+     * Parte de um mapa remontado para o painel do caso 15 não contaminar a contagem.
+     */
+    await remontarMapa(page);
+    const varias = (await lerAlvos(page)).find((a) => /: ([2-9]|\d\d+) unidades$/.test(a.rotulo)); // rótulo real: "Aracaju: 4 unidades"
     if (!varias) {
-      checar(17, 'município com mais de uma unidade pede escolha antes do painel', true,
+      checar(17, 'clique no município com 2+ unidades aproxima sem abrir painel', true,
         'NÃO APLICÁVEL: nenhum município com 2+ unidades no banco de dev');
     } else {
+      const todos = await lerAlvos(page);
+      const refs = todos.filter((a) => a.codigo !== varias.codigo).slice(0, 2);
+      const d0 = distanciaEntre(todos, refs[0], refs[1]);
       await page.click(`.map__alvo[data-codigo-ibge="${varias.codigo}"]`);
-      await page.waitForSelector('.selected-panel', { timeout: 10000 });
-      checar(17, 'município com mais de uma unidade pede escolha antes do painel',
-        (await page.locator('.unit-panel').count()) === 0,
-        `escolhas=${await page.locator('.unit-list__escolha').count()}`);
-      await page.locator('.unit-list__escolha').first().click();
-      await page.waitForSelector('.unit-panel', { timeout: 10000 });
+      await page.waitForTimeout(1200);
+      const d1 = distanciaEntre(await lerAlvos(page), refs[0], refs[1]);
+      const selecionados = await page.locator('.selected-panel').count();
+      const paineis = await page.locator('.unit-panel').count();
+      checar(17, 'clique no município com 2+ unidades aproxima sem abrir painel',
+        d1 > d0 && selecionados === 0 && paineis === 0 && (await page.locator('.map__voltar').count()) === 1,
+        `zoom ${Math.round(d0)}px -> ${Math.round(d1)}px; selected-panel=${selecionados}; unit-panel=${paineis}`);
+      await page.click('.map__voltar');
+      await page.waitForTimeout(1000);
     }
+    // O caso 18 precisa de painel aberto: marcador direto.
+    await page.evaluate(() => document.querySelector('.map__unidade').click());
+    await page.waitForSelector('.unit-panel', { timeout: 10000 });
 
     // --------------------------------------------------------------- 18
     await page.click('.unit-panel__acoes .botao--primario');
@@ -241,6 +310,9 @@ const focado = (page) => page.evaluate(() => {
     await page.waitForTimeout(3500);
     await page.screenshot({ path: path.join(OUT, '01-tela-inteira.png') });
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-cartao-sem-faixa-morta.png') });
+    // D20: a legenda nasce recolhida; a evidência é com ela aberta.
+    await page.click('summary.legend-bloco__resumo');
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
     await page.locator('.map-panel').screenshot({ path: path.join(OUT, '03-legenda.png') });
 
     /*
@@ -259,40 +331,28 @@ const focado = (page) => page.evaluate(() => {
 
     // ------------------------------------------------------ 20 (seleção vive só no marcador, D17)
     /*
-     * Reescrito de novo, e agora pelo motivo oposto: o anel lilás em volta do polígono SAIU (D17).
-     * O município é cartografia neutra, e um contorno de 3px cercando meia tela afirmava sobre a
-     * região no exato instante em que o dado é a unidade.
-     *
-     * O que o check prova mudou junto. Antes: que o anel cercava o polígono. Agora: que a seleção
-     * continua inteira sem ele — exatamente um município com `aria-pressed`, e o marcador da
-     * unidade marcado também, que é onde o lilás agora vive.
+     * O anel lilás em volta do polígono saiu (D17): o município é cartografia neutra, e um contorno
+     * cercando meia tela afirmava sobre a região no instante em que o dado é a unidade. Em D20 o
+     * município também deixou de ser selecionável (clique = zoom), então a seleção inteira é a do
+     * marcador da unidade.
      */
-    const comUnidade = (await lerAlvos(page))
-      .map((a) => ({ ...a, unidades: Number((a.rotulo.match(/: (\d+) unidade/) ?? [])[1] ?? 0) }))
-      .filter((a) => a.unidades > 0);
-    const escolhido = comUnidade[0];
-    if (!escolhido) {
-      checar(20, 'seleção por clique marca o município sem tocar no polígono', false, 'nenhum município com unidade');
+    if ((await page.locator('.map__unidade').count()) === 0) {
+      checar(20, 'clique no marcador marca exatamente uma unidade', false, 'nenhum marcador');
     } else {
-      await page.click(`.map__alvo[data-codigo-ibge="${escolhido.codigo}"]`);
+      /*
+       * D20: a seleção é só do marcador e acontece num clique (sem escolha pelo painel). Prova:
+       * exatamente 1 `.map__unidade[aria-pressed="true"]` e NENHUM alvo de município com aria-pressed.
+       */
+      await page.evaluate(() => document.querySelector('.map__unidade').click());
       await page.waitForTimeout(1800);
       await page.locator('.map-card').screenshot({ path: path.join(OUT, '04-selecao-no-marcador.png') });
-      // Recorte fechado no município selecionado: é onde se veria o anel, se ele ainda existisse.
-      // A captura serve agora para provar a ausência — polígono idêntico ao dos vizinhos.
+      const m = await page.locator('.map__unidade').first().boundingBox();
       await page.screenshot({ path: path.join(OUT, '05-municipio-de-perto.png'),
-        clip: { x: Math.max(0, escolhido.x - 210), y: Math.max(0, escolhido.y - 210), width: 420, height: 420 } });
-      checar(20, 'seleção por clique marca exatamente um município',
-        (await lerAlvos(page)).filter((a) => a.pressionado).length === 1, escolhido.rotulo);
-      /*
-       * O lilás mudou de portador: quem o carrega agora é o marcador da unidade. Aracaju — o de
-       * maior área com unidade — tem quatro, e município de várias não escolhe nenhuma de
-       * propósito: pede a escolha. A escolha vai pelo painel, e não por clique no marcador, porque
-       * os quatro marcadores de Aracaju se sobrepõem na tela (DV09) e o clique cai no vizinho.
-       */
-      await page.locator('.selected-panel .unit-list__escolha').first().click();
-      await page.waitForTimeout(300);
+        clip: { x: Math.max(0, m.x - 210), y: Math.max(0, m.y - 210), width: 420, height: 420 } });
       const marcados = await page.locator('.map__unidade[aria-pressed="true"]').count();
-      checar(20, 'a seleção aparece no marcador da unidade, não no polígono', marcados === 1, `${marcados} marcador(es)`);
+      const alvosPressionados = await page.locator('.map__alvo[aria-pressed]').count();
+      checar(20, 'a seleção aparece só no marcador da unidade; nenhum município fica pressionado',
+        marcados === 1 && alvosPressionados === 0, `${marcados} marcador(es), ${alvosPressionados} alvo(s) com aria-pressed`);
     }
 
     checar(0, 'nenhum erro de página no roteiro inteiro', erros.length === 0, erros.join(' | '));

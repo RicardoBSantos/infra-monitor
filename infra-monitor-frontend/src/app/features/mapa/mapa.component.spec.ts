@@ -1,6 +1,6 @@
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, arcoEntre, camadasDeConexao, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { agruparUnidades, arcoEntre, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
@@ -246,5 +246,49 @@ describe('cliqueVeioDeMarcador',()=>{
   it('canvas e null não são marcador',()=>{
     expect(cliqueVeioDeMarcador(document.createElement('canvas'))).toBe(false);
     expect(cliqueVeioDeMarcador(null)).toBe(false);
+  });
+});
+
+describe('limites do enquadramento (zoom por clique, D20)',()=>{
+  const com=(id:number,lng:number|null,lat:number|null):DashboardUnidade=>({...unit,id,longitude:lng,latitude:lat});
+  const mun=(units:DashboardUnidade[]):MapMunicipio=>({...municipio('2800308','Aracaju'),units});
+  // Envelope do poligono de Aracaju no fixture: lng -38..-37, lat -11..-10.
+  const doPoligono={limites:[[-38,-11],[-37,-10]],porUnidades:false} as ReturnType<typeof limitesDoEnquadramento>;
+  it('0 unidades: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([]))).toEqual(doPoligono); });
+  it('1 unidade: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5)]))).toEqual(doPoligono); });
+  it('2+ unidades dentro do poligono: envelope das unidades',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.6,-10.4),com(2,-37.4,-10.6),com(3,-37.5,-10.5)]))).toEqual({limites:[[-37.6,-10.6],[-37.4,-10.4]],porUnidades:true});
+  });
+  it('2 unidades no mesmo ponto: envelope degenerado, usa o poligono',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,-37.5,-10.5)]))).toEqual(doPoligono);
+  });
+  it('degenerado so num eixo (mesma longitude): ainda enquadra as unidades',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.4),com(2,-37.5,-10.6)]))).toEqual({limites:[[-37.5,-10.6],[-37.5,-10.4]],porUnidades:true});
+  });
+  it('2 unidades, uma sem coordenada: so 1 conta, usa o poligono',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,null,null)]))).toEqual(doPoligono);
+  });
+  it('unidade com coordenada fora do municipio (IBGE divergente): usa o poligono',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,-36,-10.5)]))).toEqual(doPoligono);
+  });
+  it('coordenada 0 e valida: unidades na linha do equador dentro do poligono enquadram as unidades',()=>{
+    const equador:MapMunicipio={...mun([com(1,-1,0),com(2,-0.5,0)]),feature:{...geoJson.features[0],geometry:{type:'Polygon',coordinates:[[[-2,-1],[0,-1],[0,1],[-2,-1]]]}} as never};
+    expect(limitesDoEnquadramento(equador)).toEqual({limites:[[-1,0],[-0.5,0]],porUnidades:true});
+  });
+});
+
+describe('limites do municipio (zoom por clique)',()=>{
+  it('devolve o envelope de um Polygon como [[minLng,minLat],[maxLng,maxLat]]',()=>{
+    expect(limitesDoMunicipio(geoJson.features[0].geometry)).toEqual([[-38,-11],[-37,-10]]);
+  });
+  it('cobre todas as partes de um MultiPolygon',()=>{
+    const multi={coordinates:[[[[-38,-10],[-37.5,-10],[-37.5,-10.5],[-38,-10]]],[[[-37,-11],[-36.5,-11],[-36.5,-11.5],[-37,-11]]]]};
+    expect(limitesDoMunicipio(multi)).toEqual([[-38,-11.5],[-36.5,-10]]);
+  });
+  it('geometria vazia nao tem envelope',()=>{
+    expect(limitesDoMunicipio({coordinates:[]})).toBeNull();
+  });
+  it('o centroide continua sendo o centro do mesmo envelope',()=>{
+    expect(centroideAproximado(geoJson.features[0].geometry)).toEqual([-37.5,-10.5]);
   });
 });

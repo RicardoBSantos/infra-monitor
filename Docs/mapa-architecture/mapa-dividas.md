@@ -110,6 +110,13 @@ com duas unidades no mesmo quarteirão, os marcadores se sobrepõem e o de cima 
 **Não resolvido de propósito:** clustering muda o que o mapa mostra (um marcador que não é uma
 unidade) e é decisão de produto, não ajuste. Fica registrado para quando o dado exigir.
 
+**Nota (D20), não fecha a dívida:** o desempate passou a existir **por interação**. Clicar no
+município aproxima, e município de várias unidades enquadra as próprias unidades: em Aracaju o
+vizinho mais próximo vai de 15,2px (zoom pelo polígono) para 62,1px, e o clique físico abre cada uma
+das quatro (`e2e:n08` caso 9). No zoom de estado elas continuam a ~30px. Clustering continua sendo
+a resposta se o dado crescer — duas unidades no mesmo quarteirão empatam mesmo aproximadas, porque o
+teto `ZOOM_MAXIMO_UNIDADES` (12,5) para antes da escala de rua.
+
 ---
 
 ## DV10 — Contagem de equipamentos perdeu o sinal ambiente no mapa
@@ -128,6 +135,10 @@ função do marcador).
 a clicar município por município. Aí a pergunta é qual canal — coroa proporcional no marcador,
 coluna na lista, ou um modo de visualização alternativo — e não ressuscitar a extrusão.
 
+**Nota (D20):** a "contagem na lista de município com várias unidades" saiu junto com a lista — o
+clique no marcador abre direto a unidade. Sob demanda, o número agora está no KPI do painel e no
+`aria-label` do marcador. O sinal ambiente ficou mais fraco, não mais forte.
+
 ---
 
 ## DV11 — Folga vertical de ~20% no cartão do mapa
@@ -140,6 +151,11 @@ faixa morta (que é sobra concentrada de um lado), é proporção entre a forma 
 **Quando cobrar:** se o cartão mudar de proporção outra vez, ou se a cartografia deixar de ser só
 Sergipe (ver DV01). Nos dois casos, `ZOOM_AO_INCLINAR` e `OFFSET_CAMERA` têm de ser **remedidos**,
 nunca herdados — é a terceira vez que esses dois valores mudam por mudança alheia a eles.
+
+**Nota (D20) — quarta remedição.** O cartão passou a ocupar a altura da viewport e ficou quase
+quadrado; a folga vertical subiu para ~16% em cima e embaixo, equilibrada. E a remedição achou que
+o `OFFSET_CAMERA` em y nunca tinha agido (`easeTo` com offset e sem `center` se anula): valores em
+vigor `[0, -28]` e `0.42`, agora escalados pela proporção do cartão (zero abaixo de 0,75). Ver D20.
 
 
 ---
@@ -278,3 +294,32 @@ O par miolo × mapa que esta dívida citava (1,22:1) virou 3,41:1. Isso muda o i
 gradiente em si não foi remedido** nesta rodada — não há número novo para o par disco × mapa depois
 do `color-mix`. Continua **aberta** até a próxima captura comparativa, agora com a cor-base já
 clareada.
+
+---
+
+## DV17 — Equipamentos da unidade respondem 500 sob concorrência
+**Origem:** D20, achado do `e2e:n08` na primeira execução. **Backend, fora do escopo do Mapa.**
+
+`GET /dashboard/unidades/{id}/equipamentos?size=200&sort=nome` — a chamada que o painel faz ao
+selecionar uma unidade — devolveu 500 (`INTERNAL_ERROR`, "Erro interno do servidor") em 92 de 121
+chamadas disparadas ao mesmo tempo; as mesmas 55 chamadas em sequência deram 200. Depende de
+concorrência, não de unidade. A causa não foi lida: o log do backend em execução não estava
+disponível. Hipótese a conferir primeiro: esgotamento do pool (`DB_POOL_SIZE`).
+
+**Na tela:** cada clique de marcador faz uma chamada e descarta a resposta fora de ordem, então o
+uso normal não chega perto disso; clicar rápido em vários marcadores pode mostrar "Não foi possível
+consultar os equipamentos desta unidade" com "Tentar novamente".
+
+**Quando cobrar:** antes da carga real, ou na primeira queixa de painel de unidade falhando.
+
+---
+
+## DV18 — Topbar estoura a largura em ≤1280px
+**Origem:** D20, medido pelo `e2e:n08`. **Layout compartilhado, fora do escopo do Mapa.**
+
+Rolagem horizontal do documento: 16px em 1280, 48px em 1024, 65px em 390 — em todas as telas, não
+só no Mapa (reproduzido em `/dashboard`). Causa: os itens da topbar (relógio, chips, botão de sair)
+não encolhem. O `e2e:n08` prova que o Mapa em si não estoura (`.map-page` e `.shell__main` com
+excedente horizontal 0) e registra o do documento como pré-existente, sem falhar.
+
+**Quando cobrar:** na próxima rodada de layout do shell, ou antes de uso em tablet.

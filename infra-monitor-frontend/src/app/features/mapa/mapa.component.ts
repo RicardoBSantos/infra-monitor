@@ -204,14 +204,14 @@ function animacaoReduzida(): boolean {
  * usa, ele é o elemento mais chamativo do desenho justamente no instante do clique, e o dado ali é
  * a unidade, não a região.
  *
- * A seleção continua inteira, só que no marcador: `aria-pressed` nos dois marcadores (o alvo
- * invisível do município e o da unidade), anel na cor do status em
+ * A seleção continua inteira, só que no marcador: `aria-pressed` só no marcador de unidade (o
+ * alvo invisível do município não tem seleção desde D20), anel na cor do status em
  * `.map__unidade[aria-pressed='true']` (D19 — era lilás fixo até D18) e o
  * painel lateral. Nenhum canal saiu — e o anel de seleção continua vivo no SCSS, onde a superfície
  * embaixo dele tem 13px e não meio estado.
  *
  * Com a camada `municipio-selecionado` foi embora a única razão de a marcação de seleção esperar o
- * estilo do mapa carregar: `marcarMunicipio` mexe só em atributo de DOM.
+ * estilo do mapa carregar: a marcação (`marcarUnidade`) mexe só em atributo de DOM.
  */
 
 /** Inclinação padrão da experiência — não é toggle: em pitch 0 o mapa é o Leaflet de antes. */
@@ -221,31 +221,62 @@ const BEARING = -18;
 /**
  * Offset da câmera, em pixels de tela: recentra o desenho depois da compensação de zoom.
  *
- * Recalibrado do zero — 82 vinha de N05 e 40 do spike, e os dois compensavam o encolhimento do
- * BLOCO inclinado, problema que não existe mais. Herdá-los teria mantido correção sem causa. Os
- * valores atuais saíram de medição por pixel do desenho contra o fundo do próprio cartão (o canvas
- * não é legível in-page: `preserveDrawingBuffer` está desligado), varrendo zoom e offset até topo
- * e base ficarem equilibrados: 10,9% contra 9,3% em 1500x950, 10,8% contra 10,0% em 1700x907,
- * 10,9% contra 12,4% em 1280x800.
+ * Remedido em D20, com o cartão ocupando a viewport (~862px de altura em 1500x950, e não mais um
+ * clamp). Dois fatos medidos, que mudam a leitura dos valores antigos:
  *
- * O `-24` em x é o único valor novo: com `bearing -18` o estado deitado desloca-se para a esquerda
- * quando a câmera sobe, e sem ele a ponta oeste ficava a 4px da borda (0,4% de folga contra 5,7%
- * do outro lado). Com ele, 2,2% contra 4,1%.
+ * 1. Antes de D20 este offset NÃO FAZIA NADA em y. Era passado a um `easeTo({ zoom, offset })` sem
+ *    `center`, e o MapLibre calcula o centro a partir do próprio offset, então o deslocamento se
+ *    anulava (60 contra 0 mexia ~1,5 p.p.). O equilíbrio que N06 media vinha só do `fitBounds`.
+ *    Agora o `easeTo` único leva o `center` de `cameraForBounds` e o offset passa a valer.
+ * 2. Com o centro geométrico do enquadramento o estado sobra mais em cima que embaixo (a perspectiva
+ *    achata o topo): ~4 p.p. de diferença. O `-28` em y sobe o desenho e fecha isso. O x ficou em
+ *    0: o `-24` de N05 empurrava a ponta oeste para a borda (0,1% de folga) em cartões estreitos.
+ *
+ * Medido por pixel (cartão com `.map` visível contra oculto, sem placa do título e sem os controles
+ * do canto), topo contra base: 15,8% x 15,9% em 1500x950, 15,9% x 16,5% em 1700x907, 15,9% x 17,8%
+ * em 1280x800, 15,8% x 14,7% em 1920x1080, 15,9% x 18,4% em 1366x768. Nenhuma ponta encosta na borda
+ * (menor folga lateral: 0,7%, em 1280x800).
  */
-const OFFSET_CAMERA: [number, number] = [-24, 60];
+const OFFSET_CAMERA: [number, number] = [0, -28];
 
 /**
- * Zoom somado ao enquadramento na hora de inclinar. Continua existindo porque `fitBounds` com
- * `pitch` recua a câmera para caber o trapézio inteiro — 52% da altura do cartão sobrando, medido
- * — mas o valor não é mais o de N05: 0,68, não 0,75, e agora contra a moldura já inclinada e não
- * contra o enquadramento plano.
- *
- * O teto é a largura, não a altura: acima de 0,70 a ponta oeste do estado começa a sair do cartão,
- * enquanto ainda sobram ~20% de altura. Isso é geometria de Sergipe deitado a -18°, não folga a
- * fechar. `e2e/n06-marcadores-e-conexoes` mede topo e base a cada execução e falha se
- * desequilibrarem.
+ * Zoom somado ao enquadramento na hora de inclinar. Continua existindo porque `cameraForBounds` com
+ * `pitch` recua a câmera para caber o trapézio inteiro e deixa área sobrando — mas o valor não é mais
+ * o de N05 nem o de N06: 0,42, não 0,68. Com D20 o cartão é mais quadrado que o antigo 760/680
+ * (908x862 em 1500x950), o enquadramento nasce mais apertado em x, e 0,68 cortava a ponta oeste e a
+ * base. O teto é a largura: em 1280x800 (cartão 688x712) acima de ~0,45 a ponta oeste encosta na
+ * borda. Isso é geometria de Sergipe deitado a -18°, não folga a fechar.
+ * `e2e/n06-marcadores-e-conexoes` mede topo e base a cada execução e falha se desequilibrarem.
  */
-const ZOOM_AO_INCLINAR = 0.68;
+const ZOOM_AO_INCLINAR = 0.42;
+
+/**
+ * Proporção largura/altura do cartão em que a compensação de zoom e o offset valem por inteiro, e
+ * aquela em que somem (D20). Plena em 0,96: o 1280x800 medido (cartão 688x712, 0,966) é o caso
+ * mais estreito com a calibração acima; em 768x1024 (736x936, 0,79) ela inteira cortava a ponta
+ * oeste (0,1% de folga). Em celular o estado cabe só com o enquadramento do `cameraForBounds`.
+ */
+const ASPECTO_PLENO = 0.96;
+const ASPECTO_MINIMO = 0.75;
+
+/**
+ * Tetos do zoom ao clicar num município (D20), um por caminho de enquadramento.
+ *
+ * Pelo polígono (município com 0–1 unidade, unidades coladas ou com coordenada fora do município):
+ * 11,5. Sem teto, município pequeno iria a zoom de rua e o operador perderia a referência dos
+ * vizinhos. 11,5 é a primeira medição desta rodada (D20), mantida para o caminho do polígono.
+ *
+ * Pelas unidades (2+ dentro do município): 12,5. Medido no e2e:n08 contra Aracaju (1600x900, as 4
+ * unidades enquadradas): com 11,5 o vizinho mais próximo ficava a 34,0px (o teto mandava); com 12,5
+ * ficam 62,1px, e 12,7 e 13 dão o mesmo número, porque aí o ajuste do envelope (~12,4) é que
+ * limita. Só o envelope das unidades justifica o zoom maior: ele já limita pelas próprias unidades.
+ */
+const ZOOM_MAXIMO_MUNICIPIO = 11.5;
+const ZOOM_MAXIMO_UNIDADES = 12.5;
+/** Duração das transições de câmera disparadas por clique. Zero sob `prefers-reduced-motion`. */
+const DURACAO_CAMERA_MS = 600;
+/** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
+const PADDING_MUNICIPIO = { top: 110, right: 70, bottom: 50, left: 60 };
 
 const LARGURA_CONEXAO = 1.4;
 /**
@@ -444,11 +475,38 @@ export function percorrerCoordenadas(geometria: { coordinates: unknown }, visita
   anda(geometria.coordinates);
 }
 
-/** Centro do envelope do municipio. Nao e o polo de inacessibilidade: em municipio concavo pode cair fora. */
-export function centroideAproximado(geometria: { coordinates: unknown }): [number, number] | null {
+/** Envelope do município, `[[minLng, minLat], [maxLng, maxLat]]`. É o que o zoom por clique enquadra (D20). */
+export function limitesDoMunicipio(geometria: { coordinates: unknown }): [[number, number], [number, number]] | null {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   percorrerCoordenadas(geometria, ([x, y]) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); });
-  return Number.isFinite(minX) ? [(minX + maxX) / 2, (minY + maxY) / 2] : null;
+  return Number.isFinite(minX) ? [[minX, minY], [maxX, maxY]] : null;
+}
+
+/**
+ * O que o zoom por município enquadra (D20), e por qual caminho (`porUnidades`, que escolhe o teto
+ * de zoom). Com 2+ unidades de coordenada conhecida, o envelope delas: é nelas que o operador clica.
+ * Só vale se esse envelope estiver DENTRO do envelope do polígono: as unidades são agrupadas por
+ * `codigoIbge`, e uma de IBGE divergente pode ter coordenada em outro município; o envelope
+ * esticaria até lá e enquadraria dois municípios. Nesse caso, e com 0 ou 1 unidade, ou várias no
+ * mesmo ponto (envelope sem largura nem altura), o polígono é a referência. Coordenada 0 é válida:
+ * nunca testar por veracidade.
+ */
+export function limitesDoEnquadramento(municipio: MapMunicipio): { limites: [[number, number], [number, number]]; porUnidades: boolean } | null {
+  const poligono = limitesDoMunicipio(municipio.feature.geometry);
+  const pontos = municipio.units.map(coordenadaDaUnidade).filter((c): c is [number, number] => c !== null);
+  if (poligono && pontos.length >= 2) {
+    const lngs = pontos.map(p => p[0]), lats = pontos.map(p => p[1]);
+    const minX = Math.min(...lngs), maxX = Math.max(...lngs), minY = Math.min(...lats), maxY = Math.max(...lats);
+    const dentro = minX >= poligono[0][0] && maxX <= poligono[1][0] && minY >= poligono[0][1] && maxY <= poligono[1][1];
+    if (dentro && (maxX > minX || maxY > minY)) return { limites: [[minX, minY], [maxX, maxY]], porUnidades: true };
+  }
+  return poligono ? { limites: poligono, porUnidades: false } : null;
+}
+
+/** Centro do envelope do municipio. Nao e o polo de inacessibilidade: em municipio concavo pode cair fora. */
+export function centroideAproximado(geometria: { coordinates: unknown }): [number, number] | null {
+  const limites = limitesDoMunicipio(geometria);
+  return limites ? [(limites[0][0] + limites[1][0]) / 2, (limites[0][1] + limites[1][1]) / 2] : null;
 }
 
 /**
@@ -469,14 +527,13 @@ export class MapaComponent implements OnDestroy {
   private readonly router = inject(Router);
   protected readonly state = signal<MapState>('loading');
   protected readonly municipios = signal<MapMunicipio[]>([]);
-  protected readonly selected = signal<MapMunicipio | null>(null);
   protected readonly semLocalizacao = signal<DashboardUnidade[]>([]);
   protected readonly semCorrespondencia = signal<DashboardUnidade[]>([]);
   protected readonly error = signal<string | null>(null);
   /** Região viva: o painel lateral é visual, e sem isto quem navega por teclado não ouve a troca. */
   protected readonly anuncio = signal('');
 
-  /** Unidade em foco no painel. Município com uma única unidade seleciona sozinho; com várias, espera o clique. */
+  /** Unidade em foco no painel. Só o clique/Enter no marcador de unidade a define (D20): o município não seleciona nada. */
   protected readonly unidadeSelecionada = signal<DashboardUnidade | null>(null);
   protected readonly afetados = signal<DashboardEquipamento[]>([]);
   protected readonly afetadosState = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -487,7 +544,7 @@ export class MapaComponent implements OnDestroy {
    * remontaria o mapa inteiro — canvas WebGL, cartografia e câmera — só para mostrar um painel.
    */
   protected readonly equipamentoSelecionado = signal<DashboardEquipamento | null>(null);
-  /** Contagem por status sobre TODAS as unidades, não só as do município selecionado. */
+  /** Contagem por status sobre TODAS as unidades. */
   protected readonly statusGeografico = computed(() => contarPorStatus(this.municipios().flatMap(municipio => municipio.units)));
   protected readonly totalUnidades = computed(() => this.municipios().reduce((soma, municipio) => soma + municipio.units.length, 0));
   private readonly host = viewChild<ElementRef<HTMLDivElement>>('host');
@@ -500,6 +557,9 @@ export class MapaComponent implements OnDestroy {
     return unidade && fonte ? divergenciaIbge(unidade, fonte) : null;
   });
   private units: DashboardUnidade[] | null = null;
+  /** Câmera fora do enquadramento do estado inteiro: mostra o "Ver estado inteiro" (D20). */
+  protected readonly foraDoEnquadramento = signal(false);
+  private limitesEstado: LngLatBounds | null = null;
 
   private map: MaplibreMap | null = null;
   /** Um Marker por municipio: unico no DOM focavel, ja que o poligono vive no canvas WebGL. */
@@ -528,26 +588,16 @@ export class MapaComponent implements OnDestroy {
       if (!elemento || municipios.length === 0) { this.destruirMapa(); return; }
       this.montarMapa(elemento, municipios);
     });
-    effect(() => this.marcarMunicipio(this.selected()?.codigoIbge ?? null));
-    // Estado do marcador de unidade acompanha o painel, e nao o municipio: clicar na lista de
-    // "varias unidades" troca a unidade sem trocar o municipio, e o marcador tem de acompanhar.
+    // Estado do marcador de unidade acompanha o painel (unidadeSelecionada), que é a única seleção (D20).
     effect(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
   }
 
   ngOnDestroy(): void { this.destruirMapa(); }
 
   protected load(): void {
-    this.state.set('loading'); this.error.set(null); this.selected.set(null); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
+    this.state.set('loading'); this.error.set(null); this.foraDoEnquadramento.set(false); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
     this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { this.fonteMunicipios.set(municipios); this.resolve(); }, error: () => this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.') });
     this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { this.units = units; this.resolve(); }, error: () => this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.') });
-  }
-
-  protected selectMunicipio(municipio: MapMunicipio): void {
-    this.selected.set(municipio);
-    this.anuncio.set(`${municipio.nome} selecionado. ${municipio.units.length ? `${plural(municipio.units.length, 'unidade', 'unidades')}.` : 'Nenhuma unidade cadastrada.'}`);
-    // Com uma única unidade, exigir um segundo clique só para ver o detalhe seria atrito sem ganho.
-    if (municipio.units.length === 1) { this.selectUnidade(municipio.units[0]); return; }
-    this.limparUnidade();
   }
 
   protected selectUnidade(unidade: DashboardUnidade): void {
@@ -674,21 +724,27 @@ export class MapaComponent implements OnDestroy {
 
     const limites = new LngLatBounds();
     for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => limites.extend(ponto as [number, number]));
-    /*
-     * Agora `fitBounds` já recebe o `pitch`, em vez de enquadrar plano e inclinar depois. As duas
-     * etapas de N05 existiam porque a extrusão fazia o enquadramento inclinado recuar demais; sem
-     * blocos, enquadrar já inclinado dá um resultado CENTRADO (desequilíbrio de 4,1% topo-base,
-     * contra 8,6% herdando a sequência antiga), e o que sobra é encolhimento uniforme — que uma
-     * compensação de zoom sozinha resolve, sem o offset ter de corrigir centralização também.
-     */
-    map.fitBounds(limites, { padding: 34, bearing: BEARING, pitch: PITCH, duration: 0 });
-    map.easeTo({ zoom: map.getZoom() + ZOOM_AO_INCLINAR, offset: OFFSET_CAMERA, duration: 0 });
+    this.limitesEstado = limites;
+    this.enquadrarEstado(false);
+
+    // Gesto do operador (arraste, roda, botões do NavigationControl) tira a câmera do enquadramento
+    // inicial: o "Ver estado inteiro" aparece. Movimento programático não tem `originalEvent`.
+    map.on('movestart', evento => { if (evento.originalEvent) this.foraDoEnquadramento.set(true); });
+    // Rotação/redimensionamento mantinha o zoom da moldura anterior (montado em desktop, o celular
+    // abria cortado). Reenquadra o estado; se o operador já mexeu na câmera, respeita (D20).
+    map.on('resize', () => { if (!this.foraDoEnquadramento()) this.enquadrarEstado(false); });
+    elemento.addEventListener('keydown', evento => {
+      if (evento.key !== 'Escape' || !this.foraDoEnquadramento()) return;
+      evento.preventDefault();
+      this.enquadrarEstado(true);
+    }, { signal: signalAbort });
 
     map.on('click', 'municipios-fill', evento => {
+      // Sem a guarda, clicar no marcador de unidade também aproximaria o município sob o pixel.
       if (cliqueVeioDeMarcador(evento.originalEvent.target)) return;
       const codigo = normalizeCodigoIbge(evento.features?.[0]?.properties?.['id'] as string);
       const municipio = municipios.find(candidato => candidato.codigoIbge === codigo);
-      if (municipio) this.selectMunicipio(municipio);
+      if (municipio) this.aproximarMunicipio(municipio);
     });
 
     /*
@@ -704,7 +760,7 @@ export class MapaComponent implements OnDestroy {
       botao.className = 'map__alvo';
       botao.setAttribute('aria-label', rotuloDoMunicipio(municipio));
       botao.setAttribute('data-codigo-ibge', municipio.codigoIbge);
-      botao.addEventListener('click', () => this.selectMunicipio(municipio), { signal: signalAbort });
+      botao.addEventListener('click', () => this.aproximarMunicipio(municipio), { signal: signalAbort });
       // Alvo fora da viewport continua focavel pelo Tab: ao receber foco, traz a camera ate ele.
       botao.addEventListener('focus', () => { if (!map.getBounds().contains(centro)) map.easeTo({ center: centro, duration: 200 }); }, { signal: signalAbort });
       /*
@@ -747,8 +803,7 @@ export class MapaComponent implements OnDestroy {
 
     this.montarPings(map, conexoes.features as Feature[]);
 
-    // Marcação inicial dos dois marcadores. Sem `map.on('load')`: nada aqui depende do estilo.
-    untracked(() => this.marcarMunicipio(this.selected()?.codigoIbge ?? null));
+    // Marcação inicial do marcador de unidade. Sem `map.on('load')`: nada aqui depende do estilo.
     untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
   }
 
@@ -817,36 +872,72 @@ export class MapaComponent implements OnDestroy {
   }
 
   /**
-   * Clique (ou Enter/Espaco) no marcador de unidade. Seleciona o municipio TAMBEM, e nesta ordem:
-   * `selectMunicipio` desenha o colar no bloco e, em municipio de uma unidade so, ja escolhe a
-   * unidade; em municipio de varias ele limpa a escolha, e o `selectUnidade` seguinte repoe
-   * exatamente a que foi clicada. Invertida, a ordem apagaria a unidade recem-escolhida.
+   * Enquadramento do estado inteiro — o da abertura da tela, e o destino do "Ver estado inteiro" e
+   * do Escape (D20). Uma conta só para os três: se divergissem, voltar não daria no mesmo lugar.
+   *
+   * `cameraForBounds` + um único `easeTo`, e não mais `fitBounds` seguido de `easeTo`: animado, o
+   * segundo `easeTo` cancelaria o primeiro no meio. A conta é a mesma — câmera que cabe o estado
+   * já inclinado, mais `ZOOM_AO_INCLINAR`, mais `OFFSET_CAMERA` (ver D13).
+   */
+  private enquadrarEstado(animado: boolean): void {
+    const map = this.map;
+    if (!map || !this.limitesEstado) return;
+    // Voltar ao estado inteiro (botão ou Escape) acontece só no canvas: sem anúncio o leitor de tela
+    // não sabe que saiu do município. Enquadramento inicial e resize (animado=false) ficam em silêncio.
+    if (animado) this.anuncio.set('Estado inteiro.');
+    const camera = map.cameraForBounds(this.limitesEstado, { padding: 34, bearing: BEARING, pitch: PITCH });
+    if (!camera) return;
+    // A compensação some em cartão estreito (D20): o teto do zoom é a largura, e um cartão em pé
+    // (celular, tablet) cortaria as pontas. Plena a partir de ASPECTO_PLENO (o 1280x800 medido), nula
+    // em ASPECTO_MINIMO, linear entre os dois. O deslocamento acompanha o zoom.
+    const recipiente = map.getContainer();
+    const aspecto = recipiente.clientWidth / Math.max(1, recipiente.clientHeight);
+    const fator = Math.min(1, Math.max(0, (aspecto - ASPECTO_MINIMO) / (ASPECTO_PLENO - ASPECTO_MINIMO)));
+    map.easeTo({ ...camera, zoom: (camera.zoom ?? map.getZoom()) + ZOOM_AO_INCLINAR * fator, bearing: BEARING, pitch: PITCH,
+      offset: [OFFSET_CAMERA[0] * fator, OFFSET_CAMERA[1] * fator], duration: animado && !animacaoReduzida() ? DURACAO_CAMERA_MS : 0 });
+    this.foraDoEnquadramento.set(false);
+  }
+
+  /** Botão "Ver estado inteiro". O botão some ao clicar: o foco vai para o canvas, não para o body. */
+  protected verEstadoInteiro(): void {
+    this.enquadrarEstado(true);
+    this.map?.getCanvas().focus();
+  }
+
+  /**
+   * Clique (ou Enter no alvo invisível) num município: aproxima nele (D20). Com 2+ unidades dentro
+   * do município enquadra o envelope delas e não o polígono: o de Aracaju é grande e deixava os
+   * quatro marcadores a 15px um do outro. Unidade com coordenada fora do município (IBGE divergente)
+   * não conta, senão o envelope esticaria até o vizinho; com 0–1 unidade vale o polígono, com o teto
+   * de zoom menor (ver `limitesDoEnquadramento`). Não é mais seleção — o município não carrega
+   * estado (D15) nem seleção (D17); o painel da unidade aberta fica como está. Município sem
+   * unidade aproxima igual; o anúncio diz que não há unidade.
+   */
+  private aproximarMunicipio(municipio: MapMunicipio): void {
+    this.anuncio.set(`${rotuloDoMunicipio(municipio)}. Mapa aproximado.`);
+    const map = this.map;
+    const enquadramento = limitesDoEnquadramento(municipio);
+    if (!map || !enquadramento) return;
+    map.fitBounds(enquadramento.limites, { padding: PADDING_MUNICIPIO, bearing: BEARING, pitch: PITCH,
+      maxZoom: enquadramento.porUnidades ? ZOOM_MAXIMO_UNIDADES : ZOOM_MAXIMO_MUNICIPIO,
+      linear: true, duration: animacaoReduzida() ? 0 : DURACAO_CAMERA_MS });
+    this.foraDoEnquadramento.set(true);
+  }
+
+  /**
+   * Clique (ou Enter/Espaço) no marcador de unidade: abre direto o detalhe da unidade (D20). Até
+   * D19 passava antes por `selectMunicipio`, que em município de várias unidades mostrava a lista
+   * "Escolha uma" acima do detalhe — empurrava o conteúdo e criava rolagem no painel.
    */
   private selecionarPeloMarcador(unidade: DashboardUnidade): void {
-    const municipio = this.municipios().find(candidato => candidato.units.some(u => u.id === unidade.id));
-    if (municipio) this.selectMunicipio(municipio);
     this.selectUnidade(unidade);
     this.anuncio.set(`${unidade.nome} selecionada. ${ROTULO_STATUS[unidade.status]}.`);
   }
 
-  /** Estado do marcador de unidade. Par de `marcarMunicipio`: nenhum dos dois depende do estilo do mapa. */
+  /** Estado do marcador de unidade. Não depende do estilo do mapa: é atributo de DOM. */
   private marcarUnidade(selecionada: number | null): void {
     for (const [id, marcador] of this.marcadoresUnidade) {
       marcador.getElement().setAttribute('aria-pressed', String(id === selecionada));
-    }
-  }
-
-  /**
-   * Estado de seleção do município. Só `aria-pressed`, desde que o anel do polígono saiu.
-   *
-   * Sem camada a filtrar, some também a guarda de `isStyleLoaded()` e a repetição no evento `load`
-   * do mapa — que existiam porque selecionar antes de o estilo terminar de carregar deixava o
-   * marcador sem estado nenhum. Atributo de DOM não espera WebGL.
-   */
-  private marcarMunicipio(selecionado: string | null): void {
-    for (const municipio of this.municipios()) {
-      const marcador = this.marcadores.get(municipio.codigoIbge);
-      marcador?.getElement().setAttribute('aria-pressed', String(municipio.codigoIbge === selecionado));
     }
   }
 

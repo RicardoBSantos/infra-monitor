@@ -2,6 +2,12 @@
   "resultados": [
     {
       "caso": 1,
+      "nome": "legenda abre ao clicar no summary (details.open)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
       "nome": "legenda descreve o marcador, não o polígono",
       "ok": true,
       "detalhe": "Cor do marcador de unidade."
@@ -46,7 +52,7 @@
       "caso": 2,
       "nome": "animação no ::after, nunca no elemento (DV13)",
       "ok": true,
-      "detalhe": "_ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none _ngcontent-ng-c3281696281_map-pulsar/none"
+      "detalhe": "_ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none"
     },
     {
       "caso": 2,
@@ -64,13 +70,13 @@
       "caso": 3,
       "nome": "há marcador isolado o bastante para hover determinístico",
       "ok": true,
-      "detalhe": "unidade 4, vizinho mais próximo a 243px"
+      "detalhe": "unidade 4, vizinho mais próximo a 239px"
     },
     {
       "caso": 3,
       "nome": "transform de autor não entra: a matriz nunca ganha escala",
       "ok": true,
-      "detalhe": "matrix(1, 0, 0, 1, 675.783, 289.13) -> matrix(1, 0, 0, 1, 673.783, 287.13)"
+      "detalhe": "matrix(1, 0, 0, 1, 664.801, 348.946) -> matrix(1, 0, 0, 1, 662.801, 346.946)"
     },
     {
       "caso": 3,
@@ -100,19 +106,19 @@
       "caso": 4,
       "nome": "aria-label leva os mesmos três dados da dica",
       "ok": true,
-      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamento(s), 0 incidente(s) aberto(s)"
+      "detalhe": "Centro Integrado de Saúde: Disponível, 16 equipamentos, 0 incidentes abertos"
     },
     {
       "caso": 5,
       "nome": "Tab alcança um marcador de unidade",
       "ok": true,
-      "detalhe": "unidade 7 em 92 passo(s) de Tab"
+      "detalhe": "unidade 7 em 94 passo(s) de Tab"
     },
     {
       "caso": 7,
       "nome": "nenhum ping recebeu foco na varredura de Tab",
       "ok": true,
-      "detalhe": "0 ping(s) focado(s) em 92 passo(s)"
+      "detalhe": "0 ping(s) focado(s) em 94 passo(s)"
     },
     {
       "caso": 5,
@@ -178,7 +184,7 @@
       "caso": 7,
       "nome": "nenhum ping na coleção de focáveis da página",
       "ok": true,
-      "detalhe": "118 focáveis na página, 0 pings"
+      "detalhe": "114 focáveis na página, 0 pings"
     },
     {
       "caso": 7,
@@ -202,7 +208,7 @@
       "caso": 8,
       "nome": "todo ping percorre a linha — nenhum fica parado",
       "ok": true,
-      "detalhe": "18/18 em movimento · percurso mínimo 7.6px em 2,1s"
+      "detalhe": "18/18 em movimento · percurso mínimo 8.5px em 2,1s"
     },
     {
       "caso": 9,

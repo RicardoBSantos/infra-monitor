@@ -56,6 +56,16 @@ const lerUnidades = (page) => page.evaluate(() => {
   });
 });
 
+/** Foca o último controle focável ANTES do cartão do mapa (o "Atualizar" foi para o painel, D20). */
+const focarAntesDoMapa = (page) => page.evaluate(() => {
+  const cartao = document.querySelector('.map-card');
+  const focaveis = [...document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+    .filter((e) => e.tabIndex >= 0 && !e.disabled && e.getClientRects().length > 0)
+    .filter((e) => cartao.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_PRECEDING);
+  if (!focaveis.length) throw new Error('nenhum focável antes do mapa');
+  focaveis[focaveis.length - 1].focus();
+});
+
 const focado = (page) => page.evaluate(() => {
   const alvo = document.activeElement;
   return alvo ? { tag: alvo.tagName, rotulo: alvo.getAttribute('aria-label'), unidade: alvo.getAttribute('data-unidade-id'), deUnidade: alvo.classList.contains('map__unidade') } : null;
@@ -126,7 +136,8 @@ const medirFaixa = (page) => page.evaluate(() => {
 
     // ---------------------------------------------------- 2. teclado nos marcadores
     await page.keyboard.press('Escape');
-    await page.click('.map-page__eyebrow');
+    // O cabeçalho da página saiu (D20); o Tab parte do último focável antes do cartão.
+    await focarAntesDoMapa(page);
     let achou = null;
     for (let i = 0; i < 80 && !achou; i += 1) {
       await page.keyboard.press('Tab');
@@ -198,9 +209,13 @@ const medirFaixa = (page) => page.evaluate(() => {
     const faixa = await medirFaixa(page);
     // O alvo não é margem zero (o centróide nunca encosta na borda), é EQUILÍBRIO: faixa morta é
     // sobra concentrada de um lado só. Até 6 pontos percentuais de diferença passa despercebido.
+    // D20: o teto da sobra total subiu de 34% para 40%. Os centróides subestimam o desenho em ~7 p.p.
+    // (medida em pixel: 31,7%), e a câmera nova (OFFSET [0,-28], ZOOM_AO_INCLINAR 0,42) já está no
+    // limite: passar de 34% pela medida de centróide cortaria a ponta oeste em 1280x800. O critério
+    // de equilíbrio acima, que é o que define faixa morta, NÃO mudou.
     checar(4, 'enquadramento equilibrado entre topo e base', faixa.desequilibrio <= 0.06,
       `topo ${(faixa.topo * 100).toFixed(1)}% · base ${(faixa.base * 100).toFixed(1)}% · desequilíbrio ${(faixa.desequilibrio * 100).toFixed(1)} p.p.`);
-    checar(4, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.34,
+    checar(4, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.40,
       `sobra total ${((faixa.topo + faixa.base) * 100).toFixed(1)}%`);
 
     // O painel não pode ter buraco: sem município selecionado o conteúdo é curto e a sobra vai para
@@ -226,12 +241,22 @@ const medirFaixa = (page) => page.evaluate(() => {
      * e morreram com a coloração; os outros dois são UnitOperationalStatus como os demais. Uma
      * lista de 6, sem disclosure, e uma segunda nota dizendo que o município não tem status.
      */
-    const legendaVisivel = await page.locator('.legend-bloco > .legend li').count();
+    /*
+     * D20: a legenda nasce RECOLHIDA (details.legend-bloco sem `open`) para devolver altura ao
+     * mapa; o conteúdo continua o mesmo, só atrás de um clique no summary.
+     */
+    checar(5, 'legenda nasce recolhida', (await page.locator('details.legend-bloco').count()) === 1
+      && (await page.locator('details.legend-bloco').evaluate((d) => !d.open)));
+    await page.click('summary.legend-bloco__resumo');
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
+    checar(5, 'legenda abre ao clicar no summary (details.open)',
+      await page.evaluate(() => document.querySelector('details.legend-bloco').open));
+    const legendaVisivel = await page.locator('details.legend-bloco .legend li').count();
     checar(5, 'os 6 status de unidade numa lista só', legendaVisivel === 6, `${legendaVisivel} item(ns)`);
     checar(5, 'legenda anuncia que fala do marcador, não do polígono',
-      (await page.locator('.legend-bloco .legend__intro').innerText()).toLowerCase().includes('marcador'));
+      (await page.locator('details.legend-bloco .legend__intro').innerText()).toLowerCase().includes('marcador'));
     checar(5, 'duas notas de gramática do mapa: município neutro e linha de hub',
-      (await page.locator('.legend-bloco > .legend__nota').count()) === 2);
+      (await page.locator('details.legend-bloco .legend__nota').count()) === 2);
     checar(5, 'botão de informação removido', (await page.locator('.legend-info').count()) === 0);
     checar(5, 'disclosure "Estados sem leitura" desfeito', (await page.locator('.legend-extra').count()) === 0);
     await page.screenshot({ path: path.join(OUT, '05-legenda.png') });

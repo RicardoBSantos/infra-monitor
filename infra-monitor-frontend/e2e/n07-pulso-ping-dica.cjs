@@ -126,12 +126,18 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * feature carrega mais `cor`, e nenhuma classe de amostra de polígono sobrou na legenda. A
      * confirmação visual do tom é a captura `01-municipio-neutro.png`, revisada a olho.
      */
+    // D20: a legenda nasce recolhida (details.legend-bloco); abre-se por clique no summary antes de
+    // ler textos e estilos visíveis dela (caso 8 lê .legend__linha).
+    await page.click('summary.legend-bloco__resumo');
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
+    checar(1, 'legenda abre ao clicar no summary (details.open)',
+      await page.evaluate(() => document.querySelector('details.legend-bloco').open));
     const legenda = await page.evaluate(() => ({
-      itens: document.querySelectorAll('.legend-bloco > .legend li').length,
+      itens: document.querySelectorAll('details.legend-bloco .legend li').length,
       disclosure: document.querySelectorAll('.legend-extra').length,
       amostrasDePoligono: document.querySelectorAll('.legend__dot--none, .legend__dot--multiple').length,
       intro: document.querySelector('.legend-bloco .legend__intro')?.textContent.trim(),
-      notas: document.querySelectorAll('.legend-bloco > .legend__nota').length,
+      notas: document.querySelectorAll('details.legend-bloco .legend__nota').length,
     }));
     checar(1, 'legenda descreve o marcador, não o polígono', /marcador/i.test(legenda.intro || ''), legenda.intro);
     checar(1, 'seis status numa lista só, sem disclosure',
@@ -228,7 +234,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     checar(4, 'dica é aria-hidden — o conteúdo vai pelo aria-label',
       unidades.every((u) => u.temDica && u.dicaOculta === 'true'));
     checar(4, 'aria-label leva os mesmos três dados da dica',
-      unidades.every((u) => /: [^,]+, \d+ equipamento\(s\), \d+ incidente\(s\) aberto\(s\)$/.test(u.rotulo)),
+      unidades.every((u) => /: [^,]+, \d+ equipamentos?, \d+ incidentes? abertos?$/.test(u.rotulo)),
       unidades[0].rotulo);
 
     // ------------------------------- 5. dica no FOCO de teclado, e foco não seleciona (item 4)
