@@ -1,0 +1,364 @@
+{
+  "resultados": [
+    {
+      "caso": 5,
+      "nome": "a-sem-selecao.png capturado sem seleção",
+      "ok": true,
+      "detalhe": "sem .unit-panel ao abrir"
+    },
+    {
+      "caso": 2,
+      "nome": "sem .map-page__header",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 2,
+      "nome": "h1#map-title em .map-card .map-titulo diz \"Mapa operacional\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 2,
+      "nome": "placa dentro do cartão, sem cruzar controle de zoom nem marcadores (1600x900)",
+      "ok": true,
+      "detalhe": "dentro=true cruzaControle=false marcadoresCruzados=0/11"
+    },
+    {
+      "caso": 4,
+      "nome": "sem .map-source",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 4,
+      "nome": "sem \"BASE CARTOGRÁFICA\" nem \"FONTE OPERACIONAL\" no painel (nem na página)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 14,
+      "nome": "legenda fechada por padrão (sem atributo open)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 14,
+      "nome": "clicar o summary abre a legenda",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 14,
+      "nome": "legenda aberta: 6 itens e 2 notas",
+      "ok": true,
+      "detalhe": "6 li, 2 notas"
+    },
+    {
+      "caso": 14,
+      "nome": "notas em uma linha só (altura <= 1,5x line-height)",
+      "ok": false,
+      "detalhe": "15.9px/lh 15.9 | 31.9px/lh 15.9"
+    },
+    {
+      "caso": 14,
+      "nome": "painel sem estouro horizontal com a legenda aberta",
+      "ok": true,
+      "detalhe": "excedente 0px"
+    },
+    {
+      "caso": 14,
+      "nome": "textos exatos das duas notas",
+      "ok": true,
+      "detalhe": "[\"Município é neutro: situa, não indica estado.\",\"Arco liga a unidade ao hub, na cor do status dela.\"]"
+    },
+    {
+      "caso": 14,
+      "nome": "clicar de novo fecha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 14,
+      "nome": "teclado: Enter no summary alterna (abre e fecha)",
+      "ok": true,
+      "detalhe": "abriu=true fechou=true"
+    },
+    {
+      "caso": 3,
+      "nome": "\"Atualizar\" em .map-panel__topo, primeiro filho do painel",
+      "ok": true,
+      "detalhe": "{\"texto\":\"Atualizar\",\"primeiroEhTopo\":true}"
+    },
+    {
+      "caso": 3,
+      "nome": "clicar em Atualizar refaz /dashboard/unidades",
+      "ok": true,
+      "detalhe": "respostas 2 -> 3"
+    },
+    {
+      "caso": 6,
+      "nome": "marcador de Aracaju abre .unit-panel com o nome (Centro Integrado de Saúde)",
+      "ok": true,
+      "detalhe": "painel: Centro Integrado de Saúde"
+    },
+    {
+      "caso": 6,
+      "nome": "Aracaju: .selected-panel inexistente e unit-panel visível sem rolar",
+      "ok": true,
+      "detalhe": "{\"scrollTop\":0,\"topoRelativo\":199,\"alturaPainel\":810,\"selectedPanel\":0}"
+    },
+    {
+      "caso": 6,
+      "nome": "todo marcador abre o painel da própria unidade, visível sem rolar",
+      "ok": true,
+      "detalhe": "11 marcadores varridos; nome errado: -; geometria: -"
+    },
+    {
+      "caso": 6,
+      "nome": "unidade com IBGE divergente abre direto, com aviso, visível sem rolar",
+      "ok": true,
+      "detalhe": "Sesc Itabaiana, Unidade Estância, Unidade Propriá, Unidade Simão Dias, Unidade Socorro"
+    },
+    {
+      "caso": 7,
+      "nome": "clique lógico no marcador não muda a câmera (distância ±1px) nem mostra \"Ver estado inteiro\"",
+      "ok": true,
+      "detalhe": "antes 375.3 depois 375.3"
+    },
+    {
+      "caso": 7,
+      "nome": "clique físico no marcador mais isolado: câmera parada, sem botão de volta, painel da unidade",
+      "ok": true,
+      "detalhe": "isolado Unidade Propriá (vizinho a 224px) elementFromPoint=true distância 375.3 -> 375.3 painel=\"Unidade Propriá\""
+    },
+    {
+      "caso": 8,
+      "nome": "clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e Aracaju vai ao centro do cartão (±20%)",
+      "ok": true,
+      "detalhe": "distância 375.3 -> 1223.4 (x3.26); desvio do centro 0.5%/2.7%; 6 tentativa(s), raio 20px"
+    },
+    {
+      "caso": 8,
+      "nome": "painel da unidade aberta continua com o mesmo nome após o zoom",
+      "ok": true,
+      "detalhe": "\"Unidade Propriá\" -> \"Unidade Propriá\""
+    },
+    {
+      "caso": 9,
+      "nome": "distância mínima entre vizinhos de Aracaju >= 60px (ZOOM_MAXIMO_MUNICIPIO)",
+      "ok": false,
+      "detalhe": "medido 15.2px entre 4 marcadores (esperado 4)"
+    },
+    {
+      "caso": 9,
+      "nome": "cada marcador de Aracaju é o topo no seu centro e o clique físico abre a própria unidade",
+      "ok": true,
+      "detalhe": "4/4 ok"
+    },
+    {
+      "caso": 10,
+      "nome": "botão \"Ver estado inteiro\": distâncias voltam (±2px), botão some, foco no canvas",
+      "ok": true,
+      "detalhe": "distância 375.4 vs inicial 375.3; foco CANVAS.maplibregl-canvas"
+    },
+    {
+      "caso": 10,
+      "nome": "Escape com foco no canvas desfaz o zoom em Feira Nova",
+      "ok": true,
+      "detalhe": "inicial 375.3 · aproximado 7972.1 · após Escape 375.4"
+    },
+    {
+      "caso": 11,
+      "nome": "\"Amparo de São Francisco: nenhuma unidade cadastrada\" aproxima e a região viva anuncia",
+      "ok": true,
+      "detalhe": "distância 375.3 -> 17667.2; .map-sr=\"Amparo de São Francisco: nenhuma unidade cadastrada. Mapa aproximado.\""
+    },
+    {
+      "caso": 12,
+      "nome": "Tab alcança um .map__alvo",
+      "ok": true,
+      "detalhe": "{\"codigo\":\"2800100\",\"rotulo\":\"Amparo de São Francisco: nenhuma unidade cadastrada\"}"
+    },
+    {
+      "caso": 12,
+      "nome": "Enter no alvo aproxima o município",
+      "ok": true,
+      "detalhe": "Amparo de São Francisco: nenhuma unidade cadastrada: 375.4 -> 17667.2"
+    },
+    {
+      "caso": 12,
+      "nome": ".map__alvo sem aria-pressed",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "1920x1080: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1904/1920 · doc H 0 (registrado; zero) · main H 0"
+    },
+    {
+      "caso": 1,
+      "nome": "1600x900: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1584/1600 · doc H 0 (registrado; zero) · main H 0"
+    },
+    {
+      "caso": 1,
+      "nome": "1366x768: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1350/1366 · doc H 0 (registrado; zero) · main H 0"
+    },
+    {
+      "caso": 1,
+      "nome": "1280x720: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1264/1280 · doc H 16 (registrado; pré-existente: topbar) · main H 0"
+    },
+    {
+      "caso": 2,
+      "nome": "placa dentro do cartão, sem cruzar controle de zoom nem marcadores (1280x720)",
+      "ok": true,
+      "detalhe": "dentro=true cruzaControle=false marcadoresCruzados=0/11"
+    },
+    {
+      "caso": 1,
+      "nome": "1024x768: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1008/1024 · doc H 48 (registrado; pré-existente: topbar) · main H 0"
+    },
+    {
+      "caso": 1,
+      "nome": "390x844: .map-page sem estouro horizontal (empilhado rola na vertical de propósito)",
+      "ok": true,
+      "detalhe": ".map-page H 0 · .map-layout direita 378/390 · doc H 65 (registrado; pré-existente: topbar) · rolagem vertical empilhada: main 0, documento 796"
+    },
+    {
+      "caso": 13,
+      "nome": "reduced-motion: posições a 50ms = posições a 900ms (±2px) e o zoom de fato aconteceu",
+      "ok": true,
+      "detalhe": "diferença máx. 50ms×900ms 0.0px; deslocamento total 1001px"
+    },
+    {
+      "caso": 15,
+      "nome": "falha do payload: .map-feedback--error visível, sem cruzar o título, com \"Tentar novamente\"",
+      "ok": true,
+      "detalhe": "feedback {\"l\":534,\"t\":416.3046875,\"r\":954,\"b\":539.6953125} · título {\"l\":253,\"t\":85,\"r\":583,\"b\":183.09375} · botão \"Tentar novamente\""
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página nem de console",
+      "ok": true,
+      "detalhe": " (esperados no caso 15, não contados: 1)"
+    }
+  ],
+  "falhas": 2,
+  "medidas": {
+    "unidadesNoPayload": 11,
+    "unidadesComCoordenada": 11,
+    "unidadesAracaju": 4,
+    "parReferencia": {
+      "aracaju": "2800308",
+      "outro": "2805505",
+      "distanciaInicial": 375.3,
+      "alvosNoMapa": 75,
+      "distanciaInicialAposAtualizar": 375.3
+    },
+    "zoomAracaju": {
+      "distanciaParAntes": 375.3,
+      "distanciaParDepois": 1223.4,
+      "fator": 3.26,
+      "tentativasDeClique": 6,
+      "cartao": {
+        "l": 240,
+        "t": 72,
+        "r": 1248,
+        "b": 884
+      }
+    },
+    "aracajuVizinhoMaisProximoPx": 15.2,
+    "aracajuMarcadores": [
+      {
+        "id": "7",
+        "vizinho": 15.2
+      },
+      {
+        "id": "2",
+        "vizinho": 15.2
+      },
+      {
+        "id": "3",
+        "vizinho": 65
+      },
+      {
+        "id": "1",
+        "vizinho": 42
+      }
+    ],
+    "viewports": {
+      "1920x1080": {
+        "mainV": 0,
+        "docV": 0,
+        "docH": 0,
+        "mainH": 0,
+        "mapPageH": 0,
+        "layoutDireita": 1904,
+        "vw": 1920
+      },
+      "1600x900": {
+        "mainV": 0,
+        "docV": 0,
+        "docH": 0,
+        "mainH": 0,
+        "mapPageH": 0,
+        "layoutDireita": 1584,
+        "vw": 1600
+      },
+      "1366x768": {
+        "mainV": 0,
+        "docV": 0,
+        "docH": 0,
+        "mainH": 0,
+        "mapPageH": 0,
+        "layoutDireita": 1350,
+        "vw": 1366
+      },
+      "1280x720": {
+        "mainV": 0,
+        "docV": 0,
+        "docH": 16,
+        "mainH": 0,
+        "mapPageH": 0,
+        "layoutDireita": 1264,
+        "vw": 1280
+      },
+      "1024x768": {
+        "mainV": 0,
+        "docV": 0,
+        "docH": 48,
+        "mainH": 0,
+        "mapPageH": 0,
+        "layoutDireita": 1008,
+        "vw": 1024
+      },
+      "390x844": {
+        "mainV": 0,
+        "docV": 796,
+        "docH": 65,
+        "mainH": 0,
+        "mapPageH": 0,
+        "layoutDireita": 378,
+        "vw": 390
+      }
+    },
+    "reducedMotion": {
+      "maxDif": 0,
+      "maxMudanca": 1000.6268310546875
+    }
+  },
+  "errosConsoleEsperados": [
+    "[erro] Failed to load resource: net::ERR_FAILED"
+  ],
+  "fatal": null
+}
