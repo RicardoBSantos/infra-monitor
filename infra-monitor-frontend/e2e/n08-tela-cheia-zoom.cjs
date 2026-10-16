@@ -354,6 +354,7 @@ async function voltarAoEstado(page) {
     let zoomFeito = null; let tentativas = 0;
     const dInicioAracaju = d0;
     const idsAr = new Set(aracaju.map((u) => String(u.id)));
+    const PAD = { top: 110, right: 70, bottom: 50, left: 60 }; // espelha PADDING_MUNICIPIO do componente
     for (const c of candidatos) {
       const ehCanvas = await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return !!e && e.tagName === 'CANVAS'; }, c);
       if (!ehCanvas) continue;
@@ -361,22 +362,26 @@ async function voltarAoEstado(page) {
       await page.mouse.click(c.x, c.y);
       await pausa(page, ESPERA_CAMERA);
       if (await voltarVisivel(page)) {
-        // O centro que importa é o das UNIDADES de Aracaju (o enquadramento é o envelope delas, D20): um
-        // clique em município vizinho também aproxima e deixava o centroide do polígono a ~19% do centro.
+        // O retry existe só para achar um pixel de canvas dentro do polígono. O primeiro clique que
+        // aproxima é o que vale: se caiu em município vizinho, o caso falha em vez de tentar outro.
+        // O centro que importa é o das UNIDADES de Aracaju (o enquadramento é o envelope delas, D20).
         const ms = (await marcadores(page)).filter((m) => idsAr.has(m.id));
         const cc = { x: (Math.min(...ms.map((m) => m.x)) + Math.max(...ms.map((m) => m.x))) / 2, y: (Math.min(...ms.map((m) => m.y)) + Math.max(...ms.map((m) => m.y))) / 2 };
         const cartao = (await caixas(page, ['.map-card']))[0];
         const largura = cartao.r - cartao.l, altura = cartao.b - cartao.t;
-        const dx = Math.abs(cc.x - (cartao.l + largura / 2)) / largura, dy = Math.abs(cc.y - (cartao.t + altura / 2)) / altura;
-        if (dx <= 0.1 && dy <= 0.1) { zoomFeito = { ponto: c, dx, dy }; break; }
-        await voltarAoEstado(page); // caiu em município vizinho: volta e tenta outro ponto
+        // O fitBounds centra na área útil, não no cartão: o PADDING_MUNICIPIO é assimétrico (título em
+        // cima à esquerda), então o centro esperado desloca (esq-dir)/2 em x e (topo-base)/2 em y.
+        const esperado = { x: cartao.l + largura / 2 + (PAD.left - PAD.right) / 2, y: cartao.t + altura / 2 + (PAD.top - PAD.bottom) / 2 };
+        const dx = Math.abs(cc.x - esperado.x) / largura, dy = Math.abs(cc.y - esperado.y) / altura;
+        zoomFeito = { ponto: c, dx, dy, ok: dx <= 0.1 && dy <= 0.1 };
+        break;
       }
     }
     const dZoom = await dist();
     const nomeDepoisZoom = await nomePainel(page);
     medidas.zoomAracaju = { distanciaParAntes: +dInicioAracaju.toFixed(1), distanciaParDepois: +dZoom.toFixed(1), fator: +(dZoom / dInicioAracaju).toFixed(2), tentativasDeClique: tentativas, cartao: cartaoAntes };
-    checar(8, 'clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o envelope das unidades de Aracaju vai ao centro do cartão (±10%)',
-      !!zoomFeito && dZoom > dInicioAracaju * 1.3 && await voltarVisivel(page),
+    checar(8, 'clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o envelope das unidades de Aracaju vai ao centro da área útil do cartão (padding assimétrico, ±10%)',
+      !!zoomFeito && zoomFeito.ok && dZoom > dInicioAracaju * 1.3 && await voltarVisivel(page),
       zoomFeito ? `distância ${dInicioAracaju.toFixed(1)} -> ${dZoom.toFixed(1)} (x${(dZoom / dInicioAracaju).toFixed(2)}); desvio do centro ${(zoomFeito.dx * 100).toFixed(1)}%/${(zoomFeito.dy * 100).toFixed(1)}%; ${tentativas} tentativa(s), raio ${zoomFeito.ponto.r}px`
         : `nenhum ponto produziu o zoom em Aracaju em ${tentativas} tentativa(s)`);
     checar(8, 'painel da unidade aberta continua com o mesmo nome após o zoom', nomeAntesZoom !== null && nomeDepoisZoom === nomeAntesZoom, `"${nomeAntesZoom}" -> "${nomeDepoisZoom}"`);
