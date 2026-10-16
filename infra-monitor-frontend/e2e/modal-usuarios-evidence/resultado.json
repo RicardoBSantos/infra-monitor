@@ -1,0 +1,150 @@
+{
+  "resultados": [
+    {
+      "nome": "backdrop é position:fixed",
+      "ok": true,
+      "detalhe": "fixed"
+    },
+    {
+      "nome": "modal centralizado na horizontal",
+      "ok": true,
+      "detalhe": "centroX=720"
+    },
+    {
+      "nome": "modal centralizado na vertical",
+      "ok": true,
+      "detalhe": "centroY=449.9921875"
+    },
+    {
+      "nome": "largura 520px",
+      "ok": true,
+      "detalhe": "w=520"
+    },
+    {
+      "nome": "aria-modal=true",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "título Novo usuário",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "botão × visível",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "uma coluna com 4 campos",
+      "ok": true,
+      "detalhe": "[{\"x\":481,\"y\":331.484375},{\"x\":481,\"y\":397.09375},{\"x\":481,\"y\":462.703125},{\"x\":481,\"y\":526.46875}]"
+    },
+    {
+      "nome": "foco entra no campo Nome",
+      "ok": true,
+      "detalhe": "nome"
+    },
+    {
+      "nome": "salvar vazio mostra a validação",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "salvar vazio não chama a API",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "clique dá foco ao E-mail",
+      "ok": true,
+      "detalhe": "email"
+    },
+    {
+      "nome": "digitação cai no E-mail",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "clique dá foco ao Papel",
+      "ok": true,
+      "detalhe": "papel"
+    },
+    {
+      "nome": "Papel aceita troca",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "clique dá foco à Senha inicial",
+      "ok": true,
+      "detalhe": "senhaInicial"
+    },
+    {
+      "nome": "clique devolve foco ao Nome",
+      "ok": true,
+      "detalhe": "nome"
+    },
+    {
+      "nome": "Escape fecha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "foco volta ao + Novo usuário",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "× fecha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "ações da linha no menu …",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "Redefinir senha no mesmo modal",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "clique no fundo fecha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "Editar sem campo de senha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "mesma borda superior do equipamento",
+      "ok": true,
+      "detalhe": "2px rgb(26, 86, 219) × 2px rgb(26, 86, 219)"
+    },
+    {
+      "nome": "mesmo raio do equipamento",
+      "ok": true,
+      "detalhe": "8px × 8px"
+    },
+    {
+      "nome": "mesmo fundo do painel do equipamento",
+      "ok": true,
+      "detalhe": "rgb(255, 255, 255) × rgb(255, 255, 255)"
+    },
+    {
+      "nome": "nenhuma escrita na API",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "nome": "sem erros de console",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "erros": []
+}
