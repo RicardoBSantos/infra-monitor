@@ -43,13 +43,17 @@ const checar = (caso, nome, ok, detalhe) => { resultados.push({ caso, nome, ok: 
 const naoAplicavel = (caso, nome, motivo) => { resultados.push({ caso, nome, ok: true, na: true, detalhe: 'NÃO APLICÁVEL: ' + motivo }); };
 const pausa = (page, ms) => page.waitForTimeout(ms);
 /** Espera as posições dos alvos ficarem estáveis por 3 amostras seguidas (a câmera parou). */
-const esperarCameraParada = (page) => page.waitForFunction(() => {
+const esperarCameraParada = async (page) => {
+  // Estado local por chamada: o contador no window sobrevivia entre chamadas e dava "parada" falso.
+  await page.evaluate(() => { window.__n08Igual = 0; window.__n08Ult = null; });
+  await page.waitForFunction(() => {
   const w = window;
   const ler = () => [...document.querySelectorAll('.map__alvo')].slice(0, 12).map((a) => { const c = a.getBoundingClientRect(); return Math.round(c.x) + ',' + Math.round(c.y); }).join(';');
   const agora = ler();
   if (w.__n08Ult === agora) w.__n08Igual = (w.__n08Igual || 0) + 1; else { w.__n08Igual = 0; w.__n08Ult = agora; }
   return w.__n08Igual >= 3;
-}, null, { polling: 100, timeout: 10000 });
+  }, null, { polling: 100, timeout: 10000 });
+};
 
 const errosPagina = [];
 const errosConsole = [];
@@ -89,8 +93,14 @@ async function entrar(page, senha) {
   await page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 20000 });
 }
 
+/** Em tela estreita a navegação vive numa gaveta: abre pelo botão do topo antes de clicar o link. */
+async function irPara(page, href) {
+  if (await page.locator('.menu-button').isVisible()) await page.click('.menu-button');
+  await page.click(`.navigation__item[href="${href}"]`);
+}
+
 async function abrirMapa(page, esperarAlvos = true) {
-  await page.click('a[href="/mapa"]');
+  await irPara(page, '/mapa');
   if (esperarAlvos) {
     await page.waitForSelector('.map__alvo', { timeout: 20000 });
     await page.waitForSelector('.map__unidade', { timeout: 20000 });
@@ -290,6 +300,7 @@ async function voltarAoEstado(page) {
     checar(6, `marcador de Aracaju abre .unit-panel com o nome (${u0.nome})`, nomeA === u0.nome, `painel: ${nomeA}`);
     checar(6, 'Aracaju: .selected-panel inexistente e unit-panel visível sem rolar',
       gA && gA.selectedPanel === 0 && gA.scrollTop === 0 && gA.topoRelativo < gA.alturaPainel, JSON.stringify(gA));
+    await page.waitForFunction(() => !document.querySelector('.unit-panel__vazio[role=status]'), null, { timeout: 10000 });
     await page.screenshot({ path: path.join(OUT, 'b-detalhe-por-marcador.png') });
 
     // ITA-09: varre todos os marcadores; quem mostra .aviso-ibge tem IBGE divergente da coordenada.
@@ -342,6 +353,7 @@ async function voltarAoEstado(page) {
     for (const r of [20, 28, 38, 50, 64]) for (let k = 0; k < 16; k++) { const ang = (k * Math.PI * 2) / 16; candidatos.push({ x: centroA.x + r * Math.cos(ang), y: centroA.y + r * Math.sin(ang), r }); }
     let zoomFeito = null; let tentativas = 0;
     const dInicioAracaju = d0;
+    const idsAr = new Set(aracaju.map((u) => String(u.id)));
     for (const c of candidatos) {
       const ehCanvas = await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return !!e && e.tagName === 'CANVAS'; }, c);
       if (!ehCanvas) continue;
@@ -349,18 +361,21 @@ async function voltarAoEstado(page) {
       await page.mouse.click(c.x, c.y);
       await pausa(page, ESPERA_CAMERA);
       if (await voltarVisivel(page)) {
-        const cc = await centro(page, alvoSel(IBGE_ARACAJU));
+        // O centro que importa é o das UNIDADES de Aracaju (o enquadramento é o envelope delas, D20): um
+        // clique em município vizinho também aproxima e deixava o centroide do polígono a ~19% do centro.
+        const ms = (await marcadores(page)).filter((m) => idsAr.has(m.id));
+        const cc = { x: (Math.min(...ms.map((m) => m.x)) + Math.max(...ms.map((m) => m.x))) / 2, y: (Math.min(...ms.map((m) => m.y)) + Math.max(...ms.map((m) => m.y))) / 2 };
         const cartao = (await caixas(page, ['.map-card']))[0];
         const largura = cartao.r - cartao.l, altura = cartao.b - cartao.t;
         const dx = Math.abs(cc.x - (cartao.l + largura / 2)) / largura, dy = Math.abs(cc.y - (cartao.t + altura / 2)) / altura;
-        if (dx <= 0.2 && dy <= 0.2) { zoomFeito = { ponto: c, dx, dy }; break; }
+        if (dx <= 0.1 && dy <= 0.1) { zoomFeito = { ponto: c, dx, dy }; break; }
         await voltarAoEstado(page); // caiu em município vizinho: volta e tenta outro ponto
       }
     }
     const dZoom = await dist();
     const nomeDepoisZoom = await nomePainel(page);
     medidas.zoomAracaju = { distanciaParAntes: +dInicioAracaju.toFixed(1), distanciaParDepois: +dZoom.toFixed(1), fator: +(dZoom / dInicioAracaju).toFixed(2), tentativasDeClique: tentativas, cartao: cartaoAntes };
-    checar(8, 'clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e Aracaju vai ao centro do cartão (±20%)',
+    checar(8, 'clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o envelope das unidades de Aracaju vai ao centro do cartão (±10%)',
       !!zoomFeito && dZoom > dInicioAracaju * 1.3 && await voltarVisivel(page),
       zoomFeito ? `distância ${dInicioAracaju.toFixed(1)} -> ${dZoom.toFixed(1)} (x${(dZoom / dInicioAracaju).toFixed(2)}); desvio do centro ${(zoomFeito.dx * 100).toFixed(1)}%/${(zoomFeito.dy * 100).toFixed(1)}%; ${tentativas} tentativa(s), raio ${zoomFeito.ponto.r}px`
         : `nenhum ponto produziu o zoom em Aracaju em ${tentativas} tentativa(s)`);
@@ -396,6 +411,21 @@ async function voltarAoEstado(page) {
       await pausa(page, 400);
       const nome = await nomePainel(page);
       if (!topo || nome !== u.nome) falhasClique.push(`${u.nome}: elementFromPoint=${topo} painel="${nome}"`);
+    }
+    // O piso de 40px vem de medida (D20): com o polígono de Aracaju o vizinho mais próximo ficava a 15,2px;
+    // com o envelope das unidades e o teto de zoom atual, 62,1px. 40px é folga sobre o marcador de 13px.
+    checar(9, 'vizinho mais próximo de Aracaju a >= 40px', minimoPar >= 40, `vizinho mais próximo ${minimoPar.toFixed(1)}px`);
+    {
+      const [cartao, placa, voltar] = await caixas(page, ['.map-card', '.map-titulo', '.map__voltar']);
+      const ctrl = (await caixas(page, ['.maplibregl-ctrl-top-right']))[0];
+      const fora = [];
+      for (const m of mAracaju) {
+        const c = { l: m.x - m.l / 2, r: m.x + m.l / 2, t: m.y - m.a / 2, b: m.y + m.a / 2 };
+        const dentro = c.l >= cartao.l && c.r <= cartao.r && c.t >= cartao.t && c.b <= cartao.b;
+        const sob = [placa, voltar, ctrl].some((x) => x && cruzam(c, x));
+        if (!dentro || sob) fora.push(`${m.id} dentro=${dentro} sobOutroElemento=${sob}`);
+      }
+      checar(9, 'as unidades de Aracaju ficam todas dentro do cartão, fora da placa, do botão de volta e dos controles', mAracaju.length === aracaju.length && !fora.length, fora.join(' | ') || `${mAracaju.length}/${aracaju.length} visíveis`);
     }
     checar(9, 'cada marcador de Aracaju é o topo no seu centro e o clique físico abre a própria unidade', !falhasClique.length && aracaju.length > 0,
       falhasClique.length ? falhasClique.join(' | ') : `${aracaju.length}/${aracaju.length} ok`);
@@ -494,6 +524,46 @@ async function voltarAoEstado(page) {
       `.map-page H ${rm.mapPageH} · .map-layout direita ${rm.layoutDireita}/${rm.vw} · doc H ${rm.docH} (registrado; ${rm.docH > 0 ? 'pré-existente: topbar' : 'zero'}) · rolagem vertical empilhada: main ${rm.mainV}, documento ${rm.docV}`);
     await page.screenshot({ path: path.join(OUT, '01-viewport-390x844.png'), fullPage: true });
     await page.setViewportSize({ width: 1600, height: 900 });
+
+    // ------------------------------------------------------------------ 16. resize reenquadra (D20)
+    {
+      // Todo alvo (um por município) com o centro dentro do cartão: o estado inteiro cabe na moldura atual.
+      const cabeTudo = async () => {
+        const cartao = (await caixas(page, ['.map-card']))[0];
+        const lista = await page.evaluate(() => [...document.querySelectorAll('.map__alvo')].map((a) => { const c = a.getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; }));
+        const fora = lista.filter((a) => a.x < cartao.l || a.x > cartao.r || a.y < cartao.t || a.y > cartao.b).length;
+        return { total: lista.length, fora };
+      };
+      // (a) montado em desktop, redimensionado SEM gesto: reenquadra sozinho.
+      await page.setViewportSize({ width: 390, height: 844 });
+      await esperarCameraParada(page);
+      const ra = await cabeTudo();
+      checar(16, '(a) 1600x900 -> 390x844 sem gesto: estado inteiro cabe e sem "Ver estado inteiro"', ra.total > 0 && ra.fora === 0 && !(await voltarVisivel(page)), `${ra.total - ra.fora}/${ra.total} alvos dentro do cartão`);
+      // (b) montagem fresca em 390x844: sai do mapa e volta por clique.
+      await irPara(page, '/dashboard');
+      await page.waitForURL((u) => u.pathname.includes('/dashboard'), { timeout: 15000 });
+      await abrirMapa(page);
+      await esperarCameraParada(page);
+      const rb = await cabeTudo();
+      checar(16, '(b) montagem fresca em 390x844: estado inteiro cabe e sem "Ver estado inteiro"', rb.total > 0 && rb.fora === 0 && !(await voltarVisivel(page)), `${rb.total - rb.fora}/${rb.total} alvos dentro do cartão`);
+      await page.screenshot({ path: path.join(OUT, '16-montagem-fresca-390x844.png'), fullPage: true });
+      // (c) depois de aproximar um município, redimensionar respeita a câmera do operador.
+      await page.setViewportSize({ width: 1600, height: 900 });
+      await esperarCameraParada(page);
+      const dEstado = await dist();
+      await cliqueLogico(page, alvoSel(IBGE_ARACAJU));
+      await esperarCameraParada(page);
+      const dAprox = await dist();
+      await page.setViewportSize({ width: 1500, height: 850 });
+      await esperarCameraParada(page);
+      const dRedim = await dist();
+      const razao = dRedim / dAprox;
+      checar(16, '(c) após zoom por município, redimensionar não reenquadra: botão continua e a escala se mantém (±10%)',
+        dAprox > dEstado * 1.3 && await voltarVisivel(page) && razao >= 0.9 && razao <= 1.1,
+        `estado ${dEstado.toFixed(1)} -> aproximado ${dAprox.toFixed(1)} -> redimensionado ${dRedim.toFixed(1)} (razão ${razao.toFixed(2)})`);
+      await voltarAoEstado(page);
+      await page.setViewportSize({ width: 1600, height: 900 });
+    }
 
     // ------------------------------------------------------------------ 13. reduced-motion
     {
