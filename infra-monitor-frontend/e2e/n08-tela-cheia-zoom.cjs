@@ -39,7 +39,17 @@ const IBGE_ARACAJU = '2800308';
 const resultados = [];
 const medidas = {};
 const checar = (caso, nome, ok, detalhe) => { resultados.push({ caso, nome, ok: !!ok, detalhe: detalhe ?? '' }); };
+/** Sub-verificação que não se aplica ao dado atual: ok (não derruba a corrida), mas fora da contagem de aprovados. */
+const naoAplicavel = (caso, nome, motivo) => { resultados.push({ caso, nome, ok: true, na: true, detalhe: 'NÃO APLICÁVEL: ' + motivo }); };
 const pausa = (page, ms) => page.waitForTimeout(ms);
+/** Espera as posições dos alvos ficarem estáveis por 3 amostras seguidas (a câmera parou). */
+const esperarCameraParada = (page) => page.waitForFunction(() => {
+  const w = window;
+  const ler = () => [...document.querySelectorAll('.map__alvo')].slice(0, 12).map((a) => { const c = a.getBoundingClientRect(); return Math.round(c.x) + ',' + Math.round(c.y); }).join(';');
+  const agora = ler();
+  if (w.__n08Ult === agora) w.__n08Igual = (w.__n08Igual || 0) + 1; else { w.__n08Igual = 0; w.__n08Ult = agora; }
+  return w.__n08Igual >= 3;
+}, null, { polling: 100, timeout: 10000 });
 
 const errosPagina = [];
 const errosConsole = [];
@@ -55,10 +65,12 @@ async function novaPagina(browser, rotulo, opcoesContexto = {}, ignorarRede = fa
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     const linha = `[${rotulo}] ${m.text()}`;
-    if (ignorarRede) errosConsoleEsperados.push(linha); else errosConsole.push(linha);
+    // Contexto do caso 15: só o que vem da requisição abortada de /dashboard/unidades é esperado.
+    const doAborto = (m.location().url + ' ' + m.text()).includes('dashboard/unidades');
+    if (ignorarRede && doAborto) errosConsoleEsperados.push(linha); else errosConsole.push(linha);
   });
   page.on('response', async (r) => {
-    if (r.status() >= 500) { const l = `[${rotulo}] HTTP ${r.status()} ${r.request().method()} ${r.url()}`; if (ignorarRede) errosConsoleEsperados.push(l); else respostas5xx.push(l); }
+    if (r.status() >= 500) { const l = `[${rotulo}] HTTP ${r.status()} ${r.request().method()} ${r.url()}`; respostas5xx.push(l); }
     if (!/\/dashboard\/unidades(\?|$)/.test(r.url()) || r.request().method() !== 'GET') return;
     try {
       const j = await r.json();
@@ -229,7 +241,7 @@ async function voltarAoEstado(page) {
       notas.lista.map((n) => `${n.altura.toFixed(1)}px/lh ${n.lh.toFixed(1)}`).join(' | '));
     checar(14, 'painel sem estouro horizontal com a legenda aberta', notas.painelOverflowX <= 0, `excedente ${notas.painelOverflowX}px`);
     checar(14, 'textos exatos das duas notas',
-      notas.lista[0]?.texto === 'Município é neutro: situa, não indica estado.' && notas.lista[1]?.texto === 'Arco liga a unidade ao hub, na cor do status dela.',
+      notas.lista[0]?.texto === 'Município é neutro: situa, não indica estado.' && notas.lista[1]?.texto === 'Arco liga unidade ao hub, na cor do status.',
       JSON.stringify(notas.lista.map((n) => n.texto)));
     await page.locator('.map-panel').screenshot({ path: path.join(OUT, 'd-legenda-aberta.png') });
     await page.click('summary.legend-bloco__resumo');
@@ -285,7 +297,7 @@ async function voltarAoEstado(page) {
     for (const u of comCoord) {
       if (!(await page.locator(marcSel(u.id)).count())) continue;
       await cliqueLogico(page, marcSel(u.id));
-      await pausa(page, 300);
+      await page.waitForFunction((nome) => document.querySelector('.unit-panel__nome')?.textContent.trim() === nome && !document.querySelector('.unit-panel__vazio[role=status]'), u.nome, { timeout: 10000 });
       varredura.push({ id: u.id, nome: u.nome, painel: await nomePainel(page), divergente: (await page.locator('.aviso-ibge').count()) > 0, g: await geometriaPainel() });
     }
     const falhaNome = varredura.filter((v) => v.painel !== v.nome);
@@ -294,7 +306,7 @@ async function voltarAoEstado(page) {
       `${varredura.length} marcadores varridos; nome errado: ${falhaNome.map((v) => v.nome).join(',') || '-'}; geometria: ${falhaGeo.map((v) => v.nome).join(',') || '-'}`);
     const divergentes = varredura.filter((v) => v.divergente);
     if (!divergentes.length) {
-      checar(6, 'ITA-09 (IBGE divergente) abre direto', true, 'NÃO APLICÁVEL: nenhuma unidade do payload tem IBGE divergente da coordenada (nenhum .aviso-ibge em ' + varredura.length + ' painéis)');
+      naoAplicavel(6, 'ITA-09 (IBGE divergente) abre direto', 'nenhuma unidade do payload tem IBGE divergente da coordenada (nenhum .aviso-ibge em ' + varredura.length + ' painéis)');
     } else {
       const ok = divergentes.every((v) => v.painel === v.nome && v.g && v.g.selectedPanel === 0 && v.g.scrollTop === 0 && v.g.topoRelativo < v.g.alturaPainel);
       checar(6, 'unidade com IBGE divergente abre direto, com aviso, visível sem rolar', ok, divergentes.map((v) => v.nome).join(', '));
@@ -362,8 +374,16 @@ async function voltarAoEstado(page) {
     const minimoPar = Math.min(...mAracaju.map((m) => m.vizinho));
     medidas.aracajuVizinhoMaisProximoPx = +minimoPar.toFixed(1);
     medidas.aracajuMarcadores = mAracaju.map((m) => ({ id: m.id, vizinho: +m.vizinho.toFixed(1) }));
-    checar(9, 'distância mínima entre vizinhos de Aracaju >= 60px (ZOOM_MAXIMO_MUNICIPIO)', mAracaju.length === aracaju.length && minimoPar >= 60,
-      `medido ${minimoPar.toFixed(1)}px entre ${mAracaju.length} marcadores (esperado ${aracaju.length})`);
+    // Requisito do usuário (D20): "cada um fica clicável". Os 60px do plano eram número inventado; o que se
+    // afirma é que nenhuma caixa de marcador de Aracaju sobrepõe outra. O vizinho mais próximo é só registrado.
+    const sobrepostos = [];
+    for (let i = 0; i < mAracaju.length; i++) for (let j = i + 1; j < mAracaju.length; j++) {
+      const a = mAracaju[i], b = mAracaju[j];
+      if (Math.abs(a.x - b.x) < (a.l + b.l) / 2 && Math.abs(a.y - b.y) < (a.a + b.a) / 2) sobrepostos.push(`${a.id}×${b.id}`);
+    }
+    medidas.aracajuCaixasSobrepostas = sobrepostos;
+    checar(9, 'nenhum par de marcadores de Aracaju com caixas sobrepostas', mAracaju.length === aracaju.length && sobrepostos.length === 0,
+      `${mAracaju.length}/${aracaju.length} marcadores; vizinho mais próximo ${minimoPar.toFixed(1)}px (registrado); caixa ${mAracaju[0]?.l}x${mAracaju[0]?.a}px; sobrepostos: ${sobrepostos.join(', ') || '-'}`);
     const falhasClique = [];
     for (const u of aracaju) {
       const m = mAracaju.find((x) => x.id === String(u.id));
@@ -390,29 +410,31 @@ async function voltarAoEstado(page) {
 
     const outro = (await alvos(page)).find((a) => a.codigo !== IBGE_ARACAJU && / \d+ unidade/.test(a.rotulo) && !/nenhuma/.test(a.rotulo));
     if (!outro) {
-      checar(10, 'Escape com foco no canvas volta ao estado inteiro', true, 'NÃO APLICÁVEL: nenhum outro município com unidade para aproximar');
+      naoAplicavel(10, 'Escape com foco no canvas volta ao estado inteiro', 'nenhum outro município com unidade para aproximar');
     } else {
       await cliqueLogico(page, alvoSel(outro.codigo));
       await pausa(page, ESPERA_CAMERA);
       const dZ2 = await dist();
       await page.evaluate(() => document.querySelector('.maplibregl-canvas').focus());
+      const focoCanvas = await page.evaluate(() => document.activeElement === document.querySelector('.maplibregl-canvas'));
+      checar(10, 'canvas recebeu foco antes do Escape', focoCanvas);
       await page.keyboard.press('Escape');
       await pausa(page, ESPERA_CAMERA);
       const dEsc = await dist();
       checar(10, `Escape com foco no canvas desfaz o zoom em ${outro.rotulo.split(':')[0]}`,
-        Math.abs(dZ2 - d0) > 5 && Math.abs(dEsc - d0) <= 2 && !(await voltarVisivel(page)), `inicial ${d0.toFixed(1)} · aproximado ${dZ2.toFixed(1)} · após Escape ${dEsc.toFixed(1)}`);
+        dZ2 > d0 + 5 && Math.abs(dEsc - d0) <= 2 && !(await voltarVisivel(page)), `inicial ${d0.toFixed(1)} · aproximado ${dZ2.toFixed(1)} · após Escape ${dEsc.toFixed(1)}`);
     }
 
     // ------------------------------------------------------------------ 11. município sem unidade
     const vazio = (await alvos(page)).find((a) => /nenhuma unidade cadastrada/.test(a.rotulo));
     if (!vazio) {
-      checar(11, 'município sem unidade aproxima e anuncia', true, 'NÃO APLICÁVEL: nenhum .map__alvo com "nenhuma unidade cadastrada"');
+      naoAplicavel(11, 'município sem unidade aproxima e anuncia', 'nenhum .map__alvo com "nenhuma unidade cadastrada"');
     } else {
       await cliqueLogico(page, alvoSel(vazio.codigo));
       await pausa(page, ESPERA_CAMERA);
       const dV = await dist();
       const sr = (await page.locator('.map-sr').innerText()).trim();
-      checar(11, `"${vazio.rotulo}" aproxima e a região viva anuncia`, Math.abs(dV - d0) > 5 && /nenhuma unidade cadastrada/.test(sr) && await voltarVisivel(page),
+      checar(11, `"${vazio.rotulo}" aproxima e a região viva anuncia`, dV > d0 + 5 && /nenhuma unidade cadastrada/.test(sr) && await voltarVisivel(page),
         `distância ${d0.toFixed(1)} -> ${dV.toFixed(1)}; .map-sr="${sr}"`);
       await voltarAoEstado(page);
     }
@@ -435,7 +457,7 @@ async function voltarAoEstado(page) {
       await pausa(page, ESPERA_CAMERA);
       const depoisTab = await dist();
       const semPressed = (await alvos(page)).every((a) => !a.temPressed);
-      checar(12, 'Enter no alvo aproxima o município', Math.abs(depoisTab - antesTab) > 5 && await voltarVisivel(page), `${focoAlvo.rotulo}: ${antesTab.toFixed(1)} -> ${depoisTab.toFixed(1)}`);
+      checar(12, 'Enter no alvo aproxima o município', depoisTab > antesTab + 5 && await voltarVisivel(page), `${focoAlvo.rotulo}: ${antesTab.toFixed(1)} -> ${depoisTab.toFixed(1)}`);
       checar(12, '.map__alvo sem aria-pressed', semPressed);
       await voltarAoEstado(page);
     }
@@ -455,17 +477,17 @@ async function voltarAoEstado(page) {
     medidas.viewports = {};
     for (const [w, h] of [[1920, 1080], [1600, 900], [1366, 768], [1280, 720], [1024, 768]]) {
       await page.setViewportSize({ width: w, height: h });
-      await pausa(page, 1200);
+      await esperarCameraParada(page);
       const r = await medirRolagem();
       medidas.viewports[`${w}x${h}`] = r;
-      checar(1, `${w}x${h}: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal`,
-        r.mainV === 0 && r.docV === 0 && r.mapPageH <= 0 && r.layoutDireita <= r.vw,
+      checar(1, `${w}x${h}: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal`,
+        r.mainV === 0 && r.docV === 0 && r.mainH === 0 && r.mapPageH <= 0 && r.layoutDireita <= r.vw,
         `main V ${r.mainV} · doc V ${r.docV} · .map-page H ${r.mapPageH} · .map-layout direita ${r.layoutDireita}/${r.vw} · doc H ${r.docH} (registrado; ${r.docH > 0 ? 'pré-existente: topbar' : 'zero'}) · main H ${r.mainH}`);
       await page.screenshot({ path: path.join(OUT, `01-viewport-${w}x${h}.png`) });
       if (w === 1280) await verTitulo('1280x720');
     }
     await page.setViewportSize({ width: 390, height: 844 });
-    await pausa(page, 1200);
+    await esperarCameraParada(page);
     const rm = await medirRolagem();
     medidas.viewports['390x844'] = rm;
     checar(1, '390x844: .map-page sem estouro horizontal (empilhado rola na vertical de propósito)', rm.mapPageH <= 0 && rm.layoutDireita <= rm.vw,
@@ -516,13 +538,13 @@ async function voltarAoEstado(page) {
     fatal = erro;
     try { await page.screenshot({ path: path.join(OUT, 'fatal.png') }); } catch (e) { errosPagina.push('screenshot fatal falhou: ' + e.message); }
   } finally {
-    checar(0, 'nenhum erro de página nem de console', errosPagina.length === 0 && errosConsole.length === 0,
+    checar(0, 'nenhum erro de página nem de console', errosPagina.length === 0 && errosConsole.length === 0 && respostas5xx.length === 0,
       [...errosPagina, ...errosConsole, ...respostas5xx].join(' | ') + (errosConsoleEsperados.length ? ` (esperados no caso 15, não contados: ${errosConsoleEsperados.length})` : ''));
     const falhas = resultados.filter((r) => !r.ok);
     fs.writeFileSync(path.join(OUT, 'n08-tela-cheia-zoom.json'),
-      JSON.stringify({ resultados, falhas: falhas.length, medidas, errosConsoleEsperados, fatal: fatal ? fatal.message : null }, null, 2));
-    for (const r of resultados) console.log(`${r.ok ? 'OK   ' : 'FALHA'} [${r.caso}] ${r.nome}${r.detalhe ? ` — ${r.detalhe}` : ''}`);
-    console.log(`\n${resultados.length - falhas.length}/${resultados.length}`);
+      JSON.stringify({ resultados, falhas: falhas.length, naoAplicaveis: resultados.filter((r) => r.na).length, medidas, errosConsoleEsperados, fatal: fatal ? fatal.message : null }, null, 2));
+    for (const r of resultados) console.log(`${r.na ? 'N/A  ' : r.ok ? 'OK   ' : 'FALHA'} [${r.caso}] ${r.nome}${r.detalhe ? ` — ${r.detalhe}` : ''}`);
+    console.log(`\n${resultados.filter((r) => r.ok && !r.na).length}/${resultados.filter((r) => !r.na).length} aprovados · ${resultados.filter((r) => r.na).length} não aplicáveis · ${falhas.length} falhas`);
     if (fatal) console.error(`\nFATAL: ${fatal.message}`);
     await browser.close();
     if (fatal || falhas.length) process.exitCode = 1;

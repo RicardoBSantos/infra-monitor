@@ -81,7 +81,7 @@
         <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
       </ul>
       <p class="legend__nota"><span class="legend__municipio"></span>Município é neutro: situa, não indica estado.</p>
-      <p class="legend__nota"><span class="legend__linha"></span>Arco liga a unidade ao hub, na cor do status dela.</p>
+      <p class="legend__nota"><span class="legend__linha"></span>Arco liga unidade ao hub, na cor do status.</p>
     </details>
     @if (state() === 'empty') { <div class="map-feedback"><strong>Nenhuma unidade retornada</strong><p>A cartografia permanece disponível; não há unidades para associar.</p></div> }
     @if (semLocalizacao().length) { <div class="map-feedback"><strong>Unidades sem localização</strong><ul class="unit-list">@for (unit of semLocalizacao(); track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }

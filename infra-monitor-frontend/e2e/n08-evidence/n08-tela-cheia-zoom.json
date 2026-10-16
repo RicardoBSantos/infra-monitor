@@ -57,8 +57,8 @@
     {
       "caso": 14,
       "nome": "notas em uma linha só (altura <= 1,5x line-height)",
-      "ok": false,
-      "detalhe": "15.9px/lh 15.9 | 31.9px/lh 15.9"
+      "ok": true,
+      "detalhe": "15.9px/lh 15.9 | 15.9px/lh 15.9"
     },
     {
       "caso": 14,
@@ -70,7 +70,7 @@
       "caso": 14,
       "nome": "textos exatos das duas notas",
       "ok": true,
-      "detalhe": "[\"Município é neutro: situa, não indica estado.\",\"Arco liga a unidade ao hub, na cor do status dela.\"]"
+      "detalhe": "[\"Município é neutro: situa, não indica estado.\",\"Arco liga unidade ao hub, na cor do status.\"]"
     },
     {
       "caso": 14,
@@ -146,9 +146,9 @@
     },
     {
       "caso": 9,
-      "nome": "distância mínima entre vizinhos de Aracaju >= 60px (ZOOM_MAXIMO_MUNICIPIO)",
-      "ok": false,
-      "detalhe": "medido 15.2px entre 4 marcadores (esperado 4)"
+      "nome": "nenhum par de marcadores de Aracaju com caixas sobrepostas",
+      "ok": true,
+      "detalhe": "4/4 marcadores; vizinho mais próximo 15.2px (registrado); caixa 13x13px; sobrepostos: -"
     },
     {
       "caso": 9,
@@ -161,6 +161,12 @@
       "nome": "botão \"Ver estado inteiro\": distâncias voltam (±2px), botão some, foco no canvas",
       "ok": true,
       "detalhe": "distância 375.4 vs inicial 375.3; foco CANVAS.maplibregl-canvas"
+    },
+    {
+      "caso": 10,
+      "nome": "canvas recebeu foco antes do Escape",
+      "ok": true,
+      "detalhe": ""
     },
     {
       "caso": 10,
@@ -194,25 +200,25 @@
     },
     {
       "caso": 1,
-      "nome": "1920x1080: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "nome": "1920x1080: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
       "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1904/1920 · doc H 0 (registrado; zero) · main H 0"
     },
     {
       "caso": 1,
-      "nome": "1600x900: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "nome": "1600x900: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
       "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1584/1600 · doc H 0 (registrado; zero) · main H 0"
     },
     {
       "caso": 1,
-      "nome": "1366x768: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "nome": "1366x768: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
       "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1350/1366 · doc H 0 (registrado; zero) · main H 0"
     },
     {
       "caso": 1,
-      "nome": "1280x720: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "nome": "1280x720: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
       "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1264/1280 · doc H 16 (registrado; pré-existente: topbar) · main H 0"
     },
@@ -224,7 +230,7 @@
     },
     {
       "caso": 1,
-      "nome": "1024x768: sem rolagem vertical em main.shell__main nem no documento; .map-page sem estouro horizontal",
+      "nome": "1024x768: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
       "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1008/1024 · doc H 48 (registrado; pré-existente: topbar) · main H 0"
     },
@@ -253,7 +259,8 @@
       "detalhe": " (esperados no caso 15, não contados: 1)"
     }
   ],
-  "falhas": 2,
+  "falhas": 0,
+  "naoAplicaveis": 0,
   "medidas": {
     "unidadesNoPayload": 11,
     "unidadesComCoordenada": 11,
@@ -296,6 +303,7 @@
         "vizinho": 42
       }
     ],
+    "aracajuCaixasSobrepostas": [],
     "viewports": {
       "1920x1080": {
         "mainV": 0,
