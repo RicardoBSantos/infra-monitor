@@ -32,7 +32,7 @@ const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
 const API = 'http://localhost:8080/api/v1';
-const EMAIL = 'admin@inframonitor.local';
+const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.M06_SENHA ?? process.env.N05_SENHA;
 if (!SENHA) throw new Error('M06_SENHA (ou N05_SENHA) é obrigatória');
 
