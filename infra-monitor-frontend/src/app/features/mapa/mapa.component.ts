@@ -221,31 +221,34 @@ const BEARING = -18;
 /**
  * Offset da câmera, em pixels de tela: recentra o desenho depois da compensação de zoom.
  *
- * Recalibrado do zero — 82 vinha de N05 e 40 do spike, e os dois compensavam o encolhimento do
- * BLOCO inclinado, problema que não existe mais. Herdá-los teria mantido correção sem causa. Os
- * valores atuais saíram de medição por pixel do desenho contra o fundo do próprio cartão (o canvas
- * não é legível in-page: `preserveDrawingBuffer` está desligado), varrendo zoom e offset até topo
- * e base ficarem equilibrados: 10,9% contra 9,3% em 1500x950, 10,8% contra 10,0% em 1700x907,
- * 10,9% contra 12,4% em 1280x800.
+ * Remedido em D20, com o cartão ocupando a viewport (~862px de altura em 1500x950, e não mais um
+ * clamp). Dois fatos medidos, que mudam a leitura dos valores antigos:
  *
- * O `-24` em x é o único valor novo: com `bearing -18` o estado deitado desloca-se para a esquerda
- * quando a câmera sobe, e sem ele a ponta oeste ficava a 4px da borda (0,4% de folga contra 5,7%
- * do outro lado). Com ele, 2,2% contra 4,1%.
+ * 1. Antes de D20 este offset NÃO FAZIA NADA em y. Era passado a um `easeTo({ zoom, offset })` sem
+ *    `center`, e o MapLibre calcula o centro a partir do próprio offset, então o deslocamento se
+ *    anulava (60 contra 0 mexia ~1,5 p.p.). O equilíbrio que N06 media vinha só do `fitBounds`.
+ *    Agora o `easeTo` único leva o `center` de `cameraForBounds` e o offset passa a valer.
+ * 2. Com o centro geométrico do enquadramento o estado sobra mais em cima que embaixo (a perspectiva
+ *    achata o topo): ~4 p.p. de diferença. O `-28` em y sobe o desenho e fecha isso. O x ficou em
+ *    0: o `-24` de N05 empurrava a ponta oeste para a borda (0,1% de folga) em cartões estreitos.
+ *
+ * Medido por pixel (cartão com `.map` visível contra oculto, sem placa do título e sem os controles
+ * do canto), topo contra base: 15,8% x 15,9% em 1500x950, 15,9% x 16,5% em 1700x907, 15,9% x 17,8%
+ * em 1280x800, 15,8% x 14,7% em 1920x1080, 15,9% x 18,4% em 1366x768. Nenhuma ponta encosta na borda
+ * (menor folga lateral: 0,7%, em 1280x800).
  */
-const OFFSET_CAMERA: [number, number] = [-24, 60];
+const OFFSET_CAMERA: [number, number] = [0, -28];
 
 /**
- * Zoom somado ao enquadramento na hora de inclinar. Continua existindo porque `fitBounds` com
- * `pitch` recua a câmera para caber o trapézio inteiro — 52% da altura do cartão sobrando, medido
- * — mas o valor não é mais o de N05: 0,68, não 0,75, e agora contra a moldura já inclinada e não
- * contra o enquadramento plano.
- *
- * O teto é a largura, não a altura: acima de 0,70 a ponta oeste do estado começa a sair do cartão,
- * enquanto ainda sobram ~20% de altura. Isso é geometria de Sergipe deitado a -18°, não folga a
- * fechar. `e2e/n06-marcadores-e-conexoes` mede topo e base a cada execução e falha se
- * desequilibrarem.
+ * Zoom somado ao enquadramento na hora de inclinar. Continua existindo porque `cameraForBounds` com
+ * `pitch` recua a câmera para caber o trapézio inteiro e deixa área sobrando — mas o valor não é mais
+ * o de N05 nem o de N06: 0,42, não 0,68. Com D20 o cartão é mais quadrado que o antigo 760/680
+ * (908x862 em 1500x950), o enquadramento nasce mais apertado em x, e 0,68 cortava a ponta oeste e a
+ * base. O teto é a largura: em 1280x800 (cartão 688x712) acima de ~0,45 a ponta oeste encosta na
+ * borda. Isso é geometria de Sergipe deitado a -18°, não folga a fechar.
+ * `e2e/n06-marcadores-e-conexoes` mede topo e base a cada execução e falha se desequilibrarem.
  */
-const ZOOM_AO_INCLINAR = 0.68;
+const ZOOM_AO_INCLINAR = 0.42;
 
 /**
  * Teto do zoom ao clicar num município (D20). Sem ele, município pequeno iria a zoom de rua e o
