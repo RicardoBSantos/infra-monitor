@@ -252,20 +252,28 @@ describe('cliqueVeioDeMarcador',()=>{
 describe('limites do enquadramento (zoom por clique, D20)',()=>{
   const com=(id:number,lng:number|null,lat:number|null):DashboardUnidade=>({...unit,id,longitude:lng,latitude:lat});
   const mun=(units:DashboardUnidade[]):MapMunicipio=>({...municipio('2800308','Aracaju'),units});
-  const poligono=[[-38,-11],[-37,-10]];
-  it('0 unidades: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([]))).toEqual(poligono as never); });
-  it('1 unidade: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5)]))).toEqual(poligono as never); });
-  it('2+ unidades com coordenada: envelope das unidades',()=>{
-    expect(limitesDoEnquadramento(mun([com(1,-37.6,-10.4),com(2,-37.4,-10.6),com(3,-37.5,-10.5)]))).toEqual([[-37.6,-10.6],[-37.4,-10.4]]);
+  // Envelope do poligono de Aracaju no fixture: lng -38..-37, lat -11..-10.
+  const doPoligono={limites:[[-38,-11],[-37,-10]],porUnidades:false} as ReturnType<typeof limitesDoEnquadramento>;
+  it('0 unidades: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([]))).toEqual(doPoligono); });
+  it('1 unidade: envelope do poligono',()=>{ expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5)]))).toEqual(doPoligono); });
+  it('2+ unidades dentro do poligono: envelope das unidades',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.6,-10.4),com(2,-37.4,-10.6),com(3,-37.5,-10.5)]))).toEqual({limites:[[-37.6,-10.6],[-37.4,-10.4]],porUnidades:true});
   });
   it('2 unidades no mesmo ponto: envelope degenerado, usa o poligono',()=>{
-    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,-37.5,-10.5)]))).toEqual(poligono as never);
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,-37.5,-10.5)]))).toEqual(doPoligono);
+  });
+  it('degenerado so num eixo (mesma longitude): ainda enquadra as unidades',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.4),com(2,-37.5,-10.6)]))).toEqual({limites:[[-37.5,-10.6],[-37.5,-10.4]],porUnidades:true});
   });
   it('2 unidades, uma sem coordenada: so 1 conta, usa o poligono',()=>{
-    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,null,null)]))).toEqual(poligono as never);
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,null,null)]))).toEqual(doPoligono);
   });
-  it('coordenada 0 e valida: 2 unidades na linha do equador enquadram as unidades',()=>{
-    expect(limitesDoEnquadramento(mun([com(1,-37.5,0),com(2,-37.4,0)]))).toEqual([[-37.5,0],[-37.4,0]]);
+  it('unidade com coordenada fora do municipio (IBGE divergente): usa o poligono',()=>{
+    expect(limitesDoEnquadramento(mun([com(1,-37.5,-10.5),com(2,-36,-10.5)]))).toEqual(doPoligono);
+  });
+  it('coordenada 0 e valida: unidades na linha do equador dentro do poligono enquadram as unidades',()=>{
+    const equador:MapMunicipio={...mun([com(1,-1,0),com(2,-0.5,0)]),feature:{...geoJson.features[0],geometry:{type:'Polygon',coordinates:[[[-2,-1],[0,-1],[0,1],[-2,-1]]]}} as never};
+    expect(limitesDoEnquadramento(equador)).toEqual({limites:[[-1,0],[-0.5,0]],porUnidades:true});
   });
 });
 
