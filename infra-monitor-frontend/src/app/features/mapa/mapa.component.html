@@ -22,7 +22,7 @@
          MARCADOR DE UNIDADE, não a do polígono: o município é contorno + fundo neutro (N07).
          Sempre no DOM, escondida por `hidden` fora de success/empty: com `@if` o Atualizar (state → loading)
          destruiria o <details> e fecharia a legenda aberta. -->
-    <details class="legend-bloco" [hidden]="!(state() === 'success' || state() === 'empty')">
+    <details class="legend-bloco" (toggle)="aoAlternarLegenda()" [hidden]="!(state() === 'success' || state() === 'empty')">
       <summary class="legend-bloco__resumo"><span class="panel-label">LEGENDA DE STATUS</span></summary>
       <p class="legend__intro">Cor do marcador de unidade.</p>
       <ul class="legend">
