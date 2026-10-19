@@ -16,10 +16,30 @@
     <!-- Caminho de volta do zoom por município (D20). Só aparece fora do enquadramento inicial.
          Escape com foco no mapa faz o mesmo. Duplo clique descartado: é o zoom nativo do MapLibre. -->
     @if ((state() === 'success' || state() === 'empty') && foraDoEnquadramento()) { <button class="botao map__voltar" type="button" (click)="verEstadoInteiro()">Ver estado inteiro</button> }
+    <!-- Legenda SOBRE o mapa (D21), canto inferior esquerdo. Sup. esq. é do título, sup. dir. do zoom
+         e do "Ver estado inteiro"; inf. dir. encostaria no painel. Ancorada em `bottom`, ela cresce
+         para cima ao abrir e não empurra nada. Fechada por padrão (D20). A legenda descreve a cor do
+         MARCADOR DE UNIDADE, não a do polígono: o município é contorno + fundo neutro (N07). -->
+    @if (state() === 'success' || state() === 'empty') {
+      <details class="legend-bloco">
+        <summary class="legend-bloco__resumo"><span class="panel-label">LEGENDA DE STATUS</span></summary>
+        <p class="legend__intro">Cor do marcador de unidade.</p>
+        <ul class="legend">
+          <li><span class="legend__dot legend__dot--success"></span>Disponível</li>
+          <li><span class="legend__dot legend__dot--danger"></span>Indisponível</li>
+          <li><span class="legend__dot legend__dot--warning"></span>Degradada</li>
+          <li><span class="legend__dot legend__dot--info"></span>Em manutenção</li>
+          <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
+          <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
+        </ul>
+        <p class="legend__nota"><span class="legend__municipio"></span>Município é neutro: situa, não indica estado.</p>
+        <p class="legend__nota"><span class="legend__linha"></span>Arco liga unidade ao hub, na cor do status.</p>
+      </details>
+    }
     <!-- A seleção acontece dentro do canvas WebGL: sem esta região viva, quem usa leitor de tela
          não recebe nenhum retorno ao acionar um município pelo teclado. -->
     <p class="map-sr" role="status" aria-live="polite">{{ anuncio() }}</p>
-  </section><aside class="map-panel" aria-label="Legenda e detalhes da unidade">
+  </section><aside class="map-panel" aria-label="Status geográfico e detalhes da unidade">
     <div class="map-panel__topo"><button class="botao" type="button" (click)="load()" [disabled]="state() === 'loading'">Atualizar</button></div>
     @if (statusGeografico().length) {
       <div class="geo-status"><p class="panel-label">STATUS GEOGRÁFICO · SERGIPE</p>
@@ -64,25 +84,6 @@
         }
       </div>
     }
-    <!-- A legenda descreve a cor do MARCADOR DE UNIDADE, não a do polígono: o município é contorno +
-         fundo neutro e o marcador é o único portador de estado; o subtítulo diz isso.
-         D15 desfez o disclosure dos estados sem leitura (dois itens eram vocabulário só da coloração
-         de polígono); D20 traz o disclosure de volta, mas para a legenda INTEIRA e fechada por
-         padrão, a pedido: o detalhe da unidade selecionada passa a caber no painel sem rolagem. -->
-    <details class="legend-bloco">
-      <summary class="legend-bloco__resumo"><span class="panel-label">LEGENDA DE STATUS</span></summary>
-      <p class="legend__intro">Cor do marcador de unidade.</p>
-      <ul class="legend">
-        <li><span class="legend__dot legend__dot--success"></span>Disponível</li>
-        <li><span class="legend__dot legend__dot--danger"></span>Indisponível</li>
-        <li><span class="legend__dot legend__dot--warning"></span>Degradada</li>
-        <li><span class="legend__dot legend__dot--info"></span>Em manutenção</li>
-        <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
-        <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
-      </ul>
-      <p class="legend__nota"><span class="legend__municipio"></span>Município é neutro: situa, não indica estado.</p>
-      <p class="legend__nota"><span class="legend__linha"></span>Arco liga unidade ao hub, na cor do status.</p>
-    </details>
     @if (state() === 'empty') { <div class="map-feedback"><strong>Nenhuma unidade retornada</strong><p>A cartografia permanece disponível; não há unidades para associar.</p></div> }
     @if (semLocalizacao().length) { <div class="map-feedback"><strong>Unidades sem localização</strong><ul class="unit-list">@for (unit of semLocalizacao(); track unit.id) { <li><strong>{{ unit.nome }}</strong><app-status-badge [status]="unit.status" /></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
     @if (semCorrespondencia().length) { <div class="map-feedback map-feedback--warning"><strong>Associação geográfica não encontrada</strong><p>Estas unidades possuem código IBGE sem correspondência na cartografia.</p><ul class="unit-list">@for (unit of semCorrespondencia(); track unit.id) { <li><strong>{{ unit.nome }}</strong><span>{{ unit.codigoIbge }}</span></li> }</ul><button class="botao" type="button" (click)="goToUnidades()">Corrigir unidades</button></div> }
