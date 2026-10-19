@@ -47,6 +47,7 @@ const perto = (a, b, tol) => Math.abs(a - b) <= tol;
 const slug = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const errosPagina = [];
+const avisos = [];
 const errosConsole = [];
 const respostas5xx = [];
 
@@ -141,7 +142,8 @@ async function legendaLivre(page) {
   const [leg, titulo, ctrl, card] = await caixas(page, [LEG, '.map-titulo', '.maplibregl-ctrl-top-right', '.map-card']);
   exigir(leg, LEG); exigir(titulo, '.map-titulo'); exigir(card, '.map-card');
   const dentro = leg.l >= card.l - 0.5 && leg.r <= card.r + 0.5 && leg.t >= card.t - 0.5 && leg.b <= card.b + 0.5;
-  return { livre: !intersecta(leg, titulo) && !intersecta(leg, ctrl), dentro, ctrlAusente: !ctrl, leg, titulo };
+  const ctrlOk = !!ctrl && ctrl.w > 0 && ctrl.h > 0; // controle ausente ou sem área = falha, nunca "livre" por omissão
+  return { livre: ctrlOk && !intersecta(leg, titulo) && !intersecta(leg, ctrl), dentro, ctrlAusente: !ctrlOk, leg, titulo };
 }
 
 const medirKpis = (page) => page.evaluate(() => {
@@ -177,7 +179,7 @@ const medirViewport = (page) => page.evaluate(() => {
     try {
       const j = await r.json();
       payload = Array.isArray(j) ? j : (j.unidades ?? j.content ?? j.itens ?? j);
-    } catch (e) { errosPagina.push(`payload ilegível: ${e.message}`); }
+    } catch (e) { avisos.push(`payload ilegível (corpo descartado por navegação?): ${e.message}`); }
   });
 
   try {
@@ -218,7 +220,9 @@ const medirViewport = (page) => page.evaluate(() => {
       const dx = leg.l - card.l, dy = card.b - leg.b;
       medidas.legendaFechada = { insetEsquerdo: +dx.toFixed(1), insetInferior: +dy.toFixed(1), largura: +leg.w.toFixed(1), altura: +leg.h.toFixed(1) };
       checar(1, 'legenda no canto inferior esquerdo do cartão, a 12px das bordas (±2)', perto(dx, 12, 2) && perto(dy, 12, 2), `esquerda ${dx.toFixed(1)}px · inferior ${dy.toFixed(1)}px`);
-      checar(1, 'legenda fechada não intersecta o título nem o controle de zoom', !intersecta(leg, titulo) && !intersecta(leg, ctrl), ctrl ? '' : '.maplibregl-ctrl-top-right ausente (só o título foi testado)');
+      const ctrlOk = !!ctrl && ctrl.w > 0 && ctrl.h > 0;
+      checar(1, 'controle de zoom presente e com área', ctrlOk, ctrlOk ? '' : 'controle de zoom ausente');
+      checar(1, 'legenda fechada não intersecta o título nem o controle de zoom', ctrlOk && !intersecta(leg, titulo) && !intersecta(leg, ctrl));
       await page.screenshot({ path: path.join(OUT, '01-sem-selecao.png'), fullPage: true });
     }
 
@@ -250,7 +254,7 @@ const medirViewport = (page) => page.evaluate(() => {
       const livre = await legendaLivre(page);
       medidas.legendaAberta = { largura: +livre.leg.w.toFixed(1), altura: +livre.leg.h.toFixed(1), topo: +livre.leg.t.toFixed(1) };
       checar(2, 'legenda aberta não intersecta o título nem o controle de zoom e cabe no cartão', livre.livre && livre.dentro,
-        `livre=${livre.livre} dentroDoCartao=${livre.dentro}${livre.ctrlAusente ? ' (controle de zoom ausente)' : ''}`);
+        `livre=${livre.livre} dentroDoCartao=${livre.dentro}${livre.ctrlAusente ? ' controle de zoom ausente' : ''}`);
       checar(2, 'legenda sem estouro horizontal (scrollWidth <= clientWidth)', info.scrollW <= info.clientW, `${info.scrollW}/${info.clientW}`);
       checar(2, 'mesma placa do título (backgroundColor e backdropFilter iguais)', info.bgLeg === info.bgTit && info.bfLeg === info.bfTit,
         `legenda ${info.bgLeg} · ${info.bfLeg} | título ${info.bgTit} · ${info.bfTit}`);
@@ -393,7 +397,7 @@ const medirViewport = (page) => page.evaluate(() => {
         await page.waitForSelector('.gaveta', { timeout: 15000 });
         await pausa(page, 1200);
         const tituloMapa = (await page.locator('.gaveta__nome h2').textContent()).trim();
-        const bufMapa = await page.screenshot({ path: path.join(OUT, '06-gaveta-no-mapa.png'), fullPage: true });
+        const bufMapa = await page.screenshot({ path: path.join(OUT, '06-gaveta-no-mapa.png') });
         const gMapa = exigir((await caixas(page, ['.gaveta']))[0], '.gaveta');
         await page.keyboard.press('Escape');
         await page.waitForSelector('.gaveta', { state: 'detached', timeout: 10000 });
@@ -412,13 +416,14 @@ const medirViewport = (page) => page.evaluate(() => {
           await page.waitForSelector('.gaveta', { timeout: 15000 });
           await pausa(page, 1200);
           const tituloEq = (await page.locator('.gaveta__nome h2').textContent()).trim();
-          const bufEq = await page.screenshot({ path: path.join(OUT, '07-gaveta-em-equipamentos.png'), fullPage: true });
+          const bufEq = await page.screenshot({ path: path.join(OUT, '07-gaveta-em-equipamentos.png') });
           const gEq = exigir((await caixas(page, ['.gaveta']))[0], '.gaveta');
           medidas.gaveta.mapa = gMapa; medidas.gaveta.equipamentos = gEq;
           checar(6, 'a gaveta nas duas telas é a do mesmo equipamento', tituloMapa === nome && tituloEq === nome, `mapa="${tituloMapa}" equipamentos="${tituloEq}" esperado="${nome}"`);
           checar(6, 'gaveta com a mesma largura no Mapa e em Equipamentos (±1)', perto(gMapa.w, gEq.w, 1), `${gMapa.w.toFixed(1)} × ${gEq.w.toFixed(1)}`);
           checar(6, 'gaveta com o mesmo top e o mesmo right nas duas telas (±1)', perto(gMapa.t, gEq.t, 1) && perto(gMapa.r, gEq.r, 1),
             `top ${gMapa.t.toFixed(1)} × ${gEq.t.toFixed(1)} · right ${gMapa.r.toFixed(1)} × ${gEq.r.toFixed(1)}`);
+          // 06 e 07 são só da viewport (1600x900): a comparação é de igual para igual.
           const comp = await browser.newPage({ viewport: { width: 3260, height: 960 } });
           try {
             const img = (b) => `data:image/png;base64,${b.toString('base64')}`;
@@ -443,7 +448,7 @@ const medirViewport = (page) => page.evaluate(() => {
       [...errosPagina, ...errosConsole, ...respostas5xx].join(' | '));
     const falhas = resultados.filter((r) => !r.ok);
     fs.writeFileSync(path.join(OUT, 'mapa-legenda-painel.json'),
-      JSON.stringify({ resultados, falhas: falhas.length, medidas, errosPagina, errosConsole, respostas5xx, apiPorta, fatal: fatal ? fatal.message : null }, null, 2));
+      JSON.stringify({ resultados, falhas: falhas.length, medidas, errosPagina, avisos, errosConsole, respostas5xx, apiPorta, fatal: fatal ? fatal.message : null }, null, 2));
     for (const r of resultados) console.log(`${r.na ? 'N/A  ' : r.ok ? 'OK   ' : 'FALHA'} [${r.caso}] ${r.nome}${r.detalhe ? ` — ${r.detalhe}` : ''}`);
     console.log(`\n${resultados.filter((r) => r.ok && !r.na).length}/${resultados.filter((r) => !r.na).length} ok · ${resultados.filter((r) => r.na).length} não aplicáveis · ${falhas.length} falhas`);
     if (fatal) console.error(`\nFATAL: ${fatal.message}`);
