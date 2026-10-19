@@ -1,0 +1,549 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "legenda é filha direta de .map-card e não existe em .map-panel",
+      "ok": true,
+      "detalhe": "{\"noCartao\":true,\"noPainel\":false,\"open\":false,\"attrOpen\":false}"
+    },
+    {
+      "caso": 1,
+      "nome": "legenda fechada por padrão (sem atributo open)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "legenda no canto inferior esquerdo do cartão, a 12px das bordas (±2)",
+      "ok": true,
+      "detalhe": "esquerda 13.0px · inferior 13.0px"
+    },
+    {
+      "caso": 1,
+      "nome": "controle de zoom presente e com área",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "legenda fechada não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 2,
+      "nome": "legenda aberta: 6 itens e 2 notas",
+      "ok": true,
+      "detalhe": "6 li, 2 notas"
+    },
+    {
+      "caso": 2,
+      "nome": "textos exatos das duas notas",
+      "ok": true,
+      "detalhe": "[\"Município é neutro: situa, não indica estado.\",\"Arco liga unidade ao hub, na cor do status.\"]"
+    },
+    {
+      "caso": 2,
+      "nome": "cada nota em uma linha (altura <= 1,5x line-height)",
+      "ok": true,
+      "detalhe": "15.9px/lh 15.9 | 15.9px/lh 15.9"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda aberta não intersecta o título nem o controle de zoom e cabe no cartão",
+      "ok": true,
+      "detalhe": "livre=true dentroDoCartao=true"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "290/290"
+    },
+    {
+      "caso": 2,
+      "nome": "mesma placa do título (backgroundColor e backdropFilter iguais)",
+      "ok": true,
+      "detalhe": "legenda color(srgb 1 1 1 / 0.86) · blur(6px) | título color(srgb 1 1 1 / 0.86) · blur(6px)"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste do texto dos itens >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "mínimo 5.84:1 (5.8, 5.8, 5.8, 5.8, 5.8, 5.8)"
+    },
+    {
+      "caso": 2,
+      "nome": "teclado: Enter no summary fecha e abre de novo",
+      "ok": true,
+      "detalhe": "fechou=true abriu=true"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda deixada fechada no fim do caso",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 3,
+      "nome": "shell__main sem padding (a folga é do componente)",
+      "ok": true,
+      "detalhe": "padding=\"0px\""
+    },
+    {
+      "caso": 3,
+      "nome": ".map-page com padding de 12px nos 4 lados",
+      "ok": true,
+      "detalhe": "12px 12px 12px 12px"
+    },
+    {
+      "caso": 3,
+      "nome": ".map-layout com column-gap de 12px",
+      "ok": true,
+      "detalhe": "12px"
+    },
+    {
+      "caso": 3,
+      "nome": "cartão a 12px do início do main (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 3,
+      "nome": "painel a 12px do fim útil do main, sem a barra de rolagem (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 3,
+      "nome": "cartão e painel separados por 12px (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 3,
+      "nome": "cartão a 12px da base da janela (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] .map-panel com 420px de largura em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] KPIs em 2 colunas e rótulos (dt) sem estouro",
+      "ok": true,
+      "detalhe": "2 colunas · 6 dt · estourados: -"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] .aviso-ibge",
+      "ok": true,
+      "na": true,
+      "detalhe": "NÃO APLICÁVEL: a unidade não tem divergência de IBGE"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] legenda aberta com unidade selecionada não intersecta título nem controle e cabe no cartão",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1920x1080: painel 420px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1920x1080: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1920x1080: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1600x900: painel 420px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1600x900: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1600x900: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1400x900: painel 420px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1400x900: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1400x900: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1366x768: painel 410px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "409.8px"
+    },
+    {
+      "caso": 5,
+      "nome": "1366x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1366x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1280x720: painel 384px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "384.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1280x720: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1280x720: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1133x768: painel 340px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "340.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1133x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1133x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768: painel 340px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "340.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768 com unidade: KPIs em 2 colunas e dt sem estouro (piso de 340px)",
+      "ok": true,
+      "detalhe": "2 colunas · estourados: -"
+    },
+    {
+      "caso": 5,
+      "nome": "901x768: painel 340px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "340.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "901x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "901x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "900x768: empilhado (painel abaixo do cartão)",
+      "ok": true,
+      "detalhe": "painel.top 768.0 · cartão.bottom 756.0"
+    },
+    {
+      "caso": 5,
+      "nome": "900x768: .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "0"
+    },
+    {
+      "caso": 5,
+      "nome": "900x768: legenda aberta dentro do cartão e sem intersectar o título",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "390x844: empilhado (painel abaixo do cartão)",
+      "ok": true,
+      "detalhe": "painel.top 844.0 · cartão.bottom 832.0"
+    },
+    {
+      "caso": 5,
+      "nome": "390x844: .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "0"
+    },
+    {
+      "caso": 5,
+      "nome": "390x844: legenda aberta dentro do cartão e sem intersectar o título",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 6,
+      "nome": "a gaveta nas duas telas é a do mesmo equipamento",
+      "ok": true,
+      "detalhe": "mapa=\"CME-10-U2\" equipamentos=\"CME-10-U2\" esperado=\"CME-10-U2\""
+    },
+    {
+      "caso": 6,
+      "nome": "gaveta com a mesma largura no Mapa e em Equipamentos (±1)",
+      "ok": true,
+      "detalhe": "660.0 × 660.0"
+    },
+    {
+      "caso": 6,
+      "nome": "gaveta com o mesmo top e o mesmo right nas duas telas (±1)",
+      "ok": true,
+      "detalhe": "top 0.0 × 0.0 · right 1600.0 × 1600.0"
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página, de console nem resposta 5xx",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "falhas": 0,
+  "medidas": {
+    "unidadesAlvo": [
+      {
+        "id": 2,
+        "nome": "Escola Sesc Aracaju",
+        "degradados": 1,
+        "indisponiveis": 0
+      }
+    ],
+    "unidadesNoPayload": 11,
+    "unidadesComCoordenada": 11,
+    "legendaFechada": {
+      "insetEsquerdo": 13,
+      "insetInferior": 13,
+      "largura": 167.4,
+      "altura": 33
+    },
+    "legendaAberta": {
+      "largura": 292,
+      "altura": 267.2,
+      "topo": 607.8
+    },
+    "contrasteLegenda": {
+      "placaSobrePoligono": [
+        222,
+        225,
+        227
+      ],
+      "minimo": 5.84
+    },
+    "folga": {
+      "mainPadding": "0px",
+      "pad": [
+        "12px",
+        "12px",
+        "12px",
+        "12px"
+      ],
+      "gap": "12px",
+      "esquerda": 12,
+      "direita": 12,
+      "entre": 12,
+      "baixo": 12
+    },
+    "viewports": {
+      "1920x1080": {
+        "painelL": 420,
+        "painelTop": 68,
+        "cardBottom": 1068,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1920,
+        "esperado": 420,
+        "livre": true
+      },
+      "1600x900": {
+        "painelL": 420,
+        "painelTop": 68,
+        "cardBottom": 888,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1600,
+        "esperado": 420,
+        "livre": true
+      },
+      "1400x900": {
+        "painelL": 420,
+        "painelTop": 68,
+        "cardBottom": 888,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1400,
+        "esperado": 420,
+        "livre": true
+      },
+      "1366x768": {
+        "painelL": 409.796875,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1366,
+        "esperado": 409.8,
+        "livre": true
+      },
+      "1280x720": {
+        "painelL": 384,
+        "painelTop": 68,
+        "cardBottom": 708,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1280,
+        "esperado": 384,
+        "livre": true
+      },
+      "1133x768": {
+        "painelL": 340,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1133,
+        "esperado": 340,
+        "livre": true
+      },
+      "1024x768": {
+        "painelL": 340,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1024,
+        "esperado": 340,
+        "livre": true
+      },
+      "901x768": {
+        "painelL": 340,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 901,
+        "esperado": 340,
+        "livre": true
+      },
+      "900x768": {
+        "painelL": 652,
+        "painelTop": 768,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 547,
+        "mapPageH": 0,
+        "vw": 900,
+        "livre": true,
+        "dentro": true
+      },
+      "390x844": {
+        "painelL": 366,
+        "painelTop": 844,
+        "cardBottom": 832,
+        "mainV": 0,
+        "docV": 684,
+        "mapPageH": 0,
+        "vw": 390,
+        "livre": true,
+        "dentro": true
+      }
+    },
+    "gaveta": {
+      "unidade": "Escola Sesc Aracaju",
+      "equipamento": "CME-10-U2",
+      "mapa": {
+        "l": 940,
+        "t": 0,
+        "r": 1600,
+        "b": 900,
+        "w": 660,
+        "h": 900
+      },
+      "equipamentos": {
+        "l": 940,
+        "t": 0,
+        "r": 1600,
+        "b": 900,
+        "w": 660,
+        "h": 900
+      }
+    }
+  },
+  "errosPagina": [],
+  "avisos": [],
+  "errosConsole": [],
+  "respostas5xx": [],
+  "apiPorta": "8080",
+  "fatal": null
+}

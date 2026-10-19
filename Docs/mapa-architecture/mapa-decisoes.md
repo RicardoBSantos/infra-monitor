@@ -982,3 +982,70 @@ prova de ausência de `aria-pressed` no alvo. O `e2e:n06` relaxou a "sobra" medi
   as telas — não é do Mapa. Ver DV18.
 - **`GET /dashboard/unidades/{id}/equipamentos` responde 500 sob concorrência** (92 de 121 chamadas
   simultâneas; 55 sequenciais, todas 200). Ver DV17.
+
+## D21 — Legenda sobre o mapa, painel de 420px, folga de 12px
+
+`feat/mapa-legenda-sobre-mapa`, 2026-10-19. Três mudanças só visuais, continuação de D20. Nenhuma
+muda chamada, dado ou interação do mapa. **Revê D20 em dois pontos** — onde mora a legenda e a
+largura de 320px do painel —, sem apagá-lo.
+
+### 1. Legenda sobre o mapa, canto inferior esquerdo
+
+O `<details class="legend-bloco">` saiu do painel e virou filho direto do `.map-card`, em absoluto,
+a 12px da borda esquerda e da base. Continua fechado por padrão (D20) e nativo (D12).
+
+**Por que esse canto.** Superior esquerdo é do título; superior direito é do NavigationControl e do
+"Ver estado inteiro" (top 104px). Inferior direito encosta no painel e soma ruído na costura entre
+mapa e painel. Inferior esquerdo é a posição cartográfica convencional, fica na mesma coluna visual
+do título e, ancorada em `bottom`, a caixa cresce **para cima** ao abrir sem empurrar nada. A seta
+inverte por isso: fechada aponta para cima, aberta para baixo.
+
+**Legibilidade: mesma placa do título** — `color-mix` translúcido sobre `--im-surface`, `blur(6px)`,
+mesma sombra e mesmo `z-index: 5` (a dica do marcador, 6, ainda vence). O canvas é escuro nos dois
+temas; só a placa garante contraste. Medido no e2e: fundo e `backdrop-filter` idênticos aos do
+título; texto dos itens a **5,84:1** contra a placa composta sobre o polígono (`#16283a`, pior caso).
+
+Fechada, a placa tem o tamanho do rótulo (167×33px); aberta, largura fixa de 292px (as duas notas
+seguem em uma linha) e `max-height: calc(100% - 120px)` com rolagem própria — em cartão baixo ela
+rola por dentro em vez de cobrir o título. Aberta, cobre o canto sudoeste do estado (um marcador no
+dev): aceito, é sobreposição sob demanda e fecha com um clique ou Enter.
+
+### 2. Painel em `clamp(340px, 30vw, 420px)`
+
+420px a partir de 1400px de viewport; encolhe com 30vw até o piso de 340px (≤1133px); empilha em
+≤900px (breakpoint de D11 mantido). Medido: 420 em 1920/1600/1400, 410 em 1366, 384 em 1280, 340 em
+1133/1024/901. KPIs em duas colunas sem `dt` estourando em todas, inclusive no piso de 340px
+(~138px por cartão; "INCIDENTES ABERTOS" cabe). Largura mínima suportada: 390px, empilhado.
+
+**Câmera não foi recalibrada.** O cartão ficou mais estreito; em 1500×950 o aspecto caiu para ~0,94,
+abaixo de `ASPECTO_PLENO` (0,96), e o zoom extra entra a 90%. O desenho passa a ser limitado pela
+largura: sobra vertical por centróides 38,7% → 40,1%; equilíbrio topo/base 1,9 p.p. (critério de
+faixa morta, inalterado). O teto do `e2e:n06` caso 4 subiu de 40% para 42%. Afrouxar `ASPECTO_PLENO`
+ou subir o zoom cortaria a ponta oeste em 1280×800, que é o motivo do 0,96.
+
+### 3. Folga de 12px — do componente, não do shell
+
+Investigação antes de mudar: `.shell__main` não tem padding nenhum
+(`application-shell.component.scss`). Toda a folga vinha do Mapa — `.map-page { padding: 16px }` e
+`.map-layout { gap: var(--im-space-4) }`. Ambos viraram `var(--im-space-3)` (12px) em todas as
+larguras; a regra de 12px que só valia em ≤600px saiu por redundante. Medido: 12px entre cartão e
+painel, 12px de cada borda útil do `main` e da base da janela.
+
+**O shell não foi tocado.** Cada tela declara o próprio respiro (ex.: `.painel` do dashboard
+18px 20px 28px; `.monitor-page` 16px em tela estreita). Uniformizar as treze telas seria mover um
+padding para `.shell__main` e tirá-lo de cada tela — rodada própria, decisão do usuário.
+
+### Verificado
+
+Dev (5434): `ng test` 493/493 · `ng build` ok (aviso de budget pré-existente, DV04) ·
+`e2e:legenda-painel` 59/59 + 1 não aplicável (novo) · `e2e:n05` 21/21 · `e2e:n06` 25/25 ·
+`e2e:n07` 48/48 · `e2e:n08` 52/52 · `e2e:m06` 19/19. Carga (5436, Sede Administrativa e Sesc
+Itabaiana): `e2e:legenda-painel` 59/59 + 3 não aplicáveis (sem IBGE divergente, sem afetado) ·
+`e2e:n05` 21/21 · `e2e:n07` 48/48 · `e2e:n08` 51/51 + 1 não aplicável. Capturas da carga fora do
+repositório; as do dev em `e2e/legenda-painel-evidence/`, conferidas uma a uma, incluindo a gaveta
+de equipamento aberta pelo Mapa lado a lado com a aberta em Equipamentos (mesma largura, 660px, e
+mesma posição; só as ações de gestão diferem, desligadas no Mapa por M06).
+
+Roteiros agora aceitam `API_PORT` (`e2e/api-porta.cjs`): o frontend tem `apiUrl` cravado em
+`localhost:8080`, e o Playwright refaz as chamadas na porta pedida — a carga roda em 8081 sem
+derrubar o backend de dev.

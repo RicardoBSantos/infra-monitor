@@ -80,27 +80,27 @@
     },
     {
       "caso": 4,
-      "nome": "painel lateral com a largura nova",
+      "nome": "painel lateral com 420px (D21)",
       "ok": true,
-      "detalhe": "320px"
+      "detalhe": "420px"
     },
     {
       "caso": 4,
       "nome": "enquadramento equilibrado entre topo e base",
       "ok": true,
-      "detalhe": "topo 20.2% · base 18.5% · desequilíbrio 1.7 p.p."
+      "detalhe": "topo 21.0% · base 19.1% · desequilíbrio 1.9 p.p."
     },
     {
       "caso": 4,
       "nome": "desenho ocupa a maior parte da altura do cartão",
       "ok": true,
-      "detalhe": "sobra total 38.7%"
+      "detalhe": "sobra total 40.1%"
     },
     {
       "caso": 5,
       "nome": "nenhuma costura vazia dominante no painel",
       "ok": true,
-      "detalhe": "maior costura 16px em 862px de painel"
+      "detalhe": "maior costura 16px em 870px de painel"
     },
     {
       "caso": 5,

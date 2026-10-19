@@ -28,7 +28,7 @@
       "caso": 5,
       "nome": "Enter no município focado aproxima o mapa",
       "ok": true,
-      "detalhe": "distância entre os dois primeiros alvos 64px -> 770px"
+      "detalhe": "distância entre os dois primeiros alvos 57px -> 769px"
     },
     {
       "caso": 6,
@@ -46,7 +46,7 @@
       "caso": 8,
       "nome": "Espaço no município focado aproxima o mapa (>= 1,3x) e \"Ver estado inteiro\" reaparece",
       "ok": true,
-      "detalhe": "64px -> 408px (6.41x); voltar=1"
+      "detalhe": "57px -> 368px (6.43x); voltar=1"
     },
     {
       "caso": 9,
@@ -64,7 +64,7 @@
       "caso": 11,
       "nome": "alvo reposicionado pela lib ao mover a câmera",
       "ok": true,
-      "detalhe": "678,529 -> 677,534"
+      "detalhe": "630,529 -> 629,534"
     },
     {
       "caso": 13,
@@ -100,7 +100,7 @@
       "caso": 17,
       "nome": "clique no município com 2+ unidades aproxima sem abrir painel",
       "ok": true,
-      "detalhe": "zoom 64px -> 296px; selected-panel=0; unit-panel=0"
+      "detalhe": "zoom 57px -> 298px; selected-panel=0; unit-panel=0"
     },
     {
       "caso": 18,
@@ -112,7 +112,7 @@
       "caso": 19,
       "nome": "sem faixa morta: há município desenhado no terço de cima e no de baixo do cartão",
       "ok": true,
-      "detalhe": "3 alvos acima de 28% e 4 abaixo de 72% da altura (892px)"
+      "detalhe": "2 alvos acima de 28% e 2 abaixo de 72% da altura (900px)"
     },
     {
       "caso": 20,
@@ -128,35 +128,35 @@
     }
   ],
   "rede": [
-    "2026-10-16T14:40:54.319Z POST /auth/login",
-    "2026-10-16T14:40:55.014Z GET /dashboard/resumo",
-    "2026-10-16T14:40:55.034Z GET /dashboard/unidades",
-    "2026-10-16T14:40:55.034Z GET /unidades?ativo=true",
-    "2026-10-16T14:40:55.034Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T14:40:55.017Z&fim=2026-10-16T14:40:55.017Z&size=200",
-    "2026-10-16T14:40:55.034Z GET /relatorios/latencia/unidades?inicio=2026-09-16T14:40:55.018Z&fim=2026-10-16T14:40:55.018Z&size=500",
-    "2026-10-16T14:40:55.034Z GET /equipamentos?size=500&sort=nome,asc",
-    "2026-10-16T14:40:55.265Z GET /dashboard/unidades",
-    "2026-10-16T14:41:03.452Z GET /dashboard/unidades",
-    "2026-10-16T14:41:05.510Z GET /unidades?ativo=true",
-    "2026-10-16T14:41:05.510Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T14:41:05.504Z&fim=2026-10-16T14:41:05.504Z&size=200",
-    "2026-10-16T14:41:05.511Z GET /relatorios/latencia/unidades?inicio=2026-09-16T14:41:05.505Z&fim=2026-10-16T14:41:05.505Z&size=500",
-    "2026-10-16T14:41:05.531Z GET /equipamentos?size=500&sort=nome,asc",
-    "2026-10-16T14:41:05.575Z GET /dashboard/unidades",
-    "2026-10-16T14:41:08.468Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
-    "2026-10-16T14:41:10.040Z GET /unidades?ativo=true",
-    "2026-10-16T14:41:10.041Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T14:41:10.036Z&fim=2026-10-16T14:41:10.036Z&size=200",
-    "2026-10-16T14:41:10.042Z GET /relatorios/latencia/unidades?inicio=2026-09-16T14:41:10.037Z&fim=2026-10-16T14:41:10.037Z&size=500",
-    "2026-10-16T14:41:10.056Z GET /equipamentos?size=500&sort=nome,asc",
-    "2026-10-16T14:41:10.089Z GET /dashboard/unidades",
-    "2026-10-16T14:41:15.314Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
-    "2026-10-16T14:41:15.381Z GET /dashboard/unidades/7",
-    "2026-10-16T14:41:15.381Z GET /unidades/7",
-    "2026-10-16T14:41:15.382Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
-    "2026-10-16T14:41:15.382Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-16T14:41:15.377Z&fim=2026-10-16T14:41:15.377Z&size=1&unidadeId=7",
-    "2026-10-16T14:41:15.382Z GET /relatorios/latencia/unidades?inicio=2026-09-16T14:41:15.377Z&fim=2026-10-16T14:41:15.377Z&size=1&unidadeId=7",
-    "2026-10-16T14:41:15.383Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-09-16T14:41:15.377Z&fim=2026-10-16T14:41:15.377Z&size=200&unidadeId=7",
-    "2026-10-16T14:41:15.425Z GET /dashboard/unidades",
-    "2026-10-16T14:41:19.694Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome"
+    "2026-10-19T11:32:02.688Z POST /auth/login",
+    "2026-10-19T11:32:02.985Z GET /dashboard/resumo",
+    "2026-10-19T11:32:03.018Z GET /dashboard/unidades",
+    "2026-10-19T11:32:03.018Z GET /unidades?ativo=true",
+    "2026-10-19T11:32:03.018Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-19T11:32:03.001Z&fim=2026-10-19T11:32:03.001Z&size=200",
+    "2026-10-19T11:32:03.019Z GET /relatorios/latencia/unidades?inicio=2026-09-19T11:32:03.001Z&fim=2026-10-19T11:32:03.001Z&size=500",
+    "2026-10-19T11:32:03.019Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-19T11:32:03.116Z GET /dashboard/unidades",
+    "2026-10-19T11:32:10.784Z GET /dashboard/unidades",
+    "2026-10-19T11:32:12.847Z GET /unidades?ativo=true",
+    "2026-10-19T11:32:12.847Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-19T11:32:12.846Z&fim=2026-10-19T11:32:12.846Z&size=200",
+    "2026-10-19T11:32:12.848Z GET /relatorios/latencia/unidades?inicio=2026-09-19T11:32:12.847Z&fim=2026-10-19T11:32:12.847Z&size=500",
+    "2026-10-19T11:32:12.867Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-19T11:32:12.921Z GET /dashboard/unidades",
+    "2026-10-19T11:32:15.750Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-19T11:32:17.311Z GET /unidades?ativo=true",
+    "2026-10-19T11:32:17.311Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-19T11:32:17.313Z&fim=2026-10-19T11:32:17.313Z&size=200",
+    "2026-10-19T11:32:17.311Z GET /relatorios/latencia/unidades?inicio=2026-09-19T11:32:17.313Z&fim=2026-10-19T11:32:17.313Z&size=500",
+    "2026-10-19T11:32:17.321Z GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-19T11:32:17.354Z GET /dashboard/unidades",
+    "2026-10-19T11:32:22.435Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-19T11:32:22.499Z GET /dashboard/unidades/7",
+    "2026-10-19T11:32:22.500Z GET /unidades/7",
+    "2026-10-19T11:32:22.500Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome",
+    "2026-10-19T11:32:22.500Z GET /relatorios/disponibilidade/unidades?inicio=2026-09-19T11:32:22.500Z&fim=2026-10-19T11:32:22.500Z&size=1&unidadeId=7",
+    "2026-10-19T11:32:22.501Z GET /relatorios/latencia/unidades?inicio=2026-09-19T11:32:22.500Z&fim=2026-10-19T11:32:22.500Z&size=1&unidadeId=7",
+    "2026-10-19T11:32:22.501Z GET /relatorios/disponibilidade/equipamentos?inicio=2026-09-19T11:32:22.500Z&fim=2026-10-19T11:32:22.500Z&size=200&unidadeId=7",
+    "2026-10-19T11:32:22.538Z GET /dashboard/unidades",
+    "2026-10-19T11:32:26.778Z GET /dashboard/unidades/7/equipamentos?size=200&sort=nome"
   ],
   "erros": [],
   "fatal": null
