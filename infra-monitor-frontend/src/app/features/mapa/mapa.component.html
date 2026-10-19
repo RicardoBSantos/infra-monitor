@@ -19,23 +19,23 @@
     <!-- Legenda SOBRE o mapa (D21), canto inferior esquerdo. Sup. esq. é do título, sup. dir. do zoom
          e do "Ver estado inteiro"; inf. dir. encostaria no painel. Ancorada em `bottom`, ela cresce
          para cima ao abrir e não empurra nada. Fechada por padrão (D20). A legenda descreve a cor do
-         MARCADOR DE UNIDADE, não a do polígono: o município é contorno + fundo neutro (N07). -->
-    @if (state() === 'success' || state() === 'empty') {
-      <details class="legend-bloco">
-        <summary class="legend-bloco__resumo"><span class="panel-label">LEGENDA DE STATUS</span></summary>
-        <p class="legend__intro">Cor do marcador de unidade.</p>
-        <ul class="legend">
-          <li><span class="legend__dot legend__dot--success"></span>Disponível</li>
-          <li><span class="legend__dot legend__dot--danger"></span>Indisponível</li>
-          <li><span class="legend__dot legend__dot--warning"></span>Degradada</li>
-          <li><span class="legend__dot legend__dot--info"></span>Em manutenção</li>
-          <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
-          <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
-        </ul>
-        <p class="legend__nota"><span class="legend__municipio"></span>Município é neutro: situa, não indica estado.</p>
-        <p class="legend__nota"><span class="legend__linha"></span>Arco liga unidade ao hub, na cor do status.</p>
-      </details>
-    }
+         MARCADOR DE UNIDADE, não a do polígono: o município é contorno + fundo neutro (N07).
+         Sempre no DOM, escondida por `hidden` fora de success/empty: com `@if` o Atualizar (state → loading)
+         destruiria o <details> e fecharia a legenda aberta. -->
+    <details class="legend-bloco" [hidden]="!(state() === 'success' || state() === 'empty')">
+      <summary class="legend-bloco__resumo"><span class="panel-label">LEGENDA DE STATUS</span></summary>
+      <p class="legend__intro">Cor do marcador de unidade.</p>
+      <ul class="legend">
+        <li><span class="legend__dot legend__dot--success"></span>Disponível</li>
+        <li><span class="legend__dot legend__dot--danger"></span>Indisponível</li>
+        <li><span class="legend__dot legend__dot--warning"></span>Degradada</li>
+        <li><span class="legend__dot legend__dot--info"></span>Em manutenção</li>
+        <li><span class="legend__dot legend__dot--neutral"></span>Sem dados</li>
+        <li><span class="legend__dot legend__dot--muted"></span>Sem equipamentos</li>
+      </ul>
+      <p class="legend__nota"><span class="legend__municipio"></span>Município é neutro: situa, não indica estado.</p>
+      <p class="legend__nota"><span class="legend__linha"></span>Arco liga unidade ao hub, na cor do status.</p>
+    </details>
     <!-- A seleção acontece dentro do canvas WebGL: sem esta região viva, quem usa leitor de tela
          não recebe nenhum retorno ao acionar um município pelo teclado. -->
     <p class="map-sr" role="status" aria-live="polite">{{ anuncio() }}</p>

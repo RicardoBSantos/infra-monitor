@@ -146,6 +146,49 @@ async function legendaLivre(page) {
   return { livre: ctrlOk && !intersecta(leg, titulo) && !intersecta(leg, ctrl), dentro, ctrlAusente: !ctrlOk, leg, titulo };
 }
 
+/** Aproxima num município clicando em pixel de canvas ao redor do centro do alvo (como o n08) até o
+ *  "Ver estado inteiro" aparecer. Sem o botão depois de todas as tentativas é FALHA, nunca "livre". */
+async function aproximarMunicipio(page) {
+  const ref = await page.evaluate(() => {
+    const a = document.querySelector('.map__alvo[data-codigo-ibge="2800308"]') ?? document.querySelector('.map__alvo');
+    if (!a) throw new Error('seletor sem elemento: .map__alvo');
+    const c = a.getBoundingClientRect();
+    return { x: c.x + c.width / 2, y: c.y + c.height / 2 };
+  });
+  for (const r of [20, 28, 38, 50, 64]) for (let k = 0; k < 16; k++) {
+    const ang = (k * Math.PI * 2) / 16;
+    const p = { x: ref.x + r * Math.cos(ang), y: ref.y + r * Math.sin(ang) };
+    const canvas = await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return !!e && e.tagName === 'CANVAS'; }, p);
+    if (!canvas) continue;
+    await page.mouse.click(p.x, p.y);
+    await pausa(page, 1500);
+    if (await page.locator('.map__voltar').count()) { await esperarCameraParada(page); return true; }
+  }
+  return false;
+}
+
+/** Contraste de itens, introdução, notas e rótulo do summary sobre a placa composta em #16283a (legenda aberta). */
+async function medirContrasteLegenda(page) {
+  const info = await page.evaluate((sel) => {
+    const leg = document.querySelector(sel);
+    const cor = (e) => getComputedStyle(e).color;
+    return {
+      bg: getComputedStyle(leg).backgroundColor,
+      itens: [...leg.querySelectorAll('.legend li')].map(cor),
+      intro: [...leg.querySelectorAll('.legend__intro')].map(cor),
+      notas: [...leg.querySelectorAll('.legend__nota')].map(cor),
+      rotulo: [...leg.querySelectorAll('.legend-bloco__resumo .panel-label')].map(cor),
+    };
+  }, LEG);
+  const placa = compor(await resolverCor(page, info.bg), FUNDO_PIOR_CASO);
+  const minGrupo = async (cores) => {
+    const v = [];
+    for (const c of cores) v.push(contraste(compor(await resolverCor(page, c), placa), placa));
+    return v.length ? +Math.min(...v).toFixed(2) : 0;
+  };
+  return { placa: placa.map(Math.round), itens: await minGrupo(info.itens), intro: await minGrupo(info.intro), notas: await minGrupo(info.notas), rotulo: await minGrupo(info.rotulo) };
+}
+
 const medirKpis = (page) => page.evaluate(() => {
   const kpis = document.querySelector('.unit-kpis');
   if (!kpis) return null;
@@ -223,6 +266,9 @@ const medirViewport = (page) => page.evaluate(() => {
       const ctrlOk = !!ctrl && ctrl.w > 0 && ctrl.h > 0;
       checar(1, 'controle de zoom presente e com área', ctrlOk, ctrlOk ? '' : 'controle de zoom ausente');
       checar(1, 'legenda fechada não intersecta o título nem o controle de zoom', ctrlOk && !intersecta(leg, titulo) && !intersecta(leg, ctrl));
+      const resumo = exigir((await caixas(page, ['summary.legend-bloco__resumo']))[0], 'summary.legend-bloco__resumo');
+      medidas.legendaFechada.alturaDoResumo = +resumo.h.toFixed(1);
+      checar(1, 'alvo de toque: summary fechado com altura >= 32px', resumo.h >= 32, `${resumo.w.toFixed(1)}x${resumo.h.toFixed(1)}px`);
       await page.screenshot({ path: path.join(OUT, '01-sem-selecao.png'), fullPage: true });
     }
 
@@ -258,12 +304,27 @@ const medirViewport = (page) => page.evaluate(() => {
       checar(2, 'legenda sem estouro horizontal (scrollWidth <= clientWidth)', info.scrollW <= info.clientW, `${info.scrollW}/${info.clientW}`);
       checar(2, 'mesma placa do título (backgroundColor e backdropFilter iguais)', info.bgLeg === info.bgTit && info.bfLeg === info.bfTit,
         `legenda ${info.bgLeg} · ${info.bfLeg} | título ${info.bgTit} · ${info.bfTit}`);
-      const placa = compor(await resolverCor(page, info.bgLeg), FUNDO_PIOR_CASO);
-      const cores = [];
-      for (const c of info.corItens) cores.push(contraste(compor(await resolverCor(page, c), placa), placa));
-      const minimo = Math.min(...cores);
-      medidas.contrasteLegenda = { placaSobrePoligono: placa.map(Math.round), minimo: +minimo.toFixed(2) };
-      checar(2, 'contraste do texto dos itens >= 4,5 sobre a placa composta em #16283a', cores.length > 0 && minimo >= 4.5, `mínimo ${minimo.toFixed(2)}:1 (${cores.map((c) => c.toFixed(1)).join(', ')})`);
+      medidas.contrasteLegenda = {};
+      const grupos = [['itens', 'itens'], ['intro', 'introdução'], ['notas', 'notas'], ['rotulo', 'rótulo do summary']];
+      const medirTema = async (tema) => {
+        const m = await medirContrasteLegenda(page);
+        medidas.contrasteLegenda[tema] = m;
+        for (const [k, nome] of grupos) checar(2, `contraste (${tema}): ${nome} >= 4,5 sobre a placa composta em #16283a`, m[k] >= 4.5, `${m[k]}:1`);
+      };
+      const temaInicial = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+      const lerBg = () => page.evaluate((sel) => getComputedStyle(document.querySelector(sel)).backgroundColor, LEG);
+      await medirTema(`inicial${temaInicial ? '-' + temaInicial : ''}`);
+      const bg0 = await lerBg();
+      await page.click('.theme-button');
+      try {
+        await page.waitForFunction(([sel, v]) => getComputedStyle(document.querySelector(sel)).backgroundColor !== v, [LEG, bg0], { timeout: 5000 });
+        await pausa(page, 300);
+        await medirTema('alternado');
+      } finally {
+        await page.click('.theme-button'); // devolve a página ao tema original
+        await pausa(page, 300);
+      }
+      checar(2, 'tema original restaurado após a medição', (await lerBg()) === bg0, bg0);
       await page.screenshot({ path: path.join(OUT, '03-legenda-aberta.png'), fullPage: true });
       await page.locator('.map-card').screenshot({ path: path.join(OUT, '03b-legenda-aberta-cartao.png') });
 
@@ -277,6 +338,51 @@ const medirViewport = (page) => page.evaluate(() => {
       checar(2, 'teclado: Enter no summary fecha e abre de novo', fechouEnter && abriuEnter, `fechou=${fechouEnter} abriu=${abriuEnter}`);
       await definirLegenda(page, false);
       checar(2, 'legenda deixada fechada no fim do caso', !(await aberta(page)));
+    }
+
+    // ------------------------------------------------------------------ 2c. "Ver estado inteiro" x legenda aberta
+    {
+      const zoom = await aproximarMunicipio(page);
+      checar('2c', 'clique no polígono aproxima e faz aparecer .map__voltar ("Ver estado inteiro")', zoom, zoom ? '' : 'botão ausente depois de todas as tentativas');
+      if (zoom) {
+        await definirLegenda(page, true);
+        for (const [w, h] of [[1600, 900], [1024, 768]]) {
+          await page.setViewportSize({ width: w, height: h });
+          await esperarCameraParada(page);
+          const [leg, titulo, ctrl, voltar] = await caixas(page, [LEG, '.map-titulo', '.maplibregl-ctrl-top-right', '.map__voltar']);
+          exigir(leg, LEG); exigir(titulo, '.map-titulo'); exigir(ctrl, '.maplibregl-ctrl-top-right');
+          const voltarOk = !!voltar && voltar.w > 0 && voltar.h > 0;
+          checar('2c', `${w}x${h}: .map__voltar presente e com área`, voltarOk, voltarOk ? '' : 'botão ausente');
+          checar('2c', `${w}x${h}: legenda aberta não intersecta "Ver estado inteiro", título nem zoom`,
+            voltarOk && !intersecta(leg, voltar) && !intersecta(leg, titulo) && !intersecta(leg, ctrl),
+            voltarOk ? `legenda t=${leg.t.toFixed(0)} · voltar b=${voltar.b.toFixed(0)}` : 'botão ausente');
+          if (w === 1600) await page.screenshot({ path: path.join(OUT, '03c-legenda-aberta-com-voltar.png'), fullPage: true });
+          else await page.screenshot({ path: path.join(OUT, '03d-legenda-aberta-com-voltar-1024x768.png'), fullPage: true });
+        }
+        await page.setViewportSize({ width: 1600, height: 900 });
+        await esperarCameraParada(page);
+        await page.click('.map__voltar');
+        await page.waitForFunction(() => !document.querySelector('.map__voltar'), null, { timeout: 10000 });
+        await esperarCameraParada(page);
+        checar('2c', '"Ver estado inteiro" restaura o enquadramento (botão some)', (await page.locator('.map__voltar').count()) === 0);
+        await definirLegenda(page, false);
+      }
+    }
+
+    // ------------------------------------------------------------------ 2d. Atualizar não fecha a legenda aberta
+    {
+      await definirLegenda(page, true);
+      const antes = await page.locator(LEG).elementHandle();
+      await Promise.all([
+        page.waitForResponse((r) => /\/dashboard\/unidades(\?|$)/.test(r.url()) && r.request().method() === 'GET', { timeout: 15000 }),
+        page.click('.map-panel__topo .botao'),
+      ]);
+      await page.waitForSelector('.map__alvo', { timeout: 20000 });
+      await pausa(page, 1800);
+      const depois = await page.evaluate((sel) => { const e = document.querySelector(sel); return e ? { open: e.open, visivel: !e.hidden && e.getBoundingClientRect().height > 0 } : null; }, LEG);
+      const mesmo = await antes.evaluate((e) => e.isConnected);
+      checar('2d', 'Atualizar com a legenda aberta: continua aberta, visível e é o mesmo nó do DOM', !!depois && depois.open === true && depois.visivel && mesmo, JSON.stringify({ ...depois, mesmoNo: mesmo }));
+      await definirLegenda(page, false);
     }
 
     // ------------------------------------------------------------------ 3. folga do componente vs shell
