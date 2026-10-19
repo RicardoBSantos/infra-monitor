@@ -4,6 +4,9 @@ Estado da rodada em curso. Atualizado como parte do commit que muda o Mapa, nunc
 
 Última atualização: 2026-10-19, branch `feat/mapa-legenda-sobre-mapa` (§15).
 
+> **§16 (D22) substitui a câmera de §5, §8 e §13** por encaixe calculado: `OFFSET_CAMERA`,
+> `ZOOM_AO_INCLINAR` e `ASPECTO_*` não existem mais.
+>
 > **§15 (D21) revê legenda, largura do painel e folga de §13.** Legenda sobre o mapa, painel em
 > `clamp(340px, 30vw, 420px)`, padding e gap de 12px.
 
@@ -731,3 +734,18 @@ Roteiro novo `e2e:legenda-painel` (`LEGENDA_SENHA`, `E2E_EMAIL`, `API_PORT`, `E2
 em 10 viewports, e com "Ver estado inteiro" visível), contraste ≥4,5:1 nos dois temas, alvo de
 toque ≥32px, legenda aberta sobrevive ao Atualizar, folga de 12px medida, painel por viewport, KPIs em 2 colunas,
 gaveta Mapa × Equipamentos lado a lado. Números em D21.
+
+## 16. D22 — encaixe calculado, n06 em pixels, recuo da legenda, IBGE em todas
+
+Decisão em [D22](mapa-decisoes.md).
+
+| Item | Antes | Agora |
+|---|---|---|
+| Câmera do estado | `cameraForBounds` + zoom/offset fixos × rampa por proporção | `cameraDeEncaixe`: envoltória convexa projetada, margem 24px, afasta título/controles/legenda (folga 12px) |
+| Legenda aberta | cobria até 3 marcadores (1024x768) | o estado recua; 0 cobertos em 10 tamanhos; instantâneo com reduced-motion |
+| `e2e:n06` caso 4 | sobra vertical por centróide ≤ 42% | pixels, 9 tamanhos: margem ≥ 8px, sobra do eixo limitante ≤ 25%, equilíbrio ≤ 6 p.p.; as 4 mutações falham em todos |
+| `e2e:legenda-painel` IBGE | só a unidade selecionada; N/A em silêncio | todas as unidades; conjunto exato via `E2E_IBGE_ESPERADO` |
+
+Execução no dev com as cinco divergências do cadastro:
+`E2E_IBGE_ESPERADO='Unidade Propriá:2805307,Sesc Itabaiana:2803005,Unidade Estância:2802205,Unidade Simão Dias:2806800,Unidade Socorro:2804607'`.
+Na carga: `E2E_IBGE_ESPERADO=nenhuma`.

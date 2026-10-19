@@ -130,19 +130,19 @@
       "caso": 7,
       "nome": "clique lógico no marcador não muda a câmera (distância ±1px) nem mostra \"Ver estado inteiro\"",
       "ok": true,
-      "detalhe": "antes 379.4 depois 379.4"
+      "detalhe": "antes 394.5 depois 394.5"
     },
     {
       "caso": 7,
       "nome": "clique físico no marcador mais isolado: câmera parada, sem botão de volta, painel da unidade",
       "ok": true,
-      "detalhe": "isolado Unidade Propriá (vizinho a 226px) elementFromPoint=true distância 379.4 -> 379.4 painel=\"Unidade Propriá\""
+      "detalhe": "isolado Unidade Propriá (vizinho a 232px) elementFromPoint=true distância 394.5 -> 394.5 painel=\"Unidade Propriá\""
     },
     {
       "caso": 8,
       "nome": "clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o enquadrado (envelope das unidades, ou o polígono com menos de 2) vai ao centro da área útil do cartão (padding assimétrico, ±10%)",
       "ok": true,
-      "detalhe": "por unidades; distância 379.4 -> 2230.4 (x5.88); desvio do centro 5.3%/6.1%; 6 tentativa(s), raio 20px"
+      "detalhe": "por unidades; distância 394.5 -> 2230.4 (x5.65); desvio do centro 5.3%/6.1%; 5 tentativa(s), raio 20px"
     },
     {
       "caso": 8,
@@ -190,7 +190,7 @@
       "caso": 10,
       "nome": "botão \"Ver estado inteiro\": distâncias voltam (±2px), botão some, foco no canvas",
       "ok": true,
-      "detalhe": "distância 379.9 vs inicial 379.4; foco CANVAS.maplibregl-canvas"
+      "detalhe": "distância 394.7 vs inicial 394.5; foco CANVAS.maplibregl-canvas"
     },
     {
       "caso": 10,
@@ -208,13 +208,13 @@
       "caso": 10,
       "nome": "Escape com foco no canvas desfaz o zoom em Feira Nova",
       "ok": true,
-      "detalhe": "inicial 379.4 · aproximado 8042.6 · após Escape 379.9"
+      "detalhe": "inicial 394.5 · aproximado 8042.6 · após Escape 394.7"
     },
     {
       "caso": 11,
       "nome": "\"Amparo de São Francisco: nenhuma unidade cadastrada\" aproxima e a região viva anuncia",
       "ok": true,
-      "detalhe": "distância 379.4 -> 17492.5; .map-sr=\"Amparo de São Francisco: nenhuma unidade cadastrada. Mapa aproximado.\""
+      "detalhe": "distância 394.5 -> 17492.5; .map-sr=\"Amparo de São Francisco: nenhuma unidade cadastrada. Mapa aproximado.\""
     },
     {
       "caso": 12,
@@ -226,7 +226,7 @@
       "caso": 12,
       "nome": "Enter no alvo aproxima o município",
       "ok": true,
-      "detalhe": "Amparo de São Francisco: nenhuma unidade cadastrada: 379.9 -> 17492.5"
+      "detalhe": "Amparo de São Francisco: nenhuma unidade cadastrada: 394.7 -> 17492.5"
     },
     {
       "caso": 12,
@@ -292,13 +292,13 @@
       "caso": 16,
       "nome": "(c) após zoom por município, redimensionar não reenquadra: botão continua e a escala se mantém (±10%)",
       "ok": true,
-      "detalhe": "estado 379.9 -> aproximado 2230.4 -> redimensionado 2114.8 (razão 0.95)"
+      "detalhe": "estado 394.7 -> aproximado 2230.4 -> redimensionado 2114.8 (razão 0.95)"
     },
     {
       "caso": 13,
       "nome": "reduced-motion: posições a 50ms = posições a 900ms (±2px) e o zoom de fato aconteceu",
       "ok": true,
-      "detalhe": "diferença máx. 50ms×900ms 0.0px; deslocamento total 13515px"
+      "detalhe": "diferença máx. 50ms×900ms 0.0px; deslocamento total 13527px"
     },
     {
       "caso": 15,
@@ -310,7 +310,7 @@
       "caso": 0,
       "nome": "nenhum erro de página nem de console",
       "ok": true,
-      "detalhe": " (esperados no caso 15, não contados: 1)"
+      "detalhe": " (esperados no caso 15, não contados: 2)"
     }
   ],
   "falhas": 0,
@@ -322,15 +322,15 @@
     "parReferencia": {
       "aracaju": "2800308",
       "outro": "2805505",
-      "distanciaInicial": 379.4,
+      "distanciaInicial": 394.5,
       "alvosNoMapa": 75,
-      "distanciaInicialAposAtualizar": 379.4
+      "distanciaInicialAposAtualizar": 394.5
     },
     "zoomAracaju": {
-      "distanciaParAntes": 379.4,
+      "distanciaParAntes": 394.5,
       "distanciaParDepois": 2230.4,
-      "fator": 5.88,
-      "tentativasDeClique": 6,
+      "fator": 5.65,
+      "tentativasDeClique": 5,
       "cartao": {
         "l": 236,
         "t": 68,
@@ -416,10 +416,11 @@
     },
     "reducedMotion": {
       "maxDif": 0,
-      "maxMudanca": 13515.272644042969
+      "maxMudanca": 13526.54995727539
     }
   },
   "errosConsoleEsperados": [
+    "[erro] Failed to load resource: net::ERR_FAILED",
     "[erro] Failed to load resource: net::ERR_FAILED"
   ],
   "fatal": null

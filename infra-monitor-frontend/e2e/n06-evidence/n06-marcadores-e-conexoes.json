@@ -1,4 +1,152 @@
 {
+  "medidas": {
+    "enquadramento": [
+      {
+        "viewport": "1500x950",
+        "cartao": "820x870",
+        "esq": 24,
+        "dir": 24,
+        "topo": 151,
+        "base": 150,
+        "pEsq": 2.9,
+        "pDir": 2.9,
+        "pTopo": 17.4,
+        "pBase": 17.2,
+        "sobraV": 34.6,
+        "sobraH": 5.9,
+        "desequilibrioV": 0.1,
+        "desequilibrioH": 0
+      },
+      {
+        "viewport": "1525x950",
+        "cartao": "845x870",
+        "esq": 24,
+        "dir": 24,
+        "topo": 143,
+        "base": 142,
+        "pEsq": 2.8,
+        "pDir": 2.8,
+        "pTopo": 16.4,
+        "pBase": 16.3,
+        "sobraV": 32.8,
+        "sobraH": 5.7,
+        "desequilibrioV": 0.1,
+        "desequilibrioH": 0
+      },
+      {
+        "viewport": "1440x864",
+        "cartao": "760x784",
+        "esq": 24,
+        "dir": 24,
+        "topo": 131,
+        "base": 130,
+        "pEsq": 3.2,
+        "pDir": 3.2,
+        "pTopo": 16.7,
+        "pBase": 16.6,
+        "sobraV": 33.3,
+        "sobraH": 6.3,
+        "desequilibrioV": 0.1,
+        "desequilibrioH": 0
+      },
+      {
+        "viewport": "1366x768",
+        "cartao": "697x688",
+        "esq": 48,
+        "dir": 49,
+        "topo": 123,
+        "base": 122,
+        "pEsq": 6.9,
+        "pDir": 7,
+        "pTopo": 17.9,
+        "pBase": 17.7,
+        "sobraV": 35.6,
+        "sobraH": 13.9,
+        "desequilibrioV": 0.1,
+        "desequilibrioH": 0.1
+      },
+      {
+        "viewport": "1300x950",
+        "cartao": "650x870",
+        "esq": 24,
+        "dir": 24,
+        "topo": 207,
+        "base": 207,
+        "pEsq": 3.7,
+        "pDir": 3.7,
+        "pTopo": 23.8,
+        "pBase": 23.8,
+        "sobraV": 47.6,
+        "sobraH": 7.4,
+        "desequilibrioV": 0,
+        "desequilibrioH": 0
+      },
+      {
+        "viewport": "1280x720",
+        "cartao": "636x640",
+        "esq": 52,
+        "dir": 53,
+        "topo": 123,
+        "base": 122,
+        "pEsq": 8.2,
+        "pDir": 8.3,
+        "pTopo": 19.2,
+        "pBase": 19.1,
+        "sobraV": 38.3,
+        "sobraH": 16.5,
+        "desequilibrioV": 0.2,
+        "desequilibrioH": 0.2
+      },
+      {
+        "viewport": "1024x768",
+        "cartao": "424x688",
+        "esq": 24,
+        "dir": 24,
+        "topo": 200,
+        "base": 200,
+        "pEsq": 5.7,
+        "pDir": 5.7,
+        "pTopo": 29.1,
+        "pBase": 29.1,
+        "sobraV": 58.1,
+        "sobraH": 11.3,
+        "desequilibrioV": 0,
+        "desequilibrioH": 0
+      },
+      {
+        "viewport": "1600x900",
+        "cartao": "920x820",
+        "esq": 66,
+        "dir": 66,
+        "topo": 123,
+        "base": 122,
+        "pEsq": 7.2,
+        "pDir": 7.2,
+        "pTopo": 15,
+        "pBase": 14.9,
+        "sobraV": 29.9,
+        "sobraH": 14.3,
+        "desequilibrioV": 0.1,
+        "desequilibrioH": 0
+      },
+      {
+        "viewport": "1920x1080",
+        "cartao": "1240x1000",
+        "esq": 24,
+        "dir": 24,
+        "topo": 78,
+        "base": 78,
+        "pEsq": 1.9,
+        "pDir": 1.9,
+        "pTopo": 7.8,
+        "pBase": 7.8,
+        "sobraV": 15.6,
+        "sobraH": 3.9,
+        "desequilibrioV": 0,
+        "desequilibrioH": 0
+      }
+    ]
+  },
   "resultados": [
     {
       "caso": 1,
@@ -16,7 +164,7 @@
       "caso": 1,
       "nome": "as 4 unidades de Aracaju aparecem separadas",
       "ok": true,
-      "detalhe": "4 em Aracaju, espalhamento 26px"
+      "detalhe": "4 em Aracaju, espalhamento 25px"
     },
     {
       "caso": 1,
@@ -86,15 +234,165 @@
     },
     {
       "caso": 4,
-      "nome": "enquadramento equilibrado entre topo e base",
+      "nome": "1500x950: sem corte (margem >= 8px nos quatro lados)",
       "ok": true,
-      "detalhe": "topo 21.0% · base 19.1% · desequilíbrio 1.9 p.p."
+      "detalhe": "esq 24px (2.9%) · dir 24px (2.9%) · topo 151px (17.4%) · base 150px (17.2%)"
     },
     {
       "caso": 4,
-      "nome": "desenho ocupa a maior parte da altura do cartão",
+      "nome": "1500x950: sobra do eixo limitante <= 25%",
       "ok": true,
-      "detalhe": "sobra total 40.1%"
+      "detalhe": "sobraV 34.6% · sobraH 5.9% · limitante 5.9%"
+    },
+    {
+      "caso": 4,
+      "nome": "1500x950: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.0 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1525x950: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 24px (2.8%) · dir 24px (2.8%) · topo 143px (16.4%) · base 142px (16.3%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1525x950: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 32.8% · sobraH 5.7% · limitante 5.7%"
+    },
+    {
+      "caso": 4,
+      "nome": "1525x950: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.0 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1440x864: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 24px (3.2%) · dir 24px (3.2%) · topo 131px (16.7%) · base 130px (16.6%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1440x864: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 33.3% · sobraH 6.3% · limitante 6.3%"
+    },
+    {
+      "caso": 4,
+      "nome": "1440x864: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.0 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1366x768: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 48px (6.9%) · dir 49px (7.0%) · topo 123px (17.9%) · base 122px (17.7%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1366x768: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 35.6% · sobraH 13.9% · limitante 13.9%"
+    },
+    {
+      "caso": 4,
+      "nome": "1366x768: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.1 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1300x950: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 24px (3.7%) · dir 24px (3.7%) · topo 207px (23.8%) · base 207px (23.8%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1300x950: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 47.6% · sobraH 7.4% · limitante 7.4%"
+    },
+    {
+      "caso": 4,
+      "nome": "1300x950: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.0 p.p. · esq-dir 0.0 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1280x720: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 52px (8.2%) · dir 53px (8.3%) · topo 123px (19.2%) · base 122px (19.1%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1280x720: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 38.3% · sobraH 16.5% · limitante 16.5%"
+    },
+    {
+      "caso": 4,
+      "nome": "1280x720: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.2 p.p. · esq-dir 0.2 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1024x768: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 24px (5.7%) · dir 24px (5.7%) · topo 200px (29.1%) · base 200px (29.1%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1024x768: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 58.1% · sobraH 11.3% · limitante 11.3%"
+    },
+    {
+      "caso": 4,
+      "nome": "1024x768: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.0 p.p. · esq-dir 0.0 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1600x900: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 66px (7.2%) · dir 66px (7.2%) · topo 123px (15.0%) · base 122px (14.9%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1600x900: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 29.9% · sobraH 14.3% · limitante 14.3%"
+    },
+    {
+      "caso": 4,
+      "nome": "1600x900: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.0 p.p."
+    },
+    {
+      "caso": 4,
+      "nome": "1920x1080: sem corte (margem >= 8px nos quatro lados)",
+      "ok": true,
+      "detalhe": "esq 24px (1.9%) · dir 24px (1.9%) · topo 78px (7.8%) · base 78px (7.8%)"
+    },
+    {
+      "caso": 4,
+      "nome": "1920x1080: sobra do eixo limitante <= 25%",
+      "ok": true,
+      "detalhe": "sobraV 15.6% · sobraH 3.9% · limitante 3.9%"
+    },
+    {
+      "caso": 4,
+      "nome": "1920x1080: equilíbrio topo/base e esq/dir <= 6 p.p.",
+      "ok": true,
+      "detalhe": "topo-base 0.0 p.p. · esq-dir 0.0 p.p."
     },
     {
       "caso": 5,

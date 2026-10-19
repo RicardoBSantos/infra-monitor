@@ -1025,7 +1025,7 @@ dev): aceito, é sobreposição sob demanda e fecha com um clique ou Enter.
 1133/1024/901. KPIs em duas colunas sem `dt` estourando em todas, inclusive no piso de 340px
 (~138px por cartão; "INCIDENTES ABERTOS" cabe). Largura mínima suportada: 390px, empilhado.
 
-**Câmera não foi recalibrada.** O cartão ficou mais estreito; em 1500×950 o aspecto caiu para ~0,94,
+**Câmera não foi recalibrada.** *(Revisto em D22: esta leitura estava errada — o teste não via o corte; a câmera passou a encaixe calculado.)* O cartão ficou mais estreito; em 1500×950 o aspecto caiu para ~0,94,
 abaixo de `ASPECTO_PLENO` (0,96), e o zoom extra entra a 90%. O desenho passa a ser limitado pela
 largura: sobra vertical por centróides 38,7% → 40,1%; equilíbrio topo/base 1,9 p.p. (critério de
 faixa morta, inalterado). O teto do `e2e:n06` caso 4 subiu de 40% para 42%. Afrouxar `ASPECTO_PLENO`
@@ -1057,3 +1057,93 @@ mesma posição; só as ações de gestão diferem, desligadas no Mapa por M06).
 Roteiros agora aceitam `API_PORT` (`e2e/api-porta.cjs`): o frontend tem `apiUrl` cravado em
 `localhost:8080`, e o Playwright refaz as chamadas na porta pedida — a carga roda em 8081 sem
 derrubar o backend de dev.
+
+## D22 — Enquadramento por encaixe calculado, critério do n06 em pixels, recuo da legenda
+
+`feat/mapa-legenda-sobre-mapa`, 2026-10-19, antes do merge de D21. **Reverte a câmera de D13/D20 e o
+critério de enquadramento do `e2e:n06` (D20/D21)**, sem apagá-los.
+
+### Por que: a regra por proporção foi recalibrada quatro vezes
+
+A câmera era `cameraForBounds` + `ZOOM_AO_INCLINAR` + `OFFSET_CAMERA`, escalados por uma rampa na
+proporção do cartão (`ASPECTO_MINIMO` 0,75 / `ASPECTO_PLENO` 0,96). Esses números foram recalibrados
+**quatro vezes, sempre por mudança alheia à câmera**: N06 (proporção do cartão), N07 (reversão da
+extrusão), N07 (max-width) e D20 (tela cheia). D21 (painel de 420px) pediria a quinta — e passou sem
+ela porque o teste não via o defeito.
+
+Medido por pixel no código de D21, sem mutação: a ponta oeste **encostava na borda** (0,1% de margem)
+em proporção 0,94–0,97 — 1500x950, 1525x950, 1440x864 — e o desenho ficava pequeno abaixo de 0,85
+(1300x950: 29% de sobra lateral; 1024x768: 34%). Cada número só valia para a moldura em que foi medido.
+
+### O encaixe calculado
+
+`cameraDeEncaixe` (mapa.component.ts) projeta na tela a **envoltória convexa** do estado e das unidades
+com coordenada, e itera zoom e centro (`jumpTo` sobre o mapa vivo, até 6 vezes — com pitch, zoom e
+centro só são aproximadamente separáveis) até ela caber na área do cartão menos `MARGEM_ESTADO` (24px).
+Em seguida afasta o desenho de cada sobreposição que ele invade — título, controles de zoom, legenda —
+com `FOLGA_SOBREPOSICAO` (12px): tenta pelo eixo vertical e pelo horizontal e fica com o de zoom maior.
+Título, controles e legenda fechada **espelham** a margem no lado oposto (o enquadramento continua
+centrado); a legenda aberta não espelha. Opção que deixa menos de 1/4 do cartão é descartada.
+
+Não há número calibrado contra moldura: mudar o layout não exige remedir a câmera. **Este é o motivo
+de existir do encaixe — encerrar o ciclo de recalibração.** Funções puras cobertas por unitário:
+`envoltoriaConvexa`, `caixaDosPontos`, `ajusteDeEncaixe`, `convexoIntersectaRetangulo`,
+`margensParaEvitar`.
+
+Resultado medido por pixel (margens do desenho ao cartão): nenhum tamanho corta; topo×base e esq×dir
+diferem ≤0,2 p.p. Em cartão baixo o título empurra a margem vertical (espelhada) e a sobra vertical
+cresce (1024x768: 58%), mas o eixo horizontal é o limitante e fica em 24px.
+
+### Critério novo do `e2e:n06` caso 4 — em pixels, nos dois eixos
+
+O critério antigo media só a sobra vertical pela posição dos centróides dos municípios. Prova por
+mutação (D21 → D22): ele não via corte nem deslocamento lateral, e deixou passar o corte real de
+1500x950. O teto de 42% de D21 acompanhava a implementação, não protegia nada.
+
+Novo, medido na captura do `.map-card` com e sem o canvas (a diferença é só o desenho; sobreposições se
+anulam), em 9 tamanhos (1500x950, 1525x950, 1440x864, 1366x768, 1300x950, 1280x720, 1024x768, 1600x900,
+1920x1080):
+
+1. sem corte: margem ≥ 8px nos quatro lados;
+2. sobra do eixo limitante ≤ 25%: `min(sobraV, sobraH)`;
+3. equilíbrio: |topo − base| ≤ 6 p.p. e |esq − dir| ≤ 6 p.p.
+
+**Prova por mutação do critério novo** (alterando só o destino do `easeTo`; revertido ao fim):
+
+| Tamanho | controle | zoom para fora (−0,5) | zoom para dentro (+0,5) | deslocado para baixo (120px) | deslocado para o lado (150px) |
+|---|---|---|---|---|---|
+| 1500x950 | passa | FALHA (sobra) | FALHA (corte+equil) | FALHA (corte+equil) | FALHA (corte+equil) |
+| 1525x950 | passa | FALHA (sobra) | FALHA (corte+equil) | FALHA (corte+equil) | FALHA (corte+equil) |
+| 1440x864 | passa | FALHA (sobra) | FALHA (corte+equil) | FALHA (corte+equil) | FALHA (corte+equil) |
+| 1366x768 | passa | FALHA (sobra) | FALHA (corte+equil) | FALHA (corte+equil) | FALHA (corte+sobra+equil) |
+| 1300x950 | passa | FALHA (sobra) | FALHA (corte) | FALHA (corte+equil) | FALHA (corte+sobra+equil) |
+| 1280x720 | passa | FALHA (sobra) | FALHA (corte+equil) | FALHA (corte+equil) | FALHA (corte+sobra+equil) |
+| 1024x768 | passa | FALHA (sobra) | FALHA (corte) | FALHA (corte+equil) | FALHA (corte+sobra+equil) |
+| 1600x900 | passa | FALHA (sobra) | FALHA (corte) | FALHA (corte+equil) | FALHA (corte+sobra+equil) |
+| 1920x1080 | passa | FALHA (sobra) | FALHA (corte) | FALHA (corte+equil) | FALHA (corte+equil) |
+
+As quatro mutações falham em todos os nove tamanhos; o código real passa em todos.
+
+### Recuo da legenda aberta
+
+Abrir a legenda (`toggle` do `<details>`) reenquadra o estado com a legenda como sobreposição sem
+espelho; fechar devolve o enquadramento (deslocamento medido: 0px). Só com a câmera no estado inteiro —
+aproximado num município, a câmera não se mexe. `prefers-reduced-motion`: o movimento é instantâneo
+(medido: 0px de diferença 100ms após o clique, contra ~122px ainda por andar no modo normal).
+
+Marcadores cobertos pela legenda aberta, antes → depois (dev, 11 unidades): 1600x900 1→0, 1366x768 1→0,
+1280x720 2→0, 1024x768 3→0; zero também em 1920x1080, 1500x950, 1525x950, 1440x864, 1300x950 e 390x844.
+**Custo:** em cartão baixo (1280x720) título e legenda aberta somam margem e o estado encolhe bastante
+enquanto a legenda está aberta.
+
+### Verificação de IBGE
+
+O roteiro `e2e:legenda-painel` só conferia o aviso da unidade que selecionava, e o relatório de D21
+generalizou isso para "nenhuma unidade dos dois bancos diverge" — errado. Agora seleciona **todas** as
+unidades com coordenada e afirma: conjunto exato das que mostram o aviso (`E2E_IBGE_ESPERADO`), o aviso
+cita o código daquela unidade, sem estouro horizontal, dentro do painel, fonte ≥ 11px e contraste ≥ 4,5:1.
+
+Dev: **cinco** divergências reais no cadastro (não duas, como se supôs): Propriá (2805307 = Pirambu),
+Sesc Itabaiana (2803005 = Itabaianinha), Estância (2802205 = Feira Nova), Simão Dias (2806800 = São
+Domingos), Socorro (2804607 = N. Sra. das Dores). Avisos de 2 a 3 linhas a 420px, contraste 7,69:1.
+Carga: nenhuma. O dado não foi corrigido — é o dado de demonstração; o teste fixa o que ele é.

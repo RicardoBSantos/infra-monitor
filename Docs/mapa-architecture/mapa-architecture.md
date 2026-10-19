@@ -11,7 +11,7 @@ arquivo-índice de mesmo nome da pasta.
 
 | Arquivo | O que é |
 |---|---|
-| [mapa-decisoes.md](mapa-decisoes.md) | Log cronológico de decisões (D01–D21): o que foi decidido, o que foi descartado, por quê |
+| [mapa-decisoes.md](mapa-decisoes.md) | Log cronológico de decisões (D01–D22): o que foi decidido, o que foi descartado, por quê |
 | [mapa-contexto-atual.md](mapa-contexto-atual.md) | Estado da rodada em curso, com números medidos |
 | [mapa-dividas.md](mapa-dividas.md) | O que ficou em aberto de propósito, e quando cobrar |
 
@@ -49,6 +49,7 @@ outra não apaga a entrada antiga: acrescenta uma nova que diz o que mudou e por
 | D20 — tela cheia, clique direto na unidade, zoom por município, legenda recolhível | mergeado (PR #8), `e2e:n08` 51/51 |
 | **Fechamento D20 — e2e no `main` com #7+#8 e no banco da carga; DV17 resolvida; DV19 nova** | **implementado** (contexto §14) |
 | **D21 — legenda sobre o mapa, painel de 420px, folga de 12px** | **implementado** (contexto §15), `e2e:legenda-painel` 75/75 |
+| **D22 — encaixe calculado da câmera, n06 em pixels, recuo da legenda, IBGE em todas** | **implementado** (contexto §16) |
 | Zoom BRASIL/REGIÃO com dado fora de Sergipe | bloqueado por dado (ver DV01) |
 
 ## Onde o código vive
