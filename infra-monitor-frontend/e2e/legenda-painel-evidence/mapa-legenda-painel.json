@@ -31,6 +31,12 @@
       "detalhe": ""
     },
     {
+      "caso": 1,
+      "nome": "alvo de toque: summary fechado com altura >= 32px",
+      "ok": true,
+      "detalhe": "165.4x32.0px"
+    },
+    {
       "caso": 2,
       "nome": "legenda aberta: 6 itens e 2 notas",
       "ok": true,
@@ -68,9 +74,57 @@
     },
     {
       "caso": 2,
-      "nome": "contraste do texto dos itens >= 4,5 sobre a placa composta em #16283a",
+      "nome": "contraste (inicial-light): itens >= 4,5 sobre a placa composta em #16283a",
       "ok": true,
-      "detalhe": "mínimo 5.84:1 (5.8, 5.8, 5.8, 5.8, 5.8, 5.8)"
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): introdução >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): notas >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): rótulo do summary >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): itens >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): introdução >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): notas >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): rótulo do summary >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "tema original restaurado após a medição",
+      "ok": true,
+      "detalhe": "color(srgb 1 1 1 / 0.86)"
     },
     {
       "caso": 2,
@@ -83,6 +137,48 @@
       "nome": "legenda deixada fechada no fim do caso",
       "ok": true,
       "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "clique no polígono aproxima e faz aparecer .map__voltar (\"Ver estado inteiro\")",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "1600x900: .map__voltar presente e com área",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "1600x900: legenda aberta não intersecta \"Ver estado inteiro\", título nem zoom",
+      "ok": true,
+      "detalhe": "legenda t=608 · voltar b=203"
+    },
+    {
+      "caso": "2c",
+      "nome": "1024x768: .map__voltar presente e com área",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "1024x768: legenda aberta não intersecta \"Ver estado inteiro\", título nem zoom",
+      "ok": true,
+      "detalhe": "legenda t=476 · voltar b=203"
+    },
+    {
+      "caso": "2c",
+      "nome": "\"Ver estado inteiro\" restaura o enquadramento (botão some)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2d",
+      "nome": "Atualizar com a legenda aberta: continua aberta, visível e é o mesmo nó do DOM",
+      "ok": true,
+      "detalhe": "{\"open\":true,\"visivel\":true,\"mesmoNo\":true}"
     },
     {
       "caso": 3,
@@ -378,7 +474,8 @@
       "insetEsquerdo": 13,
       "insetInferior": 13,
       "largura": 167.4,
-      "altura": 33
+      "altura": 34,
+      "alturaDoResumo": 32
     },
     "legendaAberta": {
       "largura": 292,
@@ -386,12 +483,28 @@
       "topo": 607.8
     },
     "contrasteLegenda": {
-      "placaSobrePoligono": [
-        222,
-        225,
-        227
-      ],
-      "minimo": 5.84
+      "inicial-light": {
+        "placa": [
+          222,
+          225,
+          227
+        ],
+        "itens": 5.84,
+        "intro": 5.84,
+        "notas": 5.84,
+        "rotulo": 5.84
+      },
+      "alternado": {
+        "placa": [
+          12,
+          19,
+          28
+        ],
+        "itens": 5.05,
+        "intro": 5.05,
+        "notas": 5.05,
+        "rotulo": 5.05
+      }
     },
     "folga": {
       "mainPadding": "0px",

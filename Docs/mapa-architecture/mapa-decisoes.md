@@ -1003,7 +1003,15 @@ inverte por isso: fechada aponta para cima, aberta para baixo.
 **Legibilidade: mesma placa do título** — `color-mix` translúcido sobre `--im-surface`, `blur(6px)`,
 mesma sombra e mesmo `z-index: 5` (a dica do marcador, 6, ainda vence). O canvas é escuro nos dois
 temas; só a placa garante contraste. Medido no e2e: fundo e `backdrop-filter` idênticos aos do
-título; texto dos itens a **5,84:1** contra a placa composta sobre o polígono (`#16283a`, pior caso).
+título; todo texto da legenda (itens, subtítulo, notas e rótulo) a **5,84:1 no claro e 5,05:1 no
+escuro** contra a placa composta sobre o polígono (`#16283a`, pior caso). Para isso o subtítulo, as
+notas e o rótulo, que usavam `--im-text-muted` (~4:1 sobre a placa), passam a `--im-text-secondary`
+só dentro da legenda — o `.panel-label` do painel não muda.
+
+**Acabamentos da revisão final:** o alvo de toque fechado é o `summary` inteiro, com no mínimo 32px
+de altura (o padding saiu do `<details>` para o `summary`; o anel de foco ficou por dentro, offset
+-3px, para a rolagem própria não cortá-lo). A legenda não é mais destruída pelo `@if` durante o
+carregamento: fica no DOM com `[hidden]` fora de sucesso/vazio, e "Atualizar" não a fecha.
 
 Fechada, a placa tem o tamanho do rótulo (167×33px); aberta, largura fixa de 292px (as duas notas
 seguem em uma linha) e `max-height: calc(100% - 120px)` com rolagem própria — em cartão baixo ela
@@ -1038,9 +1046,9 @@ padding para `.shell__main` e tirá-lo de cada tela — rodada própria, decisã
 ### Verificado
 
 Dev (5434): `ng test` 493/493 · `ng build` ok (aviso de budget pré-existente, DV04) ·
-`e2e:legenda-painel` 59/59 + 1 não aplicável (novo) · `e2e:n05` 21/21 · `e2e:n06` 25/25 ·
+`e2e:legenda-painel` 75/75 + 1 não aplicável (novo) · `e2e:n05` 21/21 · `e2e:n06` 25/25 ·
 `e2e:n07` 48/48 · `e2e:n08` 52/52 · `e2e:m06` 19/19. Carga (5436, Sede Administrativa e Sesc
-Itabaiana): `e2e:legenda-painel` 59/59 + 3 não aplicáveis (sem IBGE divergente, sem afetado) ·
+Itabaiana): `e2e:legenda-painel` 75/75 + 3 não aplicáveis (sem IBGE divergente, sem afetado) ·
 `e2e:n05` 21/21 · `e2e:n07` 48/48 · `e2e:n08` 51/51 + 1 não aplicável. Capturas da carga fora do
 repositório; as do dev em `e2e/legenda-painel-evidence/`, conferidas uma a uma, incluindo a gaveta
 de equipamento aberta pelo Mapa lado a lado com a aberta em Equipamentos (mesma largura, 660px, e

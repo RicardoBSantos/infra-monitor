@@ -728,5 +728,6 @@ Decisão em [D21](mapa-decisoes.md). Substitui, para legenda, painel e folga, o 
 
 Roteiro novo `e2e:legenda-painel` (`LEGENDA_SENHA`, `E2E_EMAIL`, `API_PORT`, `E2E_OUT`,
 `E2E_UNIDADES`): legenda no cartão, fechada, no canto, sem cruzar título nem zoom (fechada e aberta,
-em 10 viewports), contraste ≥4,5:1, folga de 12px medida, painel por viewport, KPIs em 2 colunas,
+em 10 viewports, e com "Ver estado inteiro" visível), contraste ≥4,5:1 nos dois temas, alvo de
+toque ≥32px, legenda aberta sobrevive ao Atualizar, folga de 12px medida, painel por viewport, KPIs em 2 colunas,
 gaveta Mapa × Equipamentos lado a lado. Números em D21.
