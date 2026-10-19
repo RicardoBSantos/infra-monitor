@@ -546,6 +546,183 @@ const medirViewport = (page) => page.evaluate(() => {
         }
       }
     }
+
+    // ------------------------------------------------------------------ 7. aviso de IBGE divergente em TODAS as unidades
+    {
+      await abrirMapa(page); // o caso 6 termina em /equipamentos
+      await esperarCameraParada(page);
+      await page.setViewportSize({ width: 1600, height: 900 });
+      await esperarCameraParada(page);
+      const esperadoEnv = process.env.E2E_IBGE_ESPERADO;
+      const esperado = esperadoEnv === undefined ? null
+        : (esperadoEnv.trim() === 'nenhuma' ? [] : esperadoEnv.split(',').map((s) => s.trim()).filter(Boolean).map((s) => { const i = s.lastIndexOf(':'); return { nome: s.slice(0, i), codigo: s.slice(i + 1) }; }));
+      const comAviso = [];
+      medidas.avisosIbge = [];
+      for (const u of comCoord) {
+        await selecionarUnidade(page, u);
+        await pausa(page, 300);
+        const painel = exigir((await caixas(page, ['.map-panel']))[0], '.map-panel');
+        const a = await page.evaluate(() => {
+          const e = document.querySelector('.aviso-ibge');
+          if (!e) return null;
+          e.scrollIntoView({ block: 'nearest' });
+          const cs = getComputedStyle(e);
+          const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+          const miolo = e.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+          const c = e.getBoundingClientRect();
+          const camadas = []; // do próprio aviso até a raiz, para compor o fundo efetivo
+          for (let n = e; n; n = n.parentElement) { camadas.push(getComputedStyle(n).backgroundColor); }
+          return { texto: e.textContent.trim().replace(/\s+/g, ' '), cor: cs.color, fonte: parseFloat(cs.fontSize), linhas: +(miolo / lh).toFixed(1),
+            scrollW: e.scrollWidth, clientW: e.clientWidth, caixa: { l: c.left, t: c.top, r: c.right, b: c.bottom }, camadas };
+        });
+        const reg = { id: u.id, nome: u.nome, codigoIbge: u.codigoIbge, aviso: !!a };
+        if (a) {
+          comAviso.push(u);
+          // fundo efetivo: compõe as camadas translúcidas de dentro para fora até achar uma opaca
+          let fundo = null; const pilha = [];
+          for (const css of a.camadas) {
+            const rgba = await resolverCor(page, css);
+            if (rgba[3] === 0) continue;
+            pilha.push(rgba);
+            if (rgba[3] === 1) { fundo = rgba.slice(0, 3); break; }
+          }
+          if (!fundo) throw new Error('sem fundo opaco acima de .aviso-ibge');
+          for (let i = pilha.length - 2; i >= 0; i--) fundo = compor(pilha[i], fundo);
+          const cor = compor(await resolverCor(page, a.cor), fundo);
+          const ctr = +contraste(cor, fundo).toFixed(2);
+          const dentro = a.caixa.l >= painel.l - 0.5 && a.caixa.r <= painel.r + 0.5 && a.caixa.t >= painel.t - 0.5 && a.caixa.b <= painel.b + 0.5;
+          Object.assign(reg, { texto: a.texto, fonte: a.fonte, linhas: a.linhas, contraste: ctr, scrollW: a.scrollW, clientW: a.clientW, dentroDoPainel: dentro, painelLargura: +painel.w.toFixed(1) });
+          const n = u.nome;
+          checar(7, `[${n}] .map-panel com 420px em 1600x900 (±1)`, perto(painel.w, 420, 1), `${painel.w.toFixed(1)}px`);
+          checar(7, `[${n}] aviso começa com "Localização divergente."`, a.texto.startsWith('Localização divergente.'), a.texto.slice(0, 40));
+          checar(7, `[${n}] aviso cita o código IBGE desta unidade (${u.codigoIbge})`, !!u.codigoIbge && a.texto.includes(`(${u.codigoIbge})`), a.texto);
+          checar(7, `[${n}] aviso sem estouro horizontal (scrollWidth <= clientWidth)`, a.scrollW <= a.clientW, `${a.scrollW}/${a.clientW}`);
+          checar(7, `[${n}] aviso inteiro dentro da caixa visível do painel`, dentro, JSON.stringify({ aviso: a.caixa, painel: { l: painel.l, t: painel.t, r: painel.r, b: painel.b } }));
+          checar(7, `[${n}] aviso com fonte >= 11px`, a.fonte >= 11, `${a.fonte}px`);
+          checar(7, `[${n}] aviso com contraste >= 4,5:1 sobre o fundo efetivo`, ctr >= 4.5, `${ctr}:1 (${a.linhas} linhas)`);
+          await page.locator('.map-panel').screenshot({ path: path.join(OUT, `07-aviso-ibge-${slug(u.nome)}.png`) });
+        }
+        medidas.avisosIbge.push(reg);
+      }
+      const nomesComAviso = comAviso.map((u) => u.nome).sort();
+      medidas.avisosIbgeConjunto = nomesComAviso;
+      if (esperado === null) naoAplicavel(7, 'conjunto de unidades com aviso == esperado', 'E2E_IBGE_ESPERADO não definida; conjunto registrado em medidas.avisosIbgeConjunto');
+      else {
+        const nomesEsp = esperado.map((e) => e.nome).sort();
+        checar(7, 'unidades com aviso == conjunto esperado (exato)', JSON.stringify(nomesComAviso) === JSON.stringify(nomesEsp), `obtido=${JSON.stringify(nomesComAviso)} esperado=${JSON.stringify(nomesEsp)}`);
+        for (const e of esperado) {
+          const u = comCoord.find((x) => x.nome === e.nome);
+          checar(7, `[${e.nome}] código IBGE do payload == esperado (${e.codigo})`, !!u && u.codigoIbge === e.codigo, u ? String(u.codigoIbge) : 'unidade fora do payload');
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------ 8. recuo da legenda aberta (cobertura de marcadores)
+    {
+      // sai e volta pelo menu: o mapa remonta sem unidade selecionada (a seleção do caso 7 não vaza)
+      await irPara(page, '/dashboard');
+      await page.waitForURL((u) => u.pathname.includes('/dashboard'), { timeout: 15000 });
+      await abrirMapa(page);
+      await esperarCameraParada(page);
+      {
+        const sel = await page.locator('.unit-panel__nome').count();
+        checar(8, 'mapa remontado sem unidade selecionada', sel === 0, `${sel} painéis de unidade`);
+      }
+      const posicoes = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.map__unidade')].map((e) => {
+        const c = e.getBoundingClientRect();
+        return [e.getAttribute('data-unidade-id'), [c.left + c.width / 2, c.top + c.height / 2]];
+      })));
+      const maxDeslocamento = (a, b) => {
+        const ids = Object.keys(a); if (!ids.length || ids.some((i) => !b[i])) return Infinity;
+        return Math.max(...ids.map((i) => Math.hypot(a[i][0] - b[i][0], a[i][1] - b[i][1])));
+      };
+      const cobertos = (page2) => page2.evaluate((sel) => {
+        const leg = document.querySelector(sel).getBoundingClientRect();
+        const m = 4;
+        return [...document.querySelectorAll('.map__unidade')].filter((e) => {
+          const c = e.getBoundingClientRect();
+          return c.left - m < leg.right && c.right + m > leg.left && c.top - m < leg.bottom && c.bottom + m > leg.top;
+        }).map((e) => e.getAttribute('data-unidade-id') + ':' + (e.getAttribute('aria-label') ?? e.textContent.trim()).slice(0, 40));
+      }, LEG);
+      const viewports = [[1920, 1080], [1600, 900], [1500, 950], [1525, 950], [1440, 864], [1366, 768], [1300, 950], [1280, 720], [1024, 768], [390, 844]];
+      const fotos = new Set(['1600x900', '1280x720', '1024x768']);
+      medidas.recuo = {};
+      for (const [w, h] of viewports) {
+        const chave = `${w}x${h}`;
+        await page.setViewportSize({ width: w, height: h });
+        await esperarCameraParada(page);
+        if (await page.locator('.map__voltar').isVisible()) {
+          await page.click('.map__voltar');
+          await page.waitForFunction(() => !document.querySelector('.map__voltar'), null, { timeout: 10000 });
+          await esperarCameraParada(page);
+        }
+        const nMarc = await page.locator('.map__unidade').count();
+        checar(8, `${chave}: há marcadores no mapa`, nMarc > 0, `${nMarc}`);
+        const antes = await posicoes();
+        await definirLegenda(page, true);
+        await esperarCameraParada(page);
+        const cob = await cobertos(page);
+        medidas.recuo[chave] = { marcadores: nMarc, cobertos: cob.length, nomes: cob };
+        checar(8, `${chave}: legenda aberta cobre 0 marcadores (caixa +4px)`, cob.length === 0, cob.length ? cob.join(', ') : `0 de ${nMarc}`);
+        if (fotos.has(chave)) await page.screenshot({ path: path.join(OUT, `08-recuo-${chave}.png`), fullPage: true });
+        await definirLegenda(page, false);
+        await esperarCameraParada(page);
+        const depois = await posicoes();
+        const desloc = maxDeslocamento(antes, depois);
+        medidas.recuo[chave].deslocamentoAoFechar = desloc === Infinity ? null : +desloc.toFixed(2);
+        checar(8, `${chave}: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)`, desloc <= 2, desloc === Infinity ? 'conjunto de marcadores mudou' : `${desloc.toFixed(2)}px`);
+      }
+      await page.setViewportSize({ width: 1600, height: 900 });
+      await esperarCameraParada(page);
+
+      // movimento existe no contexto normal: 100ms depois do clique os marcadores ainda andam
+      {
+        if (await page.locator('.map__voltar').isVisible()) { await page.click('.map__voltar'); await esperarCameraParada(page); }
+        await definirLegenda(page, false);
+        await page.click('summary.legend-bloco__resumo');
+        await pausa(page, 100);
+        const aos100 = await posicoes();
+        await page.waitForFunction((sel) => document.querySelector(sel).open === true, LEG, { timeout: 5000 });
+        await pausa(page, 1000);
+        const final = await posicoes();
+        const d = maxDeslocamento(aos100, final);
+        medidas.movimentoNormal = { deslocamentoAos100ms: d === Infinity ? null : +d.toFixed(2) };
+        checar(8, 'contexto normal: 100ms após abrir a legenda os marcadores ainda andam (> 2px do final)', d > 2, d === Infinity ? 'conjunto mudou' : `${d.toFixed(2)}px`);
+        await definirLegenda(page, false);
+        await esperarCameraParada(page);
+      }
+
+      // reduced motion: o reenquadramento é instantâneo
+      {
+        const ctxRm = await browser.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+        try {
+          await apontarApi(ctxRm);
+          const pg = await ctxRm.newPage();
+          pg.on('pageerror', (e) => errosPagina.push('[rm] ' + e.message));
+          pg.on('console', (m) => { if (m.type() === 'error') errosConsole.push('[rm] ' + m.text()); });
+          pg.on('response', (r) => { if (r.status() >= 500) respostas5xx.push(`[rm] HTTP ${r.status()} ${r.request().method()} ${r.url()}`); });
+          await entrar(pg);
+          await abrirMapa(pg);
+          await esperarCameraParada(pg);
+          const rm = await pg.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
+          checar(8, 'contexto reduced-motion ativo (matchMedia)', rm);
+          if (await pg.locator('.map__voltar').isVisible()) { await pg.click('.map__voltar'); await esperarCameraParada(pg); }
+          if (await pg.locator(LEG).evaluate((e) => e.open)) { await pg.click('summary.legend-bloco__resumo'); await esperarCameraParada(pg); }
+          const antesRm = await pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('.map__unidade')].map((e) => { const c = e.getBoundingClientRect(); return [e.getAttribute('data-unidade-id'), [c.left + c.width / 2, c.top + c.height / 2]]; })));
+          await pg.click('summary.legend-bloco__resumo');
+          await pausa(pg, 100);
+          const pos = () => pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('.map__unidade')].map((e) => { const c = e.getBoundingClientRect(); return [e.getAttribute('data-unidade-id'), [c.left + c.width / 2, c.top + c.height / 2]]; })));
+          const aos100 = await pos();
+          await pausa(pg, 1000);
+          const final = await pos();
+          const d = maxDeslocamento(aos100, final);
+          const moveu = maxDeslocamento(antesRm, final);
+          medidas.movimentoReduzido = { deslocamentoAos100ms: d === Infinity ? null : +d.toFixed(2), deslocamentoTotalDaAbertura: moveu === Infinity ? null : +moveu.toFixed(2) };
+          checar(8, 'reduced-motion: 100ms após abrir a legenda os marcadores já estão no final (<= 1px)', d <= 1, d === Infinity ? 'conjunto mudou' : `${d.toFixed(2)}px`);
+          checar(8, 'reduced-motion: a abertura de fato reenquadrou (marcadores saíram do lugar > 2px)', moveu > 2, moveu === Infinity ? 'conjunto mudou' : `${moveu.toFixed(2)}px`);
+        } finally { await ctxRm.close(); }
+      }
+    }
   } catch (erro) {
     fatal = erro;
     try { await page.screenshot({ path: path.join(OUT, 'fatal.png') }); } catch (e) { errosPagina.push('screenshot fatal falhou: ' + e.message); }
