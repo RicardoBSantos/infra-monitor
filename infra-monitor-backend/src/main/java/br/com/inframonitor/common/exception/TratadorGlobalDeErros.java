@@ -69,7 +69,9 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResposta> tratarInesperado(Exception ex, WebRequest request) {
-        log.error("Erro nao tratado em {} tipo={}", caminho(request), ex.getClass().getSimpleName());
+        // A excecao vai como ultimo argumento para o stack trace sair no log: so com o nome da classe,
+        // a DV17 (500 sob concorrencia) nao era diagnosticavel sem patch local.
+        log.error("Erro nao tratado em {} tipo={}", caminho(request), ex.getClass().getSimpleName(), ex);
         return ResponseEntity.internalServerError().body(ErroResposta.de(500, "Internal Server Error", "INTERNAL_ERROR",
                 "Erro interno do servidor", caminho(request)));
     }

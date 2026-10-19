@@ -24,7 +24,7 @@ const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
-const EMAIL = 'admin@inframonitor.local';
+const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N07_SENHA;
 if (!SENHA) throw new Error('N07_SENHA é obrigatória');
 
@@ -80,9 +80,15 @@ const marcadorIsolado = (page) => page.evaluate(() => {
 const corBateComSombra = (hex, sombra) => {
   const n = parseInt(hex.trim().slice(1), 16);
   const alvo = [n >> 16 & 255, n >> 8 & 255, n & 255];
-  const m = sombra.match(/rgba?\(([^)]+)\)/);
+  // Primeira cor da sombra, nos dois formatos que o Chromium serializa: `rgb(a)(r, g, b…)` e, para
+  // `color-mix`, `color(srgb r g b / a)` em 0–1. Só `rgba?\(` pulava a primeira e lia o
+  // `rgba(0, 0, 0, …)` da segunda sombra — preto empata os canais, e o caso passava por acaso
+  // quando o status testado tinha ordem R>G>B (degradada), e falhava com disponível.
+  const m = sombra.match(/rgba?\(([^)]+)\)|color\(srgb ([^)]+)\)/);
   if (!m) return false;
-  const lido = m[1].split(',').slice(0, 3).map((v) => parseInt(v.trim(), 10));
+  const lido = m[1]
+    ? m[1].split(',').slice(0, 3).map((v) => parseInt(v.trim(), 10))
+    : m[2].split('/')[0].trim().split(/\s+/).slice(0, 3).map((v) => Math.round(parseFloat(v) * 255));
   const ordem = (a) => a.map((_, i) => i).sort((i, j) => a[j] - a[i]).join('');
   return ordem(alvo) === ordem(lido);
 };

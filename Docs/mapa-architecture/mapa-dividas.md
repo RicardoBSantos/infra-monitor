@@ -31,6 +31,8 @@ link para `/unidades/7` mandado a um colega o joga no login e perde o destino.
 token, por quanto tempo, o que fazer no logout de outra aba). Não entra de carona numa rodada de
 mapa.
 
+**Decisão de produto (2026-10-16): continua como dívida, ciclo próprio.**
+
 ---
 
 ## DV03 — +15 nós residuais por visita ao Mapa
@@ -117,6 +119,10 @@ das quatro (`e2e:n08` caso 9). No zoom de estado elas continuam a ~30px. Cluster
 a resposta se o dado crescer — duas unidades no mesmo quarteirão empatam mesmo aproximadas, porque o
 teto `ZOOM_MAXIMO_UNIDADES` (12,5) para antes da escala de rua.
 
+**Decisão de produto (2026-10-16): ADIADO.** O zoom por município já ameniza, e 11 unidades não
+justificam agrupar. **Gatilho para revisitar:** passar de 20 unidades, ou Aracaju ganhar mais
+unidades. Vale também para DV15.
+
 ---
 
 ## DV10 — Contagem de equipamentos perdeu o sinal ambiente no mapa
@@ -138,6 +144,10 @@ coluna na lista, ou um modo de visualização alternativo — e não ressuscitar
 **Nota (D20):** a "contagem na lista de município com várias unidades" saiu junto com a lista — o
 clique no marcador abre direto a unidade. Sob demanda, o número agora está no KPI do painel e no
 `aria-label` do marcador. O sinal ambiente ficou mais fraco, não mais forte.
+
+**Decisão de produto (2026-10-16): NÃO FAZER.** O mapa é de status, não de volume. A dívida fecha
+por decisão: o número de equipamentos continua sob demanda (KPI do painel e `aria-label`), e um
+pedido futuro de "onde está a massa" é feature nova, não cobrança desta dívida.
 
 ---
 
@@ -240,6 +250,8 @@ Aí o caminho é **ampliar `DashboardUnidade`** no read-model do backend (latên
 monitores ativos, última verificação), não somar requisições no front — uma chamada continua
 servindo o mapa inteiro.
 
+**Decisão de produto (2026-10-16): ADIADO.** Exige ampliar o read-model do backend e não vale agora.
+
 ---
 
 ## DV15 — Aglomerado de Aracaju piora com o anel de pulso
@@ -264,6 +276,9 @@ quatro do aglomerado de Aracaju ao mesmo tempo. A frase "um marcador que pulsa p
 visualmente o vizinho parado" descrevia um cenário misto que não existe mais: não há mais vizinho
 parado, os quatro anéis se cruzam sempre. A dívida **permanece aberta** — o problema não some, fica
 mais frequente — e o paliativo (`scale(1.6)`) continua válido.
+
+**Decisão de produto (2026-10-16): ADIADO junto com DV09**, mesmo gatilho (mais de 20 unidades, ou
+Aracaju com mais unidades).
 
 ---
 
@@ -295,6 +310,26 @@ gradiente em si não foi remedido** nesta rodada — não há número novo para 
 do `color-mix`. Continua **aberta** até a próxima captura comparativa, agora com a cor-base já
 clareada.
 
+**Captura comparativa (2026-10-16), para o usuário avaliar — nada foi alterado.** Os seis status
+com o CSS real de `.map__ping` (injetado dentro de `.map-card`, então vale a regra `:host ::ng-deep`
+de verdade), sobre `#16283a`, na linha (1,4px, opacidade .65) e sozinho, a 4x:
+[dv16-comparacao-ping.png](dv16-comparacao-ping.png). Contraste contra o município:
+
+| Status | Cor-base | × município | Stop escuro (`70% + #000`) | × município |
+|---|---|---|---|---|
+| Disponível | `#34c77b` | 6,86 | `#248b56` | 3,50 |
+| Indisponível | `#e5484d` | 3,84 | `#a03236` | 2,15 |
+| Degradada | `#e8a33d` | 6,96 | `#a2722b` | 3,56 |
+| Em manutenção | `#7fadff` | 6,67 | `#5979b3` | 3,44 |
+| Sem dados | `#8797a6` | 5,01 | `#5f6a74` | 2,72 |
+| Sem equipamentos | `#667b8b` | 3,41 | `#475661` | **1,98** |
+
+O número que esta dívida temia (≈1,05:1) não existe mais: com a cor-base de D19 a borda escura de
+`sem-equipamentos` fica em 1,98:1, e o aro claro de 1px mantém o disco legível. O que a captura
+mostra de novo: **`indisponível` tem a segunda pior borda (2,15:1)**, e **`sem-dados` e
+`sem-equipamentos` quase não se distinguem entre si** no ping. Decisão do gradiente segue com o
+usuário.
+
 ---
 
 ## DV17 — Equipamentos da unidade respondem 500 sob concorrência
@@ -312,6 +347,16 @@ consultar os equipamentos desta unidade" com "Tentar novamente".
 
 **Quando cobrar:** antes da carga real, ou na primeira queixa de painel de unidade falhando.
 
+**RESOLVIDA (2026-10-16).** A hipótese do pool estava errada. A causa era a consulta da última
+medição por monitor (`MedicaoRepository.findLatestByMonitorIds`): um `NOT EXISTS` que o PostgreSQL
+executava como *Parallel Hash Anti Join* sobre a `medicao` inteira (606 ms com 317 mil linhas). Com
+20 dessas em paralelo, os hashes estouravam o `/dev/shm` de 64 MB do container ("could not resize
+shared memory segment … No space left on device"). Virou `LATERAL … LIMIT 1` por monitor sobre o
+índice (0,35 ms). Prova de reversão com a mesma rajada de 121: sem a correção, 111 × 500; com ela,
+121 × 200 (e 500 × 200 com 500 chamadas); com **só a consulta** revertida, 116 × 500 de novo.
+Diagnóstico completo, números e stack trace:
+[`Docs/validacao-producao/dv17-500-sob-concorrencia.md`](../validacao-producao/dv17-500-sob-concorrencia.md).
+
 ---
 
 ## DV18 — Topbar estoura a largura em ≤1280px
@@ -323,3 +368,34 @@ não encolhem. O `e2e:n08` prova que o Mapa em si não estoura (`.map-page` e `.
 excedente horizontal 0) e registra o do documento como pré-existente, sem falhar.
 
 **Quando cobrar:** na próxima rodada de layout do shell, ou antes de uso em tablet.
+
+**Decisão de produto (2026-10-16): entra na próxima rodada de layout comum.** Largura mínima
+suportada registrada:
+
+- **Hoje, sem rolagem horizontal:** a partir de **1296px** (em 1280 o documento mede 1296px de
+  largura, 16px a mais; em 1366 o excedente é 0, medido pelo `e2e:n08`).
+- **Alvo da rodada de layout:** **1024px**, a menor viewport de desktop que o `e2e:n08` já cobre
+  (hoje com 48px de excedente). Abaixo disso o shell não promete layout sem rolagem; 390px continua
+  medido só como regressão, não como suporte.
+
+---
+
+## DV19 — A CTE `ESTADOS` lê a `medicao` inteira a cada chamada
+**Origem:** diagnóstico da DV17, 2026-10-16. **Backend, read-model que alimenta o mapa.**
+
+`DashboardReadRepository.ESTADOS` acha a última medição de cada monitor com `select distinct on
+(monitor_id) … from medicao order by monitor_id, executado_em desc, id desc`, sem filtro: ordena a
+tabela inteira a cada chamada (114 ms com 317 mil medições). Passam por ela `/dashboard/resumo`,
+`/dashboard/unidades`, `/dashboard/unidades/{id}`, `/dashboard/equipamentos` e a disponibilidade
+dos relatórios.
+
+**Hoje não falha.** Com 121 chamadas simultâneas, todos respondem 200, mas seguram o pool inteiro
+(20/20) e chegam a 1,3–1,7 s de p50. Numa rajada mista dos endpoints do mapa, o p50 foi 2,8 s. O
+custo cresce linearmente com a `medicao`, que não tem expurgo.
+
+**Caminho conhecido:** o mesmo `LATERAL … LIMIT 1` por monitor da DV17, sobre o mesmo índice.
+Não entrou na DV17 de propósito: a CTE é compartilhada por seis endpoints e pelo teste de paridade
+com o resolver Java, e a mudança merece rodada e medição próprias.
+
+**Quando cobrar:** antes da carga real crescer além de algumas semanas de medições, ou na primeira
+queixa de lentidão no mapa ou no painel.

@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
-const EMAIL = 'admin@inframonitor.local';
+const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N08_SENHA;
 if (!SENHA) throw new Error('N08_SENHA é obrigatória');
 
@@ -351,7 +351,7 @@ async function voltarAoEstado(page) {
     const centroA = await centro(page, alvoSel(IBGE_ARACAJU));
     const candidatos = [];
     for (const r of [20, 28, 38, 50, 64]) for (let k = 0; k < 16; k++) { const ang = (k * Math.PI * 2) / 16; candidatos.push({ x: centroA.x + r * Math.cos(ang), y: centroA.y + r * Math.sin(ang), r }); }
-    let zoomFeito = null; let tentativas = 0;
+    let zoomFeito = null; let tentativas = 0; let enquadradoPor = null;
     const dInicioAracaju = d0;
     const idsAr = new Set(aracaju.map((u) => String(u.id)));
     const PAD = { top: 110, right: 70, bottom: 50, left: 60 }; // espelha PADDING_MUNICIPIO do componente
@@ -365,8 +365,14 @@ async function voltarAoEstado(page) {
         // O retry existe só para achar um pixel de canvas dentro do polígono. O primeiro clique que
         // aproxima é o que vale: se caiu em município vizinho, o caso falha em vez de tentar outro.
         // O centro que importa é o das UNIDADES de Aracaju (o enquadramento é o envelope delas, D20).
+        // Com menos de 2 unidades o componente enquadra o POLÍGONO (limitesDoEnquadramento), e o
+        // centro dele é onde mora o alvo invisível do município (centroideAproximado = centro do
+        // envelope). Medido no banco da carga, que só tem a Sede em Aracaju.
         const ms = (await marcadores(page)).filter((m) => idsAr.has(m.id));
-        const cc = { x: (Math.min(...ms.map((m) => m.x)) + Math.max(...ms.map((m) => m.x))) / 2, y: (Math.min(...ms.map((m) => m.y)) + Math.max(...ms.map((m) => m.y))) / 2 };
+        enquadradoPor = ms.length >= 2 ? 'unidades' : 'polígono';
+        const cc = ms.length >= 2
+          ? { x: (Math.min(...ms.map((m) => m.x)) + Math.max(...ms.map((m) => m.x))) / 2, y: (Math.min(...ms.map((m) => m.y)) + Math.max(...ms.map((m) => m.y))) / 2 }
+          : await centro(page, alvoSel(IBGE_ARACAJU));
         const cartao = (await caixas(page, ['.map-card']))[0];
         const largura = cartao.r - cartao.l, altura = cartao.b - cartao.t;
         // O fitBounds centra na área útil, não no cartão: o PADDING_MUNICIPIO é assimétrico (título em
@@ -380,9 +386,9 @@ async function voltarAoEstado(page) {
     const dZoom = await dist();
     const nomeDepoisZoom = await nomePainel(page);
     medidas.zoomAracaju = { distanciaParAntes: +dInicioAracaju.toFixed(1), distanciaParDepois: +dZoom.toFixed(1), fator: +(dZoom / dInicioAracaju).toFixed(2), tentativasDeClique: tentativas, cartao: cartaoAntes };
-    checar(8, 'clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o envelope das unidades de Aracaju vai ao centro da área útil do cartão (padding assimétrico, ±10%)',
+    checar(8, 'clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o enquadrado (envelope das unidades, ou o polígono com menos de 2) vai ao centro da área útil do cartão (padding assimétrico, ±10%)',
       !!zoomFeito && zoomFeito.ok && dZoom > dInicioAracaju * 1.3 && await voltarVisivel(page),
-      zoomFeito ? `distância ${dInicioAracaju.toFixed(1)} -> ${dZoom.toFixed(1)} (x${(dZoom / dInicioAracaju).toFixed(2)}); desvio do centro ${(zoomFeito.dx * 100).toFixed(1)}%/${(zoomFeito.dy * 100).toFixed(1)}%; ${tentativas} tentativa(s), raio ${zoomFeito.ponto.r}px`
+      zoomFeito ? `por ${enquadradoPor}; distância ${dInicioAracaju.toFixed(1)} -> ${dZoom.toFixed(1)} (x${(dZoom / dInicioAracaju).toFixed(2)}); desvio do centro ${(zoomFeito.dx * 100).toFixed(1)}%/${(zoomFeito.dy * 100).toFixed(1)}%; ${tentativas} tentativa(s), raio ${zoomFeito.ponto.r}px`
         : `nenhum ponto produziu o zoom em Aracaju em ${tentativas} tentativa(s)`);
     checar(8, 'painel da unidade aberta continua com o mesmo nome após o zoom', nomeAntesZoom !== null && nomeDepoisZoom === nomeAntesZoom, `"${nomeAntesZoom}" -> "${nomeDepoisZoom}"`);
     await page.screenshot({ path: path.join(OUT, 'c-zoom-municipio.png') });

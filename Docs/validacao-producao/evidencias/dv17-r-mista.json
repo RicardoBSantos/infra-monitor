@@ -1,0 +1,33 @@
+{
+  "rotulo": "MISTA",
+  "total": 242,
+  "duracaoMs": 4992,
+  "porStatus": {
+    "200": 242
+  },
+  "porCaminho": {
+    "/dashboard/unidades/{id}/equipamentos?size=200&sort=nome": {
+      "200": 61
+    },
+    "/dashboard/unidades": {
+      "200": 61
+    },
+    "/dashboard/unidades/{id}": {
+      "200": 60
+    },
+    "/dashboard/resumo": {
+      "200": 60
+    }
+  },
+  "latenciaMs": {
+    "p50": 2783,
+    "p95": 4776,
+    "max": 4965
+  },
+  "pg": {
+    "amostras": 17,
+    "maxEmUso": 20,
+    "maxAbertas": 20
+  },
+  "exemplo500": null
+}

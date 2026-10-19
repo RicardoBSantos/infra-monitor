@@ -46,7 +46,8 @@ outra não apaga a entrada antiga: acrescenta uma nova que diz o que mudou e por
 | **N07 — município neutro, legenda de marcador (D15)** | **implementado e verificado na aplicação real** |
 | **N07 — pulso seletivo, ping colorido em linha neutra, dica de relance (D16)** | **implementado, `e2e:n07` 37/37** |
 | **N07 — contraste do marcador, do anel de foco e da divisa municipal (D16)** | **corrigido e medido** |
-| **D20 — tela cheia, clique direto na unidade, zoom por município, legenda recolhível** | **implementado, `e2e:n08` 48/48** |
+| D20 — tela cheia, clique direto na unidade, zoom por município, legenda recolhível | mergeado (PR #8), `e2e:n08` 51/51 |
+| **Fechamento D20 — e2e no `main` com #7+#8 e no banco da carga; DV17 resolvida; DV19 nova** | **implementado** (contexto §14) |
 | Zoom BRASIL/REGIÃO com dado fora de Sergipe | bloqueado por dado (ver DV01) |
 
 ## Onde o código vive

@@ -92,7 +92,7 @@ public class DashboardService {
 
     public Page<DashboardEquipamentoResponse> equipamentosDaUnidade(Long unidadeId, Long tipoEquipamentoId,
                                                                       Boolean ativo, Pageable pageable) {
-        if (readRepository.unidade(unidadeId, limiarLatenciaDegradadaMs) == null) throw new RecursoNaoEncontradoException("Unidade nao encontrada");
+        if (!readRepository.existeUnidade(unidadeId)) throw new RecursoNaoEncontradoException("Unidade nao encontrada");
         Specification<Equipamento> filtro = (root, query, cb) -> cb.equal(root.get("unidade").get("id"), unidadeId);
         if (tipoEquipamentoId != null) filtro = filtro.and((root, query, cb) -> cb.equal(root.get("tipoEquipamento").get("id"), tipoEquipamentoId));
         if (ativo != null) filtro = filtro.and((root, query, cb) -> cb.equal(root.get("ativo"), ativo));

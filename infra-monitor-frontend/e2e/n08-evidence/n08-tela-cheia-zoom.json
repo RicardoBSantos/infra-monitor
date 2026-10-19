@@ -134,9 +134,9 @@
     },
     {
       "caso": 8,
-      "nome": "clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o envelope das unidades de Aracaju vai ao centro da área útil do cartão (padding assimétrico, ±10%)",
+      "nome": "clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o enquadrado (envelope das unidades, ou o polígono com menos de 2) vai ao centro da área útil do cartão (padding assimétrico, ±10%)",
       "ok": true,
-      "detalhe": "distância 375.3 -> 2209.1 (x5.89); desvio do centro 4.8%/6.1%; 6 tentativa(s), raio 20px"
+      "detalhe": "por unidades; distância 375.3 -> 2209.1 (x5.89); desvio do centro 4.8%/6.1%; 6 tentativa(s), raio 20px"
     },
     {
       "caso": 8,

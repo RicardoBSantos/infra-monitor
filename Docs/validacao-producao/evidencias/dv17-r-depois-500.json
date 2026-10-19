@@ -1,0 +1,24 @@
+{
+  "rotulo": "DEPOIS-500",
+  "total": 500,
+  "duracaoMs": 1841,
+  "porStatus": {
+    "200": 500
+  },
+  "porCaminho": {
+    "/dashboard/unidades/{id}/equipamentos?size=200&sort=nome": {
+      "200": 500
+    }
+  },
+  "latenciaMs": {
+    "p50": 1543,
+    "p95": 1769,
+    "max": 1804
+  },
+  "pg": {
+    "amostras": 6,
+    "maxEmUso": 17,
+    "maxAbertas": 20
+  },
+  "exemplo500": null
+}

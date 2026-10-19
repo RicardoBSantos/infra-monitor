@@ -2,7 +2,7 @@
 
 Estado da rodada em curso. Atualizado como parte do commit que muda o Mapa, nunca depois.
 
-Última atualização: 2026-10-16, branch `feat/mapa-tela-cheia` (§13).
+Última atualização: 2026-10-16, branch `chore/fecho-mapa-dv17` (§14).
 
 > **§13 (D20) revê layout, câmera e interação.** Os números de câmera de §5 e §8, a legenda de §8
 > e o fluxo "município seleciona e lista unidades" das seções anteriores ficam como registro.
@@ -667,3 +667,46 @@ divergente); município aproxima e não fecha o painel; Aracaju 4/4 clicável se
 vizinho ≥40px; volta por botão e por Escape com foco no canvas; município sem unidade; teclado;
 reduced-motion; legenda fechada/aberta com notas de uma linha; erro de API sem a placa por cima;
 resize reenquadra só sem gesto; nenhum erro de console nem 5xx.
+
+## 14. Fechamento da rodada D20 (2026-10-16)
+
+### `main` com os PRs #7 e #8 juntos
+
+Os dois PRs nunca tinham rodado juntos. No `main` combinado (`e0d0078`), banco de dev:
+`ng test` 493/493 · `e2e:n05` 21/21 · `e2e:n06` 25/25 · `e2e:n07` 48/48 · `e2e:n08` 51/51 ·
+`e2e:m06` 19/19. (O §13 diz `e2e:n08` 48/48; o número final do PR #8 foi 51/51.)
+
+### Banco da carga (5436), com as unidades reais
+
+Sede Administrativa (Aracaju) e Sesc Itabaiana (hub: Sede), 3 equipamentos. Backend do `main` contra
+o banco da carga, motor, Telegram e dispatcher desligados. Login por `E2E_EMAIL`, variável nova nos
+cinco roteiros (default continua `admin@inframonitor.local`).
+
+| Roteiro | Resultado | Leitura |
+|---|---|---|
+| `e2e:n05` | 21/21 | — |
+| `e2e:n08` | 50/50, 1 não aplicável | sem unidade de IBGE divergente na carga (caso 6) |
+| `e2e:n07` | 48/48 | depois de corrigir o caso 9 (abaixo) |
+| `e2e:n06` | falha por dado | espera 11 marcadores e 4 unidades em Aracaju: é roteiro do seed do dev |
+| `e2e:m06` | não executa | precisa de equipamento fora de DISPONIVEL; a carga só tem disponíveis |
+
+Capturas conferidas uma a uma (fora do repositório, por mostrarem a rede real): tela cheia sem
+rolagem, título sobre o mapa, Atualizar no painel, clique na Sede abrindo a unidade direto, zoom em
+Aracaju com "Ver estado inteiro", legenda aberta e fechada.
+
+### Dois defeitos de roteiro, achados só com o dado real
+
+- **`e2e:n07` caso 9 dava falso verde no dev.** `corBateComSombra` procurava `rgba?\(` e pulava a
+  primeira cor da sombra, que o Chromium serializa como `color(srgb …)` por causa do `color-mix`;
+  lia o `rgba(0, 0, 0, .6)` da segunda sombra. Preto empata os canais, e a comparação por ordem de
+  canal passava por acaso com a degradada (R>G>B) do dev; com a disponível da carga, falhou. A cor
+  real do anel batia exata. O parser agora lê os dois formatos.
+- **`e2e:n08` caso 8 supunha Aracaju com várias unidades.** Com uma só, o componente enquadra o
+  polígono (`limitesDoEnquadramento`), e o roteiro media o centro do envelope das unidades. Agora mede
+  o do polígono quando há menos de 2, pelo alvo `.map__alvo`: desvio de 0,0%/1,0% na carga.
+
+### DV16 e decisões de produto
+
+Comparação do ping nos seis status montada, sem mudança no gradiente (DV16 em `mapa-dividas.md`).
+Decisões do usuário registradas com data em DV02, DV09, DV10, DV14, DV15 e DV18; DV17 resolvida;
+DV19 nova.

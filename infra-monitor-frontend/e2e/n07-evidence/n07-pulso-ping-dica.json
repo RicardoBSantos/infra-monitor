@@ -52,7 +52,7 @@
       "caso": 2,
       "nome": "animação no ::after, nunca no elemento (DV13)",
       "ok": true,
-      "detalhe": "_ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none _ngcontent-ng-c3883735719_map-pulsar/none"
+      "detalhe": "_ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none"
     },
     {
       "caso": 2,
@@ -208,7 +208,7 @@
       "caso": 8,
       "nome": "todo ping percorre a linha — nenhum fica parado",
       "ok": true,
-      "detalhe": "18/18 em movimento · percurso mínimo 8.5px em 2,1s"
+      "detalhe": "18/18 em movimento · percurso mínimo 10.7px em 2,1s"
     },
     {
       "caso": 9,

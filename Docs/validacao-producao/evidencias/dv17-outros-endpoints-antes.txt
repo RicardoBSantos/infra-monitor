@@ -1,0 +1,14 @@
+/dashboard/resumo -> {"200":121} p50=777ms max=1339ms pgEmUso=20
+/dashboard/unidades -> {"200":121} p50=1403ms max=2809ms pgEmUso=20
+/dashboard/unidades/{id} -> {"200":121} p50=1311ms max=2634ms pgEmUso=20
+/dashboard/equipamentos -> {"200":121} p50=1326ms max=2693ms pgEmUso=20
+/dashboard/incidentes -> {"200":121} p50=151ms max=171ms pgEmUso=0
+/equipamentos -> {"200":121} p50=152ms max=162ms pgEmUso=0
+/incidentes -> {"200":121} p50=188ms max=201ms pgEmUso=0
+/unidades -> {"200":121} p50=129ms max=135ms pgEmUso=0
+/relatorios/disponibilidade/unidades?inicio=2026-09-16T00:00:00Z&fim=2026-10-16T00:00:00Z -> {"200":121} p50=1697ms max=3107ms pgEmUso=20
+/relatorios/disponibilidade/equipamentos?inicio=2026-09-16T00:00:00Z&fim=2026-10-16T00:00:00Z -> {"200":121} p50=1259ms max=2673ms pgEmUso=20
+/relatorios/latencia?inicio=2026-09-16T00:00:00Z&fim=2026-10-16T00:00:00Z -> {"200":121} p50=155ms max=165ms pgEmUso=0
+/relatorios/visao-geral/indicadores?inicio=2026-09-16T00:00:00Z&fim=2026-10-16T00:00:00Z -> {"200":121} p50=119ms max=124ms pgEmUso=0
+/relatorios/incidentes?inicio=2026-09-16T00:00:00Z&fim=2026-10-16T00:00:00Z -> {"200":121} p50=123ms max=130ms pgEmUso=0
+/dashboard/unidades/{id}/equipamentos?size=200&sort=nome -> {"200":9,"500":112} p50=2345ms max=5576ms pgEmUso=20
