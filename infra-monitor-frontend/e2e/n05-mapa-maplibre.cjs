@@ -316,7 +316,13 @@ const focado = (page) => page.evaluate(() => {
     // D20: a legenda nasce recolhida; a evidência é com ela aberta.
     await page.click('summary.legend-bloco__resumo');
     await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
+    await page.waitForTimeout(1200); // recuo do estado (D22) termina antes da captura
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '03-legenda.png') });
+    // D22: com a legenda aberta o estado recua para fora dela, de propósito. A faixa morta (19) se mede
+    // no enquadramento de referência, com a legenda fechada e a câmera parada depois do recuo de volta.
+    await page.click('summary.legend-bloco__resumo');
+    await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === false, null, { timeout: 5000 });
+    await page.waitForTimeout(1200);
 
     /*
      * 19 — faixa morta medida, em vez de olhada. Os alvos ficam no centróide de cada município: se
