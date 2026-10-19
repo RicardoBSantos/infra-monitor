@@ -21,6 +21,7 @@
  * - a conexão é inteiramente da cor do status da unidade conectada (D18).
  */
 const { chromium } = require('playwright');
+const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
@@ -106,7 +107,9 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
 (async () => {
   const browser = await chromium.launch({ headless: true });
   let fatal = null;
-  const page = await browser.newPage({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+  await apontarApi(ctx);
+  const page = await ctx.newPage();
   const erros = [];
   page.on('pageerror', (e) => erros.push(e.message));
 
@@ -463,6 +466,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
 
     // ---------------------------------------- 9. prefers-reduced-motion: sem movimento nenhum
     const reduzido = await browser.newContext({ viewport: { width: 1500, height: 950 }, reducedMotion: 'reduce' });
+    await apontarApi(reduzido);
     const pagina2 = await reduzido.newPage();
     await pagina2.goto(BASE + '/login', { waitUntil: 'networkidle' });
     await pagina2.fill('#login-email', EMAIL);
@@ -499,6 +503,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      */
     if (idQuePulsa) {
       const ampliado = await browser.newContext({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 3 });
+      await apontarApi(ampliado);
       const pagina3 = await ampliado.newPage();
       await pagina3.goto(BASE + '/login', { waitUntil: 'networkidle' });
       await pagina3.fill('#login-email', EMAIL);

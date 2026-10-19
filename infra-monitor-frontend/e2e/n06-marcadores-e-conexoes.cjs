@@ -24,10 +24,11 @@
  * (mapa.component.spec.ts) mais as capturas deste próprio roteiro.
  */
 const { chromium } = require('playwright');
+const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
-const API = 'http://localhost:8080/api/v1';
+const API = `http://localhost:${process.env.API_PORT || 8080}/api/v1`;
 const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N06_SENHA;
 if (!SENHA) throw new Error('N06_SENHA é obrigatória');
@@ -100,7 +101,9 @@ const medirFaixa = (page) => page.evaluate(() => {
 (async () => {
   const browser = await chromium.launch({ headless: true });
   let fatal = null;
-  const page = await browser.newPage({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+  await apontarApi(ctx);
+  const page = await ctx.newPage();
   const erros = [];
   page.on('pageerror', (e) => erros.push(e.message));
 
@@ -193,7 +196,7 @@ const medirFaixa = (page) => page.evaluate(() => {
     });
     checar(4, 'área principal do shell não rola', rolagem.principal <= 1, `excedente ${rolagem.principal}px`);
     checar(4, 'documento não rola', rolagem.documento <= 1, `excedente ${rolagem.documento}px`);
-    checar(4, 'painel lateral com a largura nova', rolagem.larguraPainel >= 318 && rolagem.larguraPainel <= 322, `${rolagem.larguraPainel}px`);
+    checar(4, 'painel lateral com 420px (D21)', rolagem.larguraPainel >= 419 && rolagem.larguraPainel <= 421, `${rolagem.larguraPainel}px`);
 
     /*
      * Remontagem de verdade antes de medir enquadramento. Clicar em /mapa estando em /mapa é no-op
@@ -264,7 +267,7 @@ const medirFaixa = (page) => page.evaluate(() => {
     // ------------------------------------------------------------- 6. capturas
     await page.screenshot({ path: path.join(OUT, '01-tela-inteira.png') });
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-mapa-marcadores-e-linhas.png') });
-    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '04-painel-320px.png') });
+    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '04-painel-420px.png') });
     await page.screenshot({ path: path.join(OUT, 'final.png') });
   } catch (erro) {
     fatal = erro;

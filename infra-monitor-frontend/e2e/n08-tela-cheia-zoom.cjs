@@ -22,6 +22,7 @@
  * - ITA-09 sem divergência de IBGE no dado: sub-verificação marcada NÃO APLICÁVEL, nunca falso verde.
  */
 const { chromium } = require('playwright');
+const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
@@ -63,6 +64,7 @@ const respostas5xx = [];
 /** Abre contexto + página, instala os coletores de erro e de payload. */
 async function novaPagina(browser, rotulo, opcoesContexto = {}, ignorarRede = false) {
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1, ...opcoesContexto });
+  await apontarApi(ctx);
   const page = await ctx.newPage();
   const estado = { payload: null, respostas: 0 };
   page.on('pageerror', (e) => errosPagina.push(`[${rotulo}] ${e.message}`));
@@ -231,29 +233,31 @@ async function voltarAoEstado(page) {
     // ------------------------------------------------------------------ 14. legenda (sem seleção)
     const leg = page.locator('details.legend-bloco');
     checar(14, 'legenda fechada por padrão (sem atributo open)', !(await leg.evaluate((e) => e.open)) && (await leg.getAttribute('open')) === null);
-    await page.locator('.map-panel').screenshot({ path: path.join(OUT, 'd-legenda-fechada.png') });
+    const legFilha = await page.evaluate(() => !!document.querySelector('.map-card > details.legend-bloco') && !document.querySelector('.map-panel details.legend-bloco'));
+    checar(14, 'legenda é filha do cartão do mapa, fora do painel', legFilha);
+    await page.locator('.map-card').screenshot({ path: path.join(OUT, 'd-legenda-fechada.png') });
     await page.click('summary.legend-bloco__resumo');
     await pausa(page, 250);
     const aberta = await leg.evaluate((e) => e.open);
     const notas = await page.evaluate(() => {
-      const painel = document.querySelector('.map-panel');
+      const leg = document.querySelector('details.legend-bloco');
       const itens = document.querySelectorAll('.legend-bloco > .legend li').length;
       const lista = [...document.querySelectorAll('.legend-bloco > .legend__nota')].map((n) => {
         const cs = getComputedStyle(n);
         const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
         return { texto: n.textContent.trim(), altura: n.getBoundingClientRect().height, lh };
       });
-      return { itens, lista, painelOverflowX: painel.scrollWidth - painel.clientWidth };
+      return { itens, lista, legendaOverflowX: leg.scrollWidth - leg.clientWidth };
     });
     checar(14, 'clicar o summary abre a legenda', aberta);
     checar(14, 'legenda aberta: 6 itens e 2 notas', notas.itens === 6 && notas.lista.length === 2, `${notas.itens} li, ${notas.lista.length} notas`);
     checar(14, 'notas em uma linha só (altura <= 1,5x line-height)', notas.lista.every((n) => n.altura <= n.lh * 1.5),
       notas.lista.map((n) => `${n.altura.toFixed(1)}px/lh ${n.lh.toFixed(1)}`).join(' | '));
-    checar(14, 'painel sem estouro horizontal com a legenda aberta', notas.painelOverflowX <= 0, `excedente ${notas.painelOverflowX}px`);
+    checar(14, 'legenda sem estouro horizontal aberta', notas.legendaOverflowX <= 0, `excedente ${notas.legendaOverflowX}px`);
     checar(14, 'textos exatos das duas notas',
       notas.lista[0]?.texto === 'Município é neutro: situa, não indica estado.' && notas.lista[1]?.texto === 'Arco liga unidade ao hub, na cor do status.',
       JSON.stringify(notas.lista.map((n) => n.texto)));
-    await page.locator('.map-panel').screenshot({ path: path.join(OUT, 'd-legenda-aberta.png') });
+    await page.locator('.map-card').screenshot({ path: path.join(OUT, 'd-legenda-aberta.png') });
     await page.click('summary.legend-bloco__resumo');
     await pausa(page, 250);
     checar(14, 'clicar de novo fecha', !(await leg.evaluate((e) => e.open)));

@@ -25,10 +25,11 @@
  * 3. Log de rede e resultados gravados em `finally`, aconteça o que acontecer.
  */
 const { chromium } = require('playwright');
+const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
-const API = 'http://localhost:8080/api/v1';
+const API = `http://localhost:${process.env.API_PORT || 8080}/api/v1`;
 const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N05_SENHA;
 if (!SENHA) throw new Error('N05_SENHA é obrigatória');
@@ -92,7 +93,9 @@ const focado = (page) => page.evaluate(() => {
 (async () => {
   const browser = await chromium.launch({ headless: true });
   let fatal = null;
-  const page = await browser.newPage({ viewport: { width: 1500, height: 980 }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: 1500, height: 980 }, deviceScaleFactor: 1 });
+  await apontarApi(ctx);
+  const page = await ctx.newPage();
   const erros = [];
   page.on('pageerror', (e) => erros.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') erros.push('console: ' + m.text()); });
@@ -313,7 +316,7 @@ const focado = (page) => page.evaluate(() => {
     // D20: a legenda nasce recolhida; a evidência é com ela aberta.
     await page.click('summary.legend-bloco__resumo');
     await page.waitForFunction(() => document.querySelector('details.legend-bloco')?.open === true, null, { timeout: 5000 });
-    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '03-legenda.png') });
+    await page.locator('.map-card').screenshot({ path: path.join(OUT, '03-legenda.png') });
 
     /*
      * 19 — faixa morta medida, em vez de olhada. Os alvos ficam no centróide de cada município: se
