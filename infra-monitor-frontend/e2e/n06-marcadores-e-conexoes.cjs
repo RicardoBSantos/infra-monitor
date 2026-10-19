@@ -216,9 +216,13 @@ const medirFaixa = (page) => page.evaluate(() => {
     // (medida em pixel: 31,7%), e a câmera nova (OFFSET [0,-28], ZOOM_AO_INCLINAR 0,42) já está no
     // limite: passar de 34% pela medida de centróide cortaria a ponta oeste em 1280x800. O critério
     // de equilíbrio acima, que é o que define faixa morta, NÃO mudou.
+    // D21: 40% -> 42%. O painel passou a clamp(340px, 30vw, 420px): em 1500x950 o cartão ficou com
+    // aspecto ~0,94, abaixo do ASPECTO_PLENO (0,96), e o desenho passou a ser limitado pela largura
+    // (medido 38,7% -> 40,1%). Subir o zoom cortaria a ponta oeste em 1280x800; o equilíbrio topo/base,
+    // que é o critério de faixa morta, continua em ~2 p.p.
     checar(4, 'enquadramento equilibrado entre topo e base', faixa.desequilibrio <= 0.06,
       `topo ${(faixa.topo * 100).toFixed(1)}% · base ${(faixa.base * 100).toFixed(1)}% · desequilíbrio ${(faixa.desequilibrio * 100).toFixed(1)} p.p.`);
-    checar(4, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.40,
+    checar(4, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.42,
       `sobra total ${((faixa.topo + faixa.base) * 100).toFixed(1)}%`);
 
     // O painel não pode ter buraco: sem município selecionado o conteúdo é curto e a sobra vai para
