@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, effect, input, output, viewChild } from '@angular/core';
+import { prenderFoco } from '../a11y/prender-foco';
 
 /** Campo que recebe o foco ao abrir. O × fica de fora: abrir não é pedir para fechar. */
 const FOCAVEIS = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.modal__fechar)';
@@ -18,7 +19,7 @@ let proximoId = 0;
   host: { '(document:keydown.escape)': 'pedirFechar()' },
   template: `@if (aberto()) {
     <div class="modal__fundo" (mousedown)="aoPressionarFundo($event)" (click)="aoClicarNoFundo($event)">
-      <section #painel class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="idTitulo" tabindex="-1" [style.width]="largura()">
+      <section #painel class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="idTitulo" tabindex="-1" [style.width]="largura()" (keydown)="aoTeclar($event)">
         <header class="modal__topo">
           <div>
             <h2 [id]="idTitulo">{{ titulo() }}</h2>
@@ -64,6 +65,11 @@ export class ModalComponent {
       const painel = this.painel()?.nativeElement;
       if (painel) (painel.querySelector<HTMLElement>(FOCAVEIS) ?? painel).focus();
     });
+  }
+
+  protected aoTeclar(evento: KeyboardEvent): void {
+    const painel = this.painel()?.nativeElement;
+    if (painel) prenderFoco(evento, painel);
   }
 
   protected pedirFechar(): void {
