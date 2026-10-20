@@ -30,7 +30,6 @@
   --im-success: #3FB950;
   --im-success-soft: #9be0bc;
   --im-success-border: rgba(63, 185, 80, .38);
-  --im-success-bg: rgba(63, 185, 80, .12);
   --im-success-hover: rgba(63, 185, 80, .20);
   --im-warning: #D29922;
   --im-warning-soft: #f0bc6a;
@@ -39,8 +38,20 @@
   --im-danger-soft: #f2999c;
   --im-danger-strong: #e35a5a;
   --im-danger-border: #7c3742;
-  --im-danger-bg: #2a141a;
   --im-danger-text: #ffb4bd;
+  /* Fundos translúcidos por status: tom da cor do PRÓPRIO tema. Antes cada tela usava rgba() da
+     paleta escura, e no claro o fundo saía com a cor do escuro. -bg = faixa/aviso/badge,
+     -bg-strong = hover/realce. Bordas: --im-*-border. */
+  --im-success-bg: rgba(63, 185, 80, .10);
+  --im-success-bg-strong: rgba(63, 185, 80, .16);
+  --im-warning-bg: rgba(210, 153, 34, .10);
+  --im-warning-bg-strong: rgba(210, 153, 34, .16);
+  --im-danger-bg: rgba(229, 83, 75, .10);
+  --im-danger-bg-strong: rgba(229, 83, 75, .12);
+  --im-neutral-bg: rgba(122, 134, 153, .10);
+  --im-neutral-bg-strong: rgba(122, 134, 153, .16);
+  /* Fundo escurecido único de modal, diálogo, gaveta e sidebar móvel. */
+  --im-overlay: rgba(0, 0, 0, .60);
   --im-on-primary: #07111e;
   --im-info-soft: #7fadff;
   --im-map-glow: #0e1924;
@@ -110,7 +121,6 @@
   --im-success: #067647;
   --im-success-soft: #067647;
   --im-success-border: #a6f4c5;
-  --im-success-bg: #ecfdf3;
   --im-success-hover: #d3f8df;
   --im-warning: #b54708;
   --im-warning-soft: #b54708;
@@ -119,8 +129,16 @@
   --im-danger-soft: #b42318;
   --im-danger-strong: #c92a1e;
   --im-danger-border: #f3b1ab;
-  --im-danger-bg: #fef3f2;
   --im-danger-text: #b42318;
+  --im-success-bg: rgba(6, 118, 71, .08);
+  --im-success-bg-strong: rgba(6, 118, 71, .14);
+  --im-warning-bg: rgba(181, 71, 8, .08);
+  --im-warning-bg-strong: rgba(181, 71, 8, .11);
+  --im-danger-bg: rgba(217, 45, 32, .07);
+  --im-danger-bg-strong: rgba(217, 45, 32, .10);
+  --im-neutral-bg: rgba(71, 84, 103, .07);
+  --im-neutral-bg-strong: rgba(71, 84, 103, .14);
+  --im-overlay: rgba(16, 24, 40, .40);
   --im-on-primary: #ffffff;
   --im-info-soft: #175cd3;
   --im-map-glow: #f2f6fa;

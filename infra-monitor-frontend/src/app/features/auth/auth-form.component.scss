@@ -1,7 +1,7 @@
 /* Formulário de troca de senha. Login tem tela própria (login.component.scss);
    .eyebrow e as primitivas compartilhadas vivem em styles/_ui.scss. */
 .auth-page{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);background:var(--im-bg);color:var(--im-text)}
-.auth-brand{display:flex;align-items:center;padding:clamp(32px,7vw,112px);background:radial-gradient(700px 440px at 24% 30%,rgba(76,141,255,.2),transparent 70%),linear-gradient(rgba(124,150,180,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(124,150,180,.055) 1px,transparent 1px),var(--im-surface);background-size:auto,56px 56px,56px 56px}
+.auth-brand{display:flex;align-items:center;padding:clamp(32px,7vw,112px);background:radial-gradient(700px 440px at 24% 30%,var(--im-primary-hover),transparent 70%),linear-gradient(rgba(124,150,180,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(124,150,180,.055) 1px,transparent 1px),var(--im-surface);background-size:auto,56px 56px,56px 56px}
 .auth-brand>div{max-width:540px}
 .auth-brand h1,.auth-card h1{margin:12px 0;font-size:clamp(28px,4vw,48px);line-height:1.08}
 .auth-brand p,.auth-card>p{color:var(--im-text-secondary);line-height:1.6}

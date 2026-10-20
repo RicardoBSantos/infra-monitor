@@ -15,7 +15,7 @@
    diferentes para a mesma ação. Foram consolidadas aqui e o nome não existe mais. */
 .botao { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-soft); font-size: 12px; text-decoration: none; cursor: pointer; }
 .botao:hover { border-color: var(--im-border-muted); color: var(--im-text); }
-.botao--perigo { border-color: rgba(229, 83, 75, .38); color: var(--im-danger); background: rgba(229, 83, 75, .10); }
+.botao--perigo { border-color: var(--im-danger-border); color: var(--im-danger); background: var(--im-danger-bg); }
 .botao--discreto { height: 26px; font-size: 11px; }
 
 .kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -54,11 +54,11 @@
 
 .marca { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: var(--im-radius); }
 .marca app-icon { width: 16px; height: 16px; }
-.marca--success { background: rgba(52, 199, 123, .12); color: var(--im-success); }
-.marca--warning { background: rgba(232, 163, 61, .14); color: var(--im-warning); }
-.marca--danger { background: rgba(229, 72, 77, .14); color: var(--im-danger); }
-.marca--muted { background: rgba(99, 118, 138, .12); color: var(--im-text-muted); }
-.marca--info { background: rgba(76, 141, 255, .12); color: var(--im-info-soft); }
+.marca--success { background: var(--im-success-bg-strong); color: var(--im-success); }
+.marca--warning { background: var(--im-warning-bg-strong); color: var(--im-warning); }
+.marca--danger { background: var(--im-danger-bg-strong); color: var(--im-danger); }
+.marca--muted { background: var(--im-neutral-bg-strong); color: var(--im-text-muted); }
+.marca--info { background: var(--im-primary-soft); color: var(--im-info-soft); }
 
 .faixa { display: flex; height: 6px; overflow: hidden; border-radius: 3px; background: var(--im-surface-active); }
 .faixa i { display: block; height: 100%; }
@@ -73,7 +73,7 @@
 .aviso { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
 .aviso p { margin: 3px 0 0; color: var(--im-text-secondary); font-size: 12px; }
 .aviso app-icon { width: 16px; height: 16px; color: var(--im-text-dim); }
-.aviso--erro { border-color: rgba(229, 83, 75, .32); }
+.aviso--erro { border-color: var(--im-danger-border); }
 .aviso--erro app-icon { color: var(--im-danger); }
 .aviso div { flex: 1; }
 
@@ -157,7 +157,7 @@
    mesmo tom — se um dos dois divergir, o mesmo dado passa a ter duas aparências. */
 .chip-monitoramento {
   display: inline-flex; align-items: center; height: 18px; padding: 0 8px;
-  border: 1px solid rgba(63, 185, 80, .4); border-radius: var(--im-radius-pill);
+  border: 1px solid var(--im-success-border); border-radius: var(--im-radius-pill);
   color: var(--im-success); font: 10px var(--im-mono);
 }
 .chip-monitoramento--off { border-color: var(--im-border-strong); color: var(--im-text-muted); }

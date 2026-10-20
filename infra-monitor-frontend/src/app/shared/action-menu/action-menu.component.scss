@@ -82,7 +82,7 @@
 
   &:hover:not(:disabled),
   &:focus-visible {
-    background: rgba(229, 83, 75, .12);
+    background: var(--im-danger-bg-strong);
     color: var(--im-danger-soft);
   }
 }

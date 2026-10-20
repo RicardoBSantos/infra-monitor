@@ -53,8 +53,8 @@ for (const [tema, t, lg] of [['escuro', escuro, loginEscuro], ['claro', claro, l
   reg(tema, 'lg-muted', 'lg-card', razao(parse(lg['lg-muted']).rgb, parse(lg['lg-card']).rgb));
   for (const [tx, bgTok] of STATUS_SOBRE_BG) {
     const bg = parse(t[bgTok]);
-    // "token ausente" não falha por ora: a Task 5 passa a tratá-lo como falha, conforme o plano.
-    if (!bg) { linhas.push(`| ${tema} | ${tx} | ${bgTok} | — | token ausente |`); continue; }
+    // Token ausente é falha: todo fundo de status precisa existir nos dois temas.
+    if (!bg) { linhas.push(`| ${tema} | ${tx} | ${bgTok} | — | token ausente |`); falhas.push(`${tema}: token ausente ${bgTok}`); continue; }
     for (const base of ['surface', 'surface-raised']) reg(tema, tx, `${bgTok} sobre ${base}`, razao(parse(t[tx]).rgb, sobre(bg, parse(t[base]))));
   }
   const r = ORDEM.map((k) => razao(parse(t[k]).rgb, parse(t['surface']).rgb));
