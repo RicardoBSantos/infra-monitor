@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, effect, input, output, viewChild } from '@angular/core';
 import { prenderFoco } from '../a11y/prender-foco';
 
-/** Campo que recebe o foco ao abrir. O × fica de fora: abrir não é pedir para fechar. */
+/** Campo que recebe o foco ao abrir. O × fica de fora: abrir não é pedir para fechar. Difere do FOCAVEIS de a11y/prender-foco.ts, que define o ciclo de Tab (inclui o ×). */
 const FOCAVEIS = 'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]):not(.modal__fechar)';
 
 let proximoId = 0;

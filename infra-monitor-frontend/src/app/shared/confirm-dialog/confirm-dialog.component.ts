@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, effect, input, output, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injector, afterNextRender, effect, inject, input, output, viewChild } from '@angular/core';
 import { prenderFoco } from '../a11y/prender-foco';
 
 let proximoId = 0;
@@ -46,6 +46,7 @@ export class ConfirmDialogComponent {
   protected readonly idMensagem = `confirm-mensagem-${proximoId}`;
   private readonly painel = viewChild<ElementRef<HTMLElement>>('painel');
   private readonly botaoCancelar = viewChild<ElementRef<HTMLButtonElement>>('cancelar');
+  private readonly injetor = inject(Injector);
   private cliqueComecouNoFundo = false;
   private gatilho: HTMLElement | null = null;
   private estavaAberto = false;
@@ -69,6 +70,25 @@ export class ConfirmDialogComponent {
       if (!painel) return;
       const cancelar = this.botaoCancelar()?.nativeElement;
       (cancelar && !cancelar.disabled ? cancelar : painel).focus();
+    });
+    // Confirmar desabilita os dois botões e o navegador tira o foco deles: sem isto o foco cairia no
+    // <body>, o keydown deixaria de chegar ao painel e Tab/Escape iriam para a página atrás (aria-modal
+    // deixaria de ser verdade). Ocupado: foco no próprio painel (tabindex=-1). Recusa com o diálogo
+    // aberto (busy volta a false): foco em Cancelar, a ação segura.
+    effect(() => {
+      const ocupado = this.busy();
+      const painel = this.painel()?.nativeElement;
+      if (!this.open() || !painel) return;
+      const ativo = document.activeElement;
+      if (ocupado) {
+        if (ativo !== painel) painel.focus();
+      } else if (!painel.contains(ativo) || ativo === painel) {
+        // Depois da renderização: só então Cancelar deixa de estar desabilitado e aceita foco.
+        afterNextRender(() => {
+          const cancelar = this.botaoCancelar()?.nativeElement;
+          (cancelar && !cancelar.disabled ? cancelar : painel).focus();
+        }, { injector: this.injetor });
+      }
     });
   }
 

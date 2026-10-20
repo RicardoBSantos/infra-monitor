@@ -1,4 +1,5 @@
 /** Elementos que entram no ciclo de Tab de um diálogo modal. */
+/* Ciclo de Tab: inclui links e o ×. Difere do FOCAVEIS de modal.component.ts (foco inicial, sem o ×). */
 export const FOCAVEIS = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**

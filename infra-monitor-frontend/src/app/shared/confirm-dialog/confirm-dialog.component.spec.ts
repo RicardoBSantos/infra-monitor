@@ -7,7 +7,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
   template: `
     <aside id="gaveta" tabindex="-1" (keydown)="aoTeclarGaveta($event)">
       <button id="gatilho" type="button" (click)="aberto.set(true)">abrir</button>
-      <app-confirm-dialog [open]="aberto()" title="Excluir unidade?" message="Não dá para desfazer." [busy]="busy()"
+      <app-confirm-dialog [open]="aberto()" title="Excluir unidade?" message="Não dá para desfazer." [busy]="busy()" [erro]="erro()"
         (cancel)="cancelamentos = cancelamentos + 1; aberto.set(false)" (confirm)="confirmacoes = confirmacoes + 1" />
     </aside>
     <app-confirm-dialog [open]="false" title="Outro" message="m" (cancel)="outros = outros + 1" />
@@ -16,6 +16,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
 class Hospedeiro {
   readonly aberto = signal(false);
   readonly busy = signal(false);
+  readonly erro = signal<string | null>(null);
   cancelamentos = 0; confirmacoes = 0; outros = 0; gavetaFechou = 0;
   // Igual ao unidade-form-drawer: Escape no painel da gaveta faz stopPropagation e tenta fechar.
   aoTeclarGaveta(e: KeyboardEvent): void { if (e.key === 'Escape') { e.stopPropagation(); this.gavetaFechou++; } }
@@ -121,5 +122,29 @@ describe('ConfirmDialogComponent', () => {
     abrir(f);
     botoes(f)[1].click();
     expect(f.componentInstance.confirmacoes).toBe(1);
+  });
+
+  it('busy: com os botões desabilitados o foco fica no painel, não no body, e Tab/Escape ainda chegam ao handler', () => {
+    const f = montar();
+    abrir(f);
+    f.componentInstance.busy.set(true); f.detectChanges();
+    expect(document.activeElement).toBe(painel(f));
+    const e = tecla(document.activeElement!, 'Tab');
+    expect(e.defaultPrevented).toBe(true);
+  });
+
+  it('recusa: busy volta a false com o diálogo aberto e o foco perdido -> foco volta a Cancelar', () => {
+    const f = montar();
+    abrir(f);
+    f.componentInstance.erro.set('Recusado.'); f.detectChanges(); // erro de uma tentativa anterior já na tela
+    f.componentInstance.busy.set(true); f.detectChanges();
+    // O navegador tira o foco do botão desabilitado; aqui o foco vai para fora do painel (a página atrás).
+    const fora = document.createElement('button'); document.body.appendChild(fora); fora.focus();
+    expect(painel(f).contains(document.activeElement)).toBe(false);
+    f.componentInstance.busy.set(false); f.detectChanges();
+    expect(painel(f)).not.toBeNull();
+    expect(document.activeElement).toBe(botoes(f)[0]);
+    expect(document.activeElement!.textContent!.trim()).toBe('Cancelar');
+    fora.remove();
   });
 });
