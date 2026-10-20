@@ -1,0 +1,917 @@
+{
+  "banco": "dev",
+  "quando": "2026-10-20T11:18:07.105Z",
+  "viewport": "1440x900 (+860x900)",
+  "ok": true,
+  "resultados": [
+    {
+      "caso": "1440.1",
+      "nome": "tom da linha == tom da marca == tom do badge, em toda linha",
+      "ok": true,
+      "detalhe": "11 linhas; divergentes=[]"
+    },
+    {
+      "caso": "1440.2",
+      "nome": "ícone da marca é o do tom (check|incident|close|minus|wrench)",
+      "ok": true,
+      "detalhe": "[]"
+    },
+    {
+      "caso": "1440.3",
+      "nome": "ícone da marca com caixa >= 14px",
+      "ok": true,
+      "detalhe": "menor=16px; abaixo=[]"
+    },
+    {
+      "caso": "1440.4",
+      "nome": "chip de manutenção não intersecta a faixa da mesma linha",
+      "ok": true,
+      "detalhe": "4 chips; faixa visível em 4; encostam=[]"
+    },
+    {
+      "caso": "1440.5",
+      "nome": "chip não corta texto na largura total (scrollWidth <= clientWidth+1)",
+      "ok": true,
+      "detalhe": "[[\"Escola Sesc Aracaju\",\"1 em manutenção\",\"119/119\",\"90/90\"],[\"Hotel Sesc Atalaia\",\"1 em manutenção\",\"119/119\",\"90/90\"],[\"Sede Administrativa\",\"1 em manutenção\",\"119/119\",\"90/90\"],[\"Unidade Propriá\",\"1 em manutenção\",\"119/119\",\"90/90\"]]"
+    },
+    {
+      "caso": "dev.1",
+      "nome": "dev: 11 unidades no painel",
+      "ok": true,
+      "detalhe": "11 linhas"
+    },
+    {
+      "caso": "dev.2",
+      "nome": "dev: Hotel Sesc Atalaia = success, ícone check, badge \"Disponível\", chip \"1 em manutenção\"",
+      "ok": true,
+      "detalhe": "{\"nome\":\"Hotel Sesc Atalaia\",\"tomLinha\":\"success\",\"tomMarca\":\"success\",\"tomBadge\":\"success\",\"badgeTexto\":\"Disponível\",\"icone\":\"check\",\"iconeLado\":16,\"chip\":{\"texto\":\"1 em manutenção\",\"caixa\":{\"x\":516.828125,\"y\":687.984375,\"w\":121,\"h\":18},\"scrollW\":119,\"clientW\":119,\"textoScrollW\":90,\"textoClientW\":90},\"faixa\":{\"x\":660.828125,\"y\":682.234375,\"w\":174.15625,\"h\":6}}"
+    },
+    {
+      "caso": "abas.semFiltro.a",
+      "nome": "índice parcial: aviso presente e NENHUMA aba com contador",
+      "ok": true,
+      "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
+    },
+    {
+      "caso": "dev.3",
+      "nome": "dev: \"Todos\" + os 9 tipos ativos do catálogo, em ordem, todos SEM contador e nenhum desabilitado",
+      "ok": true,
+      "detalhe": "[\"Todos\",\"Access Point\",\"Câmera\",\"Firewall\",\"Impressora\",\"Nobreak\",\"Router\",\"Servidor\",\"Storage\",\"Switch\"]"
+    },
+    {
+      "caso": "dev.4",
+      "nome": "dev: aviso de índice parcial \"100 de 221\"",
+      "ok": true,
+      "detalhe": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos."
+    },
+    {
+      "caso": "abas.degradado.a",
+      "nome": "índice parcial: aviso presente e NENHUMA aba com contador",
+      "ok": true,
+      "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
+    },
+    {
+      "caso": "pill.1",
+      "nome": "pill \"Degradado\": só linhas de tom warning (DEGRADADA)",
+      "ok": true,
+      "detalhe": "5 linhas: [[\"Escola Sesc Aracaju\",\"Degradada\"],[\"Sede Administrativa\",\"Degradada\"],[\"Unidade Estância\",\"Degradada\"],[\"Unidade Lagarto\",\"Degradada\"],[\"Unidade Propriá\",\"Degradada\"]]"
+    },
+    {
+      "caso": "pill.2",
+      "nome": "pill \"Degradado\": quantidade de linhas == linhas Degradada sem filtro",
+      "ok": true,
+      "detalhe": "5"
+    },
+    {
+      "caso": "abas.busca.a",
+      "nome": "índice parcial: aviso presente e NENHUMA aba com contador",
+      "ok": true,
+      "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
+    },
+    {
+      "caso": "busca.1",
+      "nome": "busca \"Hotel\": toda unidade cujo nome casa continua visível, e a lista encolhe ou se mantém",
+      "ok": true,
+      "detalhe": "1 linhas: [\"Hotel Sesc Atalaia\"]"
+    },
+    {
+      "caso": "860.1",
+      "nome": "tom da linha == tom da marca == tom do badge, em toda linha",
+      "ok": true,
+      "detalhe": "11 linhas; divergentes=[]"
+    },
+    {
+      "caso": "860.2",
+      "nome": "ícone da marca é o do tom (check|incident|close|minus|wrench)",
+      "ok": true,
+      "detalhe": "[]"
+    },
+    {
+      "caso": "860.3",
+      "nome": "ícone da marca com caixa >= 14px",
+      "ok": true,
+      "detalhe": "menor=16px; abaixo=[]"
+    },
+    {
+      "caso": "860.4",
+      "nome": "chip de manutenção não intersecta a faixa da mesma linha",
+      "ok": true,
+      "detalhe": "4 chips; faixa visível em 0; encostam=[]"
+    },
+    {
+      "caso": "860.r",
+      "nome": "860px: registro de reticências no chip (informativo)",
+      "ok": true,
+      "detalhe": "[{\"nome\":\"Escola Sesc Aracaju\",\"texto\":\"1 em manutenção\",\"reticencias\":false,\"chip\":\"119/119\",\"texto_\":\"90/90\"},{\"nome\":\"Hotel Sesc Atalaia\",\"texto\":\"1 em manutenção\",\"reticencias\":false,\"chip\":\"119/119\",\"texto_\":\"90/90\"},{\"nome\":\"Sede Administrativa\",\"texto\":\"1 em manutenção\",\"reticencias\":false,\"chip\":\"119/119\",\"texto_\":\"90/90\"},{\"nome\":\"Unidade Propriá\",\"texto\":\"1 em manutenção\",\"reticencias\":false,\"chip\":\"119/119\",\"texto_\":\"90/90\"}]"
+    },
+    {
+      "caso": "erros.real",
+      "nome": "nenhum erro de página no roteiro com dado real",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "sint.0",
+      "nome": "sintético: as 4 linhas injetadas aparecem",
+      "ok": true,
+      "detalhe": "[\"[sintético] Indisponível\",\"[sintético] Sem dados\",\"[sintético] Em manutenção\",\"[sintético] Sem equipamentos\"]"
+    },
+    {
+      "caso": "sint.1",
+      "nome": "tom da linha == tom da marca == tom do badge, em toda linha",
+      "ok": true,
+      "detalhe": "4 linhas; divergentes=[]"
+    },
+    {
+      "caso": "sint.2",
+      "nome": "ícone da marca é o do tom (check|incident|close|minus|wrench)",
+      "ok": true,
+      "detalhe": "[]"
+    },
+    {
+      "caso": "sint.3",
+      "nome": "ícone da marca com caixa >= 14px",
+      "ok": true,
+      "detalhe": "menor=16px; abaixo=[]"
+    },
+    {
+      "caso": "sint.4",
+      "nome": "chip de manutenção não intersecta a faixa da mesma linha",
+      "ok": true,
+      "detalhe": "0 chips; faixa visível em 0; encostam=[]"
+    },
+    {
+      "caso": "sint.5",
+      "nome": "chip não corta texto na largura total (scrollWidth <= clientWidth+1)",
+      "ok": true,
+      "detalhe": "[]"
+    },
+    {
+      "caso": "sint.6",
+      "nome": "sintético: tom/ícone/badge = danger/close, muted/minus, info/wrench, muted/minus",
+      "ok": true,
+      "detalhe": "[[\"[sintético] Indisponível\",\"danger\",\"close\",\"Indisponível\"],[\"[sintético] Sem dados\",\"muted\",\"minus\",\"Sem dados\"],[\"[sintético] Em manutenção\",\"info\",\"wrench\",\"Em manutenção\"],[\"[sintético] Sem equipamentos\",\"muted\",\"minus\",\"Sem equipamentos\"]]"
+    },
+    {
+      "caso": "sint.7",
+      "nome": "sintético: \"Em manutenção\" total não ganha chip (manutenção é o próprio status)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "erros.sint",
+      "nome": "nenhum erro de página na passada sintética",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "capturas": [
+    "01-tela-inteira.png",
+    "01-tela-inteira-completa.png",
+    "02-linhas-reais.png",
+    "03-linha-atalaia.png",
+    "04-abas-sem-filtro.png",
+    "05-abas-pill-degradado.png",
+    "06-abas-busca.png",
+    "07-linhas-860.png",
+    "08-linhas-sintetico.png",
+    "09-tabela-com-sintetico.png"
+  ],
+  "medidas": {
+    "linhas1440": [
+      {
+        "nome": "Centro Integrado de Saúde",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 534.5625,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Escola Sesc Aracaju",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 516.828125,
+            "y": 612.484375,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": {
+          "x": 660.828125,
+          "y": 606.734375,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Hotel Sesc Atalaia",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 516.828125,
+            "y": 687.984375,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": {
+          "x": 660.828125,
+          "y": 682.234375,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Sede Administrativa",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 516.828125,
+            "y": 763.484375,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": {
+          "x": 660.828125,
+          "y": 757.734375,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Sesc Itabaiana",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 829.90625,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Unidade Estância",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 898.75,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Unidade Lagarto",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 967.59375,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Unidade Propriá",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 516.828125,
+            "y": 1045.515625,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": {
+          "x": 660.828125,
+          "y": 1039.765625,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Unidade Simão Dias",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1111.9375,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Unidade Socorro",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1180.78125,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "Unidade São Cristóvão",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1249.625,
+          "w": 174.15625,
+          "h": 6
+        }
+      }
+    ],
+    "abasSemFiltro": {
+      "abas": [
+        {
+          "rotulo": "Todos",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": true
+        },
+        {
+          "rotulo": "Access Point",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Câmera",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Firewall",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Impressora",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Nobreak",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Router",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Servidor",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Storage",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Switch",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        }
+      ],
+      "parcial": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos.",
+      "linhas": 11,
+      "contagemTexto": "11 de 11 unidades"
+    },
+    "abasDegradado": {
+      "abas": [
+        {
+          "rotulo": "Todos",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": true
+        },
+        {
+          "rotulo": "Access Point",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Câmera",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Firewall",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Impressora",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Nobreak",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Router",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Servidor",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Storage",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Switch",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        }
+      ],
+      "parcial": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos.",
+      "linhas": 5,
+      "contagemTexto": "5 de 11 unidades"
+    },
+    "abasBusca": {
+      "termo": "Hotel",
+      "abas": [
+        {
+          "rotulo": "Todos",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": true
+        },
+        {
+          "rotulo": "Access Point",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Câmera",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Firewall",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Impressora",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Nobreak",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Router",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Servidor",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Storage",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        },
+        {
+          "rotulo": "Switch",
+          "contagem": null,
+          "desabilitada": false,
+          "ativa": false
+        }
+      ],
+      "parcial": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos.",
+      "linhas": 1,
+      "contagemTexto": "1 de 11 unidades"
+    },
+    "linhas860": [
+      {
+        "nome": "Centro Integrado de Saúde",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      },
+      {
+        "nome": "Escola Sesc Aracaju",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 601,
+            "y": 783.65625,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": null
+      },
+      {
+        "nome": "Hotel Sesc Atalaia",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 601,
+            "y": 859.15625,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": null
+      },
+      {
+        "nome": "Sede Administrativa",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 601,
+            "y": 934.65625,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": null
+      },
+      {
+        "nome": "Sesc Itabaiana",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      },
+      {
+        "nome": "Unidade Estância",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      },
+      {
+        "nome": "Unidade Lagarto",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      },
+      {
+        "nome": "Unidade Propriá",
+        "tomLinha": "warning",
+        "tomMarca": "warning",
+        "tomBadge": "warning",
+        "badgeTexto": "Degradada",
+        "icone": "incident",
+        "iconeLado": 16,
+        "chip": {
+          "texto": "1 em manutenção",
+          "caixa": {
+            "x": 601,
+            "y": 1216.6875,
+            "w": 121,
+            "h": 18
+          },
+          "scrollW": 119,
+          "clientW": 119,
+          "textoScrollW": 90,
+          "textoClientW": 90
+        },
+        "faixa": null
+      },
+      {
+        "nome": "Unidade Simão Dias",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      },
+      {
+        "nome": "Unidade Socorro",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      },
+      {
+        "nome": "Unidade São Cristóvão",
+        "tomLinha": "success",
+        "tomMarca": "success",
+        "tomBadge": "success",
+        "badgeTexto": "Disponível",
+        "icone": "check",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": null
+      }
+    ],
+    "chips860": [
+      {
+        "nome": "Escola Sesc Aracaju",
+        "texto": "1 em manutenção",
+        "reticencias": false,
+        "chip": "119/119",
+        "texto_": "90/90"
+      },
+      {
+        "nome": "Hotel Sesc Atalaia",
+        "texto": "1 em manutenção",
+        "reticencias": false,
+        "chip": "119/119",
+        "texto_": "90/90"
+      },
+      {
+        "nome": "Sede Administrativa",
+        "texto": "1 em manutenção",
+        "reticencias": false,
+        "chip": "119/119",
+        "texto_": "90/90"
+      },
+      {
+        "nome": "Unidade Propriá",
+        "texto": "1 em manutenção",
+        "reticencias": false,
+        "chip": "119/119",
+        "texto_": "90/90"
+      }
+    ],
+    "linhasSinteticas": [
+      {
+        "nome": "[sintético] Indisponível",
+        "tomLinha": "danger",
+        "tomMarca": "danger",
+        "tomBadge": "danger",
+        "badgeTexto": "Indisponível",
+        "icone": "close",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1318.46875,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "[sintético] Sem dados",
+        "tomLinha": "muted",
+        "tomMarca": "muted",
+        "tomBadge": "muted",
+        "badgeTexto": "Sem dados",
+        "icone": "minus",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1387.3125,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "[sintético] Em manutenção",
+        "tomLinha": "info",
+        "tomMarca": "info",
+        "tomBadge": "info",
+        "badgeTexto": "Em manutenção",
+        "icone": "wrench",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1456.15625,
+          "w": 174.15625,
+          "h": 6
+        }
+      },
+      {
+        "nome": "[sintético] Sem equipamentos",
+        "tomLinha": "muted",
+        "tomMarca": "muted",
+        "tomBadge": "muted",
+        "badgeTexto": "Sem equipamentos",
+        "icone": "minus",
+        "iconeLado": 16,
+        "chip": null,
+        "faixa": {
+          "x": 660.828125,
+          "y": 1525,
+          "w": 174.15625,
+          "h": 6
+        }
+      }
+    ]
+  },
+  "erros": [],
+  "rede": [
+    "2026-10-20T11:18:01.850Z [real] POST /auth/login",
+    "2026-10-20T11:18:01.934Z [real] GET /dashboard/resumo",
+    "2026-10-20T11:18:01.972Z [real] GET /dashboard/unidades",
+    "2026-10-20T11:18:01.972Z [real] GET /unidades?ativo=true",
+    "2026-10-20T11:18:01.973Z [real] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:18:01.944Z&fim=2026-10-20T11:18:01.944Z&size=200",
+    "2026-10-20T11:18:01.973Z [real] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:18:01.945Z&fim=2026-10-20T11:18:01.945Z&size=500",
+    "2026-10-20T11:18:01.974Z [real] GET /tipos-equipamento",
+    "2026-10-20T11:18:01.974Z [real] GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-20T11:18:05.798Z [sintetico] POST /auth/login",
+    "2026-10-20T11:18:05.882Z [sintetico] GET /dashboard/resumo",
+    "2026-10-20T11:18:05.896Z [sintetico] GET /dashboard/unidades",
+    "2026-10-20T11:18:05.899Z [sintetico] GET /unidades?ativo=true",
+    "2026-10-20T11:18:05.899Z [sintetico] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:18:05.883Z&fim=2026-10-20T11:18:05.883Z&size=200",
+    "2026-10-20T11:18:05.899Z [sintetico] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:18:05.884Z&fim=2026-10-20T11:18:05.884Z&size=500",
+    "2026-10-20T11:18:05.899Z [sintetico] GET /tipos-equipamento",
+    "2026-10-20T11:18:05.899Z [sintetico] GET /equipamentos?size=500&sort=nome,asc"
+  ],
+  "fatal": null
+}

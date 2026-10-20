@@ -11,6 +11,7 @@
     "e2e:n04": "node e2e/n04-conexao-unidade.cjs",
     "e2e:n05": "node e2e/n05-mapa-maplibre.cjs",
     "e2e:m06": "node e2e/m06-drawer-no-mapa.cjs",
+    "e2e:painel": "node e2e/painel-status-tipos.cjs",
     "e2e:n06": "node e2e/n06-marcadores-e-conexoes.cjs",
     "e2e:n07": "node e2e/n07-pulso-ping-dica.cjs",
     "e2e:n08": "node e2e/n08-tela-cheia-zoom.cjs",
