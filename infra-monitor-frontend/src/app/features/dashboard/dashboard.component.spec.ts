@@ -50,7 +50,7 @@ describe('DashboardComponent', () => {
   function texto(fixture: ComponentFixture<DashboardComponent>) { return (fixture.nativeElement as HTMLElement).textContent ?? ''; }
 
   /** Responde às chamadas disparadas na abertura da página; nenhuma delas cria endpoint novo. */
-  function responderCarga(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade], incidentesBody: unknown[] = [incidenteAberto]) {
+  function responderCargaSemIncidentes(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade]) {
     httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush(resumoBody);
     httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush(unidadesBody);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([{ id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true, createdAt: '', updatedAt: '' }]);
@@ -59,8 +59,14 @@ describe('DashboardComponent', () => {
     httpTesting.expectOne((request) => request.url.includes('/relatorios/disponibilidade/unidades')).flush(pagina([{ unidadeId: 7, unidadeNome: 'Centro Operacional', inicio: '', fim: '', estadoAnalitico: 'CALCULADO', equipamentosTotal: 4, equipamentosMonitorados: 4, equipamentosSemMonitoramento: 0, equipamentosSemDados: 0, tempoMonitoradoSegundos: 100, tempoIndisponivelSegundos: 1, tempoDisponivelSegundos: 99, disponibilidadePercentual: 99.42, incidentes: 1 }]));
     httpTesting.expectOne((request) => request.url.includes('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(23, 200)]));
     fixture.detectChanges();
+  }
+
+  /** Carga completa: quando o resumo aponta abertos, responde também às duas listas do banner (ABERTO e RECONHECIDO). */
+  function responderCarga(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade], incidentesBody: unknown[] = [incidenteAberto]) {
+    responderCargaSemIncidentes(fixture, resumoBody, unidadesBody);
     if (resumoBody.incidentes.abertos > 0) {
-      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes')).flush(pagina(incidentesBody));
+      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes') && request.params.get('status') === 'ABERTO').flush(pagina(incidentesBody));
+      httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes') && request.params.get('status') === 'RECONHECIDO').flush(pagina([]));
       fixture.detectChanges();
     }
   }
@@ -113,7 +119,8 @@ describe('DashboardComponent', () => {
     // Sem o agregado por unidade o cliente ainda tenta o endpoint por monitor.
     httpTesting.expectOne((request) => request.url.includes('/relatorios/latencia') && !request.url.includes('/unidades')).error(new ProgressEvent('erro'), { status: 500, statusText: 'Internal Server Error' });
     fixture.detectChanges();
-    httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes')).flush(pagina([incidenteAberto]));
+    httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes') && request.params.get('status') === 'ABERTO').flush(pagina([incidenteAberto]));
+    httpTesting.expectOne((request) => request.url.endsWith('/api/v1/incidentes') && request.params.get('status') === 'RECONHECIDO').flush(pagina([]));
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi__vazio').length).toBe(2);
@@ -226,10 +233,20 @@ describe('DashboardComponent', () => {
     expect(detalhe).toContain('SW-CORE no Centro Operacional offline há');
   });
 
+  it('banner usa o KPI para o "+N" e descreve abertos e reconhecidos', () => {
+    const fixture = create();
+    const reconhecido = { ...incidenteAberto, id: 91, status: 'RECONHECIDO', iniciadoEm: '2026-08-19T11:50:00Z' };
+    responderCargaSemIncidentes(fixture, { ...resumo, incidentes: { abertos: 7 } });
+    httpTesting.expectOne((r) => r.url.endsWith('/api/v1/incidentes') && r.params.get('status') === 'ABERTO').flush(pagina([incidenteAberto]));
+    httpTesting.expectOne((r) => r.url.endsWith('/api/v1/incidentes') && r.params.get('status') === 'RECONHECIDO').flush(pagina([reconhecido]));
+    fixture.detectChanges();
+    expect(texto(fixture)).toContain('+5 incidentes');
+  });
+
   it('concorda o excedente do banner no singular (+1 incidente)', () => {
     const extra = (id: number) => ({ ...incidenteAberto, id });
     const um = create();
-    responderCarga(um, resumo, [unidade], [1, 2, 3, 4].map(extra));
+    responderCarga(um, { ...resumo, incidentes: { abertos: 4 } }, [unidade], [1, 2, 3, 4].map(extra));
     expect((um.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent?.trim()).toMatch(/· [+]1 incidente$/);
   });
 

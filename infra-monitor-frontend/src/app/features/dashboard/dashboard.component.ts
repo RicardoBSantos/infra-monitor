@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { take } from 'rxjs';
+import { forkJoin, take } from 'rxjs';
 
 import { formatarPercentual } from '../../core/format/numero';
 import { plural } from '../../core/format/plural';
@@ -146,10 +146,12 @@ export class DashboardComponent {
   protected readonly descricaoIncidentes = computed(() => {
     const abertos = this.incidentes();
     if (!abertos.length) return null;
-    const descritos = abertos.slice(0, INCIDENTES_NO_BANNER)
+    const exibidos = abertos.slice(0, INCIDENTES_NO_BANNER);
+    const descritos = exibidos
       .map((incidente) => `${incidente.monitor.equipamentoNome} no ${incidente.monitor.unidadeNome} offline ${this.desde(incidente.iniciadoEm)}.`)
       .join(' · ');
-    const restantes = abertos.length - INCIDENTES_NO_BANNER;
+    // O total vem do KPI (só elegíveis); o tamanho da lista não é o total.
+    const restantes = Math.max(0, (this.resumo()?.incidentes.abertos ?? abertos.length) - exibidos.length);
     return restantes > 0 ? `${descritos} · +${plural(restantes, 'incidente', 'incidentes')}` : descritos;
   });
 
@@ -315,8 +317,10 @@ export class DashboardComponent {
   }
 
   private carregarIncidentes(): void {
-    this.incidentesApi.list({ status: IncidentStatus.Open, size: 20, sort: 'iniciadoEm,desc' }).pipe(take(1)).subscribe({
-      next: (pagina) => this.incidentes.set(pagina.content),
+    const consulta = (status: IncidentStatus) => this.incidentesApi.list({ status, size: INCIDENTES_NO_BANNER, sort: 'iniciadoEm,desc' });
+    forkJoin([consulta(IncidentStatus.Open), consulta(IncidentStatus.Acknowledged)]).pipe(take(1)).subscribe({
+      next: ([abertos, reconhecidos]) => this.incidentes.set(
+        [...abertos.content, ...reconhecidos.content].sort((a, b) => Date.parse(b.iniciadoEm) - Date.parse(a.iniciadoEm))),
       error: () => this.incidentes.set([]),
     });
   }
