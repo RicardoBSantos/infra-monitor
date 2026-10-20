@@ -469,3 +469,39 @@ Template das abas:
 - [ ] **Step 3: Rodar na carga** (container `inframonitor-carga` 5436, jar na 8081 com motor/Telegram/dispatcher desligados). Conferir capturas.
 - [ ] **Step 4: Suítes completas** — backend `./mvnw test` (com Docker, sem `!!`), frontend `npx ng test --watch=false`.
 - [ ] **Step 5: Commit** do script e da evidência do dev.
+
+---
+
+### Task 6: Manutenção com segmento próprio na composição + tema escuro no e2e
+
+Acrescentada na execução (ruling no ledger): a captura de Task 5 mostrou Atalaia (Disponível) com
+traço laranja na faixa e "1" laranja na contagem — a faixa somava manutenção ao degradado; e a
+unidade sintética "Em manutenção" ficava com badge azul e faixa laranja. Mesma semântica de cores
+dos tokens: manutenção é `info` em todo o Painel (KPI, pill `ponto--info`, badge, chip).
+
+**Files:**
+- Modify: `infra-monitor-frontend/src/styles/_ui.scss:65,88-89` (`.faixa__info`, `.contagens .info`)
+- Modify: `infra-monitor-frontend/src/app/features/dashboard/dashboard.component.{html,spec.ts}` (linhas ~97-104)
+- Modify: `infra-monitor-frontend/e2e/painel-status-tipos.cjs` (+ evidência do dev)
+
+- [ ] **Step 1: Teste que falha** — em `dashboard.component.spec.ts`, com a unidade Atalaia (17 disponíveis, 0 degradados, 1 em manutenção, total 18):
+
+```ts
+it('manutenção tem segmento e contador próprios no tom info, separado do degradado', () => {
+  const fixture = create();
+  responderCarga(/* resumo com incidentes.abertos 0, unidades [atalaia] — use a forma atual do helper */);
+  const linha = (fixture.nativeElement as HTMLElement).querySelector('.unidade')!;
+  expect((linha.querySelector('.faixa__warn') as HTMLElement).style.width).toBe('0%');
+  expect((linha.querySelector('.faixa__info') as HTMLElement).style.width).toBe(`${(1 / 18) * 100}%`);
+  expect(linha.querySelector('.contagens .warn')!.textContent!.trim()).toBe('0');
+  expect(linha.querySelector('.contagens .info')!.textContent!.trim()).toBe('1');
+});
+```
+
+- [ ] **Step 2: Rodar e ver falhar** — `npx ng test --watch=false --include='**/dashboard.component.spec.ts'`.
+
+- [ ] **Step 3: Implementar** — na faixa: `faixa__warn` = só `equipamentosDegradados`; novo `<i class="faixa__info">` com `equipamentosEmManutencao`, entre warn e down. Nas contagens: `<b class="warn">` só degradados; novo `<b class="info" title="em manutenção">` com `equipamentosEmManutencao` entre warn e down. `_ui.scss`: `.faixa__info { background: var(--im-info-soft); }` e `.contagens .info { color: var(--im-info-soft); }` (procure onde `.contagens .ok/.warn/.down` ou `.ok/.warn/.down` ganham cor e siga o mesmo padrão). Nenhuma cor nova. O `aria-label` da faixa já cita manutenção separadamente.
+
+- [ ] **Step 4: e2e** — em `painel-status-tipos.cjs`: (a) asserção no dev: linha Atalaia com `.faixa__warn` de largura 0 e `.faixa__info` > 0; (b) captura extra das linhas reais e do recorte sintético no **tema escuro**, alternando pelo botão da topbar (`.theme-button`, por clique) e voltando ao claro no fim. Rodar `PAINEL_BANCO=dev` (fonte de credenciais igual à Task 5), conferir visualmente as PNGs novas e regeneradas.
+
+- [ ] **Step 5: Suíte e commit** — `npx ng test --watch=false`; commit de `src/` e `e2e/` (script + evidência).
