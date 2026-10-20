@@ -59,8 +59,10 @@ Backend (`DashboardReadRepository.ESTADOS`):
 - `DashboardService.operacional`: `incidentesAbertos` por equipamento é 0 quando o equipamento
   está inativo ou em manutenção.
 
-Frontend (banner do Painel): o "+N" deriva do KPI do resumo, não de `content.length`; a lista
-descritiva busca `ABERTO` e `RECONHECIDO` (hoje só `ABERTO`).
+Frontend (banner do Painel): só o "+N" deriva do KPI elegível do resumo (não de `content.length`),
+com piso 0. A lista descritiva busca `ABERTO` e `RECONHECIDO` crus em `GET /incidentes` e **pode
+citar incidente órfão** (monitor desativado, equipamento inativo ou em manutenção): filtrar exige
+elegibilidade no `GET /incidentes`, registrado como pendência. KPI zerado limpa a lista descrita.
 
 Classificação completa dos 13 pontos que contam/listam incidentes abertos fica em
 `infra-monitor-backend/docs/contagem-incidentes-abertos.md` (operacional → ignora; registro/
@@ -80,7 +82,8 @@ JDBC — é exatamente o estado órfão que a operação produz.
   cadastro inteiro. Contador 0 → aba visível e `disabled` (exceto a aba selecionada, que continua
   clicável para poder voltar). "Todos" mostra o total da visão.
 - Índice indisponível ou parcial: abas aparecem habilitadas **sem contador** — nunca "0" quando a
-  contagem é desconhecida. Falha de `/tipos-equipamento`: cai para os tipos presentes no índice.
+  contagem é desconhecida. Índice parcial mostra o aviso "Filtro e contagem por tipo consideram só
+  N de M equipamentos." — o filtro de tipo também é parcial, não só a contagem. Falha de `/tipos-equipamento`: cai para os tipos presentes no índice.
 - O índice passa a ser um tipo mínimo `EntradaCadastro { unidadeId, tipoId, nome, hostname, ip }`,
   para que a troca de fonte decidida no item 1 não toque na lógica das abas.
 
@@ -99,3 +102,11 @@ Critério: no dev, 8 abas; na carga, Servidor e Roteador (+ ativos sem equipamen
 - Fechar incidente ao desativar monitor/equipamento; validar `POST /incidentes` manual.
 - Unidade inativa continua sendo pingada e abrindo incidente.
 - Item 1 até a decisão do usuário.
+
+## Emendas durante a execução
+
+- Task 6: manutenção ganhou segmento e contador próprios no tom info na composição da linha
+  (`.faixa__info`, `.contagens .info`), separados do degradado; o card de KPI "Em manutenção"
+  usa `.kpi--manutencao` (tom info), não `.kpi--warn`.
+- Catálogo do dev passou a ter 9 tipos: "Storage" foi criado em 2026-10-20 por um administrador,
+  sem equipamento. O critério "no dev, 8 abas" vira 9 abas de tipo (+ "Todos").
