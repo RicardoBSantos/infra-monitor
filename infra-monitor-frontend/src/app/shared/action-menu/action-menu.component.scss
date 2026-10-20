@@ -38,7 +38,7 @@
 // `top`/`left` vêm calculados do componente — não há ancoragem por CSS aqui.
 .menu-acoes__lista {
   position: fixed;
-  z-index: 15;
+  z-index: var(--im-z-menu);
   display: flex;
   flex-direction: column;
   min-width: 168px;

@@ -1,6 +1,6 @@
 // Presa à viewport: `sticky` + `align-self: flex-start` impedem que o flex item
 // estique junto com o conteúdo e role com o documento em telas altas (ex.: Equipamentos).
-.sidebar { position: sticky; top: 0; z-index: 20; display: flex; width: var(--im-sidebar-width); height: 100dvh; align-self: flex-start; flex: 0 0 var(--im-sidebar-width); flex-direction: column; border-right: 1px solid var(--im-border); background: var(--im-surface); }
+.sidebar { position: sticky; top: 0; z-index: var(--im-z-sidebar); display: flex; width: var(--im-sidebar-width); height: 100dvh; align-self: flex-start; flex: 0 0 var(--im-sidebar-width); flex-direction: column; border-right: 1px solid var(--im-border); background: var(--im-surface); }
 .brand { display: flex; height: var(--im-topbar-height); align-items: center; gap: 9px; padding: 0 16px; border-bottom: 1px solid var(--im-border); color: var(--im-text); text-decoration: none; }
 .brand__mark { width: 9px; height: 20px; border-radius: 1px; background: var(--im-primary); }
 .brand strong, .brand small { display: block; }.brand strong { font-size: 12.5px; letter-spacing: .1em; }.brand small, .sidebar__footer small { color: var(--im-text-muted); font: 9.5px 'IBM Plex Mono', monospace; letter-spacing: .1em; }

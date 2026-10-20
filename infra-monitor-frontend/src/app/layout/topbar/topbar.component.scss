@@ -35,7 +35,7 @@
 .user-menu__identity { display: grid; gap: 1px; line-height: 1.15; }
 .user-menu__identity strong { font-size: 12.5px; font-weight: 600; }
 .user-menu__identity small { color: var(--im-text-dim); font: 9.5px var(--im-mono); letter-spacing: .07em; text-transform: uppercase; }
-.user-menu__panel { position: absolute; right: 0; top: calc(100% + 9px); z-index: 30; display: grid; min-width: 185px; padding: 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); box-shadow: var(--im-shadow-raised); }
+.user-menu__panel { position: absolute; right: 0; top: calc(100% + 9px); z-index: var(--im-z-topbar-menu); display: grid; min-width: 185px; padding: 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); box-shadow: var(--im-shadow-raised); }
 .user-menu__panel span { margin: 3px 0 9px; color: var(--im-text-secondary); font-size: 11px; }
 .user-menu__panel button { padding: 8px; border: 0; border-radius: var(--im-radius); background: transparent; color: var(--im-text); text-align: left; cursor: pointer; }
 .user-menu__panel button:hover { background: var(--im-surface-active); }

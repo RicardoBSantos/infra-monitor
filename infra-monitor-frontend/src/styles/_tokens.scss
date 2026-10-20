@@ -21,7 +21,6 @@
   --im-text-muted: #94a1af;
   --im-text-faint: #8894a1;
   --im-text-dim: #7c8997;
-  --im-text-on-accent: #ffffff;
   --im-primary: #5a85ff;
   --im-primary-soft: rgba(76, 141, 255, .12);
   --im-primary-border: rgba(76, 141, 255, .38);
@@ -33,7 +32,6 @@
   --im-success-hover: rgba(63, 185, 80, .20);
   --im-warning: #D29922;
   --im-warning-soft: #f0bc6a;
-  --im-warning-strong: #d88932;
   --im-danger: #e65850;
   --im-danger-soft: #f2999c;
   --im-danger-strong: #e35a5a;
@@ -56,21 +54,13 @@
   --im-on-primary: #07111e;
   --im-info-soft: #7fadff;
   --im-map-glow: #0e1924;
-  --im-map-water: #0c1722;
-  --im-map-land: #263744;
-  --im-map-land-alt: #435464;
-  --im-map-stroke: #294056;
-  --im-map-active: #38536b;
   --im-selection: rgba(76, 141, 255, .35);
   --im-radius: 4px;
   --im-radius-lg: 8px;
   --im-mono: ui-monospace, 'JetBrains Mono', 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
   --im-radius-pill: 999px;
-  --im-space-1: 4px;
-  --im-space-2: 8px;
   --im-space-3: 12px;
   --im-space-4: 16px;
-  --im-space-5: 22px;
   --im-shadow-raised: 0 18px 40px rgba(0, 0, 0, .55);
   /* Escala de empilhamento. Ate agora cada tela escolhia o proprio z-index e o
      modal de equipamento (20) ficava embaixo da gaveta de detalhe (40/41): o
@@ -113,7 +103,6 @@
   --im-text-muted: #51596a;
   --im-text-faint: #596174;
   --im-text-dim: #636974;
-  --im-text-on-accent: #ffffff;
   --im-primary: #1a56db;
   --im-primary-soft: rgba(26, 86, 219, .10);
   --im-primary-border: rgba(26, 86, 219, .32);
@@ -125,7 +114,6 @@
   --im-success-hover: #d3f8df;
   --im-warning: #b54708;
   --im-warning-soft: #b54708;
-  --im-warning-strong: #dc6803;
   --im-danger: #c92a1e;
   --im-danger-soft: #b42318;
   --im-danger-strong: #c92a1e;
@@ -143,11 +131,6 @@
   --im-on-primary: #ffffff;
   --im-info-soft: #175cd3;
   --im-map-glow: #f2f6fa;
-  --im-map-water: #e7edf3;
-  --im-map-land: #cfd9e4;
-  --im-map-land-alt: #b7c4d2;
-  --im-map-stroke: #a9b7c6;
-  --im-map-active: #8fa4ba;
   --im-selection: rgba(26, 86, 219, .22);
   /* No claro o mesmo contraste pede tinta escura sobre fundo claro; as proporcoes
      (.14 / .24) sao as do escuro, so invertida a base. */
