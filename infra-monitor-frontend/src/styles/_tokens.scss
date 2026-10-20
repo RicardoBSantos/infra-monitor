@@ -41,12 +41,13 @@
   --im-danger-text: #ffb4bd;
   /* Fundos translúcidos por status: tom da cor do PRÓPRIO tema. Antes cada tela usava rgba() da
      paleta escura, e no claro o fundo saía com a cor do escuro. -bg = faixa/aviso/badge,
-     -bg-strong = hover/realce. Bordas: --im-*-border. */
+     -bg-strong = hover/realce (opacidade limitada por tema pelo contraste do texto, >= 4,5).
+     Bordas: --im-*-border. */
   --im-success-bg: rgba(63, 185, 80, .10);
   --im-success-bg-strong: rgba(63, 185, 80, .16);
   --im-warning-bg: rgba(210, 153, 34, .10);
   --im-warning-bg-strong: rgba(210, 153, 34, .16);
-  --im-danger-bg: rgba(229, 83, 75, .10);
+  --im-danger-bg: rgba(229, 83, 75, .07);
   --im-danger-bg-strong: rgba(229, 83, 75, .12);
   --im-neutral-bg: rgba(122, 134, 153, .10);
   --im-neutral-bg-strong: rgba(122, 134, 153, .16);
@@ -132,9 +133,9 @@
   --im-danger-text: #b42318;
   --im-success-bg: rgba(6, 118, 71, .08);
   --im-success-bg-strong: rgba(6, 118, 71, .14);
-  --im-warning-bg: rgba(181, 71, 8, .08);
+  --im-warning-bg: rgba(181, 71, 8, .06);
   --im-warning-bg-strong: rgba(181, 71, 8, .11);
-  --im-danger-bg: rgba(217, 45, 32, .07);
+  --im-danger-bg: rgba(217, 45, 32, .05);
   --im-danger-bg-strong: rgba(217, 45, 32, .10);
   --im-neutral-bg: rgba(71, 84, 103, .07);
   --im-neutral-bg-strong: rgba(71, 84, 103, .14);
