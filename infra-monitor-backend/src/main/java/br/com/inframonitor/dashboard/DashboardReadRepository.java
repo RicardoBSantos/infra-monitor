@@ -26,6 +26,7 @@ public class DashboardReadRepository {
                          else 'DISPONIVEL' end as status,
                     -- Incidente de monitor desativado ou de equipamento inativo/em manutencao e orfao:
                     -- continua na lista de incidentes, mas nao e leitura operacional.
+                    -- Mesma regra em DashboardService.operacional (incidentesAbertos por equipamento).
                     case when i.id is not null and m.ativo and e.ativo and not e.em_manutencao then 1 else 0 end as incidente_aberto,
                     um.latencia_ms, um.executado_em, um.id as medicao_id
                 from monitor m
