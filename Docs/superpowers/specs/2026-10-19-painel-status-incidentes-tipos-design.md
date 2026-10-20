@@ -3,8 +3,8 @@
 Data: 2026-10-19 · Branch: `feat/painel-status-incidentes-tipos` (a partir de `origin/main` cc56f37)
 
 Escopo deste documento: itens 2, 3 e 4 do pedido de 2026-10-19. O item 1 (teto de 100 itens
-e truncamento silencioso) teve a investigação reportada e aguarda decisão de escopo; o item 4
-depende dele apenas na **fonte** do índice de cadastro, isolada aqui atrás de um tipo mínimo.
+e truncamento silencioso) teve a investigação reportada e foi **cancelado pelo usuário em
+2026-10-20**: o índice de cadastro continua sujeito ao teto, e a tela declara quando está parcial.
 
 ## Diagnóstico que motivou
 
@@ -85,7 +85,7 @@ JDBC — é exatamente o estado órfão que a operação produz.
   contagem é desconhecida. Índice parcial mostra o aviso "Filtro e contagem por tipo consideram só
   N de M equipamentos." — o filtro de tipo também é parcial, não só a contagem. Falha de `/tipos-equipamento`: cai para os tipos presentes no índice.
 - O índice passa a ser um tipo mínimo `EntradaCadastro { unidadeId, tipoId, nome, hostname, ip }`,
-  para que a troca de fonte decidida no item 1 não toque na lógica das abas.
+  para que uma eventual troca de fonte não toque na lógica das abas.
 
 Critério: no dev, 8 abas; na carga, Servidor e Roteador (+ ativos sem equipamento desabilitados).
 
@@ -101,7 +101,8 @@ Critério: no dev, 8 abas; na carga, Servidor e Roteador (+ ativos sem equipamen
 
 - Fechar incidente ao desativar monitor/equipamento; validar `POST /incidentes` manual.
 - Unidade inativa continua sendo pingada e abrindo incidente.
-- Item 1 até a decisão do usuário.
+- Item 1 (teto de 100 itens): cancelado pelo usuário em 2026-10-20. Selects de Monitores e
+  Medições seguem truncados em 100.
 
 ## Emendas durante a execução
 
