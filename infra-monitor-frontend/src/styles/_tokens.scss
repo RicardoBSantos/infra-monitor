@@ -32,9 +32,9 @@
   --im-success-hover: rgba(63, 185, 80, .20);
   --im-warning: #D29922;
   --im-warning-soft: #f0bc6a;
-  --im-danger: #e65850;
+  --im-danger: #e86760; /* clareado de #e65850: 4,08 sobre danger-bg-strong/surface-active; agora >= 4,5 */
   --im-danger-soft: #f2999c;
-  --im-danger-strong: #e35a5a;
+  --im-danger-strong: #e86760;
   --im-danger-border: #7c3742;
   --im-danger-text: #ffb4bd;
   /* Fundos translúcidos por status: tom da cor do PRÓPRIO tema. Antes cada tela usava rgba() da
@@ -108,15 +108,15 @@
   --im-primary-border: rgba(26, 86, 219, .32);
   --im-primary-hover: rgba(26, 86, 219, .18);
   --im-link: #1a56db;
-  --im-success: #067647;
-  --im-success-soft: #067647;
+  --im-success: #056b41; /* escurecido de #067647: 3,96 sobre success-bg-strong/surface-active */
+  --im-success-soft: #056b41;
   --im-success-border: #a6f4c5;
   --im-success-hover: #d3f8df;
-  --im-warning: #b54708;
-  --im-warning-soft: #b54708;
-  --im-danger: #c92a1e;
+  --im-warning: #a54107; /* escurecido de #b54708: 3,93 sobre warning-bg-strong/surface-active */
+  --im-warning-soft: #a54107;
+  --im-danger: #b9271c; /* escurecido de #c92a1e: 3,99 sobre danger-bg-strong/surface-active */
   --im-danger-soft: #b42318;
-  --im-danger-strong: #c92a1e;
+  --im-danger-strong: #b9271c;
   --im-danger-border: #f3b1ab;
   --im-danger-text: #b42318;
   --im-success-bg: rgba(6, 118, 71, .08);

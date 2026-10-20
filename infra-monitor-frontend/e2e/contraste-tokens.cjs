@@ -55,7 +55,13 @@ for (const [tema, t, lg] of [['escuro', escuro, loginEscuro], ['claro', claro, l
     const bg = parse(t[bgTok]);
     // Token ausente é falha: todo fundo de status precisa existir nos dois temas.
     if (!bg) { linhas.push(`| ${tema} | ${tx} | ${bgTok} | — | token ausente |`); falhas.push(`${tema}: token ausente ${bgTok}`); continue; }
-    for (const base of ['surface', 'surface-raised']) reg(tema, tx, `${bgTok} sobre ${base}`, razao(parse(t[tx]).rgb, sobre(bg, parse(t[base]))));
+    for (const base of ['surface', 'surface-raised', 'surface-hover', 'surface-active']) reg(tema, tx, `${bgTok} sobre ${base}`, razao(parse(t[tx]).rgb, sobre(bg, parse(t[base]))));
+  }
+  // Selo de contagem da sidebar (danger-soft sobre danger-bg-strong), em camadas: item ativo
+  // (primary-soft sobre surface) e hover (surface-hover).
+  const ativo = { rgb: sobre(parse(t['primary-soft']), parse(t['surface'])), a: 1 };
+  for (const [nome, base] of [['item ativo', ativo], ['hover', parse(t['surface-hover'])], ['surface', parse(t['surface'])]]) {
+    reg(tema, 'danger-soft', `danger-bg-strong sobre ${nome} (selo da sidebar)`, razao(parse(t['danger-soft']).rgb, sobre(parse(t['danger-bg-strong']), base)));
   }
   const r = ORDEM.map((k) => razao(parse(t[k]).rgb, parse(t['surface']).rgb));
   const emOrdem = r.every((v, i) => i === 0 || v < r[i - 1]);

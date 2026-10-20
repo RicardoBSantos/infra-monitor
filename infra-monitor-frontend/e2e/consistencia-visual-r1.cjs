@@ -135,7 +135,7 @@ async function verificarConfirm(page, tema) {
     const a = document.activeElement;
     return { fora: !a?.closest('.confirm-dialog'), conectado: !!a?.isConnected, naoBody: a !== document.body, gatilho: !!a?.hasAttribute?.('data-cv-gatilho'), html: (a?.outerHTML || '').slice(0, 160) };
   });
-  checar(`confirm.retorno.${tema}`, 'foco volta a elemento fora do diálogo e conectado', ret.fora && ret.conectado && ret.naoBody, `gatilho=${ret.gatilho} ${ret.html}`);
+  checar(`confirm.retorno.${tema}`, 'foco volta ao gatilho (fora do diálogo, conectado)', ret.fora && ret.conectado && ret.naoBody && ret.gatilho, `gatilho=${ret.gatilho} ${ret.html}`);
 }
 
 async function verificarMotion(page) {
@@ -210,9 +210,11 @@ async function rodarTema(browser, tema) {
   } catch (e) { erro = e; } finally {
     fs.writeFileSync(path.join(OUT, 'resultados.json'), JSON.stringify({ fase: FASE, resultados, errosPagina, respostas5xx, erro: erro ? String(erro) : null }, null, 2));
     for (const r of resultados) console.log(`${r.ok ? (r.na ? 'N/A  ' : 'ok   ') : 'FALHA'} ${r.caso} — ${r.nome} ${r.detalhe}`);
+    const nas = resultados.filter((r) => r.na).length;
+    console.log(`aprovados: ${resultados.filter((r) => r.ok && !r.na).length}; N/A: ${nas}; falhas: ${resultados.filter((r) => !r.ok).length}`);
     console.log(`erros de página: ${errosPagina.length}; respostas 5xx: ${respostas5xx.length}`);
     await browser.close();
   }
   if (erro) { console.error(erro); process.exit(1); }
-  if (FASE === 'depois' && (resultados.some((r) => !r.ok) || errosPagina.length || respostas5xx.length)) process.exit(1);
+  if (FASE === 'depois' && (resultados.some((r) => !r.ok || r.na) || errosPagina.length || respostas5xx.length)) process.exit(1);
 })();
