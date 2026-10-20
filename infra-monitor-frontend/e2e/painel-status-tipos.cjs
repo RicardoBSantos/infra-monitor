@@ -21,7 +21,9 @@
  *  3. Abas de tipo: sem filtro, com pill de status e com busca. Índice parcial (`.abas__parcial`) e
  *     contadores (`.aba__contagem`) são exclusivos; com contadores, "Todos" == soma dos tipos e
  *     desabilitada <=> 0.
- *  4. Status ausentes nos dados reais (INDISPONIVEL, SEM_DADOS, EM_MANUTENCAO, SEM_EQUIPAMENTOS)
+ *  4. Manutenção tem segmento e contador próprios (`.faixa__info`, `.contagens .info`), separados do
+ *     degradado. Capturas `*-escuro.png` no tema escuro, alternado pelo botão da topbar e desfeito no fim.
+ *  5. Status ausentes nos dados reais (INDISPONIVEL, SEM_DADOS, EM_MANUTENCAO, SEM_EQUIPAMENTOS)
  *     numa captura SEPARADA, com 4 linhas "[sintético]" injetadas por `page.route` em
  *     GET /dashboard/unidades. As capturas de dado real nunca usam interceptação.
  *
@@ -105,6 +107,9 @@ const lerLinhas = (page) => page.evaluate(() => {
         textoScrollW: chipTexto?.scrollWidth ?? null, textoClientW: chipTexto?.clientWidth ?? null,
       } : null,
       faixa: faixaVisivel ? caixa(faixa) : null,
+      // Largura renderizada de cada segmento da composição (px); só faz sentido com a faixa visível.
+      segmentos: faixaVisivel ? Object.fromEntries(['ok', 'warn', 'info', 'down'].map((s) => [s, faixa.querySelector('.faixa__' + s)?.getBoundingClientRect().width ?? null])) : null,
+      contagens: Object.fromEntries(['ok', 'warn', 'info', 'down'].map((s) => [s, linha.querySelector('.contagens .' + s)?.textContent.trim() ?? null])),
     };
   });
 });
@@ -155,7 +160,8 @@ const lerAbas = (page) => page.evaluate(() => ({
     desabilitada: b.disabled,
     ativa: b.classList.contains('aba--ativa'),
   })),
-  parcial: document.querySelector('.abas__parcial')?.textContent.trim() ?? null,
+  // null = sem aviso; '' = aviso presente mas vazio (tem de falhar, não pode passar por "índice completo")
+  parcial: document.querySelector('.abas__parcial') ? document.querySelector('.abas__parcial').textContent.trim() : null,
   linhas: document.querySelectorAll('.tabela .unidade').length,
   contagemTexto: document.querySelector('.contagem')?.textContent.trim() ?? null,
 }));
@@ -163,8 +169,8 @@ const lerAbas = (page) => page.evaluate(() => ({
 /** Índice parcial e contadores são exclusivos; com contadores, Todos == soma e desabilitada <=> 0. */
 function verificarAbas(prefixo, estado) {
   const comContagem = estado.abas.filter((a) => a.contagem !== null);
-  if (estado.parcial) {
-    checar(`${prefixo}.a`, 'índice parcial: aviso presente e NENHUMA aba com contador', comContagem.length === 0,
+  if (estado.parcial !== null) {
+    checar(`${prefixo}.a`, 'índice parcial: aviso presente, com texto, e NENHUMA aba com contador', estado.parcial.length > 0 && comContagem.length === 0,
       `parcial="${estado.parcial}"; abas com contador=${comContagem.length}`);
     return;
   }
@@ -183,7 +189,7 @@ function verificarContagens(caso, nome, estado, esperado) {
   const lido = Object.fromEntries(estado.abas.map((a) => [a.rotulo, a.contagem]));
   const errado = Object.entries(esperado).filter(([rotulo, n]) => lido[rotulo] !== n);
   const zeroAtiva = estado.abas.filter((a) => esperado[a.rotulo] === 0 && !a.desabilitada);
-  checar(caso, nome, !estado.parcial && errado.length === 0 && zeroAtiva.length === 0,
+  checar(caso, nome, estado.parcial === null && errado.length === 0 && zeroAtiva.length === 0,
     `lido=${JSON.stringify(estado.abas.map((a) => [a.rotulo, a.contagem, a.desabilitada ? 'desab' : 'hab']))}; parcial=${estado.parcial ?? 'não'}`);
 }
 
@@ -197,6 +203,13 @@ const esperarFaixa = (page, visivel) => page.waitForFunction((v) => {
   const faixa = document.querySelector('.tabela .faixa');
   return !!faixa && (getComputedStyle(faixa).display !== 'none') === v;
 }, visivel, { timeout: 5000 });
+
+/** Troca o tema pelo botão da topbar (clique) e espera o `data-theme` do <html> refletir. */
+async function alternarTema(page, alvo) {
+  const atual = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  if (atual !== alvo) await page.locator('.theme-button').click();
+  await page.waitForFunction((t) => document.documentElement.getAttribute('data-theme') === t, alvo, { timeout: 5000 });
+}
 
 async function capturar(alvo, nome) {
   await alvo.screenshot({ path: path.join(OUT, nome) });
@@ -236,6 +249,8 @@ async function novaPagina(browser, rotulo) {
     page = await novaPagina(browser, 'real');
     await entrarNoPainel(page);
 
+    medidas.temaInicial = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    checar('tema.0', 'tema inicial claro (capturas 01-09 sem sufixo são do tema claro)', medidas.temaInicial === 'light', String(medidas.temaInicial));
     await capturar(page, '01-tela-inteira.png');
     await page.screenshot({ path: path.join(OUT, '01-tela-inteira-completa.png'), fullPage: true });
     capturas.push('01-tela-inteira-completa.png');
@@ -251,8 +266,17 @@ async function novaPagina(browser, rotulo) {
       checar('dev.2', 'dev: Hotel Sesc Atalaia = success, ícone check, badge "Disponível", chip "1 em manutenção"',
         atalaia && atalaia.tomLinha === 'success' && atalaia.icone === 'check' && atalaia.badgeTexto === 'Disponível'
         && atalaia.chip?.texto === '1 em manutenção', JSON.stringify(atalaia));
+      checar('dev.2b', 'dev: Atalaia — manutenção é segmento info, não warning (faixa__warn 0, faixa__info > 0; contagens warn 0, info 1)',
+        atalaia?.segmentos && atalaia.segmentos.warn === 0 && atalaia.segmentos.info > 0 && atalaia.contagens.warn === '0' && atalaia.contagens.info === '1',
+        JSON.stringify({ segmentos: atalaia?.segmentos, contagens: atalaia?.contagens }));
       await capturar(page.locator('.tabela .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia.png');
     }
+
+    // --------------------------------------------------------------- tema escuro (linhas reais)
+    await alternarTema(page, 'dark');
+    await capturar(page.locator('.tabela'), '02-linhas-reais-escuro.png');
+    if (DEV) await capturar(page.locator('.tabela .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia-escuro.png');
+    await alternarTema(page, 'light');
 
     // --------------------------------------------------------------- abas sem filtro
     const abasSemFiltro = await lerAbas(page);
@@ -270,7 +294,7 @@ async function novaPagina(browser, rotulo) {
       checar('carga.1', 'carga: abas = Todos, Access Point, Roteador, Servidor (inclui "Servidor" e "Roteador")',
         JSON.stringify(rotulos) === JSON.stringify(CARGA.abas), JSON.stringify(rotulos));
       checar('carga.2', 'carga: índice completo — sem aviso parcial e toda aba com contador',
-        !abasSemFiltro.parcial && abasSemFiltro.abas.every((a) => a.contagem !== null), `parcial=${abasSemFiltro.parcial ?? 'não'}`);
+        abasSemFiltro.parcial === null && abasSemFiltro.abas.every((a) => a.contagem !== null), `parcial=${abasSemFiltro.parcial ?? 'não'}`);
       verificarContagens('carga.3', 'carga sem filtro: Todos 3, Access Point 1, Roteador 1, Servidor 1', abasSemFiltro, CARGA.semFiltro);
     }
     await capturar(page.locator('.filtros'), '04-abas-sem-filtro.png');
@@ -369,15 +393,24 @@ async function novaPagina(browser, rotulo) {
       JSON.stringify(linhasSint.map((l) => [l.nome, l.tomLinha, l.icone, l.badgeTexto])));
     checar('sint.7', 'sintético: "Em manutenção" total não ganha chip (manutenção é o próprio status)',
       linhasSint.find((l) => l.nome === '[sintético] Em manutenção')?.chip === null, '');
-    // Recorte só das 4 linhas sintéticas: rolagem até elas e clip pela união das caixas.
-    await page.locator('.tabela .unidade', { hasText: '[sintético] Indisponível' }).scrollIntoViewIfNeeded();
-    const clip = await page.evaluate(() => {
+    const manutencaoSint = linhasSint.find((l) => l.nome === '[sintético] Em manutenção');
+    checar('sint.8', 'sintético: "Em manutenção" tem faixa só info (info > 0, warn 0) e contador info 2, warn 0',
+      manutencaoSint?.segmentos && manutencaoSint.segmentos.info > 0 && manutencaoSint.segmentos.warn === 0
+      && manutencaoSint.contagens.info === '2' && manutencaoSint.contagens.warn === '0',
+      JSON.stringify({ segmentos: manutencaoSint?.segmentos, contagens: manutencaoSint?.contagens }));
+    // Recorte só das 4 linhas sintéticas, em coordenadas da PÁGINA (fullPage + clip): o clique no botão de
+    // tema rola a página para o topo, e um clip relativo à viewport recortaria as linhas erradas.
+    const recorteSintetico = () => page.evaluate(() => {
       const rs = [...document.querySelectorAll('.tabela .unidade')].filter((e) => e.textContent.includes('[sintético]')).map((e) => e.getBoundingClientRect());
       const x = Math.min(...rs.map((r) => r.x)); const y = Math.min(...rs.map((r) => r.y));
-      return { x, y, width: Math.max(...rs.map((r) => r.right)) - x, height: Math.max(...rs.map((r) => r.bottom)) - y };
+      return { x: x + scrollX, y: y + scrollY, width: Math.max(...rs.map((r) => r.right)) - x, height: Math.max(...rs.map((r) => r.bottom)) - y };
     });
-    await page.screenshot({ path: path.join(OUT, '08-linhas-sintetico.png'), clip });
+    await page.screenshot({ path: path.join(OUT, '08-linhas-sintetico.png'), fullPage: true, clip: await recorteSintetico() });
     capturas.push('08-linhas-sintetico.png');
+    await alternarTema(page, 'dark');
+    await page.screenshot({ path: path.join(OUT, '08-linhas-sintetico-escuro.png'), fullPage: true, clip: await recorteSintetico() });
+    capturas.push('08-linhas-sintetico-escuro.png');
+    await alternarTema(page, 'light');
     await page.screenshot({ path: path.join(OUT, '09-tabela-com-sintetico.png'), fullPage: true });
     capturas.push('09-tabela-com-sintetico.png');
     checar('erros.sint', 'nenhum erro de página na passada sintética', erros.length === errosAntes, erros.slice(errosAntes).join(' | '));

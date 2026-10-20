@@ -1,9 +1,15 @@
 {
   "banco": "dev",
-  "quando": "2026-10-20T11:23:18.912Z",
+  "quando": "2026-10-20T11:31:27.917Z",
   "viewport": "1440x900 (+860x900)",
   "ok": true,
   "resultados": [
+    {
+      "caso": "tema.0",
+      "nome": "tema inicial claro (capturas 01-09 sem sufixo são do tema claro)",
+      "ok": true,
+      "detalhe": "light"
+    },
     {
       "caso": "1440.1",
       "nome": "tom da linha == tom da marca == tom do badge, em toda linha",
@@ -50,11 +56,17 @@
       "caso": "dev.2",
       "nome": "dev: Hotel Sesc Atalaia = success, ícone check, badge \"Disponível\", chip \"1 em manutenção\"",
       "ok": true,
-      "detalhe": "{\"nome\":\"Hotel Sesc Atalaia\",\"tomLinha\":\"success\",\"tomMarca\":\"success\",\"tomBadge\":\"success\",\"badgeTexto\":\"Disponível\",\"icone\":\"check\",\"iconeLado\":16,\"chip\":{\"texto\":\"1 em manutenção\",\"caixa\":{\"x\":516.828125,\"y\":687.984375,\"w\":121,\"h\":18},\"scrollW\":119,\"clientW\":119,\"textoScrollW\":90,\"textoClientW\":90},\"faixa\":{\"x\":660.828125,\"y\":682.234375,\"w\":174.15625,\"h\":6}}"
+      "detalhe": "{\"nome\":\"Hotel Sesc Atalaia\",\"tomLinha\":\"success\",\"tomMarca\":\"success\",\"tomBadge\":\"success\",\"badgeTexto\":\"Disponível\",\"icone\":\"check\",\"iconeLado\":16,\"chip\":{\"texto\":\"1 em manutenção\",\"caixa\":{\"x\":516.828125,\"y\":687.984375,\"w\":121,\"h\":18},\"scrollW\":119,\"clientW\":119,\"textoScrollW\":90,\"textoClientW\":90},\"faixa\":{\"x\":660.828125,\"y\":682.234375,\"w\":174.15625,\"h\":6},\"segmentos\":{\"ok\":164.46875,\"warn\":0,\"info\":9.671875,\"down\":0},\"contagens\":{\"ok\":\"17\",\"warn\":\"0\",\"info\":\"1\",\"down\":\"0\"}}"
+    },
+    {
+      "caso": "dev.2b",
+      "nome": "dev: Atalaia — manutenção é segmento info, não warning (faixa__warn 0, faixa__info > 0; contagens warn 0, info 1)",
+      "ok": true,
+      "detalhe": "{\"segmentos\":{\"ok\":164.46875,\"warn\":0,\"info\":9.671875,\"down\":0},\"contagens\":{\"ok\":\"17\",\"warn\":\"0\",\"info\":\"1\",\"down\":\"0\"}}"
     },
     {
       "caso": "abas.semFiltro.a",
-      "nome": "índice parcial: aviso presente e NENHUMA aba com contador",
+      "nome": "índice parcial: aviso presente, com texto, e NENHUMA aba com contador",
       "ok": true,
       "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
     },
@@ -78,7 +90,7 @@
     },
     {
       "caso": "abas.pill.a",
-      "nome": "índice parcial: aviso presente e NENHUMA aba com contador",
+      "nome": "índice parcial: aviso presente, com texto, e NENHUMA aba com contador",
       "ok": true,
       "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
     },
@@ -96,7 +108,7 @@
     },
     {
       "caso": "abas.busca.a",
-      "nome": "índice parcial: aviso presente e NENHUMA aba com contador",
+      "nome": "índice parcial: aviso presente, com texto, e NENHUMA aba com contador",
       "ok": true,
       "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
     },
@@ -207,6 +219,12 @@
       "detalhe": ""
     },
     {
+      "caso": "sint.8",
+      "nome": "sintético: \"Em manutenção\" tem faixa só info (info > 0, warn 0) e contador info 2, warn 0",
+      "ok": true,
+      "detalhe": "{\"segmentos\":{\"ok\":0,\"warn\":0,\"info\":174.15625,\"down\":0},\"contagens\":{\"ok\":\"0\",\"warn\":\"0\",\"info\":\"2\",\"down\":\"0\"}}"
+    },
+    {
       "caso": "erros.sint",
       "nome": "nenhum erro de página na passada sintética",
       "ok": true,
@@ -218,14 +236,18 @@
     "01-tela-inteira-completa.png",
     "02-linhas-reais.png",
     "03-linha-atalaia.png",
+    "02-linhas-reais-escuro.png",
+    "03-linha-atalaia-escuro.png",
     "04-abas-sem-filtro.png",
     "05-abas-pill-degradado.png",
     "06-abas-busca.png",
     "07-linhas-860.png",
     "08-linhas-sintetico.png",
+    "08-linhas-sintetico-escuro.png",
     "09-tabela-com-sintetico.png"
   ],
   "medidas": {
+    "temaInicial": "light",
     "linhas1440": [
       {
         "nome": "Centro Integrado de Saúde",
@@ -241,6 +263,18 @@
           "y": 534.5625,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 174.15625,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "16",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -269,6 +303,18 @@
           "y": 606.734375,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 160.75,
+          "warn": 6.6875,
+          "info": 6.6875,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "24",
+          "warn": "1",
+          "info": "1",
+          "down": "0"
         }
       },
       {
@@ -297,6 +343,18 @@
           "y": 682.234375,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 164.46875,
+          "warn": 0,
+          "info": 9.671875,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "17",
+          "warn": "0",
+          "info": "1",
+          "down": "0"
         }
       },
       {
@@ -325,6 +383,18 @@
           "y": 757.734375,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 149.265625,
+          "warn": 8.28125,
+          "info": 8.28125,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "18",
+          "warn": "1",
+          "info": "1",
+          "down": "0"
         }
       },
       {
@@ -341,6 +411,18 @@
           "y": 829.90625,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 174.15625,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "17",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -357,6 +439,18 @@
           "y": 898.75,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 162.53125,
+          "warn": 11.609375,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "14",
+          "warn": "1",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -373,6 +467,18 @@
           "y": 967.59375,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 166.578125,
+          "warn": 7.5625,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "22",
+          "warn": "1",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -401,6 +507,18 @@
           "y": 1039.765625,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 153.25,
+          "warn": 13.921875,
+          "info": 6.953125,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "22",
+          "warn": "2",
+          "info": "1",
+          "down": "0"
         }
       },
       {
@@ -417,6 +535,18 @@
           "y": 1111.9375,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 174.15625,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "22",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -433,6 +563,18 @@
           "y": 1180.78125,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 174.15625,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "24",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -449,6 +591,18 @@
           "y": 1249.625,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 174.15625,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "14",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       }
     ],
@@ -665,7 +819,14 @@
         "icone": "check",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "16",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
+        }
       },
       {
         "nome": "Escola Sesc Aracaju",
@@ -688,7 +849,14 @@
           "textoScrollW": 90,
           "textoClientW": 90
         },
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "24",
+          "warn": "1",
+          "info": "1",
+          "down": "0"
+        }
       },
       {
         "nome": "Hotel Sesc Atalaia",
@@ -711,7 +879,14 @@
           "textoScrollW": 90,
           "textoClientW": 90
         },
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "17",
+          "warn": "0",
+          "info": "1",
+          "down": "0"
+        }
       },
       {
         "nome": "Sede Administrativa",
@@ -734,7 +909,14 @@
           "textoScrollW": 90,
           "textoClientW": 90
         },
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "18",
+          "warn": "1",
+          "info": "1",
+          "down": "0"
+        }
       },
       {
         "nome": "Sesc Itabaiana",
@@ -745,7 +927,14 @@
         "icone": "check",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "17",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
+        }
       },
       {
         "nome": "Unidade Estância",
@@ -756,7 +945,14 @@
         "icone": "incident",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "14",
+          "warn": "1",
+          "info": "0",
+          "down": "0"
+        }
       },
       {
         "nome": "Unidade Lagarto",
@@ -767,7 +963,14 @@
         "icone": "incident",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "22",
+          "warn": "1",
+          "info": "0",
+          "down": "0"
+        }
       },
       {
         "nome": "Unidade Propriá",
@@ -790,7 +993,14 @@
           "textoScrollW": 90,
           "textoClientW": 90
         },
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "22",
+          "warn": "2",
+          "info": "1",
+          "down": "0"
+        }
       },
       {
         "nome": "Unidade Simão Dias",
@@ -801,7 +1011,14 @@
         "icone": "check",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "22",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
+        }
       },
       {
         "nome": "Unidade Socorro",
@@ -812,7 +1029,14 @@
         "icone": "check",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "24",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
+        }
       },
       {
         "nome": "Unidade São Cristóvão",
@@ -823,7 +1047,14 @@
         "icone": "check",
         "iconeLado": 16,
         "chip": null,
-        "faixa": null
+        "faixa": null,
+        "segmentos": null,
+        "contagens": {
+          "ok": "14",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
+        }
       }
     ],
     "chips860": [
@@ -871,6 +1102,18 @@
           "y": 1318.46875,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 58.046875,
+          "warn": 0,
+          "info": 0,
+          "down": 116.09375
+        },
+        "contagens": {
+          "ok": "1",
+          "warn": "0",
+          "info": "0",
+          "down": "2"
         }
       },
       {
@@ -887,6 +1130,18 @@
           "y": 1387.3125,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 0,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "0",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       },
       {
@@ -903,6 +1158,18 @@
           "y": 1456.15625,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 0,
+          "warn": 0,
+          "info": 174.15625,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "0",
+          "warn": "0",
+          "info": "2",
+          "down": "0"
         }
       },
       {
@@ -919,28 +1186,40 @@
           "y": 1525,
           "w": 174.15625,
           "h": 6
+        },
+        "segmentos": {
+          "ok": 0,
+          "warn": 0,
+          "info": 0,
+          "down": 0
+        },
+        "contagens": {
+          "ok": "0",
+          "warn": "0",
+          "info": "0",
+          "down": "0"
         }
       }
     ]
   },
   "erros": [],
   "rede": [
-    "2026-10-20T11:23:16.625Z [real] POST /auth/login",
-    "2026-10-20T11:23:16.717Z [real] GET /dashboard/resumo",
-    "2026-10-20T11:23:16.737Z [real] GET /dashboard/unidades",
-    "2026-10-20T11:23:16.738Z [real] GET /unidades?ativo=true",
-    "2026-10-20T11:23:16.738Z [real] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:23:16.722Z&fim=2026-10-20T11:23:16.722Z&size=200",
-    "2026-10-20T11:23:16.739Z [real] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:23:16.722Z&fim=2026-10-20T11:23:16.722Z&size=500",
-    "2026-10-20T11:23:16.739Z [real] GET /tipos-equipamento",
-    "2026-10-20T11:23:16.739Z [real] GET /equipamentos?size=500&sort=nome,asc",
-    "2026-10-20T11:23:18.372Z [sintetico] POST /auth/login",
-    "2026-10-20T11:23:18.465Z [sintetico] GET /dashboard/resumo",
-    "2026-10-20T11:23:18.480Z [sintetico] GET /dashboard/unidades",
-    "2026-10-20T11:23:18.483Z [sintetico] GET /unidades?ativo=true",
-    "2026-10-20T11:23:18.483Z [sintetico] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:23:18.469Z&fim=2026-10-20T11:23:18.469Z&size=200",
-    "2026-10-20T11:23:18.483Z [sintetico] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:23:18.470Z&fim=2026-10-20T11:23:18.470Z&size=500",
-    "2026-10-20T11:23:18.483Z [sintetico] GET /tipos-equipamento",
-    "2026-10-20T11:23:18.483Z [sintetico] GET /equipamentos?size=500&sort=nome,asc"
+    "2026-10-20T11:31:24.548Z [real] POST /auth/login",
+    "2026-10-20T11:31:24.674Z [real] GET /dashboard/resumo",
+    "2026-10-20T11:31:24.702Z [real] GET /dashboard/unidades",
+    "2026-10-20T11:31:24.702Z [real] GET /unidades?ativo=true",
+    "2026-10-20T11:31:24.703Z [real] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:31:24.679Z&fim=2026-10-20T11:31:24.679Z&size=200",
+    "2026-10-20T11:31:24.703Z [real] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:31:24.680Z&fim=2026-10-20T11:31:24.680Z&size=500",
+    "2026-10-20T11:31:24.703Z [real] GET /tipos-equipamento",
+    "2026-10-20T11:31:24.703Z [real] GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-20T11:31:27.093Z [sintetico] POST /auth/login",
+    "2026-10-20T11:31:27.217Z [sintetico] GET /dashboard/resumo",
+    "2026-10-20T11:31:27.246Z [sintetico] GET /dashboard/unidades",
+    "2026-10-20T11:31:27.253Z [sintetico] GET /unidades?ativo=true",
+    "2026-10-20T11:31:27.253Z [sintetico] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:31:27.222Z&fim=2026-10-20T11:31:27.222Z&size=200",
+    "2026-10-20T11:31:27.254Z [sintetico] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:31:27.223Z&fim=2026-10-20T11:31:27.223Z&size=500",
+    "2026-10-20T11:31:27.254Z [sintetico] GET /tipos-equipamento",
+    "2026-10-20T11:31:27.254Z [sintetico] GET /equipamentos?size=500&sort=nome,asc"
   ],
   "fatal": null
 }

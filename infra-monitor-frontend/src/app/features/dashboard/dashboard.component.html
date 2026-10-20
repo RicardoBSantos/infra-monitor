@@ -96,11 +96,12 @@
             </span>
             <span class="faixa col-composicao" [attr.aria-label]="unidade.equipamentosDisponiveis + ' online, ' + unidade.equipamentosDegradados + ' degradados, ' + unidade.equipamentosEmManutencao + ' em manutenção, ' + unidade.equipamentosIndisponiveis + ' offline'">
               <i class="faixa__ok" [style.width]="larguraFaixa(unidade.equipamentosDisponiveis, unidade.equipamentosTotal)"></i>
-              <i class="faixa__warn" [style.width]="larguraFaixa(unidade.equipamentosDegradados + unidade.equipamentosEmManutencao, unidade.equipamentosTotal)"></i>
+              <i class="faixa__warn" [style.width]="larguraFaixa(unidade.equipamentosDegradados, unidade.equipamentosTotal)"></i>
+              <i class="faixa__info" [style.width]="larguraFaixa(unidade.equipamentosEmManutencao, unidade.equipamentosTotal)"></i>
               <i class="faixa__down" [style.width]="larguraFaixa(unidade.equipamentosIndisponiveis, unidade.equipamentosTotal)"></i>
             </span>
             <span class="numerico contagens col-dispositivos">
-              <b class="ok">{{ unidade.equipamentosDisponiveis }}</b><b class="warn">{{ unidade.equipamentosDegradados + unidade.equipamentosEmManutencao }}</b><b class="down">{{ unidade.equipamentosIndisponiveis }}</b><em>/ {{ unidade.equipamentosTotal }}</em>
+              <b class="ok">{{ unidade.equipamentosDisponiveis }}</b><b class="warn">{{ unidade.equipamentosDegradados }}</b><b class="info" title="em manutenção">{{ unidade.equipamentosEmManutencao }}</b><b class="down">{{ unidade.equipamentosIndisponiveis }}</b><em>/ {{ unidade.equipamentosTotal }}</em>
             </span>
             <span class="numerico mono col-disponibilidade">{{ disponibilidadeDaUnidade(unidade.id) }}</span>
             <span class="numerico mono col-latencia">{{ latenciaDaUnidade(unidade.id) }}</span>

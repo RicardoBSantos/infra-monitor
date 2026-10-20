@@ -108,6 +108,19 @@ describe('DashboardComponent', () => {
     expect(texto(fixture)).toContain('Centro Operacional');
   });
 
+  it('manutenção tem segmento e contador próprios no tom info, separado do degradado', () => {
+    const fixture = create();
+    // Forma do Hotel Sesc Atalaia no dev: Disponível com 1 de 18 em manutenção e nenhum degradado.
+    const atalaia = { ...unidade, status: UnitOperationalStatus.Available, equipamentosTotal: 18, equipamentosAtivos: 18, equipamentosDisponiveis: 17,
+      equipamentosDegradados: 0, equipamentosIndisponiveis: 0, equipamentosSemDados: 0, equipamentosEmManutencao: 1, incidentesAbertos: 0 };
+    responderCarga(fixture, { ...resumo, incidentes: { abertos: 0 } }, [atalaia]);
+    const linha = (fixture.nativeElement as HTMLElement).querySelector('.unidade')!;
+    expect((linha.querySelector('.faixa__warn') as HTMLElement).style.width).toBe('0%');
+    expect((linha.querySelector('.faixa__info') as HTMLElement).style.width).toBe(`${(1 / 18) * 100}%`);
+    expect(linha.querySelector('.contagens .warn')!.textContent!.trim()).toBe('0');
+    expect(linha.querySelector('.contagens .info')!.textContent!.trim()).toBe('1');
+  });
+
   it('preenche disponibilidade e latência global com o que os relatórios devolvem', () => {
     const fixture = create();
     responderCarga(fixture);

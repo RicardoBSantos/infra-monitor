@@ -62,7 +62,7 @@
 
 .faixa { display: flex; height: 6px; overflow: hidden; border-radius: 3px; background: var(--im-surface-active); }
 .faixa i { display: block; height: 100%; }
-.faixa__ok { background: var(--im-success); } .faixa__warn { background: var(--im-warning); } .faixa__down { background: var(--im-danger); }
+.faixa__ok { background: var(--im-success); } .faixa__warn { background: var(--im-warning); } .faixa__info { background: var(--im-info-soft); } .faixa__down { background: var(--im-danger); }
 
 /* Manutenção parcial: a unidade não está EM_MANUTENCAO, mas tem equipamentos fora da leitura ICMP. */
 .chip-manutencao { display: inline-flex; box-sizing: border-box; max-width: 100%; min-width: 0; align-items: center; gap: 4px; height: 18px; padding: 0 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-pill); background: var(--im-surface); color: var(--im-info-soft); font: 10px var(--im-mono); }
@@ -86,7 +86,7 @@
 .forte { font-weight: 600; }
 .contagem { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
 .contagens { display: inline-flex; gap: 7px; align-items: baseline; font: 12px var(--im-mono); }
-.contagens b { font-weight: 600; } .contagens em { color: var(--im-text-dim); font-style: normal; }
+.contagens b { font-weight: 600; } .contagens .info { color: var(--im-info-soft); } .contagens em { color: var(--im-text-dim); font-style: normal; }
 .ok { color: var(--im-success); } .warn { color: var(--im-warning); } .down { color: var(--im-danger); }
 
 /* Select estilizado. O <select> nativo do SO renderiza fundo branco e seta clara,
