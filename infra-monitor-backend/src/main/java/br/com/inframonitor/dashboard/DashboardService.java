@@ -156,7 +156,9 @@ public class DashboardService {
                 equipamento.getLocalizacao(), equipamento.isAtivo(), status,
                 new DashboardEquipamentoResponse.TipoEquipamento(equipamento.getTipoEquipamento().getId(), equipamento.getTipoEquipamento().getNome()),
                 equipamento.isEmManutencao(), monitorAtivo.size(),
-                monitorAtivo.stream().filter(m -> incidentes.containsKey(m.getId())).count(), ultimaResponse,
+                equipamento.isAtivo() && !equipamento.isEmManutencao()
+                        ? monitorAtivo.stream().filter(m -> incidentes.containsKey(m.getId())).count() : 0L,
+                ultimaResponse,
                 equipamento.getHostname());
     }
 }

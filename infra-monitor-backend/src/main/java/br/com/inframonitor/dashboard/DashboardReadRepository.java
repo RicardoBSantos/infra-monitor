@@ -20,13 +20,16 @@ public class DashboardReadRepository {
             ), monitor_estado as (
                 select m.id, m.equipamento_id, m.ativo,
                     case when not m.ativo then 'DESABILITADO'
-                         when i.id is not null then 'INDISPONIVEL'
+                         when i.id is not null and e.ativo and not e.em_manutencao then 'INDISPONIVEL'
                          when um.id is null then 'SEM_DADOS'
                          when um.latencia_ms is not null and um.latencia_ms > ?1 then 'DEGRADADO'
                          else 'DISPONIVEL' end as status,
-                    case when i.id is null then 0 else 1 end as incidente_aberto,
+                    -- Incidente de monitor desativado ou de equipamento inativo/em manutencao e orfao:
+                    -- continua na lista de incidentes, mas nao e leitura operacional.
+                    case when i.id is not null and m.ativo and e.ativo and not e.em_manutencao then 1 else 0 end as incidente_aberto,
                     um.latencia_ms, um.executado_em, um.id as medicao_id
                 from monitor m
+                join equipamento e on e.id = m.equipamento_id
                 left join ultima_medicao um on um.monitor_id = m.id
                 left join incidente i on i.monitor_id = m.id and i.status in ('ABERTO', 'RECONHECIDO')
             ), equipamento_estado as (
@@ -60,7 +63,7 @@ public class DashboardReadRepository {
                     (select count(*) from monitor_estado where status = 'DEGRADADO'),
                     (select count(*) from monitor_estado where status = 'INDISPONIVEL'),
                     (select count(*) from monitor_estado where status = 'SEM_DADOS'),
-                    (select count(*) from incidente where status in ('ABERTO', 'RECONHECIDO'))
+                    (select coalesce(sum(incidente_aberto), 0) from monitor_estado)
                 from equipamento_estado ee
                 """).setParameter(1, limiarLatenciaDegradadaMs).getSingleResult();
         return new DashboardCounts(longValue(r[0]), longValue(r[1]), longValue(r[2]), longValue(r[3]),
