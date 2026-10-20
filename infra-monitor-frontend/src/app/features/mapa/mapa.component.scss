@@ -222,7 +222,7 @@
  * gutter é área de mapa que não se desenha. Em 1700px de viewport sobravam ~100px mortos de cada
  * lado, e a coluna do mapa passa de 1119 para ~1320px.
  */
-.map-page { display:flex; flex-direction:column; height:calc(100dvh - var(--im-topbar-height)); min-height:480px; padding:16px; color:var(--im-text); }
+.map-page { display:flex; flex-direction:column; height:calc(100dvh - var(--im-topbar-height)); min-height:480px; padding:var(--im-space-3); color:var(--im-text); }
 .panel-label { margin:0 0 4px; color:var(--im-text-muted); font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.12em; }
 /*
  * Página na altura da viewport (D20): `100dvh` menos a topbar, sem `--altura-mapa` e sem o cabeçalho
@@ -236,11 +236,14 @@
  */
 /* `minmax(0,1fr)` na LINHA, não só nas colunas: sem isso o item de grade tem `min-height:auto` e o
  * painel com unidade selecionada esticaria a linha — volta a rolagem que D11 fechou. */
-.map-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 320px; grid-template-rows:minmax(0,1fr); gap:var(--im-space-4); }.map-card,.map-panel { border:1px solid var(--im-border-strong); border-radius:var(--im-radius); background:var(--im-surface); }.map-card { position:relative; height:100%; overflow:hidden; background:radial-gradient(circle at 52% 48%,var(--im-map-glow) 0,var(--im-surface) 56%); }.map { display:block; width:100%; height:100%; }
-/* Sem `justify-content:space-between` (D14): com a legenda fechada e o rodapé fora, ele abriria vãos
+/* D21: folga de 12px (--im-space-3) no padding da página e no gap, iguais em todas as larguras. É do
+ * componente, não do shell: `.shell__main` não tem padding nenhum. Painel em clamp: 420px a partir de
+ * 1400px de viewport, encolhe com 30vw até o piso de 340px (≤1133px) e empilha em ≤900px. */
+.map-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) clamp(340px, 30vw, 420px); grid-template-rows:minmax(0,1fr); gap:var(--im-space-3); }.map-card,.map-panel { border:1px solid var(--im-border-strong); border-radius:var(--im-radius); background:var(--im-surface); }.map-card { position:relative; height:100%; overflow:hidden; background:radial-gradient(circle at 52% 48%,var(--im-map-glow) 0,var(--im-surface) 56%); }.map { display:block; width:100%; height:100%; }
+/* Sem `justify-content:space-between` (D14): com o rodapé fora e a legenda no cartão (D21), ele abriria vãos
  * entre os blocos. A sobra de altura fica no fim da coluna. Rolagem própria: a lista de afetados
  * pode crescer sem empurrar o mapa para fora da viewport (D11). */
-.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:#8797a6; }/* Hex literal e não token: espelha `COR_DO_STATUS['sem-dados']` em mapa.component.ts (D19) — muda junto. */.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:#667b8b; }/* Idem, espelha `COR_DO_STATUS['sem-equipamentos']`. */.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px 'IBM Plex Mono',monospace; letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 32px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo,.legend-bloco { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-page { padding:12px; }/* Padding de 12px: o cartão desconta 24px e não 32px (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); }.map-panel { grid-template-columns:1fr; } }
+.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:#8797a6; }/* Hex literal e não token: espelha `COR_DO_STATUS['sem-dados']` em mapa.component.ts (D19) — muda junto. */.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:#667b8b; }/* Idem, espelha `COR_DO_STATUS['sem-equipamentos']`. */.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px 'IBM Plex Mono',monospace; letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
 
 /* --- Painel lateral (M03) ------------------------------------------------------------ */
 .geo-status,.unit-panel { padding:12px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface-raised); }
@@ -279,15 +282,29 @@
 .map-card > .map-feedback--error { position:absolute; top:50%; left:50%; width:min(420px, calc(100% - 48px)); transform:translate(-50%,-50%); }
 /* Atualizar no topo do painel (D20), onde antes ficava o cabeçalho da página. */
 .map-panel__topo { display:flex; justify-content:flex-end; }
-/* Legenda recolhível (D20), fechada por padrão: libera a altura do painel para o detalhe da unidade. */
-.legend-bloco { padding:12px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface-raised); }
-.legend-bloco__resumo { display:flex; align-items:center; justify-content:space-between; list-style:none; cursor:pointer; }
+/* Legenda sobre o mapa (D21), fechada por padrão (D20). MESMA placa do `.map-titulo` — translúcida,
+ * blur, tema da aplicação — pelo mesmo motivo: o canvas é escuro nos dois temas e só a placa garante
+ * contraste. z-index 5 como o título (acima dos Markers; a dica de unidade, 6, ainda vence).
+ * Fechada vira um rótulo do tamanho do conteúdo; aberta tem largura fixa para as notas caberem numa
+ * linha. `max-height` deixa 120px livres no topo (título 12px + placa ~90px + folga): em cartão baixo
+ * a legenda rola por dentro em vez de cobrir o título. */
+.legend-bloco { position:absolute; left:12px; bottom:12px; z-index:5; max-width:calc(100% - 24px); max-height:calc(100% - 120px); overflow-y:auto; padding:0; border:1px solid var(--im-border); border-radius:var(--im-radius); background:color-mix(in srgb, var(--im-surface) 86%, transparent); backdrop-filter:blur(6px); box-shadow:0 4px 14px rgba(0,0,0,.18); }
+.legend-bloco[open] { width:min(292px, calc(100% - 24px)); padding:0 0 12px; }
+/* Só o summary alterna: o respiro vertical fica NELE (rótulo fechado ~33px de alto, alvo de toque >= 32px).
+ * Aberta, o conteúdo ganha as margens laterais de 12px que o padding do <details> não dá mais. */
+.legend-bloco__resumo { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:32px; padding:9px 12px; list-style:none; cursor:pointer; }
+.legend-bloco[open] > :not(summary) { margin-left:12px; margin-right:12px; }
 .legend-bloco__resumo::-webkit-details-marker { display:none; }
 .legend-bloco__resumo .panel-label { margin:0; }
-.legend-bloco__resumo::after { content:''; width:7px; height:7px; border-right:1.5px solid var(--im-text-muted); border-bottom:1.5px solid var(--im-text-muted); transform:rotate(45deg); transition:transform .15s ease; }
-.legend-bloco[open] > .legend-bloco__resumo::after { transform:rotate(-135deg); }
-.legend-bloco[open] > .legend-bloco__resumo { margin-bottom:9px; }
-.legend-bloco__resumo:focus-visible { outline:2px solid var(--im-primary); outline-offset:3px; border-radius:2px; }
+/* Abre para CIMA (ancorada no rodapé do cartão): fechada, a seta aponta para cima; aberta, para baixo. */
+.legend-bloco__resumo::after { content:''; width:7px; height:7px; margin-top:4px; border-right:1.5px solid var(--im-text-muted); border-bottom:1.5px solid var(--im-text-muted); transform:rotate(-135deg); transition:transform .15s ease; }
+.legend-bloco[open] > .legend-bloco__resumo::after { margin-top:-4px; transform:rotate(45deg); }
+.legend-bloco[open] > .legend-bloco__resumo { padding:12px 12px 9px; }
+/* Anel por dentro (offset negativo): o <details> rola (`overflow-y:auto`) e cortaria um anel externo. */
+.legend-bloco__resumo:focus-visible { outline:2px solid var(--im-primary); outline-offset:-3px; border-radius:var(--im-radius); }
+/* Texto da legenda em secundário e não em mudo: sobre a placa translúcida (86%) o mudo dá ~4:1 e não chega a 4,5:1.
+ * Escopo só na legenda; o `.panel-label` global do painel lateral não muda. */
+.legend-bloco .legend__intro, .legend-bloco .legend__nota, .legend-bloco__resumo .panel-label { color:var(--im-text-secondary); }
 @media (prefers-reduced-motion: reduce) { .legend-bloco__resumo::after { transition:none; } }
 @media (max-width:600px) { .map-titulo { max-width:calc(100% - 70px); padding:8px 11px; } .map-titulo h1 { font-size:16px; } }
 
@@ -303,7 +320,7 @@
 .map__voltar:focus-visible { outline:2px solid var(--cor-foco-mapa); outline-offset:2px; }
 
 /* --- Legenda 3D e regiao viva (N05) -------------------------------------------------- */
-/* Uma linha por nota no painel de 320px (D20): garantido pelo comprimento do texto, não por nowrap — se quebrar, quebra sem alargar a página. O e2e confere a altura. */
+/* Uma linha por nota na placa de 292px (D21): garantido pelo comprimento do texto, não por nowrap — se quebrar, quebra sem alargar a página. O e2e confere a altura. */
 .legend__nota { display:flex; align-items:flex-start; gap:7px; margin:9px 0 0; color:var(--im-text-muted); font-size:11px; line-height:1.45; }
 .legend__nota strong { color:var(--im-text-secondary); }
 /* Amostra do colar: mesmo lilas e mesma translucidez do que e desenhado no topo da extrusao. */

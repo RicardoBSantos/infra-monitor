@@ -52,7 +52,7 @@
       "caso": 2,
       "nome": "animação no ::after, nunca no elemento (DV13)",
       "ok": true,
-      "detalhe": "_ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none _ngcontent-ng-c823851742_map-pulsar/none"
+      "detalhe": "_ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none"
     },
     {
       "caso": 2,
@@ -70,13 +70,13 @@
       "caso": 3,
       "nome": "há marcador isolado o bastante para hover determinístico",
       "ok": true,
-      "detalhe": "unidade 4, vizinho mais próximo a 239px"
+      "detalhe": "unidade 4, vizinho mais próximo a 190px"
     },
     {
       "caso": 3,
       "nome": "transform de autor não entra: a matriz nunca ganha escala",
       "ok": true,
-      "detalhe": "matrix(1, 0, 0, 1, 664.801, 348.946) -> matrix(1, 0, 0, 1, 662.801, 346.946)"
+      "detalhe": "matrix(1, 0, 0, 1, 593.5, 295.5) -> matrix(1, 0, 0, 1, 591.5, 293.5)"
     },
     {
       "caso": 3,
@@ -112,13 +112,13 @@
       "caso": 5,
       "nome": "Tab alcança um marcador de unidade",
       "ok": true,
-      "detalhe": "unidade 7 em 94 passo(s) de Tab"
+      "detalhe": "unidade 7 em 95 passo(s) de Tab"
     },
     {
       "caso": 7,
       "nome": "nenhum ping recebeu foco na varredura de Tab",
       "ok": true,
-      "detalhe": "0 ping(s) focado(s) em 94 passo(s)"
+      "detalhe": "0 ping(s) focado(s) em 95 passo(s)"
     },
     {
       "caso": 5,
@@ -208,7 +208,7 @@
       "caso": 8,
       "nome": "todo ping percorre a linha — nenhum fica parado",
       "ok": true,
-      "detalhe": "18/18 em movimento · percurso mínimo 10.7px em 2,1s"
+      "detalhe": "18/18 em movimento · percurso mínimo 5.5px em 2,1s"
     },
     {
       "caso": 9,

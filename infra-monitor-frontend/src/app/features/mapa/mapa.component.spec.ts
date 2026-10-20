@@ -1,6 +1,6 @@
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, arcoEntre, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { agruparUnidades, ajusteDeEncaixe, arcoEntre, caixaDosPontos, convexoIntersectaRetangulo, envoltoriaConvexa, margensParaEvitar, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
@@ -290,5 +290,49 @@ describe('limites do municipio (zoom por clique)',()=>{
   });
   it('o centroide continua sendo o centro do mesmo envelope',()=>{
     expect(centroideAproximado(geoJson.features[0].geometry)).toEqual([-37.5,-10.5]);
+  });
+});
+
+describe('encaixe calculado do estado (D22)',()=>{
+  it('envoltoria convexa descarta pontos internos e colineares',()=>{
+    const h=envoltoriaConvexa([[0,0],[2,0],[1,0],[2,2],[0,2],[1,1],[0,1]]);
+    expect(h.length).toBe(4);
+    expect(h).toEqual(expect.arrayContaining([[0,0],[2,0],[2,2],[0,2]]));
+  });
+  it('envoltoria de menos de 3 pontos devolve os pontos',()=>{ expect(envoltoriaConvexa([[1,1]])).toEqual([[1,1]]); });
+  it('caixa envolvente dos pontos de tela',()=>{
+    expect(caixaDosPontos([{x:3,y:9},{x:-1,y:2},{x:5,y:4}])).toEqual({x0:-1,y0:2,x1:5,y1:9});
+  });
+  it('ajuste: caixa ja centrada so escala, pelo eixo que limita',()=>{
+    const a=ajusteDeEncaixe({x0:40,y0:45,x1:60,y1:55},{x0:0,y0:0,x1:100,y1:100},[50,50]);
+    expect(a.escala).toBeCloseTo(5); expect(a.tx).toBeCloseTo(0); expect(a.ty).toBeCloseTo(0);
+  });
+  it('ajuste: transladar e escalar leva o centro da caixa ao centro da area',()=>{
+    const caixa={x0:10,y0:10,x1:30,y1:20}; const area={x0:50,y0:0,x1:100,y1:100}; const c:[number,number]=[50,50];
+    const {escala,tx,ty}=ajusteDeEncaixe(caixa,area,c);
+    const centroFinal=(v:number,t:number,cc:number)=>cc+escala*(v+t-cc);
+    expect(centroFinal(20,tx,c[0])).toBeCloseTo(75); expect(centroFinal(15,ty,c[1])).toBeCloseTo(50);
+    expect(escala*(caixa.x1-caixa.x0)).toBeCloseTo(50);
+  });
+  it('convexo x retangulo: vertice dentro, canto dentro, aresta cruzando e separados',()=>{
+    const tri=[{x:0,y:0},{x:100,y:0},{x:0,y:100}];
+    expect(convexoIntersectaRetangulo(tri,{x0:-10,y0:-10,x1:5,y1:5})).toBe(true);
+    expect(convexoIntersectaRetangulo(tri,{x0:10,y0:10,x1:20,y1:20})).toBe(true);
+    expect(convexoIntersectaRetangulo(tri,{x0:-10,y0:40,x1:200,y1:45})).toBe(true);
+    // Caixa sobreposta a envolvente, mas do outro lado da hipotenusa: o eixo da aresta separa.
+    expect(convexoIntersectaRetangulo(tri,{x0:60,y0:60,x1:90,y1:90})).toBe(false);
+    expect(convexoIntersectaRetangulo([],{x0:0,y0:0,x1:1,y1:1})).toBe(false);
+  });
+  it('margens para evitar sobreposicao no canto superior esquerdo, espelhando',()=>{
+    const m={top:24,right:24,bottom:24,left:24};
+    const [v,h]=margensParaEvitar(m,{x0:12,y0:12,x1:342,y1:110},800,800,12,true);
+    expect(v).toEqual({top:122,right:24,bottom:122,left:24});
+    expect(h).toEqual({top:24,right:354,bottom:24,left:354});
+  });
+  it('legenda aberta no canto inferior esquerdo nao espelha: o recuo e de um lado so',()=>{
+    const m={top:24,right:24,bottom:24,left:24};
+    const [v,h]=margensParaEvitar(m,{x0:12,y0:521,x1:304,y1:788},800,800,12,false);
+    expect(v).toEqual({top:24,right:24,bottom:291,left:24});
+    expect(h).toEqual({top:24,right:24,bottom:24,left:316});
   });
 });

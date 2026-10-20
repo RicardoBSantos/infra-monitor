@@ -17,17 +17,18 @@
  * - preservação dos nós em pan/zoom/pitch — nenhum marcador recriado, que é o que autoriza dizer
  *   que a lib reposiciona em vez de o componente redesenhar;
  * - ausência de rolagem na área principal do shell (D11);
- * - ausência de faixa morta depois da recalibração de câmera (D11 não pode desfazer D04).
+ * - enquadramento do estado em pixel, nos dois eixos, em 9 viewports (D22).
  *
  * A camada `conexoes-linha` NÃO é verificada aqui: ela vive no WebGL do MapLibre e não é
  * inspecionável pelo DOM. Cobertura real é o teste unitário de `camadasDeConexao`
  * (mapa.component.spec.ts) mais as capturas deste próprio roteiro.
  */
 const { chromium } = require('playwright');
+const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
-const API = 'http://localhost:8080/api/v1';
+const API = `http://localhost:${process.env.API_PORT || 8080}/api/v1`;
 const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N06_SENHA;
 if (!SENHA) throw new Error('N06_SENHA é obrigatória');
@@ -36,6 +37,7 @@ const OUT = path.join(__dirname, 'n06-evidence');
 fs.mkdirSync(OUT, { recursive: true });
 
 const resultados = [];
+const medidas = {};
 const checar = (caso, nome, ok, detalhe) => { resultados.push({ caso, nome, ok: !!ok, detalhe: detalhe ?? '' }); };
 
 /** Estado dos marcadores de unidade, lido do DOM real. `no` identifica a instância do elemento. */
@@ -72,35 +74,77 @@ const focado = (page) => page.evaluate(() => {
 });
 
 /**
- * Faixa morta, medida por geometria e não por pixel.
+ * Enquadramento do estado, medido em PIXEL sobre screenshot do cartão.
  *
- * Ler o canvas com `drawImage` não funciona: `preserveDrawingBuffer` está desligado (o padrão, e
- * ligá-lo custa desempenho em todo frame só para o teste), então a leitura sai transparente e
- * qualquer limiar acusa 100% de faixa morta — foi o que aconteceu na primeira execução.
- *
- * O que se mede aqui é a caixa que contém os alvos de município (`.map__alvo`, um por centróide)
- * comparada à caixa do cartão. Não é a borda do estado — é uma referência interna a ela, e portanto
- * SUBESTIMA o quanto o desenho ocupa. Serve para o que interessa: comparar enquadramentos entre si
- * e detectar o desequilíbrio topo-vs-base que caracteriza a faixa morta.
+ * A medida anterior usava a posição dos `.map__alvo` (centróides) só no eixo vertical. A mutação de
+ * D22 provou que ela era cega a corte e a deslocamento lateral: um corte real passou em 1500x950, e o
+ * limite antigo apenas acompanhava a implementação. Aqui compara-se o cartão COM e SEM o canvas do
+ * MapLibre; título, legenda, controles e marcadores (DOM) são idênticos nas duas e se cancelam, e o
+ * que sobra de diferente é o desenho do mapa. Independe do tema porque só olha a diferença.
  */
-const medirFaixa = (page) => page.evaluate(() => {
-  const cartao = document.querySelector('.map-card').getBoundingClientRect();
-  const alvos = [...document.querySelectorAll('.map__alvo')].map((n) => n.getBoundingClientRect());
-  if (!alvos.length) return null;
-  const topo = Math.min(...alvos.map((c) => c.top)) - cartao.top;
-  const base = cartao.bottom - Math.max(...alvos.map((c) => c.bottom));
+const LIMIAR_PIXEL = 24;
+const medirEnquadramento = async (page) => {
+  const cartao = page.locator('.map-card');
+  const com = await cartao.screenshot();
+  await page.evaluate(() => { document.querySelector('.maplibregl-canvas').style.visibility = 'hidden'; });
+  let sem;
+  try { sem = await cartao.screenshot(); }
+  finally { await page.evaluate(() => { document.querySelector('.maplibregl-canvas').style.visibility = ''; }); }
+  const medida = await page.evaluate(async ({ a, b, limiar }) => {
+    const ler = (b64) => new Promise((ok, erro) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+        ok(g.getImageData(0, 0, img.width, img.height));
+      };
+      img.onerror = () => erro(new Error('PNG não decodificou'));
+      img.src = 'data:image/png;base64,' + b64;
+    });
+    const [A, B] = await Promise.all([ler(a), ler(b)]);
+    const { width: w, height: h } = A;
+    let minX = w, maxX = -1, minY = h, maxY = -1, n = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const k = (y * w + x) * 4;
+      const d = Math.max(Math.abs(A.data[k] - B.data[k]), Math.abs(A.data[k + 1] - B.data[k + 1]), Math.abs(A.data[k + 2] - B.data[k + 2]));
+      if (d > limiar) { n++; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    }
+    if (!n) return { w, h, n };
+    return { w, h, n, esq: minX, dir: w - 1 - maxX, topo: minY, base: h - 1 - maxY };
+  }, { a: com.toString('base64'), b: sem.toString('base64'), limiar: LIMIAR_PIXEL });
+  if (!medida.n) return { ...medida, com };
+  const { w, h, esq, dir, topo, base } = medida;
   return {
-    altura: Math.round(cartao.height),
-    topo: +(topo / cartao.height).toFixed(3),
-    base: +(base / cartao.height).toFixed(3),
-    desequilibrio: +(Math.abs(base - topo) / cartao.height).toFixed(3),
+    ...medida, com,
+    pEsq: esq / w, pDir: dir / w, pTopo: topo / h, pBase: base / h,
+    sobraV: (topo + base) / h, sobraH: (esq + dir) / w,
   };
-});
+};
+
+/** Câmera parada: os alvos de município param de mudar de posição entre leituras sucessivas. */
+const esperarCameraParada = async (page) => {
+  const ler = () => page.evaluate(() => [...document.querySelectorAll('.map__alvo')]
+    .map((n) => { const c = n.getBoundingClientRect(); return Math.round(c.x) + ',' + Math.round(c.y); }).join('|'));
+  let anterior = null, iguais = 0;
+  for (let i = 0; i < 60 && iguais < 3; i++) {
+    await page.waitForTimeout(300);
+    const atual = await ler();
+    iguais = atual && atual === anterior ? iguais + 1 : 0;
+    anterior = atual;
+  }
+  if (iguais < 3) throw new Error('câmera não parou');
+};
+
+const VIEWPORTS_ENQUADRAMENTO = [
+  [1500, 950], [1525, 950], [1440, 864], [1366, 768], [1300, 950], [1280, 720], [1024, 768], [1600, 900], [1920, 1080],
+];
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
   let fatal = null;
-  const page = await browser.newPage({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+  await apontarApi(ctx);
+  const page = await ctx.newPage();
   const erros = [];
   page.on('pageerror', (e) => erros.push(e.message));
 
@@ -193,7 +237,7 @@ const medirFaixa = (page) => page.evaluate(() => {
     });
     checar(4, 'área principal do shell não rola', rolagem.principal <= 1, `excedente ${rolagem.principal}px`);
     checar(4, 'documento não rola', rolagem.documento <= 1, `excedente ${rolagem.documento}px`);
-    checar(4, 'painel lateral com a largura nova', rolagem.larguraPainel >= 318 && rolagem.larguraPainel <= 322, `${rolagem.larguraPainel}px`);
+    checar(4, 'painel lateral com 420px (D21)', rolagem.larguraPainel >= 419 && rolagem.larguraPainel <= 421, `${rolagem.larguraPainel}px`);
 
     /*
      * Remontagem de verdade antes de medir enquadramento. Clicar em /mapa estando em /mapa é no-op
@@ -206,17 +250,37 @@ const medirFaixa = (page) => page.evaluate(() => {
     await page.click('a[href="/mapa"]');
     await page.waitForSelector('.map__alvo', { timeout: 20000 });
     await page.waitForTimeout(1800);
-    const faixa = await medirFaixa(page);
-    // O alvo não é margem zero (o centróide nunca encosta na borda), é EQUILÍBRIO: faixa morta é
-    // sobra concentrada de um lado só. Até 6 pontos percentuais de diferença passa despercebido.
-    // D20: o teto da sobra total subiu de 34% para 40%. Os centróides subestimam o desenho em ~7 p.p.
-    // (medida em pixel: 31,7%), e a câmera nova (OFFSET [0,-28], ZOOM_AO_INCLINAR 0,42) já está no
-    // limite: passar de 34% pela medida de centróide cortaria a ponta oeste em 1280x800. O critério
-    // de equilíbrio acima, que é o que define faixa morta, NÃO mudou.
-    checar(4, 'enquadramento equilibrado entre topo e base', faixa.desequilibrio <= 0.06,
-      `topo ${(faixa.topo * 100).toFixed(1)}% · base ${(faixa.base * 100).toFixed(1)}% · desequilíbrio ${(faixa.desequilibrio * 100).toFixed(1)} p.p.`);
-    checar(4, 'desenho ocupa a maior parte da altura do cartão', faixa.topo + faixa.base <= 0.40,
-      `sobra total ${((faixa.topo + faixa.base) * 100).toFixed(1)}%`);
+    await esperarCameraParada(page);
+    // Legenda fechada e nenhuma unidade selecionada: a remontagem acima garante os dois.
+    const enquadramento = [];
+    for (const [largura, altura] of VIEWPORTS_ENQUADRAMENTO) {
+      const rotulo = `${largura}x${altura}`;
+      await page.setViewportSize({ width: largura, height: altura });
+      await esperarCameraParada(page);
+      const m = await medirEnquadramento(page);
+      if (largura === 1500 && altura === 950) fs.writeFileSync(path.join(OUT, '04-enquadramento-1500x950.png'), m.com);
+      if (!m.n) {
+        checar(4, `${rotulo}: desenho do mapa detectado no cartão`, false, 'nenhum pixel diferente entre com e sem canvas');
+        enquadramento.push({ viewport: rotulo, erro: 'sem pixels' });
+        continue;
+      }
+      const pct = (v) => (v * 100).toFixed(1);
+      const margens = `esq ${m.esq}px (${pct(m.pEsq)}%) · dir ${m.dir}px (${pct(m.pDir)}%) · topo ${m.topo}px (${pct(m.pTopo)}%) · base ${m.base}px (${pct(m.pBase)}%)`;
+      const sobra = Math.min(m.sobraV, m.sobraH);
+      const desV = Math.abs(m.pTopo - m.pBase), desH = Math.abs(m.pEsq - m.pDir);
+      checar(4, `${rotulo}: sem corte (margem >= 8px nos quatro lados)`, Math.min(m.esq, m.dir, m.topo, m.base) >= 8, margens);
+      checar(4, `${rotulo}: sobra do eixo limitante <= 25%`, sobra <= 0.25,
+        `sobraV ${pct(m.sobraV)}% · sobraH ${pct(m.sobraH)}% · limitante ${pct(sobra)}%`);
+      checar(4, `${rotulo}: equilíbrio topo/base e esq/dir <= 6 p.p.`, desV <= 0.06 && desH <= 0.06,
+        `topo-base ${pct(desV)} p.p. · esq-dir ${pct(desH)} p.p.`);
+      enquadramento.push({ viewport: rotulo, cartao: `${m.w}x${m.h}`, esq: m.esq, dir: m.dir, topo: m.topo, base: m.base,
+        pEsq: +pct(m.pEsq), pDir: +pct(m.pDir), pTopo: +pct(m.pTopo), pBase: +pct(m.pBase),
+        sobraV: +pct(m.sobraV), sobraH: +pct(m.sobraH), desequilibrioV: +pct(desV), desequilibrioH: +pct(desH) });
+    }
+    medidas.enquadramento = enquadramento;
+    // Volta ao viewport original para os casos seguintes.
+    await page.setViewportSize({ width: 1500, height: 950 });
+    await esperarCameraParada(page);
 
     // O painel não pode ter buraco: sem município selecionado o conteúdo é curto e a sobra vai para
     // as costuras entre blocos, distribuída. 307px numa costura só foi o que motivou a mudança.
@@ -264,7 +328,7 @@ const medirFaixa = (page) => page.evaluate(() => {
     // ------------------------------------------------------------- 6. capturas
     await page.screenshot({ path: path.join(OUT, '01-tela-inteira.png') });
     await page.locator('.map-card').screenshot({ path: path.join(OUT, '02-mapa-marcadores-e-linhas.png') });
-    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '04-painel-320px.png') });
+    await page.locator('.map-panel').screenshot({ path: path.join(OUT, '04-painel-420px.png') });
     await page.screenshot({ path: path.join(OUT, 'final.png') });
   } catch (erro) {
     fatal = erro;
@@ -272,7 +336,7 @@ const medirFaixa = (page) => page.evaluate(() => {
     checar(0, 'nenhum erro de página', erros.length === 0, erros.join(' | '));
     const falhas = resultados.filter((r) => !r.ok);
     fs.writeFileSync(path.join(OUT, 'n06-marcadores-e-conexoes.json'),
-      JSON.stringify({ resultados, falhas: falhas.length, fatal: fatal ? fatal.message : null }, null, 2));
+      JSON.stringify({ medidas, resultados, falhas: falhas.length, fatal: fatal ? fatal.message : null }, null, 2));
     for (const r of resultados) console.log(`${r.ok ? 'OK  ' : 'FALHA'} [${r.caso}] ${r.nome}${r.detalhe ? ` — ${r.detalhe}` : ''}`);
     console.log(`\n${resultados.length - falhas.length}/${resultados.length}`);
     if (fatal) console.error(`\nFATAL: ${fatal.message}`);

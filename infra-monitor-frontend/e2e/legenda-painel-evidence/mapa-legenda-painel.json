@@ -1,0 +1,1302 @@
+{
+  "resultados": [
+    {
+      "caso": 1,
+      "nome": "legenda é filha direta de .map-card e não existe em .map-panel",
+      "ok": true,
+      "detalhe": "{\"noCartao\":true,\"noPainel\":false,\"open\":false,\"attrOpen\":false}"
+    },
+    {
+      "caso": 1,
+      "nome": "legenda fechada por padrão (sem atributo open)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "legenda no canto inferior esquerdo do cartão, a 12px das bordas (±2)",
+      "ok": true,
+      "detalhe": "esquerda 13.0px · inferior 13.0px"
+    },
+    {
+      "caso": 1,
+      "nome": "controle de zoom presente e com área",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "legenda fechada não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 1,
+      "nome": "alvo de toque: summary fechado com altura >= 32px",
+      "ok": true,
+      "detalhe": "165.4x32.0px"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda aberta: 6 itens e 2 notas",
+      "ok": true,
+      "detalhe": "6 li, 2 notas"
+    },
+    {
+      "caso": 2,
+      "nome": "textos exatos das duas notas",
+      "ok": true,
+      "detalhe": "[\"Município é neutro: situa, não indica estado.\",\"Arco liga unidade ao hub, na cor do status.\"]"
+    },
+    {
+      "caso": 2,
+      "nome": "cada nota em uma linha (altura <= 1,5x line-height)",
+      "ok": true,
+      "detalhe": "15.9px/lh 15.9 | 15.9px/lh 15.9"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda aberta não intersecta o título nem o controle de zoom e cabe no cartão",
+      "ok": true,
+      "detalhe": "livre=true dentroDoCartao=true"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "290/290"
+    },
+    {
+      "caso": 2,
+      "nome": "mesma placa do título (backgroundColor e backdropFilter iguais)",
+      "ok": true,
+      "detalhe": "legenda color(srgb 1 1 1 / 0.86) · blur(6px) | título color(srgb 1 1 1 / 0.86) · blur(6px)"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): itens >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): introdução >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): notas >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (inicial-light): rótulo do summary >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.84:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): itens >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): introdução >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): notas >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "contraste (alternado): rótulo do summary >= 4,5 sobre a placa composta em #16283a",
+      "ok": true,
+      "detalhe": "5.05:1"
+    },
+    {
+      "caso": 2,
+      "nome": "tema original restaurado após a medição",
+      "ok": true,
+      "detalhe": "color(srgb 1 1 1 / 0.86)"
+    },
+    {
+      "caso": 2,
+      "nome": "teclado: Enter no summary fecha e abre de novo",
+      "ok": true,
+      "detalhe": "fechou=true abriu=true"
+    },
+    {
+      "caso": 2,
+      "nome": "legenda deixada fechada no fim do caso",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "clique no polígono aproxima e faz aparecer .map__voltar (\"Ver estado inteiro\")",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "1600x900: .map__voltar presente e com área",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "1600x900: legenda aberta não intersecta \"Ver estado inteiro\", título nem zoom",
+      "ok": true,
+      "detalhe": "legenda t=608 · voltar b=203"
+    },
+    {
+      "caso": "2c",
+      "nome": "1024x768: .map__voltar presente e com área",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2c",
+      "nome": "1024x768: legenda aberta não intersecta \"Ver estado inteiro\", título nem zoom",
+      "ok": true,
+      "detalhe": "legenda t=476 · voltar b=203"
+    },
+    {
+      "caso": "2c",
+      "nome": "\"Ver estado inteiro\" restaura o enquadramento (botão some)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "2d",
+      "nome": "Atualizar com a legenda aberta: continua aberta, visível e é o mesmo nó do DOM",
+      "ok": true,
+      "detalhe": "{\"open\":true,\"visivel\":true,\"mesmoNo\":true}"
+    },
+    {
+      "caso": 3,
+      "nome": "shell__main sem padding (a folga é do componente)",
+      "ok": true,
+      "detalhe": "padding=\"0px\""
+    },
+    {
+      "caso": 3,
+      "nome": ".map-page com padding de 12px nos 4 lados",
+      "ok": true,
+      "detalhe": "12px 12px 12px 12px"
+    },
+    {
+      "caso": 3,
+      "nome": ".map-layout com column-gap de 12px",
+      "ok": true,
+      "detalhe": "12px"
+    },
+    {
+      "caso": 3,
+      "nome": "cartão a 12px do início do main (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 3,
+      "nome": "painel a 12px do fim útil do main, sem a barra de rolagem (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 3,
+      "nome": "cartão e painel separados por 12px (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 3,
+      "nome": "cartão a 12px da base da janela (±1)",
+      "ok": true,
+      "detalhe": "12.0px"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] .map-panel com 420px de largura em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] KPIs em 2 colunas e rótulos (dt) sem estouro",
+      "ok": true,
+      "detalhe": "2 colunas · 6 dt · estourados: -"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] .aviso-ibge",
+      "ok": true,
+      "na": true,
+      "detalhe": "NÃO APLICÁVEL: a unidade não tem divergência de IBGE"
+    },
+    {
+      "caso": 4,
+      "nome": "[Escola] legenda aberta com unidade selecionada não intersecta título nem controle e cabe no cartão",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1920x1080: painel 420px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1920x1080: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1920x1080: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1600x900: painel 420px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1600x900: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1600x900: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1400x900: painel 420px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1400x900: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1400x900: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1366x768: painel 410px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "409.8px"
+    },
+    {
+      "caso": 5,
+      "nome": "1366x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1366x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1280x720: painel 384px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "384.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1280x720: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1280x720: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1133x768: painel 340px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "340.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1133x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1133x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768: painel 340px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "340.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "1024x768 com unidade: KPIs em 2 colunas e dt sem estouro (piso de 340px)",
+      "ok": true,
+      "detalhe": "2 colunas · estourados: -"
+    },
+    {
+      "caso": 5,
+      "nome": "901x768: painel 340px (clamp 340/30vw/420, ±1,5)",
+      "ok": true,
+      "detalhe": "340.0px"
+    },
+    {
+      "caso": 5,
+      "nome": "901x768: sem rolagem vertical em main nem no documento; .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0"
+    },
+    {
+      "caso": 5,
+      "nome": "901x768: legenda aberta não intersecta o título nem o controle de zoom",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "900x768: empilhado (painel abaixo do cartão)",
+      "ok": true,
+      "detalhe": "painel.top 768.0 · cartão.bottom 756.0"
+    },
+    {
+      "caso": 5,
+      "nome": "900x768: .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "0"
+    },
+    {
+      "caso": 5,
+      "nome": "900x768: legenda aberta dentro do cartão e sem intersectar o título",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 5,
+      "nome": "390x844: empilhado (painel abaixo do cartão)",
+      "ok": true,
+      "detalhe": "painel.top 844.0 · cartão.bottom 832.0"
+    },
+    {
+      "caso": 5,
+      "nome": "390x844: .map-page sem estouro horizontal",
+      "ok": true,
+      "detalhe": "0"
+    },
+    {
+      "caso": 5,
+      "nome": "390x844: legenda aberta dentro do cartão e sem intersectar o título",
+      "ok": true,
+      "detalhe": "livre=true dentro=true"
+    },
+    {
+      "caso": 6,
+      "nome": "a gaveta nas duas telas é a do mesmo equipamento",
+      "ok": true,
+      "detalhe": "mapa=\"CME-10-U2\" equipamentos=\"CME-10-U2\" esperado=\"CME-10-U2\""
+    },
+    {
+      "caso": 6,
+      "nome": "gaveta com a mesma largura no Mapa e em Equipamentos (±1)",
+      "ok": true,
+      "detalhe": "660.0 × 660.0"
+    },
+    {
+      "caso": 6,
+      "nome": "gaveta com o mesmo top e o mesmo right nas duas telas (±1)",
+      "ok": true,
+      "detalhe": "top 0.0 × 0.0 · right 1600.0 × 1600.0"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] .map-panel com 420px em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] aviso começa com \"Localização divergente.\"",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] aviso cita o código IBGE desta unidade (2803005)",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai em Itabaiana, mas o código IBGE aponta Itabaianinha (2803005). O mapa posiciona pela coordenada."
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] aviso sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "359/359"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] aviso inteiro dentro da caixa visível do painel",
+      "ok": true,
+      "detalhe": "{\"aviso\":{\"l\":1197,\"t\":361.390625,\"r\":1559,\"b\":410.890625},\"painel\":{\"l\":1168,\"t\":68,\"r\":1588,\"b\":888}}"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] aviso com fonte >= 11px",
+      "ok": true,
+      "detalhe": "11px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] aviso com contraste >= 4,5:1 sobre o fundo efetivo",
+      "ok": true,
+      "detalhe": "7.69:1 (3 linhas)"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] .map-panel com 420px em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] aviso começa com \"Localização divergente.\"",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] aviso cita o código IBGE desta unidade (2802205)",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai em Estância, mas o código IBGE aponta Feira Nova (2802205). O mapa posiciona pela coordenada."
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] aviso sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "359/359"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] aviso inteiro dentro da caixa visível do painel",
+      "ok": true,
+      "detalhe": "{\"aviso\":{\"l\":1197,\"t\":361.390625,\"r\":1559,\"b\":410.890625},\"painel\":{\"l\":1168,\"t\":68,\"r\":1588,\"b\":888}}"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] aviso com fonte >= 11px",
+      "ok": true,
+      "detalhe": "11px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] aviso com contraste >= 4,5:1 sobre o fundo efetivo",
+      "ok": true,
+      "detalhe": "7.69:1 (3 linhas)"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] .map-panel com 420px em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] aviso começa com \"Localização divergente.\"",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] aviso cita o código IBGE desta unidade (2805307)",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai em Propriá, mas o código IBGE aponta Pirambu (2805307). O mapa posiciona pela coordenada."
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] aviso sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "359/359"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] aviso inteiro dentro da caixa visível do painel",
+      "ok": true,
+      "detalhe": "{\"aviso\":{\"l\":1197,\"t\":361.390625,\"r\":1559,\"b\":394.390625},\"painel\":{\"l\":1168,\"t\":68,\"r\":1588,\"b\":888}}"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] aviso com fonte >= 11px",
+      "ok": true,
+      "detalhe": "11px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] aviso com contraste >= 4,5:1 sobre o fundo efetivo",
+      "ok": true,
+      "detalhe": "7.69:1 (2 linhas)"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] .map-panel com 420px em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] aviso começa com \"Localização divergente.\"",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] aviso cita o código IBGE desta unidade (2806800)",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai em Simão Dias, mas o código IBGE aponta São Domingos (2806800). O mapa posiciona pela coordenada."
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] aviso sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "359/359"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] aviso inteiro dentro da caixa visível do painel",
+      "ok": true,
+      "detalhe": "{\"aviso\":{\"l\":1197,\"t\":361.390625,\"r\":1559,\"b\":410.890625},\"painel\":{\"l\":1168,\"t\":68,\"r\":1588,\"b\":888}}"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] aviso com fonte >= 11px",
+      "ok": true,
+      "detalhe": "11px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] aviso com contraste >= 4,5:1 sobre o fundo efetivo",
+      "ok": true,
+      "detalhe": "7.69:1 (3 linhas)"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] .map-panel com 420px em 1600x900 (±1)",
+      "ok": true,
+      "detalhe": "420.0px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] aviso começa com \"Localização divergente.\"",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] aviso cita o código IBGE desta unidade (2804607)",
+      "ok": true,
+      "detalhe": "Localização divergente. A coordenada cai em Nossa Senhora do Socorro, mas o código IBGE aponta Nossa Senhora das Dores (2804607). O mapa posiciona pela coordenada."
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] aviso sem estouro horizontal (scrollWidth <= clientWidth)",
+      "ok": true,
+      "detalhe": "359/359"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] aviso inteiro dentro da caixa visível do painel",
+      "ok": true,
+      "detalhe": "{\"aviso\":{\"l\":1197,\"t\":361.390625,\"r\":1559,\"b\":410.890625},\"painel\":{\"l\":1168,\"t\":68,\"r\":1588,\"b\":888}}"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] aviso com fonte >= 11px",
+      "ok": true,
+      "detalhe": "11px"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] aviso com contraste >= 4,5:1 sobre o fundo efetivo",
+      "ok": true,
+      "detalhe": "7.69:1 (3 linhas)"
+    },
+    {
+      "caso": 7,
+      "nome": "unidades com aviso == conjunto esperado (exato)",
+      "ok": true,
+      "detalhe": "obtido=[\"Sesc Itabaiana\",\"Unidade Estância\",\"Unidade Propriá\",\"Unidade Simão Dias\",\"Unidade Socorro\"] esperado=[\"Sesc Itabaiana\",\"Unidade Estância\",\"Unidade Propriá\",\"Unidade Simão Dias\",\"Unidade Socorro\"]"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Propriá] código IBGE do payload == esperado (2805307)",
+      "ok": true,
+      "detalhe": "2805307"
+    },
+    {
+      "caso": 7,
+      "nome": "[Sesc Itabaiana] código IBGE do payload == esperado (2803005)",
+      "ok": true,
+      "detalhe": "2803005"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Estância] código IBGE do payload == esperado (2802205)",
+      "ok": true,
+      "detalhe": "2802205"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Simão Dias] código IBGE do payload == esperado (2806800)",
+      "ok": true,
+      "detalhe": "2806800"
+    },
+    {
+      "caso": 7,
+      "nome": "[Unidade Socorro] código IBGE do payload == esperado (2804607)",
+      "ok": true,
+      "detalhe": "2804607"
+    },
+    {
+      "caso": 8,
+      "nome": "mapa remontado sem unidade selecionada",
+      "ok": true,
+      "detalhe": "0 painéis de unidade"
+    },
+    {
+      "caso": 8,
+      "nome": "1920x1080: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1920x1080: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1920x1080: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1600x900: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1600x900: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1600x900: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1500x950: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1500x950: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1500x950: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1525x950: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1525x950: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1525x950: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1440x864: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1440x864: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1440x864: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1366x768: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1366x768: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1366x768: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1300x950: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1300x950: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1300x950: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1280x720: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1280x720: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1280x720: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "1024x768: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "1024x768: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "1024x768: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "390x844: há marcadores no mapa",
+      "ok": true,
+      "detalhe": "11"
+    },
+    {
+      "caso": 8,
+      "nome": "390x844: legenda aberta cobre 0 marcadores (caixa +4px)",
+      "ok": true,
+      "detalhe": "0 de 11"
+    },
+    {
+      "caso": 8,
+      "nome": "390x844: fechar a legenda reenquadra de volta (deslocamento máx <= 2px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "contexto normal: 100ms após abrir a legenda os marcadores ainda andam (> 2px do final)",
+      "ok": true,
+      "detalhe": "116.32px"
+    },
+    {
+      "caso": 8,
+      "nome": "contexto reduced-motion ativo (matchMedia)",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": 8,
+      "nome": "reduced-motion: 100ms após abrir a legenda os marcadores já estão no final (<= 1px)",
+      "ok": true,
+      "detalhe": "0.00px"
+    },
+    {
+      "caso": 8,
+      "nome": "reduced-motion: a abertura de fato reenquadrou (marcadores saíram do lugar > 2px)",
+      "ok": true,
+      "detalhe": "136.88px"
+    },
+    {
+      "caso": 0,
+      "nome": "nenhum erro de página, de console nem resposta 5xx",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "falhas": 0,
+  "medidas": {
+    "unidadesAlvo": [
+      {
+        "id": 2,
+        "nome": "Escola Sesc Aracaju",
+        "degradados": 1,
+        "indisponiveis": 0
+      }
+    ],
+    "unidadesNoPayload": 11,
+    "unidadesComCoordenada": 11,
+    "legendaFechada": {
+      "insetEsquerdo": 13,
+      "insetInferior": 13,
+      "largura": 167.4,
+      "altura": 34,
+      "alturaDoResumo": 32
+    },
+    "legendaAberta": {
+      "largura": 292,
+      "altura": 267.2,
+      "topo": 607.8
+    },
+    "contrasteLegenda": {
+      "inicial-light": {
+        "placa": [
+          222,
+          225,
+          227
+        ],
+        "itens": 5.84,
+        "intro": 5.84,
+        "notas": 5.84,
+        "rotulo": 5.84
+      },
+      "alternado": {
+        "placa": [
+          12,
+          19,
+          28
+        ],
+        "itens": 5.05,
+        "intro": 5.05,
+        "notas": 5.05,
+        "rotulo": 5.05
+      }
+    },
+    "folga": {
+      "mainPadding": "0px",
+      "pad": [
+        "12px",
+        "12px",
+        "12px",
+        "12px"
+      ],
+      "gap": "12px",
+      "esquerda": 12,
+      "direita": 12,
+      "entre": 12,
+      "baixo": 12
+    },
+    "viewports": {
+      "1920x1080": {
+        "painelL": 420,
+        "painelTop": 68,
+        "cardBottom": 1068,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1920,
+        "esperado": 420,
+        "livre": true
+      },
+      "1600x900": {
+        "painelL": 420,
+        "painelTop": 68,
+        "cardBottom": 888,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1600,
+        "esperado": 420,
+        "livre": true
+      },
+      "1400x900": {
+        "painelL": 420,
+        "painelTop": 68,
+        "cardBottom": 888,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1400,
+        "esperado": 420,
+        "livre": true
+      },
+      "1366x768": {
+        "painelL": 409.796875,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1366,
+        "esperado": 409.8,
+        "livre": true
+      },
+      "1280x720": {
+        "painelL": 384,
+        "painelTop": 68,
+        "cardBottom": 708,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1280,
+        "esperado": 384,
+        "livre": true
+      },
+      "1133x768": {
+        "painelL": 340,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1133,
+        "esperado": 340,
+        "livre": true
+      },
+      "1024x768": {
+        "painelL": 340,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 1024,
+        "esperado": 340,
+        "livre": true
+      },
+      "901x768": {
+        "painelL": 340,
+        "painelTop": 68,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 0,
+        "mapPageH": 0,
+        "vw": 901,
+        "esperado": 340,
+        "livre": true
+      },
+      "900x768": {
+        "painelL": 652,
+        "painelTop": 768,
+        "cardBottom": 756,
+        "mainV": 0,
+        "docV": 547,
+        "mapPageH": 0,
+        "vw": 900,
+        "livre": true,
+        "dentro": true
+      },
+      "390x844": {
+        "painelL": 366,
+        "painelTop": 844,
+        "cardBottom": 832,
+        "mainV": 0,
+        "docV": 684,
+        "mapPageH": 0,
+        "vw": 390,
+        "livre": true,
+        "dentro": true
+      }
+    },
+    "gaveta": {
+      "unidade": "Escola Sesc Aracaju",
+      "equipamento": "CME-10-U2",
+      "mapa": {
+        "l": 940,
+        "t": 0,
+        "r": 1600,
+        "b": 900,
+        "w": 660,
+        "h": 900
+      },
+      "equipamentos": {
+        "l": 940,
+        "t": 0,
+        "r": 1600,
+        "b": 900,
+        "w": 660,
+        "h": 900
+      }
+    },
+    "avisosIbge": [
+      {
+        "id": 7,
+        "nome": "Centro Integrado de Saúde",
+        "codigoIbge": "2800308",
+        "aviso": false
+      },
+      {
+        "id": 2,
+        "nome": "Escola Sesc Aracaju",
+        "codigoIbge": "2800308",
+        "aviso": false
+      },
+      {
+        "id": 3,
+        "nome": "Hotel Sesc Atalaia",
+        "codigoIbge": "2800308",
+        "aviso": false
+      },
+      {
+        "id": 1,
+        "nome": "Sede Administrativa",
+        "codigoIbge": "2800308",
+        "aviso": false
+      },
+      {
+        "id": 5,
+        "nome": "Sesc Itabaiana",
+        "codigoIbge": "2803005",
+        "aviso": true,
+        "texto": "Localização divergente. A coordenada cai em Itabaiana, mas o código IBGE aponta Itabaianinha (2803005). O mapa posiciona pela coordenada.",
+        "fonte": 11,
+        "linhas": 3,
+        "contraste": 7.69,
+        "scrollW": 359,
+        "clientW": 359,
+        "dentroDoPainel": true,
+        "painelLargura": 420
+      },
+      {
+        "id": 9,
+        "nome": "Unidade Estância",
+        "codigoIbge": "2802205",
+        "aviso": true,
+        "texto": "Localização divergente. A coordenada cai em Estância, mas o código IBGE aponta Feira Nova (2802205). O mapa posiciona pela coordenada.",
+        "fonte": 11,
+        "linhas": 3,
+        "contraste": 7.69,
+        "scrollW": 359,
+        "clientW": 359,
+        "dentroDoPainel": true,
+        "painelLargura": 420
+      },
+      {
+        "id": 8,
+        "nome": "Unidade Lagarto",
+        "codigoIbge": "2803500",
+        "aviso": false
+      },
+      {
+        "id": 4,
+        "nome": "Unidade Propriá",
+        "codigoIbge": "2805307",
+        "aviso": true,
+        "texto": "Localização divergente. A coordenada cai em Propriá, mas o código IBGE aponta Pirambu (2805307). O mapa posiciona pela coordenada.",
+        "fonte": 11,
+        "linhas": 2,
+        "contraste": 7.69,
+        "scrollW": 359,
+        "clientW": 359,
+        "dentroDoPainel": true,
+        "painelLargura": 420
+      },
+      {
+        "id": 10,
+        "nome": "Unidade Simão Dias",
+        "codigoIbge": "2806800",
+        "aviso": true,
+        "texto": "Localização divergente. A coordenada cai em Simão Dias, mas o código IBGE aponta São Domingos (2806800). O mapa posiciona pela coordenada.",
+        "fonte": 11,
+        "linhas": 3,
+        "contraste": 7.69,
+        "scrollW": 359,
+        "clientW": 359,
+        "dentroDoPainel": true,
+        "painelLargura": 420
+      },
+      {
+        "id": 6,
+        "nome": "Unidade Socorro",
+        "codigoIbge": "2804607",
+        "aviso": true,
+        "texto": "Localização divergente. A coordenada cai em Nossa Senhora do Socorro, mas o código IBGE aponta Nossa Senhora das Dores (2804607). O mapa posiciona pela coordenada.",
+        "fonte": 11,
+        "linhas": 3,
+        "contraste": 7.69,
+        "scrollW": 359,
+        "clientW": 359,
+        "dentroDoPainel": true,
+        "painelLargura": 420
+      },
+      {
+        "id": 11,
+        "nome": "Unidade São Cristóvão",
+        "codigoIbge": "2806701",
+        "aviso": false
+      }
+    ],
+    "avisosIbgeConjunto": [
+      "Sesc Itabaiana",
+      "Unidade Estância",
+      "Unidade Propriá",
+      "Unidade Simão Dias",
+      "Unidade Socorro"
+    ],
+    "recuo": {
+      "1920x1080": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1600x900": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1500x950": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1525x950": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1440x864": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1366x768": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1300x950": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1280x720": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "1024x768": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      },
+      "390x844": {
+        "marcadores": 11,
+        "cobertos": 0,
+        "nomes": [],
+        "deslocamentoAoFechar": 0
+      }
+    },
+    "movimentoNormal": {
+      "deslocamentoAos100ms": 116.32
+    },
+    "movimentoReduzido": {
+      "deslocamentoAos100ms": 0,
+      "deslocamentoTotalDaAbertura": 136.88
+    }
+  },
+  "errosPagina": [],
+  "avisos": [],
+  "errosConsole": [],
+  "respostas5xx": [],
+  "apiPorta": "8082",
+  "fatal": null
+}

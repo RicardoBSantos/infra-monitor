@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, ef
 import { Router } from '@angular/router';
 import type { Feature, FeatureCollection } from 'geojson';
 import type { LayerSpecification } from 'maplibre-gl';
-import { LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
+import { LngLat, LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import { take } from 'rxjs';
 
 
@@ -219,45 +219,89 @@ const PITCH = 45;
 const BEARING = -18;
 
 /**
- * Offset da câmera, em pixels de tela: recentra o desenho depois da compensação de zoom.
+ * Enquadramento do estado por ENCAIXE CALCULADO (D22), e não mais por regra de proporção.
  *
- * Remedido em D20, com o cartão ocupando a viewport (~862px de altura em 1500x950, e não mais um
- * clamp). Dois fatos medidos, que mudam a leitura dos valores antigos:
+ * Até D21 a câmera era `cameraForBounds` + um zoom extra fixo (`ZOOM_AO_INCLINAR`) + um offset fixo
+ * (`OFFSET_CAMERA`), escalados por uma rampa na proporção do cartão (`ASPECTO_MINIMO`/`PLENO`). Esses
+ * números foram recalibrados QUATRO vezes por motivo alheio à câmera — N06 (proporção do cartão), N07
+ * (extrusão), N07 (max-width) e D20 (tela cheia) — e D21 (painel de 420px) pediria a quinta: a prova
+ * por pixel achou a ponta oeste encostando na borda em proporção 0,94–0,97 (1500x950, 1525x950,
+ * 1440x864) e o desenho pequeno abaixo de 0,85. Cada número valia só para a moldura em que foi medido.
  *
- * 1. Antes de D20 este offset NÃO FAZIA NADA em y. Era passado a um `easeTo({ zoom, offset })` sem
- *    `center`, e o MapLibre calcula o centro a partir do próprio offset, então o deslocamento se
- *    anulava (60 contra 0 mexia ~1,5 p.p.). O equilíbrio que N06 media vinha só do `fitBounds`.
- *    Agora o `easeTo` único leva o `center` de `cameraForBounds` e o offset passa a valer.
- * 2. Com o centro geométrico do enquadramento o estado sobra mais em cima que embaixo (a perspectiva
- *    achata o topo): ~4 p.p. de diferença. O `-28` em y sobe o desenho e fecha isso. O x ficou em
- *    0: o `-24` de N05 empurrava a ponta oeste para a borda (0,1% de folga) em cartões estreitos.
- *
- * Medido por pixel (cartão com `.map` visível contra oculto, sem placa do título e sem os controles
- * do canto), topo contra base: 15,8% x 15,9% em 1500x950, 15,9% x 16,5% em 1700x907, 15,9% x 17,8%
- * em 1280x800, 15,8% x 14,7% em 1920x1080, 15,9% x 18,4% em 1366x768. Nenhuma ponta encosta na borda
- * (menor folga lateral: 0,7%, em 1280x800).
+ * O encaixe calculado encerra o ciclo: projeta na tela a envoltória convexa do estado (e das unidades),
+ * ajusta zoom e centro até ela caber na área livre do cartão com `MARGEM_ESTADO`, e afasta o desenho
+ * das sobreposições (título, controles, legenda) com `FOLGA_SOBREPOSICAO`. Não há número calibrado
+ * contra uma moldura: mudar o layout não exige remedir a câmera.
  */
-const OFFSET_CAMERA: [number, number] = [0, -28];
+const MARGEM_ESTADO = 24;
+const FOLGA_SOBREPOSICAO = 12;
+/** Iterações do ajuste: a perspectiva torna zoom e centro só aproximadamente separáveis. */
+const ITERACOES_ENCAIXE = 6;
+
+export interface Retangulo { x0: number; y0: number; x1: number; y1: number; }
+export interface Margens { top: number; right: number; bottom: number; left: number; }
+
+/** Envoltória convexa (cadeia monótona de Andrew), sentido anti-horário, sem colineares. Pura. */
+export function envoltoriaConvexa(pontos: [number, number][]): [number, number][] {
+  const p = [...pontos].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (p.length < 3) return p;
+  const cruz = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const baixo: [number, number][] = [];
+  for (const q of p) { while (baixo.length >= 2 && cruz(baixo[baixo.length - 2], baixo[baixo.length - 1], q) <= 0) baixo.pop(); baixo.push(q); }
+  const cima: [number, number][] = [];
+  for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (cima.length >= 2 && cruz(cima[cima.length - 2], cima[cima.length - 1], q) <= 0) cima.pop(); cima.push(q); }
+  return baixo.slice(0, -1).concat(cima.slice(0, -1));
+}
+
+/** Caixa envolvente de pontos de tela. Pura. */
+export function caixaDosPontos(pontos: { x: number; y: number }[]): Retangulo {
+  return { x0: Math.min(...pontos.map(p => p.x)), y0: Math.min(...pontos.map(p => p.y)), x1: Math.max(...pontos.map(p => p.x)), y1: Math.max(...pontos.map(p => p.y)) };
+}
 
 /**
- * Zoom somado ao enquadramento na hora de inclinar. Continua existindo porque `cameraForBounds` com
- * `pitch` recua a câmera para caber o trapézio inteiro e deixa área sobrando — mas o valor não é mais
- * o de N05 nem o de N06: 0,42, não 0,68. Com D20 o cartão é mais quadrado que o antigo 760/680
- * (908x862 em 1500x950), o enquadramento nasce mais apertado em x, e 0,68 cortava a ponta oeste e a
- * base. O teto é a largura: em 1280x800 (cartão 688x712) acima de ~0,45 a ponta oeste encosta na
- * borda. Isso é geometria de Sergipe deitado a -18°, não folga a fechar.
- * `e2e/n06-marcadores-e-conexoes` mede topo e base a cada execução e falha se desequilibrarem.
+ * Quanto escalar (em torno do centro da tela) e transladar uma caixa para ela caber centrada na área.
+ * A translação vem antes da escala: aplicada a tela é deslocada por `t` e então escalada por `escala`
+ * em torno de `centro`, e o centro da caixa vai parar no centro da área. Pura.
  */
-const ZOOM_AO_INCLINAR = 0.42;
+export function ajusteDeEncaixe(caixa: Retangulo, area: Retangulo, centro: [number, number]): { escala: number; tx: number; ty: number } {
+  const escala = Math.min((area.x1 - area.x0) / Math.max(1e-6, caixa.x1 - caixa.x0), (area.y1 - area.y0) / Math.max(1e-6, caixa.y1 - caixa.y0));
+  const bx = (caixa.x0 + caixa.x1) / 2, by = (caixa.y0 + caixa.y1) / 2;
+  const ax = (area.x0 + area.x1) / 2, ay = (area.y0 + area.y1) / 2;
+  return { escala, tx: (ax - centro[0]) / escala - (bx - centro[0]), ty: (ay - centro[1]) / escala - (by - centro[1]) };
+}
+
+/** Polígono convexo (vértices em ordem) × retângulo: há sobreposição de área? Pura. */
+export function convexoIntersectaRetangulo(poligono: { x: number; y: number }[], r: Retangulo): boolean {
+  if (poligono.length === 0) return false;
+  if (poligono.some(p => p.x >= r.x0 && p.x <= r.x1 && p.y >= r.y0 && p.y <= r.y1)) return true;
+  // Eixos separadores: os dois do retângulo e a normal de cada aresta do polígono.
+  const cantos = [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }];
+  const caixa = caixaDosPontos(poligono);
+  if (caixa.x1 < r.x0 || caixa.x0 > r.x1 || caixa.y1 < r.y0 || caixa.y0 > r.y1) return false;
+  for (let i = 0; i < poligono.length; i++) {
+    const a = poligono[i], b = poligono[(i + 1) % poligono.length];
+    const nx = b.y - a.y, ny = a.x - b.x;
+    const proj = (p: { x: number; y: number }) => p.x * nx + p.y * ny;
+    const doPoligono = poligono.map(proj), doRetangulo = cantos.map(proj);
+    if (Math.max(...doRetangulo) < Math.min(...doPoligono) || Math.min(...doRetangulo) > Math.max(...doPoligono)) return false;
+  }
+  return true;
+}
 
 /**
- * Proporção largura/altura do cartão em que a compensação de zoom e o offset valem por inteiro, e
- * aquela em que somem (D20). Plena em 0,96: o 1280x800 medido (cartão 688x712, 0,966) é o caso
- * mais estreito com a calibração acima; em 768x1024 (736x936, 0,79) ela inteira cortava a ponta
- * oeste (0,1% de folga). Em celular o estado cabe só com o enquadramento do `cameraForBounds`.
+ * As duas formas de afastar o desenho de uma sobreposição encostada num canto do cartão: pelo eixo
+ * vertical (margem de cima ou de baixo até passar dela) ou pelo horizontal. `espelhar` repete a
+ * margem no lado oposto — para sobreposições permanentes (título, controles, legenda fechada), que
+ * não podem desequilibrar o enquadramento; a legenda ABERTA não espelha, o recuo é o objetivo. Pura.
  */
-const ASPECTO_PLENO = 0.96;
-const ASPECTO_MINIMO = 0.75;
+export function margensParaEvitar(margens: Margens, r: Retangulo, largura: number, altura: number, folga: number, espelhar: boolean): Margens[] {
+  const emCima = (r.y0 + r.y1) / 2 < altura / 2, aEsquerda = (r.x0 + r.x1) / 2 < largura / 2;
+  const v = emCima ? Math.max(margens.top, r.y1 + folga) : Math.max(margens.bottom, altura - r.y0 + folga);
+  const h = aEsquerda ? Math.max(margens.left, r.x1 + folga) : Math.max(margens.right, largura - r.x0 + folga);
+  const vertical: Margens = emCima ? { ...margens, top: v, bottom: espelhar ? Math.max(margens.bottom, v) : margens.bottom } : { ...margens, bottom: v, top: espelhar ? Math.max(margens.top, v) : margens.top };
+  const horizontal: Margens = aEsquerda ? { ...margens, left: h, right: espelhar ? Math.max(margens.right, h) : margens.right } : { ...margens, right: h, left: espelhar ? Math.max(margens.left, h) : margens.left };
+  return [vertical, horizontal];
+}
 
 /**
  * Tetos do zoom ao clicar num município (D20), um por caminho de enquadramento.
@@ -560,6 +604,8 @@ export class MapaComponent implements OnDestroy {
   /** Câmera fora do enquadramento do estado inteiro: mostra o "Ver estado inteiro" (D20). */
   protected readonly foraDoEnquadramento = signal(false);
   private limitesEstado: LngLatBounds | null = null;
+  /** Envoltória convexa [lng, lat] do estado e das unidades: o que `cameraDeEncaixe` faz caber (D22). */
+  private envoltoriaEstado: [number, number][] = [];
 
   private map: MaplibreMap | null = null;
   /** Um Marker por municipio: unico no DOM focavel, ja que o poligono vive no canvas WebGL. */
@@ -723,7 +769,13 @@ export class MapaComponent implements OnDestroy {
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
 
     const limites = new LngLatBounds();
-    for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => limites.extend(ponto as [number, number]));
+    const pontos: [number, number][] = [];
+    for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => { limites.extend(ponto as [number, number]); pontos.push([ponto[0], ponto[1]]); });
+    // Unidades entram na envoltória: uma coordenada fora do contorno (cadastro errado) não pode cair fora do cartão.
+    for (const unidade of municipios.flatMap(municipio => municipio.units)) {
+      if (unidade.latitude != null && unidade.longitude != null) pontos.push([unidade.longitude, unidade.latitude]);
+    }
+    this.envoltoriaEstado = envoltoriaConvexa(pontos);
     this.limitesEstado = limites;
     this.enquadrarEstado(false);
 
@@ -875,27 +927,100 @@ export class MapaComponent implements OnDestroy {
    * Enquadramento do estado inteiro — o da abertura da tela, e o destino do "Ver estado inteiro" e
    * do Escape (D20). Uma conta só para os três: se divergissem, voltar não daria no mesmo lugar.
    *
-   * `cameraForBounds` + um único `easeTo`, e não mais `fitBounds` seguido de `easeTo`: animado, o
-   * segundo `easeTo` cancelaria o primeiro no meio. A conta é a mesma — câmera que cabe o estado
-   * já inclinado, mais `ZOOM_AO_INCLINAR`, mais `OFFSET_CAMERA` (ver D13).
+   * Um único `easeTo` para o destino calculado por `cameraDeEncaixe` (D22): animado, um segundo
+   * `easeTo` cancelaria o primeiro no meio. `anunciar` separa quem mexe por pedido do operador
+   * (botão, Escape) de quem só reacomoda o desenho (legenda abrindo ou fechando).
    */
-  private enquadrarEstado(animado: boolean): void {
+  private enquadrarEstado(animado: boolean, anunciar = animado): void {
     const map = this.map;
     if (!map || !this.limitesEstado) return;
     // Voltar ao estado inteiro (botão ou Escape) acontece só no canvas: sem anúncio o leitor de tela
     // não sabe que saiu do município. Enquadramento inicial e resize (animado=false) ficam em silêncio.
-    if (animado) this.anuncio.set('Estado inteiro.');
-    const camera = map.cameraForBounds(this.limitesEstado, { padding: 34, bearing: BEARING, pitch: PITCH });
-    if (!camera) return;
-    // A compensação some em cartão estreito (D20): o teto do zoom é a largura, e um cartão em pé
-    // (celular, tablet) cortaria as pontas. Plena a partir de ASPECTO_PLENO (o 1280x800 medido), nula
-    // em ASPECTO_MINIMO, linear entre os dois. O deslocamento acompanha o zoom.
-    const recipiente = map.getContainer();
-    const aspecto = recipiente.clientWidth / Math.max(1, recipiente.clientHeight);
-    const fator = Math.min(1, Math.max(0, (aspecto - ASPECTO_MINIMO) / (ASPECTO_PLENO - ASPECTO_MINIMO)));
-    map.easeTo({ ...camera, zoom: (camera.zoom ?? map.getZoom()) + ZOOM_AO_INCLINAR * fator, bearing: BEARING, pitch: PITCH,
-      offset: [OFFSET_CAMERA[0] * fator, OFFSET_CAMERA[1] * fator], duration: animado && !animacaoReduzida() ? DURACAO_CAMERA_MS : 0 });
+    if (anunciar) this.anuncio.set('Estado inteiro.');
+    const destino = this.cameraDeEncaixe();
+    if (!destino) return;
+    map.easeTo({ ...destino, bearing: BEARING, pitch: PITCH, duration: animado && !animacaoReduzida() ? DURACAO_CAMERA_MS : 0 });
     this.foraDoEnquadramento.set(false);
+  }
+
+  /**
+   * Câmera em que a envoltória do estado cabe na área livre do cartão (D22). Itera sobre o mapa vivo
+   * com `jumpTo` — a projeção com pitch é a do próprio MapLibre, sem reimplementar perspectiva — e
+   * devolve a câmera como estava antes de retornar: quem anima é o `easeTo` de `enquadrarEstado`.
+   *
+   * Para cada sobreposição que o desenho invade, tenta afastar pelo eixo vertical e pelo horizontal e
+   * fica com o que der zoom maior. Título, controles e legenda fechada espelham a margem no lado oposto
+   * (o enquadramento continua centrado); a legenda aberta não — o recuo dela é o objetivo.
+   */
+  private cameraDeEncaixe(): { center: LngLat; zoom: number } | null {
+    const map = this.map;
+    const envoltoria = this.envoltoriaEstado;
+    if (!map || !this.limitesEstado || envoltoria.length < 3) return null;
+    const recipiente = map.getContainer();
+    const largura = recipiente.clientWidth, altura = recipiente.clientHeight;
+    if (largura < 2 * MARGEM_ESTADO || altura < 2 * MARGEM_ESTADO) return null;
+    const inicial = { center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
+    const base = map.cameraForBounds(this.limitesEstado, { padding: MARGEM_ESTADO, bearing: BEARING, pitch: PITCH });
+    if (!base?.center || base.zoom === undefined) return null;
+    const centroTela: [number, number] = [largura / 2, altura / 2];
+    const projetar = (camera: { center: LngLat; zoom: number }) => {
+      map.jumpTo({ ...camera, bearing: BEARING, pitch: PITCH });
+      return envoltoria.map(ponto => map.project(ponto));
+    };
+    const encaixar = (margens: Margens): { center: LngLat; zoom: number } => {
+      let camera = { center: LngLat.convert(base.center!), zoom: base.zoom! };
+      for (let i = 0; i < ITERACOES_ENCAIXE; i++) {
+        const caixa = caixaDosPontos(projetar(camera));
+        const area: Retangulo = { x0: margens.left, y0: margens.top, x1: largura - margens.right, y1: altura - margens.bottom };
+        const { escala, tx, ty } = ajusteDeEncaixe(caixa, area, centroTela);
+        if (!Number.isFinite(escala) || escala <= 0 || !Number.isFinite(tx) || !Number.isFinite(ty)) break;
+        const centro = map.unproject([centroTela[0] - tx, centroTela[1] - ty]);
+        camera = { center: centro, zoom: Math.min(map.getMaxZoom(), Math.max(map.getMinZoom(), camera.zoom + Math.log2(escala))) };
+        if (Math.abs(Math.log2(escala)) < 0.002 && Math.hypot(tx, ty) < 0.5) break;
+      }
+      return camera;
+    };
+    const sobreposicoes = this.sobreposicoesDoCartao(recipiente);
+    let margens: Margens = { top: MARGEM_ESTADO, right: MARGEM_ESTADO, bottom: MARGEM_ESTADO, left: MARGEM_ESTADO };
+    let camera = encaixar(margens);
+    for (let rodada = 0; rodada < sobreposicoes.length * 2; rodada++) {
+      const poligono = projetar(camera);
+      const invadida = sobreposicoes.find(s => convexoIntersectaRetangulo(poligono, s.retangulo));
+      if (!invadida) break;
+      // Opção que deixaria menos de um quarto do cartão para o estado é descartada (ex.: fugir do título
+      // pela horizontal com a margem espelhada não deixa largura nenhuma num cartão estreito).
+      const opcoes = margensParaEvitar(margens, invadida.retangulo, largura, altura, FOLGA_SOBREPOSICAO, invadida.espelhar)
+        .filter(m => largura - m.left - m.right >= largura / 4 && altura - m.top - m.bottom >= altura / 4)
+        .map(m => ({ margens: m, camera: encaixar(m) }));
+      if (opcoes.length === 0) break;
+      const melhor = opcoes.reduce((a, b) => (b.camera.zoom > a.camera.zoom ? b : a));
+      margens = melhor.margens;
+      camera = melhor.camera;
+    }
+    map.jumpTo(inicial);
+    return camera;
+  }
+
+  /** Retângulos (em px do container do mapa) do que fica por cima do canvas. */
+  private sobreposicoesDoCartao(recipiente: HTMLElement): { retangulo: Retangulo; espelhar: boolean }[] {
+    const origem = recipiente.getBoundingClientRect();
+    const cartao = recipiente.parentElement;
+    const lista: { retangulo: Retangulo; espelhar: boolean }[] = [];
+    const incluir = (elemento: Element | null | undefined, espelhar: boolean) => {
+      if (!(elemento instanceof HTMLElement) || elemento.hidden || elemento.offsetWidth === 0) return;
+      const r = elemento.getBoundingClientRect();
+      lista.push({ espelhar, retangulo: { x0: r.left - origem.left, y0: r.top - origem.top, x1: r.right - origem.left, y1: r.bottom - origem.top } });
+    };
+    incluir(cartao?.querySelector('.map-titulo'), true);
+    incluir(recipiente.querySelector('.maplibregl-ctrl-top-right'), true);
+    const legenda = cartao?.querySelector('details.legend-bloco');
+    incluir(legenda, !(legenda instanceof HTMLDetailsElement && legenda.open));
+    return lista;
+  }
+
+  /** Legenda abriu ou fechou: reacomoda o estado inteiro em volta dela; câmera aproximada fica como está. */
+  protected aoAlternarLegenda(): void {
+    if (!this.foraDoEnquadramento()) this.enquadrarEstado(true, false);
   }
 
   /** Botão "Ver estado inteiro". O botão some ao clicar: o foco vai para o canvas, não para o body. */

@@ -28,10 +28,11 @@
  * 3. Log de rede e resultados gravados em `finally`, aconteça o que acontecer.
  */
 const { chromium } = require('playwright');
+const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
 const BASE = 'http://127.0.0.1:4200';
-const API = 'http://localhost:8080/api/v1';
+const API = `http://localhost:${process.env.API_PORT || 8080}/api/v1`;
 const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.M06_SENHA ?? process.env.N05_SENHA;
 if (!SENHA) throw new Error('M06_SENHA (ou N05_SENHA) é obrigatória');
@@ -103,7 +104,9 @@ const estadoDosAlvos = (page) => page.evaluate(() => [...document.querySelectorA
 (async () => {
   const browser = await chromium.launch({ headless: true });
   let fatal = null;
-  const page = await browser.newPage({ viewport: { width: 1500, height: 980 }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: 1500, height: 980 }, deviceScaleFactor: 1 });
+  await apontarApi(ctx);
+  const page = await ctx.newPage();
   const erros = [];
   page.on('pageerror', (e) => erros.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') erros.push('console: ' + m.text()); });
