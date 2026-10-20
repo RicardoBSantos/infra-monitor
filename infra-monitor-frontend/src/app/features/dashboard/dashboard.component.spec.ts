@@ -108,6 +108,14 @@ describe('DashboardComponent', () => {
     expect(texto(fixture)).toContain('Centro Operacional');
   });
 
+  it('KPI de manutenção usa o tom de manutenção (info), não o de degradado', () => {
+    const fixture = create();
+    responderCarga(fixture);
+    const cartao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('.kpi')].find((kpi) => kpi.textContent?.includes('EM MANUTENÇÃO'))!;
+    expect(cartao.classList).toContain('kpi--manutencao');
+    expect(cartao.classList).not.toContain('kpi--warn');
+  });
+
   it('manutenção tem segmento e contador próprios no tom info, separado do degradado', () => {
     const fixture = create();
     // Forma do Hotel Sesc Atalaia no dev: Disponível com 1 de 18 em manutenção e nenhum degradado.

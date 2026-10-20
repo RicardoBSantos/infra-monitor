@@ -3,6 +3,9 @@
    vivem em styles/_ui.scss, compartilhadas com o detalhe de unidade. */
 :host { --pn-colunas: minmax(220px, 1.4fr) 132px minmax(110px, 1fr) 150px 128px 110px 96px 26px; display: block; }
 
+/* Manutenção é info em todo o Painel (pill, badge, chip, faixa). Não é .kpi--info: nos drawers esse é o tom de latência. */
+.kpi--manutencao { border-top-color: var(--im-info-soft); } .kpi--manutencao strong { color: var(--im-info-soft); }
+
 .painel { display: grid; gap: 14px; padding: 18px 20px 28px; }
 .painel__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .painel__header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }

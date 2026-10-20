@@ -274,6 +274,9 @@ async function novaPagina(browser, rotulo) {
 
     // --------------------------------------------------------------- tema escuro (linhas reais)
     await alternarTema(page, 'dark');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 5000 });
+    await capturar(page, '01-tela-inteira-escuro.png');
     await capturar(page.locator('.tabela'), '02-linhas-reais-escuro.png');
     if (DEV) await capturar(page.locator('.tabela .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia-escuro.png');
     await alternarTema(page, 'light');

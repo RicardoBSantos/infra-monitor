@@ -24,7 +24,7 @@
       <article class="kpi"><span>EQUIPAMENTOS</span><strong>{{ data.equipamentos.total }}</strong><small>{{ plural(monitorados(), 'monitorado', 'monitorados') }}</small></article>
       <article class="kpi kpi--ok"><span>ONLINE</span><strong>{{ data.equipamentos.disponiveis }}</strong><small>de {{ plural(data.equipamentos.ativos, 'ativo', 'ativos') }}</small></article>
       <article class="kpi kpi--warn"><span>DEGRADADOS</span><strong>{{ data.equipamentos.degradados }}</strong><small>acima de {{ data.limiarLatenciaDegradadaMs }} ms</small></article>
-      <article class="kpi kpi--warn"><span>EM MANUTENÇÃO</span><strong>{{ data.equipamentos.emManutencao }}</strong><small>fora da leitura ICMP</small></article>
+      <article class="kpi kpi--manutencao"><span>EM MANUTENÇÃO</span><strong>{{ data.equipamentos.emManutencao }}</strong><small>fora da leitura ICMP</small></article>
       <article class="kpi kpi--down"><span>OFFLINE</span><strong>{{ data.equipamentos.indisponiveis }}</strong><small>{{ plural(unidadesOffline(), 'unidade afetada', 'unidades afetadas') }}</small></article>
       <article class="kpi" [class.kpi--carregando]="disponibilidadeGlobalCarregando()"><span>DISPONIBILIDADE</span><strong [class.kpi__vazio]="disponibilidadeGlobalTexto() === '—'">{{ disponibilidadeGlobalTexto() }}</strong><small>janela de 30 dias</small></article>
       <article class="kpi" [class.kpi--carregando]="latenciaGlobalCarregando()"><span>LATÊNCIA MÉDIA</span><strong [class.kpi__vazio]="latenciaGlobalTexto() === '—'">{{ latenciaGlobalTexto() }}@if (latenciaGlobalTexto() !== '—') { <span class="kpi__unidade">ms</span> }</strong><small>ICMP · todas as unidades</small></article>
