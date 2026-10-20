@@ -1,13 +1,22 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { IncidentStatus, MonitorOperationalStatus, NotificationStatus } from '../../core/models/api-enums';
-import { StatusBadgeComponent } from './status-badge.component';
+import { IncidentStatus, MonitorOperationalStatus, NotificationStatus, UnitOperationalStatus } from '../../core/models/api-enums';
+import { StatusBadgeComponent, tomDoStatus } from './status-badge.component';
 
 @Component({ imports: [StatusBadgeComponent], template: '<app-status-badge [status]="status" />' })
 class StatusBadgeHostComponent { status: MonitorOperationalStatus | IncidentStatus = MonitorOperationalStatus.Available; }
 
 describe('StatusBadgeComponent', () => {
+  it('expõe o mesmo tom que o badge usa', () => {
+    expect(tomDoStatus(UnitOperationalStatus.Available)).toBe('success');
+    expect(tomDoStatus(UnitOperationalStatus.Degraded)).toBe('warning');
+    expect(tomDoStatus(UnitOperationalStatus.Unavailable)).toBe('danger');
+    expect(tomDoStatus(UnitOperationalStatus.NoData)).toBe('muted');
+    expect(tomDoStatus(UnitOperationalStatus.NoEquipment)).toBe('muted');
+    expect(tomDoStatus(UnitOperationalStatus.Maintenance)).toBe('info');
+  });
+
   it('presents the backend status without calculating it', async () => {
     await TestBed.configureTestingModule({ imports: [StatusBadgeHostComponent] }).compileComponents();
     const fixture = TestBed.createComponent(StatusBadgeHostComponent);

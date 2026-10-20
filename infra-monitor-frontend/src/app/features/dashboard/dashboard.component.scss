@@ -1,7 +1,10 @@
 /* Painel — grade densa de leitura operacional. Números sempre em mono.
    Primitivas (.kpi .botao .pill .aba .ponto .faixa .marca .aviso e utilitários)
    vivem em styles/_ui.scss, compartilhadas com o detalhe de unidade. */
-:host { --pn-colunas: minmax(220px, 1.4fr) 116px minmax(110px, 1fr) 150px 128px 110px 96px 26px; display: block; }
+:host { --pn-colunas: minmax(220px, 1.4fr) 132px minmax(110px, 1fr) 150px 128px 110px 96px 26px; display: block; }
+
+/* Manutenção é info em todo o Painel (pill, badge, chip, faixa). Não é .kpi--info: nos drawers esse é o tom de latência. */
+.kpi--manutencao { border-top-color: var(--im-info-soft); } .kpi--manutencao strong { color: var(--im-info-soft); }
 
 .painel { display: grid; gap: 14px; padding: 18px 20px 28px; }
 .painel__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -20,13 +23,23 @@
 .filtros__busca { display: flex; width: 280px; height: 30px; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-dim); }
 .filtros__busca input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--im-text); font-size: 12px; }
 
+/* Contagem da visão atual ao lado do nome do tipo; ausente quando o índice é parcial. */
+.aba__contagem { color: var(--im-text-dim); font: 10.5px var(--im-mono); }
+.aba:disabled { opacity: .45; cursor: default; }
+.aba:disabled:hover { color: var(--im-text-secondary); background: transparent; }
+.abas__parcial { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
+
 .tabela { display: grid; gap: 8px; }
 .tabela__cabecalho, .detalhe__cabecalho, .equipamentos th { color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
 .tabela__cabecalho { display: grid; grid-template-columns: var(--pn-colunas); gap: 12px; padding: 0 14px; letter-spacing: .12em; }
 
 .unidade { border: 1px solid var(--im-border); border-left: 3px solid var(--im-border-muted); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); overflow: hidden; }
-.unidade--critica { border-left-color: var(--im-danger); }
-.unidade--atencao { border-left-color: var(--im-warning); }
+/* Tom da barra = tom do badge (tomDoStatus): uma só fonte, unidade.status. */
+.unidade--success { border-left-color: var(--im-success); }
+.unidade--warning { border-left-color: var(--im-warning); }
+.unidade--danger { border-left-color: var(--im-danger); }
+.unidade--muted { border-left-color: var(--im-text-muted); }
+.unidade--info { border-left-color: var(--im-info-soft); }
 
 .linha { display: grid; width: 100%; grid-template-columns: var(--pn-colunas); align-items: center; gap: 12px; padding: 12px 14px; border: 0; background: transparent; color: var(--im-text); text-align: left; cursor: pointer; }
 .linha:hover { background: var(--im-surface-hover); }
@@ -34,7 +47,8 @@
 .linha__nome { display: grid; gap: 2px; min-width: 0; }
 .linha__nome strong { font-size: 13px; font-weight: 600; }
 .linha__nome small { color: var(--im-text-dim); font: 10.5px var(--im-mono); }
-.linha__estado { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* Badge em cima, chip de manutenção parcial embaixo: empilhados, nada invade a composição. */
+.linha__estado { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; max-width: 100%; }
 .linha__seta { display: grid; place-items: center; color: var(--im-text-dim); transition: transform .16s ease-out; }
 .linha__seta--aberta { transform: rotate(180deg); }
 .linha--carregando { display: block; height: 54px; border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
@@ -54,11 +68,12 @@
 .rodape-nota { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
 
 @media (max-width: 1240px) {
-  :host { --pn-colunas: minmax(180px, 1.4fr) 110px 150px 128px 96px 26px; }
+  :host { --pn-colunas: minmax(180px, 1.4fr) 132px 150px 128px 96px 26px; }
   .col-composicao, .col-latencia { display: none; }
 }
 @media (max-width: 860px) {
-  :host { --pn-colunas: 1fr 104px 56px 26px; }
+  /* 2ª coluna cabe "1 em manutenção" no chip (mono 10px + ícone); acima disso o chip corta com reticências. */
+  :host { --pn-colunas: 1fr 126px 56px 26px; }
   .painel { padding: 14px 12px 24px; }
   .tabela__cabecalho { display: none; }
   .col-dispositivos, .col-disponibilidade, .pills { display: none; }
