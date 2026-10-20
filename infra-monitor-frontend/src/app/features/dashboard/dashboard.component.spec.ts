@@ -177,6 +177,31 @@ describe('DashboardComponent', () => {
     expect(texto(fixture)).toContain('Degradada');
   });
 
+  const atalaia = { ...unidade, id: 3, nome: 'Hotel Sesc Atalaia', status: UnitOperationalStatus.Available, equipamentosTotal: 18, equipamentosAtivos: 18,
+    equipamentosDisponiveis: 17, equipamentosDegradados: 0, equipamentosIndisponiveis: 0, equipamentosSemDados: 0, equipamentosEmManutencao: 1, incidentesAbertos: 0 };
+
+  it('barra, ícone e badge seguem unidade.status: disponível com manutenção parcial fica verde', () => {
+    const fixture = create();
+    responderCarga(fixture, { ...resumo, incidentes: { abertos: 0 } }, [atalaia]);
+    const linha = (fixture.nativeElement as HTMLElement).querySelector('.unidade')!;
+    expect(linha.classList).toContain('unidade--success');
+    expect(linha.querySelector('.marca')!.classList).toContain('marca--success');
+    expect(linha.querySelector('.marca app-icon')!.getAttribute('data-icone')).toBe('check');
+    expect(linha.querySelector('app-status-badge')!.textContent).toContain('Disponível');
+    expect(linha.querySelector('.chip-manutencao')!.textContent).toContain('1 em manutenção');
+  });
+
+  it.each([
+    [UnitOperationalStatus.Degraded, 'warning'], [UnitOperationalStatus.Unavailable, 'danger'],
+    [UnitOperationalStatus.NoData, 'muted'], [UnitOperationalStatus.NoEquipment, 'muted'], [UnitOperationalStatus.Maintenance, 'info'],
+  ])('linha com status %s usa tom %s', (status, tom) => {
+    const fixture = create();
+    responderCarga(fixture, { ...resumo, incidentes: { abertos: 0 } }, [{ ...unidade, status, incidentesAbertos: 0 }]);
+    const linha = (fixture.nativeElement as HTMLElement).querySelector('.unidade')!;
+    expect(linha.classList).toContain(`unidade--${tom}`);
+    expect(linha.querySelector('.marca')!.classList).toContain(`marca--${tom}`);
+  });
+
   it('filtra pela pill de manutenção usando o status real da unidade', () => {
     const fixture = create();
     responderCarga(fixture, { ...resumo, incidentes: { abertos: 0 } }, [{ ...unidade, status: UnitOperationalStatus.Maintenance }]);

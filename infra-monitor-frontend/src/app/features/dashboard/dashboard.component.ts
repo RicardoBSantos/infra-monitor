@@ -17,8 +17,8 @@ import { GeoMunicipioService } from '../../core/services/geo-municipio.service';
 import { IncidenteApiService } from '../../core/services/incidente-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
-import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
-import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { AppIconComponent, AppIconName } from '../../shared/app-icon/app-icon.component';
+import { StatusBadgeComponent, TomStatus, tomDoStatus } from '../../shared/status-badge/status-badge.component';
 
 /** Janela usada nas colunas de disponibilidade e latência; os agregados vêm prontos da API de relatórios. */
 const JANELA_DIAS = 30;
@@ -39,6 +39,9 @@ type EstadoAgregado = 'loading' | 'ok' | 'erro';
 interface DetalheUnidade { estado: EstadoEquipamentos; equipamentos: DashboardEquipamento[]; total: number; disponibilidade: Map<number, number | null>; }
 interface IdentidadeUnidade { sigla: string | null; municipio: string | null; }
 interface TipoPresente { id: number; nome: string; }
+
+/** Ícone da marca por tom: cada tom tem forma própria, para não depender só da cor. */
+const ICONE_DO_TOM: Record<TomStatus, AppIconName> = { success: 'check', warning: 'incident', danger: 'close', muted: 'minus', info: 'wrench' };
 
 const PILLS: readonly { valor: FiltroStatus; rotulo: string; tom: Severidade | 'info' }[] = [
   { valor: 'ONLINE', rotulo: 'Online', tom: 'ok' },
@@ -233,11 +236,9 @@ export class DashboardComponent {
     return executadoEm ? this.desde(executadoEm) : 'sem leitura';
   }
 
-  protected severidade(unidade: DashboardUnidade): Severidade {
-    if (unidade.equipamentosIndisponiveis > 0) return 'down';
-    if (unidade.equipamentosDegradados + unidade.equipamentosEmManutencao > 0) return 'warn';
-    return 'ok';
-  }
+  /** Barra, marca e badge leem o mesmo unidade.status: o tom vem da tabela do badge, nunca de contagem local. */
+  protected tomDaUnidade(unidade: DashboardUnidade): TomStatus { return tomDoStatus(unidade.status); }
+  protected iconeDoTom(tom: TomStatus): AppIconName { return ICONE_DO_TOM[tom]; }
 
   protected severidadeDoEquipamento(equipamento: DashboardEquipamento): Severidade {
     if (equipamento.status === 'INDISPONIVEL') return 'down';

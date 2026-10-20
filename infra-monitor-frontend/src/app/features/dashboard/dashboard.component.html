@@ -74,15 +74,11 @@
       </div>
 
       @for (unidade of unidades(); track trackUnidade($index, unidade)) {
-        <div class="unidade" [class.unidade--critica]="severidade(unidade) === 'down'" [class.unidade--atencao]="severidade(unidade) === 'warn'">
+        <div class="unidade" [class]="'unidade unidade--' + tomDaUnidade(unidade)">
           <button class="linha" type="button" (click)="alternarUnidade(unidade)" [attr.aria-expanded]="expandida(unidade.id)">
             <span class="linha__identidade">
-              <span class="marca" [class]="'marca marca--' + severidade(unidade)" aria-hidden="true">
-                @switch (severidade(unidade)) {
-                  @case ('down') { <app-icon name="close" /> }
-                  @case ('warn') { <app-icon name="incident" /> }
-                  @default { <app-icon name="circle" /> }
-                }
+              <span class="marca" [class]="'marca marca--' + tomDaUnidade(unidade)" aria-hidden="true">
+                <app-icon [name]="iconeDoTom(tomDaUnidade(unidade))" [attr.data-icone]="iconeDoTom(tomDaUnidade(unidade))" />
               </span>
               <span class="linha__nome">
                 <strong>{{ unidade.nome }}</strong>
@@ -92,7 +88,7 @@
             <span class="linha__estado">
               <app-status-badge [status]="unidade.status" />
               @if (manutencaoParcial(unidade)) {
-                <span class="chip-manutencao" [title]="rotuloManutencao(unidade)" [attr.aria-label]="rotuloManutencao(unidade)"><app-icon name="circle" />{{ unidade.equipamentosEmManutencao }}</span>
+                <span class="chip-manutencao" [title]="rotuloManutencao(unidade)" [attr.aria-label]="rotuloManutencao(unidade)"><app-icon name="wrench" />{{ unidade.equipamentosEmManutencao }} em manutenção</span>
               }
             </span>
             <span class="faixa col-composicao" [attr.aria-label]="unidade.equipamentosDisponiveis + ' online, ' + unidade.equipamentosDegradados + ' degradados, ' + unidade.equipamentosEmManutencao + ' em manutenção, ' + unidade.equipamentosIndisponiveis + ' offline'">
