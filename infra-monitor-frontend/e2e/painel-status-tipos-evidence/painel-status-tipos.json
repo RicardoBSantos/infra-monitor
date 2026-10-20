@@ -1,6 +1,6 @@
 {
   "banco": "dev",
-  "quando": "2026-10-20T11:35:08.985Z",
+  "quando": "2026-10-20T11:42:50.495Z",
   "viewport": "1440x900 (+860x900)",
   "ok": true,
   "resultados": [
@@ -68,7 +68,7 @@
       "caso": "abas.semFiltro.a",
       "nome": "índice parcial: aviso presente, com texto, e NENHUMA aba com contador",
       "ok": true,
-      "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
+      "detalhe": "parcial=\"Filtro e contagem por tipo consideram só 100 de 221 equipamentos.\"; abas com contador=0"
     },
     {
       "caso": "dev.3",
@@ -78,9 +78,9 @@
     },
     {
       "caso": "dev.4",
-      "nome": "dev: aviso de índice parcial \"100 de 221\"",
+      "nome": "dev: aviso de índice parcial cobre filtro e contagem, \"100 de 221\"",
       "ok": true,
-      "detalhe": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos."
+      "detalhe": "Filtro e contagem por tipo consideram só 100 de 221 equipamentos."
     },
     {
       "caso": "pill.0",
@@ -92,7 +92,7 @@
       "caso": "abas.pill.a",
       "nome": "índice parcial: aviso presente, com texto, e NENHUMA aba com contador",
       "ok": true,
-      "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
+      "detalhe": "parcial=\"Filtro e contagem por tipo consideram só 100 de 221 equipamentos.\"; abas com contador=0"
     },
     {
       "caso": "pill.1",
@@ -110,7 +110,7 @@
       "caso": "abas.busca.a",
       "nome": "índice parcial: aviso presente, com texto, e NENHUMA aba com contador",
       "ok": true,
-      "detalhe": "parcial=\"Contagem por tipo indisponível: índice com 100 de 221 equipamentos.\"; abas com contador=0"
+      "detalhe": "parcial=\"Filtro e contagem por tipo consideram só 100 de 221 equipamentos.\"; abas com contador=0"
     },
     {
       "caso": "busca.1",
@@ -670,7 +670,7 @@
           "ativa": false
         }
       ],
-      "parcial": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos.",
+      "parcial": "Filtro e contagem por tipo consideram só 100 de 221 equipamentos.",
       "linhas": 11,
       "contagemTexto": "11 de 11 unidades"
     },
@@ -738,7 +738,7 @@
           "ativa": false
         }
       ],
-      "parcial": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos.",
+      "parcial": "Filtro e contagem por tipo consideram só 100 de 221 equipamentos.",
       "linhas": 5,
       "contagemTexto": "5 de 11 unidades"
     },
@@ -806,7 +806,7 @@
           "ativa": false
         }
       ],
-      "parcial": "Contagem por tipo indisponível: índice com 100 de 221 equipamentos.",
+      "parcial": "Filtro e contagem por tipo consideram só 100 de 221 equipamentos.",
       "linhas": 1,
       "contagemTexto": "1 de 11 unidades"
     },
@@ -1205,22 +1205,22 @@
   },
   "erros": [],
   "rede": [
-    "2026-10-20T11:35:06.047Z [real] POST /auth/login",
-    "2026-10-20T11:35:06.279Z [real] GET /dashboard/resumo",
-    "2026-10-20T11:35:06.321Z [real] GET /dashboard/unidades",
-    "2026-10-20T11:35:06.322Z [real] GET /unidades?ativo=true",
-    "2026-10-20T11:35:06.322Z [real] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:35:06.291Z&fim=2026-10-20T11:35:06.291Z&size=200",
-    "2026-10-20T11:35:06.322Z [real] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:35:06.292Z&fim=2026-10-20T11:35:06.292Z&size=500",
-    "2026-10-20T11:35:06.322Z [real] GET /tipos-equipamento",
-    "2026-10-20T11:35:06.323Z [real] GET /equipamentos?size=500&sort=nome,asc",
-    "2026-10-20T11:35:08.295Z [sintetico] POST /auth/login",
-    "2026-10-20T11:35:08.382Z [sintetico] GET /dashboard/resumo",
-    "2026-10-20T11:35:08.397Z [sintetico] GET /dashboard/unidades",
-    "2026-10-20T11:35:08.400Z [sintetico] GET /unidades?ativo=true",
-    "2026-10-20T11:35:08.400Z [sintetico] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:35:08.385Z&fim=2026-10-20T11:35:08.385Z&size=200",
-    "2026-10-20T11:35:08.401Z [sintetico] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:35:08.386Z&fim=2026-10-20T11:35:08.386Z&size=500",
-    "2026-10-20T11:35:08.401Z [sintetico] GET /tipos-equipamento",
-    "2026-10-20T11:35:08.401Z [sintetico] GET /equipamentos?size=500&sort=nome,asc"
+    "2026-10-20T11:42:47.590Z [real] POST /auth/login",
+    "2026-10-20T11:42:47.689Z [real] GET /dashboard/resumo",
+    "2026-10-20T11:42:47.708Z [real] GET /dashboard/unidades",
+    "2026-10-20T11:42:47.709Z [real] GET /unidades?ativo=true",
+    "2026-10-20T11:42:47.709Z [real] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:42:47.692Z&fim=2026-10-20T11:42:47.692Z&size=200",
+    "2026-10-20T11:42:47.709Z [real] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:42:47.693Z&fim=2026-10-20T11:42:47.693Z&size=500",
+    "2026-10-20T11:42:47.709Z [real] GET /tipos-equipamento",
+    "2026-10-20T11:42:47.709Z [real] GET /equipamentos?size=500&sort=nome,asc",
+    "2026-10-20T11:42:49.952Z [sintetico] POST /auth/login",
+    "2026-10-20T11:42:50.040Z [sintetico] GET /dashboard/resumo",
+    "2026-10-20T11:42:50.054Z [sintetico] GET /dashboard/unidades",
+    "2026-10-20T11:42:50.057Z [sintetico] GET /unidades?ativo=true",
+    "2026-10-20T11:42:50.057Z [sintetico] GET /relatorios/disponibilidade/unidades?inicio=2026-09-20T11:42:50.043Z&fim=2026-10-20T11:42:50.043Z&size=200",
+    "2026-10-20T11:42:50.058Z [sintetico] GET /relatorios/latencia/unidades?inicio=2026-09-20T11:42:50.044Z&fim=2026-10-20T11:42:50.044Z&size=500",
+    "2026-10-20T11:42:50.058Z [sintetico] GET /tipos-equipamento",
+    "2026-10-20T11:42:50.058Z [sintetico] GET /equipamentos?size=500&sort=nome,asc"
   ],
   "fatal": null
 }

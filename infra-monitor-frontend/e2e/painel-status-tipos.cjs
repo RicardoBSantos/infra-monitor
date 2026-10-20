@@ -27,6 +27,10 @@
  *     numa captura SEPARADA, com 4 linhas "[sintético]" injetadas por `page.route` em
  *     GET /dashboard/unidades. As capturas de dado real nunca usam interceptação.
  *
+ * DADOS DO DEV EMBUTIDOS: as asserções `dev.*` assumem fatos do banco de dev (11 unidades, a lista
+ * exata do catálogo de tipos em TIPOS_DEV, índice parcial "100 de 221"). Se o banco de dev mudar,
+ * essas asserções quebram sem que o Painel esteja errado — atualize as constantes, não o código.
+ *
  * Verificação vazia por construção (ex.: chip × faixa com a faixa oculta, ou sem nenhum chip) é
  * gravada com `informativo: true` e não conta como aprovação.
  *
@@ -291,7 +295,8 @@ async function novaPagina(browser, rotulo) {
       checar('dev.3', 'dev: "Todos" + os 9 tipos ativos do catálogo, em ordem, todos SEM contador e nenhum desabilitado',
         JSON.stringify(rotulos) === JSON.stringify(TIPOS_DEV) && abasSemFiltro.abas.every((a) => a.contagem === null && !a.desabilitada),
         JSON.stringify(rotulos));
-      checar('dev.4', 'dev: aviso de índice parcial "100 de 221"', !!abasSemFiltro.parcial && /100 de 221/.test(abasSemFiltro.parcial),
+      checar('dev.4', 'dev: aviso de índice parcial cobre filtro e contagem, "100 de 221"',
+        !!abasSemFiltro.parcial && /^Filtro e contagem por tipo consideram só 100 de 221 equipamentos.$/.test(abasSemFiltro.parcial),
         abasSemFiltro.parcial ?? '(sem aviso)');
     } else {
       checar('carga.1', 'carga: abas = Todos, Access Point, Roteador, Servidor (inclui "Servidor" e "Roteador")',

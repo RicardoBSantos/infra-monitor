@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { UnitOperationalStatus } from '../../core/models/api-enums';
+import { DashboardStateService } from '../../core/services/dashboard-state.service';
 import { DashboardComponent } from './dashboard.component';
 
 const resumo = {
@@ -287,6 +288,29 @@ describe('DashboardComponent', () => {
     expect((um.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent?.trim()).toMatch(/· [+]1 incidente$/);
   });
 
+  it('"+N" tem piso 0: KPI menor que a lista descrita não mostra excedente', () => {
+    // GET /incidentes pode trazer órfãos que o KPI elegível não conta: 2 descritos com KPI 1.
+    const fixture = create();
+    responderCarga(fixture, { ...resumo, incidentes: { abertos: 1 } }, [unidade], [incidenteAberto, { ...incidenteAberto, id: 91 }]);
+    const detalhe = (fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')?.textContent ?? '';
+    expect(detalhe).toContain('SW-CORE no Centro Operacional offline há');
+    expect(detalhe).not.toMatch(/[+]d/);
+    expect(detalhe).not.toContain('+0');
+  });
+
+  it('KPI de incidentes zerado após atualizar limpa a descrição do banner', () => {
+    const fixture = create();
+    responderCarga(fixture);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')).not.toBeNull();
+    TestBed.inject(DashboardStateService).atualizar();
+    // Banner continua de pé pelo dispositivo offline, mas sem citar o incidente que já não está aberto.
+    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush({ ...resumo, incidentes: { abertos: 0 } });
+    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush([{ ...unidade, incidentesAbertos: 0 }]);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.alerta')).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')).toBeNull();
+  });
+
   it('não busca incidentes quando o resumo não aponta incidentes abertos', () => {
     const fixture = create();
     responderCarga(fixture, { ...resumo, incidentes: { abertos: 0 } });
@@ -301,6 +325,8 @@ describe('DashboardComponent', () => {
     expect(abas[1].disabled).toBe(true);
     expect(abas[2].disabled).toBe(false);
     expect((fixture.nativeElement as HTMLElement).querySelector('.abas__parcial')).toBeNull();
+    // Contador conta equipamentos, não unidades.
+    expect([...(fixture.nativeElement as HTMLElement).querySelectorAll('.aba__contagem')].every((c) => c.getAttribute('title') === 'equipamentos')).toBe(true);
   });
 
   // O caso sem equipamento do tipo inativo está no teste acima: a lista exata de abas não traz 'Legado'.
@@ -317,7 +343,9 @@ describe('DashboardComponent', () => {
     expect(abas.length).toBe(3);
     expect(abas.every((a) => !a.disabled)).toBe(true);
     expect(abas.some((a) => /\d/.test(a.textContent!))).toBe(false);
-    expect(texto(fixture)).toContain('1 de 221');
+    // O aviso diz que o filtro também é parcial, não só a contagem.
+    expect((fixture.nativeElement as HTMLElement).querySelector('.abas__parcial')?.textContent?.trim())
+      .toBe('Filtro e contagem por tipo consideram só 1 de 221 equipamentos.');
   });
 
   it('contagem da aba acompanha a visão atual (busca)', () => {

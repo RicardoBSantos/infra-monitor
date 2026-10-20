@@ -48,12 +48,12 @@
   <div class="filtros">
     <label class="filtros__busca"><app-icon name="search" /><input type="search" placeholder="Filtrar unidades ou equipamentos…" [value]="filtroTexto()" (input)="aoDigitar($event)" aria-label="Filtrar por nome, código, hostname ou endereço IP" /></label>
     <div class="abas" role="group" aria-label="Filtrar por tipo de equipamento">
-      <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === null" (click)="selecionarTipo(null)">Todos @if (contagemTodos() !== null) { <span class="aba__contagem">{{ contagemTodos() }}</span> }</button>
+      <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === null" (click)="selecionarTipo(null)">Todos @if (contagemTodos() !== null) { <span class="aba__contagem" title="equipamentos">{{ contagemTodos() }}</span> }</button>
       @for (aba of abasTipo(); track aba.id) {
-        <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === aba.id" [disabled]="aba.desabilitada" (click)="selecionarTipo(aba.id)">{{ aba.nome }} @if (aba.contagem !== null) { <span class="aba__contagem">{{ aba.contagem }}</span> }</button>
+        <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === aba.id" [disabled]="aba.desabilitada" (click)="selecionarTipo(aba.id)">{{ aba.nome }} @if (aba.contagem !== null) { <span class="aba__contagem" title="equipamentos">{{ aba.contagem }}</span> }</button>
       }
     </div>
-    @if (cadastroCompleto() === false) { <p class="abas__parcial" role="status">Contagem por tipo indisponível: índice com {{ cadastroCarregados() }} de {{ cadastroTotal() }} equipamentos.</p> }
+    @if (cadastroCompleto() === false) { <p class="abas__parcial" role="status">Filtro e contagem por tipo consideram só {{ cadastroCarregados() }} de {{ cadastroTotal() }} equipamentos.</p> }
     <div class="pills" role="group" aria-label="Filtrar unidades por status">
       <button class="pill" type="button" [class.pill--ativa]="filtroStatus() === null" (click)="selecionarStatus(null)">Todos</button>
       @for (pill of pills; track pill.valor) {

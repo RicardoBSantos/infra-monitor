@@ -127,7 +127,7 @@ export class DashboardComponent {
     return visao;
   });
 
-  protected readonly unidadesNaVisao = computed(() => this.visao().map(({ unidade }) => unidade));
+  private readonly unidadesNaVisao = computed(() => this.visao().map(({ unidade }) => unidade));
 
   protected readonly unidades = computed(() => {
     const tipoId = this.filtroTipoId();
@@ -181,7 +181,11 @@ export class DashboardComponent {
   protected readonly disponibilidadeGlobalCarregando = computed(() => this.disponibilidadeGlobalState() === 'loading');
   protected readonly latenciaGlobalCarregando = computed(() => this.latenciaGlobalState() === 'loading');
 
-  /** Segunda linha do banner: só existe se a API de incidentes tiver respondido com incidentes abertos. */
+  /**
+   * Segunda linha do banner: só existe se a API de incidentes tiver respondido com incidentes abertos.
+   * A lista descrita vem crua de GET /incidentes (ABERTO/RECONHECIDO) e pode citar incidente órfão (monitor desativado,
+   * equipamento inativo ou em manutenção); só o "+N" deriva do KPI elegível (infra-monitor-backend/docs/contagem-incidentes-abertos.md).
+   */
   protected readonly descricaoIncidentes = computed(() => {
     const abertos = this.incidentes();
     if (!abertos.length) return null;
@@ -205,7 +209,10 @@ export class DashboardComponent {
     afterNextRender(() => this.carregarCadastro());
     effect(() => {
       const resumo = this.painel.resumo();
-      if (resumo && resumo.incidentes.abertos > 0) this.carregarIncidentes();
+      if (!resumo) return;
+      // KPI zerado (ex.: depois de atualizar()) limpa a lista: o banner pode seguir de pé por offline e não pode citar incidente velho.
+      if (resumo.incidentes.abertos > 0) this.carregarIncidentes();
+      else this.incidentes.set([]);
     });
     const relogio = setInterval(() => this.agora.set(Date.now()), 30_000);
     inject(DestroyRef).onDestroy(() => clearInterval(relogio));
