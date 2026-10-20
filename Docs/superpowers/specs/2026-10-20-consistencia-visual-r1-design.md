@@ -104,8 +104,7 @@ tema claro):
 | `--im-warning-bg` | `rgba(210,153,34,.10)` | `rgba(181,71,8,.08)` |
 | `--im-danger-bg` | `rgba(229,83,75,.10)` | `rgba(217,45,32,.07)` |
 | `--im-neutral-bg` | `rgba(122,134,153,.10)` | `rgba(71,84,103,.07)` |
-| `--im-info-bg` | `rgba(76,141,255,.10)` | `rgba(26,86,219,.08)` |
-| `--im-*-bg-strong` (success, warning, danger) | `.16` | `.14` |
+| `--im-*-bg-strong` (success, warning, danger, neutral) | `.16` | `.14` |
 | `--im-overlay` | `rgba(0,0,0,.60)` | `rgba(16,24,40,.40)` |
 
 `--im-success-bg` e `--im-danger-bg` já existem: os valores mudam para os da tabela (o claro hoje é sólido
@@ -117,6 +116,8 @@ Substituir os literais de status (~25) — paleta antiga `52,199,123` / `232,163
 tokens mais próximos. Mapeamento por opacidade: ≤.10 → `-bg`, .12–.16 → `-bg-strong`, .25–.40 → `-border`.
 Overlays `.65` (modal, confirm, equipamento, tipos, monitores), `.38` (3 gavetas, mapa) e `.74` (shell
 mobile) → `var(--im-overlay)`.
+
+Azul (`76,141,255`): `.10/.12` → `--im-primary-soft` (já existe, mesmo valor), `.20` → `--im-primary-hover`; anel `.28` → `--im-focus-ring` se for box-shadow de foco. Não se cria `--im-info-bg`.
 
 Fora: sombras (`rgba(0,0,0,.18/.25/.34/.42/.45)`), keyframes de pulso (`rgba(63,185,80,0)` etc.),
 `mapa.component.ts`, tokens `--lg-*` do login (só o placeholder entra).
