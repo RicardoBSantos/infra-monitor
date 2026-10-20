@@ -7,15 +7,16 @@ import { formatarPercentual } from '../../core/format/numero';
 import { plural } from '../../core/format/plural';
 import { IncidentStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
-import { EquipamentoResponse } from '../../core/models/equipamento';
 import { IncidenteResponse } from '../../core/models/incidente';
 import { DisponibilidadeUnidadeResponse } from '../../core/models/relatorio';
+import { TipoEquipamentoResponse } from '../../core/models/tipo-equipamento';
 import { DashboardApiService } from '../../core/services/dashboard-api.service';
 import { DashboardStateService } from '../../core/services/dashboard-state.service';
 import { EquipamentoApiService } from '../../core/services/equipamento-api.service';
 import { GeoMunicipioService } from '../../core/services/geo-municipio.service';
 import { IncidenteApiService } from '../../core/services/incidente-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
+import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { AppIconComponent, AppIconName } from '../../shared/app-icon/app-icon.component';
 import { StatusBadgeComponent, TomStatus, tomDoStatus } from '../../shared/status-badge/status-badge.component';
@@ -38,7 +39,13 @@ type EstadoAgregado = 'loading' | 'ok' | 'erro';
 
 interface DetalheUnidade { estado: EstadoEquipamentos; equipamentos: DashboardEquipamento[]; total: number; disponibilidade: Map<number, number | null>; }
 interface IdentidadeUnidade { sigla: string | null; municipio: string | null; }
-interface TipoPresente { id: number; nome: string; }
+/**
+ * Única forma que abas e filtros leem do índice de cadastro: trocar a fonte do índice só mexe em carregarCadastro().
+ * tipoNome existe para as abas sobreviverem à falha do catálogo de tipos.
+ */
+interface EntradaCadastro { unidadeId: number; tipoId: number; tipoNome: string; nome: string; hostname: string | null; ip: string | null; }
+/** contagem null = desconhecida (índice parcial ou ausente): nunca vira 0 na tela. */
+interface AbaTipo { id: number; nome: string; contagem: number | null; desabilitada: boolean; }
 
 /** Ícone da marca por tom: cada tom tem forma própria, para não depender só da cor. */
 const ICONE_DO_TOM: Record<TomStatus, AppIconName> = { success: 'check', warning: 'incident', danger: 'close', muted: 'minus', info: 'wrench' };
@@ -64,6 +71,7 @@ export class DashboardComponent {
   private readonly unidadesApi = inject(UnidadeApiService);
   private readonly equipamentosApi = inject(EquipamentoApiService);
   private readonly incidentesApi = inject(IncidenteApiService);
+  private readonly tiposApi = inject(TipoEquipamentoApiService);
   private readonly geo = inject(GeoMunicipioService);
   protected readonly painel = inject(DashboardStateService);
 
@@ -84,8 +92,14 @@ export class DashboardComponent {
   private readonly latenciaGlobalState = signal<EstadoAgregado>('loading');
   private readonly detalhes = signal<Map<number, DetalheUnidade>>(new Map());
   private readonly expandidas = signal<ReadonlySet<number>>(new Set());
-  /** Indice de cadastro: hoje so enriquece as abas de tipo e a busca em unidades ainda nao expandidas. */
-  private readonly cadastro = signal<Map<number, EquipamentoResponse[]>>(new Map());
+  /** Indice de cadastro por unidade: alimenta as abas de tipo e a busca em unidades ainda nao expandidas. */
+  private readonly cadastro = signal<Map<number, EntradaCadastro[]>>(new Map());
+  /** true = o índice cobre todo o cadastro; false = parcial (contagem desconhecida); null = não carregado ou erro. */
+  protected readonly cadastroCompleto = signal<boolean | null>(null);
+  protected readonly cadastroTotal = signal<number | null>(null);
+  protected readonly cadastroCarregados = computed(() => [...this.cadastro().values()].reduce((total, lista) => total + lista.length, 0));
+  /** Catálogo de tipos: undefined = carregando, null = falhou; sem catálogo as abas saem dos tipos presentes nos dados. */
+  private readonly catalogoTipos = signal<TipoEquipamentoResponse[] | null | undefined>(undefined);
   private readonly incidentes = signal<IncidenteResponse[]>([]);
 
   protected readonly filtroTexto = signal('');
@@ -95,27 +109,52 @@ export class DashboardComponent {
 
   private readonly agora = signal(Date.now());
 
-  /** Tipos vêm dos próprios dados carregados — nada é fixado no código nem buscado por filtro. */
-  protected readonly tipos = computed<TipoPresente[]>(() => {
-    const presentes = new Map<number, string>();
-    for (const lista of this.cadastro().values()) for (const equipamento of lista) presentes.set(equipamento.tipoEquipamento.id, equipamento.tipoEquipamento.nome);
-    // Sem o indice de cadastro as abas ainda existem, derivadas do que o proprio painel ja carregou.
-    for (const detalhe of this.detalhes().values()) for (const equipamento of detalhe.equipamentos) presentes.set(equipamento.tipoEquipamento.id, equipamento.tipoEquipamento.nome);
-    return [...presentes].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  /**
+   * Visão atual sem o filtro de tipo (status e texto aplicados). Cada unidade leva as entradas do índice que
+   * contam para ela: todas se o texto é vazio ou casa com a identidade da unidade, senão só as que casam no texto.
+   */
+  private readonly visao = computed(() => {
+    const status = this.filtroStatus();
+    const texto = this.filtroTexto().trim().toLowerCase();
+    const visao: { unidade: DashboardUnidade; entradas: EntradaCadastro[] }[] = [];
+    for (const unidade of this.painel.unidades()) {
+      if (status && !combinaStatus(unidade, status)) continue;
+      const todas = this.cadastro().get(unidade.id) ?? [];
+      if (!texto || this.identidadeCombina(unidade, texto)) { visao.push({ unidade, entradas: todas }); continue; }
+      const entradas = todas.filter((entrada) => combinaCadastro(entrada, texto));
+      if (entradas.length) visao.push({ unidade, entradas });
+    }
+    return visao;
   });
 
+  protected readonly unidadesNaVisao = computed(() => this.visao().map(({ unidade }) => unidade));
+
   protected readonly unidades = computed(() => {
-    const status = this.filtroStatus();
     const tipoId = this.filtroTipoId();
-    const texto = this.filtroTexto().trim().toLowerCase();
-    return this.painel.unidades().filter((unidade) => {
-      if (status && !combinaStatus(unidade, status)) return false;
-      const equipamentos = this.cadastro().get(unidade.id) ?? [];
-      if (tipoId !== null && !equipamentos.some((equipamento) => equipamento.tipoEquipamento.id === tipoId)) return false;
-      if (!texto) return true;
-      if (this.identidadeCombina(unidade, texto)) return true;
-      return equipamentos.some((equipamento) => combinaCadastro(equipamento, texto, tipoId));
-    });
+    if (tipoId === null) return this.unidadesNaVisao();
+    return this.visao().filter(({ entradas }) => entradas.some((entrada) => entrada.tipoId === tipoId)).map(({ unidade }) => unidade);
+  });
+
+  /** Total de equipamentos da visão atual; só existe com índice completo — parcial ou ausente não vira número. */
+  protected readonly contagemTodos = computed<number | null>(() =>
+    this.cadastroCompleto() === true ? this.visao().reduce((total, { entradas }) => total + entradas.length, 0) : null);
+
+  /** Abas pelo catálogo; tipo inativo só aparece enquanto houver equipamento dele no índice. */
+  protected readonly abasTipo = computed<AbaTipo[]>(() => {
+    const noCadastro = new Set<number>();
+    for (const lista of this.cadastro().values()) for (const entrada of lista) noCadastro.add(entrada.tipoId);
+    const porTipo = new Map<number, number>();
+    for (const { entradas } of this.visao()) for (const entrada of entradas) porTipo.set(entrada.tipoId, (porTipo.get(entrada.tipoId) ?? 0) + 1);
+    const completo = this.cadastroCompleto() === true;
+    const selecionado = this.filtroTipoId();
+    return this.tiposConhecidos()
+      .filter((tipo) => tipo.ativo || noCadastro.has(tipo.id))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+      .map((tipo) => {
+        const contagem = completo ? (porTipo.get(tipo.id) ?? 0) : null;
+        // A aba selecionada nunca trava: o usuário precisa conseguir sair dela mesmo com a visão zerada.
+        return { id: tipo.id, nome: tipo.nome, contagem, desabilitada: contagem === 0 && selecionado !== tipo.id };
+      });
   });
 
   protected readonly ultimaVarredura = computed(() => {
@@ -161,6 +200,7 @@ export class DashboardComponent {
     this.carregarIdentidades();
     this.carregarDisponibilidadeUnidades();
     this.carregarLatenciaUnidades();
+    this.carregarCatalogoTipos();
     // O indice de cadastro so alimenta as abas de tipo: sai do caminho critico do primeiro render.
     afterNextRender(() => this.carregarCadastro());
     effect(() => {
@@ -175,6 +215,7 @@ export class DashboardComponent {
     this.painel.atualizar();
     this.carregarDisponibilidadeUnidades();
     this.carregarLatenciaUnidades();
+    this.carregarCatalogoTipos();
     this.carregarCadastro();
     for (const id of this.expandidas()) this.carregarEquipamentos(id, true);
   }
@@ -301,18 +342,38 @@ export class DashboardComponent {
     });
   }
 
+  /** Catálogo quando disponível; sem ele (carregando ou falha), os tipos presentes no índice e nos detalhes, como ativos. */
+  private tiposConhecidos(): { id: number; nome: string; ativo: boolean }[] {
+    const catalogo = this.catalogoTipos();
+    if (catalogo) return catalogo;
+    const presentes = new Map<number, string>();
+    for (const lista of this.cadastro().values()) for (const entrada of lista) presentes.set(entrada.tipoId, entrada.tipoNome);
+    for (const detalhe of this.detalhes().values()) for (const equipamento of detalhe.equipamentos) presentes.set(equipamento.tipoEquipamento.id, equipamento.tipoEquipamento.nome);
+    return [...presentes].map(([id, nome]) => ({ id, nome, ativo: true }));
+  }
+
+  private carregarCatalogoTipos(): void {
+    this.tiposApi.list().pipe(take(1)).subscribe({
+      next: (tipos) => this.catalogoTipos.set(tipos),
+      error: () => this.catalogoTipos.set(null),
+    });
+  }
+
+  /** Fonte atual do índice: GET /equipamentos, que o backend limita a 100 por página — por isso o índice pode ser parcial. */
   private carregarCadastro(): void {
     this.equipamentosApi.list({ size: LOTE, sort: 'nome,asc' }).pipe(take(1)).subscribe({
       next: (pagina) => {
-        const porUnidade = new Map<number, EquipamentoResponse[]>();
+        const porUnidade = new Map<number, EntradaCadastro[]>();
         for (const equipamento of pagina.content) {
           const lista = porUnidade.get(equipamento.unidade.id) ?? [];
-          lista.push(equipamento);
+          lista.push({ unidadeId: equipamento.unidade.id, tipoId: equipamento.tipoEquipamento.id, tipoNome: equipamento.tipoEquipamento.nome, nome: equipamento.nome, hostname: equipamento.hostname, ip: equipamento.ip });
           porUnidade.set(equipamento.unidade.id, lista);
         }
         this.cadastro.set(porUnidade);
+        this.cadastroTotal.set(pagina.totalElements);
+        this.cadastroCompleto.set(pagina.totalElements <= pagina.content.length);
       },
-      error: () => this.cadastro.set(new Map()),
+      error: () => { this.cadastro.set(new Map()); this.cadastroTotal.set(null); this.cadastroCompleto.set(null); },
     });
   }
 
@@ -433,9 +494,8 @@ function combinaStatus(unidade: DashboardUnidade, filtro: FiltroStatus): boolean
   }
 }
 
-function combinaCadastro(equipamento: EquipamentoResponse, texto: string, tipoId: number | null): boolean {
-  if (tipoId !== null && equipamento.tipoEquipamento.id !== tipoId) return false;
-  return [equipamento.nome, equipamento.hostname, equipamento.ip].some((valor) => valor?.toLowerCase().includes(texto));
+function combinaCadastro(entrada: EntradaCadastro, texto: string): boolean {
+  return [entrada.nome, entrada.hostname, entrada.ip].some((valor) => valor?.toLowerCase().includes(texto));
 }
 
 /** Agregado global a partir das linhas do relatório: razão entre tempo disponível e tempo monitorado. */

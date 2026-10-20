@@ -48,9 +48,12 @@
   <div class="filtros">
     <label class="filtros__busca"><app-icon name="search" /><input type="search" placeholder="Filtrar unidades ou equipamentos…" [value]="filtroTexto()" (input)="aoDigitar($event)" aria-label="Filtrar por nome, código, hostname ou endereço IP" /></label>
     <div class="abas" role="group" aria-label="Filtrar por tipo de equipamento">
-      <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === null" (click)="selecionarTipo(null)">Todos</button>
-      @for (tipo of tipos(); track tipo.id) { <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === tipo.id" (click)="selecionarTipo(tipo.id)">{{ tipo.nome }}</button> }
+      <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === null" (click)="selecionarTipo(null)">Todos @if (contagemTodos() !== null) { <span class="aba__contagem">{{ contagemTodos() }}</span> }</button>
+      @for (aba of abasTipo(); track aba.id) {
+        <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === aba.id" [disabled]="aba.desabilitada" (click)="selecionarTipo(aba.id)">{{ aba.nome }} @if (aba.contagem !== null) { <span class="aba__contagem">{{ aba.contagem }}</span> }</button>
+      }
     </div>
+    @if (cadastroCompleto() === false) { <p class="abas__parcial" role="status">Contagem por tipo indisponível: índice com {{ cadastroCarregados() }} de {{ cadastroTotal() }} equipamentos.</p> }
     <div class="pills" role="group" aria-label="Filtrar unidades por status">
       <button class="pill" type="button" [class.pill--ativa]="filtroStatus() === null" (click)="selecionarStatus(null)">Todos</button>
       @for (pill of pills; track pill.valor) {
@@ -88,7 +91,7 @@
             <span class="linha__estado">
               <app-status-badge [status]="unidade.status" />
               @if (manutencaoParcial(unidade)) {
-                <span class="chip-manutencao" [title]="rotuloManutencao(unidade)" [attr.aria-label]="rotuloManutencao(unidade)"><app-icon name="wrench" />{{ unidade.equipamentosEmManutencao }} em manutenção</span>
+                <span class="chip-manutencao" [title]="rotuloManutencao(unidade)" [attr.aria-label]="rotuloManutencao(unidade)"><app-icon name="wrench" /><span class="chip-manutencao__texto">{{ unidade.equipamentosEmManutencao }} em manutenção</span></span>
               }
             </span>
             <span class="faixa col-composicao" [attr.aria-label]="unidade.equipamentosDisponiveis + ' online, ' + unidade.equipamentosDegradados + ' degradados, ' + unidade.equipamentosEmManutencao + ' em manutenção, ' + unidade.equipamentosIndisponiveis + ' offline'">
