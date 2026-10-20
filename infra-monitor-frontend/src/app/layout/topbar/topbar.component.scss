@@ -19,6 +19,8 @@
 .refresh app-icon { width: 13px; height: 13px; }
 .refresh[aria-busy='true'] app-icon { animation: topbar-girar 1s linear infinite; }
 @keyframes topbar-girar { to { transform: rotate(360deg); } }
+/* Sem giro contínuo para quem pede menos movimento: o aria-busy do botão já anuncia a atualização. */
+@media (prefers-reduced-motion: reduce) { .refresh[aria-busy='true'] app-icon { animation: none; opacity: .55; } }
 
 .clock { display: grid; justify-items: end; gap: 1px; line-height: 1.1; }
 .clock strong { color: var(--im-text); font: 600 17px var(--im-mono); letter-spacing: -.01em; }
