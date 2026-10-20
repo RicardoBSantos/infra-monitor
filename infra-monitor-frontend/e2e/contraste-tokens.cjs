@@ -45,7 +45,7 @@ const reg = (tema, frente, fundo, r, minimo = 4.5) => { const ok = r >= minimo; 
 for (const [tema, t, lg] of [['escuro', escuro, loginEscuro], ['claro', claro, loginClaro]]) {
   for (const tx of TEXTOS) for (const f of FUNDOS) {
     const a = parse(t[tx]), b = parse(t[f]);
-    if (!a || !b || a.a !== 1 || b.a !== 1) { linhas.push(`| ${tema} | ${tx} | ${f} | — | não medível (${t[tx]} / ${t[f]}) |`); continue; }
+    if (!a || !b || a.a !== 1 || b.a !== 1) { linhas.push(`| ${tema} | ${tx} | ${f} | — | FALHA: não medível (${t[tx]} / ${t[f]}) |`); falhas.push(`${tema}: ${tx} sobre ${f} não medível (${t[tx]} / ${t[f]})`); continue; }
     reg(tema, tx, f, razao(a.rgb, b.rgb));
   }
   reg(tema, 'on-primary', 'primary', razao(parse(t['on-primary']).rgb, parse(t['primary']).rgb));
@@ -53,6 +53,7 @@ for (const [tema, t, lg] of [['escuro', escuro, loginEscuro], ['claro', claro, l
   reg(tema, 'lg-muted', 'lg-card', razao(parse(lg['lg-muted']).rgb, parse(lg['lg-card']).rgb));
   for (const [tx, bgTok] of STATUS_SOBRE_BG) {
     const bg = parse(t[bgTok]);
+    // "token ausente" não falha por ora: a Task 5 passa a tratá-lo como falha, conforme o plano.
     if (!bg) { linhas.push(`| ${tema} | ${tx} | ${bgTok} | — | token ausente |`); continue; }
     for (const base of ['surface', 'surface-raised']) reg(tema, tx, `${bgTok} sobre ${base}`, razao(parse(t[tx]).rgb, sobre(bg, parse(t[base]))));
   }

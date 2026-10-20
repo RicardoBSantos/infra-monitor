@@ -155,11 +155,13 @@ async function verificarMotion(page) {
   await page.unroute(padraoMedicoes, atrasar);
 
   await page.click('.refresh');
-  const vistoGiro = await page.locator('.refresh[aria-busy="true"] app-icon').first().waitFor({ state: 'attached', timeout: 2000 }).then(() => true, () => false);
-  if (vistoGiro) {
-    const nome = await page.locator('.refresh[aria-busy="true"] app-icon').first().evaluate((el) => getComputedStyle(el).animationName);
-    checar('motion.refresh', 'ícone de atualizar sem giro com reduced-motion', nome === 'none', `animationName=${nome}`);
-  } else naoAplicavel('motion.refresh', 'ícone de atualizar sem giro com reduced-motion', 'aria-busy="true" não apareceu a tempo após o clique em .refresh (resposta rápida)');
+  // leitura atômica: o ícone pode deixar de estar ocupado entre a espera e a leitura
+  const giro = await page.waitForFunction(() => {
+    const el = document.querySelector('.refresh[aria-busy="true"] app-icon');
+    return el ? getComputedStyle(el).animationName : null;
+  }, null, { timeout: 2000, polling: 'raf' }).then((h) => h.jsonValue(), () => null);
+  if (giro !== null) checar('motion.refresh', 'ícone de atualizar sem giro com reduced-motion', giro === 'none', `animationName=${giro}`);
+  else naoAplicavel('motion.refresh', 'ícone de atualizar sem giro com reduced-motion', 'aria-busy="true" não apareceu a tempo após o clique em .refresh (resposta rápida)');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 }
 
@@ -193,7 +195,11 @@ async function rodarTema(browser, tema) {
       }
     }
     await verificarMotion(page);
-  } finally { await ctx.close(); }
+  } finally {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await ctx.unrouteAll({ behavior: 'ignoreErrors' });
+    await ctx.close();
+  }
 }
 
 (async () => {
