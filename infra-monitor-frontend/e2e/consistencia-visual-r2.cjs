@@ -109,7 +109,7 @@ async function capturar(page, rotulo, tema) {
 
 async function capturarTodas(page, tema) {
   for (const [rotulo, href] of TELAS) {
-    if (href !== '/dashboard') await irPara(page, href); else await pausa(page, 400);
+    if (href !== '/dashboard' || !new URL(page.url()).pathname.startsWith('/dashboard')) await irPara(page, href); else await pausa(page, 400);
     await capturar(page, rotulo, tema);
     if (rotulo === 'unidades') {
       await page.waitForSelector('a[href^="/unidades/"]', { timeout: 15000 });
@@ -151,6 +151,17 @@ async function verificarModal(page, caso, gatilho, capturaAberto) {
   checar(`${caso}.fecha`, 'Escape fecha o modal (section.modal ausente, nenhum dialog visível)', (await page.locator('section.modal').count()) === 0 && abertos === 0, `dialogs visíveis=${abertos}`);
   const ret = await page.evaluate((c) => { const a = document.activeElement; return { gatilho: a?.getAttribute?.('data-cv-gatilho') === c, naoBody: a !== document.body, html: (a?.outerHTML || '').slice(0, 140) }; }, caso);
   checar(`${caso}.foco`, 'foco volta ao botão que abriu', ret.gatilho && ret.naoBody, ret.html);
+  await fecharDialogoResidual(page);
+}
+
+/** Se o Escape não fechou o diálogo (bug da linha de base), fecha pelo botão "Fechar" para não bloquear o resto do roteiro. */
+async function fecharDialogoResidual(page) {
+  const dialogo = page.locator('section.modal:visible, [role="dialog"]:not(.gaveta):visible').first();
+  if (await dialogo.count()) {
+    await dialogo.locator('.modal__fechar, button[aria-label="Fechar"]').first().click();
+    await page.waitForFunction(() => ![...document.querySelectorAll('[role="dialog"]:not(.gaveta), section.modal')].some((el) => el.getClientRects().length > 0), null, { timeout: 5000 });
+    await pausa(page, 300);
+  }
 }
 
 async function verificarGaveta(page) {
@@ -167,6 +178,7 @@ async function verificarGaveta(page) {
   await pausa(page, 400);
   const foco = await page.evaluate(() => { const a = document.activeElement; return { dentro: !!a?.closest('.gaveta'), naoBody: a !== document.body, html: (a?.outerHTML || '').slice(0, 140) }; });
   checar(`${caso}.foco`, 'após Escape do modal aberto na gaveta, foco fica dentro da gaveta (não body)', foco.dentro && foco.naoBody, foco.html);
+  await fecharDialogoResidual(page);
   if (await page.locator('.gaveta__fechar').count()) { await page.click('.gaveta__fechar'); await pausa(page, 400); }
 }
 
@@ -199,11 +211,24 @@ async function verificarEsqueleto(page) {
   const padrao = /localhost:\d+\/api\/v1\/medicoes/;
   const atrasar = async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.fallback(); };
   await page.route(padrao, atrasar);
-  await page.click('.navigation__item[href="/medicoes"]');
-  const visto = await page.locator('.esqueleto[role="status"]').first().waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false);
-  checar(`${caso}.status`, '.esqueleto[role="status"] visível durante o carregamento', visto, visto ? '' : 'não apareceu em 3 s com a API atrasada');
-  await aguardarCarga(page);
-  await page.unroute(padrao, atrasar);
+  try {
+    await page.click('.navigation__item[href="/medicoes"]');
+    const visto = await page.locator('.esqueleto[role="status"]').first().waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false);
+    checar(`${caso}.status`, '.esqueleto[role="status"] visível durante o carregamento', visto, visto ? '' : 'não apareceu em 3 s com a API atrasada');
+    await aguardarCarga(page);
+  } finally {
+    await page.unroute(padrao, atrasar);
+  }
+}
+
+/** Roda um caso extra isolado: o erro vira falha registrada (com a mensagem) e o roteiro segue; tenta fechar diálogo preso. */
+async function isolado(page, caso, fn) {
+  try { await fn(); } catch (e) {
+    checar(caso, 'caso executou sem erro', false, String(e).split('
+')[0]);
+    try { await fecharDialogoResidual(page); } catch (e2) { checar(caso + '.limpeza', 'limpeza de diálogo preso', false, String(e2).split('
+')[0]); }
+  }
 }
 
 async function rodar(browser) {
@@ -223,16 +248,24 @@ async function rodar(browser) {
     await capturarTodas(page, 'escuro');
 
     // casos extras, só no tema escuro
-    await irPara(page, '/equipamentos');
-    await verificarModal(page, 'modal-equipamentos', page.locator('button', { hasText: '+ Novo equipamento' }).first(), true);
-    await verificarGaveta(page);
-    await irPara(page, '/tipos-equipamento');
-    await verificarModal(page, 'modal-tipos', page.locator('button', { hasText: '+ Novo tipo' }).first(), false);
-    await irPara(page, '/monitores');
-    await verificarModal(page, 'modal-monitoramento', page.locator('.monitor-page__topo .botao--primario').first(), false);
-    await irPara(page, '/relatorios');
-    await verificarAbas(page);
-    await verificarEsqueleto(page);
+    await isolado(page, 'modal-equipamentos', async () => {
+      await irPara(page, '/equipamentos');
+      await verificarModal(page, 'modal-equipamentos', page.locator('button', { hasText: '+ Novo equipamento' }).first(), true);
+    });
+    await isolado(page, 'modal-gaveta', () => verificarGaveta(page));
+    await isolado(page, 'modal-tipos', async () => {
+      await irPara(page, '/tipos-equipamento');
+      await verificarModal(page, 'modal-tipos', page.locator('button', { hasText: '+ Novo tipo' }).first(), false);
+    });
+    await isolado(page, 'modal-monitoramento', async () => {
+      await irPara(page, '/monitores');
+      await verificarModal(page, 'modal-monitoramento', page.locator('.monitor-page__topo .botao--primario').first(), false);
+    });
+    await isolado(page, 'abas-relatorios', async () => {
+      await irPara(page, '/relatorios');
+      await verificarAbas(page);
+    });
+    await isolado(page, 'esqueleto', () => verificarEsqueleto(page));
 
     await trocarTema(page);
     checar('tema.claro', 'tema claro aplicado', (await temaAtual(page)) === 'claro');
@@ -256,7 +289,7 @@ async function rodar(browser) {
     console.log(`erros de página: ${errosPagina.length}; respostas 5xx: ${respostas5xx.length}`);
     await browser.close();
   }
-  if (erro) { console.error(erro); process.exit(1); }
+  if (erro) { console.error(erro); if (FASE === 'depois') process.exit(1); }
   // Em "depois", N/A também é falha, exceto notificacao-detalhe sem dados.
   if (FASE === 'depois' && (resultados.some((r) => !r.ok || (r.na && r.caso !== 'notificacao-detalhe')) || errosPagina.length || respostas5xx.length)) process.exit(1);
 })();

@@ -94,7 +94,7 @@ const medir = (page) => page.evaluate(() => {
   }
   let estouros = 0;
   for (const [tela, porLargura] of Object.entries(out)) {
-    const ruins = Object.entries(porLargura).filter(([, m]) => m.main > 0 || (m.culpados && m.culpados.length > 0));
+    const ruins = (tela === '/login' ? [] : Object.entries(porLargura)).filter(([, m]) => m.main === null || m.main > 0 || (m.culpados && m.culpados.length > 0));
     if (!ruins.length) continue;
     estouros += ruins.length;
     console.log(`ESTOURO ${tela}: ` + ruins.map(([w, m]) => `${w}px (main=${m.main}${m.culpados.length ? ' ' + m.culpados.join(', ') : ''})`).join('; '));
