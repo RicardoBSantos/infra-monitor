@@ -1,6 +1,6 @@
 # Mapa — arco de conexão: três pings em fluxo, orbe luminoso, paleta vibrante (D24)
 
-Data: 2026-10-21 · Branch: `feat/mapa-arco-brilho` (worktree `../infra-monitor-wt-arco`, base `origin/main` 8f8b78d)
+Data: 2026-10-21 · Branch: `feat/mapa-arco-brilho` (worktree `../infra-monitor-wt-arco`, base `origin/main` 8f8b78d; rebaseado em `b380ea8` antes do PR, quando a decisão passou de D23 a D24 porque o `main` já tinha D23)
 
 ## Pedido
 

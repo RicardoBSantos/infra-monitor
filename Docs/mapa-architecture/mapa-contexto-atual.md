@@ -313,6 +313,11 @@ no custo.
   0,137 para 0,377 ms. Escala bem.
 - `box-shadow` (C) é 45% mais caro que `::after` com `transform` (B) e não compõe no compositor.
 
+**Nota (D24).** Os 45% acima são sobre o **Δ** em relação à base (0,43 × 0,29 ms), não sobre o
+absoluto (0,618 × 0,475 ms, 30%). Os cenários A–F, BD, B5, D5 e E5 continuam na bancada, inalterados,
+para continuar comparáveis com esta tabela; D24 acrescentou D2r, BD2r, D3, D3w, H, BD3 e BD3x5 e a
+medição da aplicação real — números na [§17](#17-d24--três-pings-em-fluxo-orbe-halo-e-paleta-vibrante).
+
 ### 9.3 Achado que decide o item 2: o `transform` do marcador é do MapLibre, não nosso
 
 Medido, não deduzido:
@@ -749,3 +754,116 @@ Decisão em [D22](mapa-decisoes.md).
 Execução no dev com as cinco divergências do cadastro:
 `E2E_IBGE_ESPERADO='Unidade Propriá:2805307,Sesc Itabaiana:2803005,Unidade Estância:2802205,Unidade Simão Dias:2806800,Unidade Socorro:2804607'`.
 Na carga: `E2E_IBGE_ESPERADO=nenhuma`.
+
+## 17. D24 — três pings em fluxo, orbe, halo e paleta vibrante
+
+Decisão em [D24](mapa-decisoes.md). Substitui, para o ping, a linha e o glow do marcador, o que §10 e
+§12 descrevem.
+
+| Item | Antes (D16–D19) | Agora (D24) |
+|---|---|---|
+| Pings por linha | 2, fase oposta, ida e volta (`faseVaiEVolta`) | 3, a ⅓, fluxo hub → unidade (`faseDeFluxo`), fade de 0,08 nas pontas (`opacidadeNaPonta`) |
+| `PERIODO_PING_MS` | 4200 = ida + volta | 4200 = uma travessia; um ping chega a cada 1400 ms |
+| Ping | 7px, aro branco de 1px, esfera de 3 sombras com parada escura (D18-B) | 5px, `border: 0`, orbe (núcleo claro → cor → transparente), glow `0 0 4px 1px` da cor a 70% |
+| Linha | uma camada, 1,4px, opacidade 0,65 | `conexoes-halo` (6px, blur 4, 0,28) por baixo de `conexoes-linha` (1,6px, 0,85) |
+| Marcador | miolo opaco + sombra de contato | o mesmo + glow `0 0 6px 1px` a 55%; selecionado: anel 3px (primeira sombra) + glow 9px/2px a 45% |
+| Paleta | D19 | vibrante, tabela em D24; legenda com os seis hex literais |
+| Topologia real | dev 11 unidades / 9 linhas → 18 pings; carga 2 / 1 → 2 | dev 27 pings; carga 3 |
+
+### Bancada `perf:mapa` — corrida 3 (`bench.json`)
+
+Intel UHD 770 (ANGLE/D3D11), 1280x800, 6 s por cenário, 10 linhas sintéticas. Nesta corrida a cadência
+ficou em 56,5–57,1 fps em **todos** os cenários, inclusive A — é a máquina, não a animação (na corrida 1
+foi 59,9 em todos). Nenhum erro de página.
+
+| Cenário | CPU/quadro | Δ sobre A | estilo/quadro | % orçamento | quadros > 20 ms |
+|---|---|---|---|---|---|
+| A — parado | 0,153 | — | 0 | 0,9 | 0,9% |
+| B — pulso `::after` | 0,422 | +0,27 | 0,117 | 2,4 | 0,9% |
+| C — pulso `box-shadow` | 0,567 | +0,41 | 0,098 | 3,2 | 0,3% |
+| D — 20 pings DOM (CSS de bancada) | 0,894 | +0,74 | 0,092 | 5,0 | 0,3% |
+| E — 20 pings `setData` | 2,560 | +2,41 | 0 | 14,5 | 0% |
+| F — `line-dasharray` | 1,858 | +1,71 | 0 | 10,5 | 0% |
+| BD | 1,085 | +0,93 | 0,161 | 6,1 | 0,6% |
+| B5 | 1,124 | +0,97 | 0,390 | 6,0 | 0,9% |
+| D5 | 2,345 | +2,19 | 0,254 | 13,2 | 0% |
+| E5 | 3,007 | +2,85 | 0 | 16,9 | 0% |
+| **D2r — 20 pings, CSS de antes, ida e volta** | 1,304 | +1,15 | 0,424 | 7,3 | 0,6% |
+| **BD2r — tela inteira ANTES** | 1,554 | +1,40 | 0,518 | 8,7 | 0,6% |
+| **D3 — 30 pings orbe, fluxo + fade** | 1,769 | +1,62 | 0,593 | 9,9 | 0,6% |
+| D3w — D3 + `will-change` | 1,529 | +1,38 | 0,529 | 8,6 | 0% |
+| H — halo parado | 0,149 | ≈ 0 | 0 | 0,8 | 0,3% |
+| **BD3 — tela inteira DEPOIS** | 1,720 | +1,57 | 0,547 | 9,7 | 0% |
+| BD3x5 — 150 pings, 55 marcadores | 3,970 | +3,82 | 1,381 | 22,4 | 0,6% |
+
+Decisões pela **mediana de 3 corridas**, porque uma corrida só variou mais que o efeito (E foi de 2,09
+a 3,17 ms entre corridas):
+
+| Cenário | corrida 1 | corrida 2 | corrida 3 | mediana |
+|---|---|---|---|---|
+| A | 0,174 | 0,134 | 0,153 | 0,153 |
+| BD2r | 1,894 | 1,498 | 1,554 | 1,554 |
+| D3 | 1,863 | 1,572 | 1,769 | 1,769 |
+| D3w | 1,749 | 1,630 | 1,529 | 1,630 |
+| BD3 | 2,148 | 1,927 | 1,720 | 1,927 |
+
+- **Gate de CPU:** Δ de BD3 sobre A na mediana = 1,774 ms ≤ 2,35. Passa.
+- **Gate de quadros:** 0% em todos na corrida 1. Nas corridas 2 e 3 houve 0–0,9% em vários cenários,
+  inclusive A, com picos isolados de 20–35 ms (e centenas de ms no aquecimento de B/B5). Avaliado contra
+  o piso de A na mesma corrida, nenhum cenário animado fica acima dele. BD3x5, a 5×, também não se
+  destacou — o que dá alguma garantia de que um custo real < 1% não está escondido no ruído.
+- **O que cresce é estilo**, não pintura: D3 0,59 contra D 0,09 ms de recálculo por quadro. É o
+  `style.opacity` inline do fade, escrito em cada ping a cada quadro. Candidato a otimização se um dia
+  pesar: escrever só quando o valor muda (no meio do arco ele é 1 constante).
+- **`will-change`:** −7,9% na mediana, faixas sobrepostas. Inconclusivo; não entrou.
+
+### Aplicação real `perf:mapa-app`
+
+CDP `Performance.getMetrics`, 6 s, 1600x900, clones descartáveis dos bancos de dev e da carga. "Antes" =
+`8f8b78d` (merge-base do branch); "depois" = este branch. 59,9 fps e 0% de quadros lentos nos oito
+registros.
+
+| Banco | Rótulo | Marcadores | Pings | Animado | Parado | Δ |
+|---|---|---|---|---|---|---|
+| dev | antes | 11 | 18 | 4,453 | 1,620 | 2,833 |
+| dev | depois | 11 | 27 | 3,957 | 0,950 | 3,007 |
+| carga | antes | 2 | 2 | 2,524 | 0,676 | 1,848 |
+| carga | depois | 2 | 3 | 2,798 | 0,734 | 2,064 |
+
++0,17 ms (dev) e +0,22 ms (carga) por quadro com 50% mais pings, halo e glow. O `parado` do dev caiu de
+1,62 para 0,95 ms entre as sessões, sem mudança que o explique: é por isso que a comparação é pelo Δ.
+A bancada e a app têm viewport e argumentos de navegador diferentes — compare app com app e bancada com
+bancada.
+
+### DV16 fechada
+
+A parada escura (`color-mix(... 70%, #000)`) que a dívida media não existe mais: o orbe vai do núcleo
+claro à cor e da cor ao transparente, sem escurecer a borda. Na cor pura do orbe o pior caso contra o
+município é `sem-equipamentos`, 3,95:1; o centro (`#fff` a 55% sobre a cor, calculado em sRGB como o
+`color-mix`) fica entre 8,5:1 e 11,5:1 nos seis. Captura dos seis status forçados, lado a lado com o de
+antes: `e2e/d24-evidence/seis-status-depois.png` × `seis-status-antes.png`, e
+`ping-7px-vs-5px.png` a 4×. `sem-dados`, `sem-equipamentos` e `em-manutencao` se separam; antes os dois
+neutros quase se confundiam.
+
+### Nota visual: o ping ficou mais discreto, e `sem-equipamentos` é o mais fraco
+
+Registrado de propósito, não é defeito medido mas é o que se vê:
+
+- **No zoom de estado o orbe de 5px lê menos que o disco de 7px com aro branco.** O aro era justamente o
+  que fazia o ping saltar da linha; sem ele o ping é um ponto de luz da mesma cor da linha em que corre,
+  e se separa dela só pelo núcleo claro e pelo glow. Lê, mas é mais discreto — foi o pedido (tirar o aro,
+  diminuir), e o custo dele.
+- **`sem-equipamentos` é o mais fraco dos seis.** Ping e linha têm a mesma cor (desde D18), e essa é a
+  mais escura da paleta: linha, halo e orbe somam pouco brilho sobre o município. Na captura ele lê como
+  ponto claro, não como anel vazio (que era o defeito de DV16), mas é o que menos chama atenção. O banco
+  de dev não tem conexão `sem-equipamentos`; só aparece no sintético.
+
+Se o operador sentir falta do ping no zoom de estado, a alavanca é o tamanho ou o raio do glow, não a
+volta do aro branco.
+
+### Suítes (depois do rebase em `origin/main` `b380ea8`)
+
+`ng test` 580/580 em 55 arquivos (eram 540 em 53 antes do rebase; os 40 a mais vieram do r2);
+`ng build` sem erro, só o aviso de budget de DV04 (97,34 kB). `e2e:n06` 50/50, `e2e:n07` 50/50,
+`e2e:n08` 52/52 e `e2e:d24` 15/15 (dev) e 13/13 (carga) — rodados no clone de dev antes do rebase; o
+rebase só trouxe conflito de texto no SCSS da legenda e no `package.json`.

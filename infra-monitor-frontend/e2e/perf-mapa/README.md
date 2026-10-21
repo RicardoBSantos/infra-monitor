@@ -33,7 +33,7 @@ cenários é estável, e foi ela que sustentou as escolhas de D16.
 | F | `line-dasharray` animado por `setPaintProperty` a 20 Hz — alternativa descartada |
 | BD | B + D juntos: a carga real da tela |
 | B5 / D5 / E5 | 5× a carga real — margem antes de doer |
-| D2r | 20 pings com o CSS de `origin/main` (7px, aro, esfera de 3 sombras), vai-e-volta — a produção ANTES de D24 |
+| D2r | 20 pings com o CSS pré-D24 (`8f8b78d`: 7px, aro, esfera de 3 sombras), vai-e-volta — a produção ANTES de D24 |
 | BD2r | B + D2r — a tela inteira ANTES |
 | D3 | 30 pings com o CSS de D24 (5px, glow estático), fluxo hub→unidade, `faseDeFluxo` + `opacidadeNaPonta` por quadro |
 | D3w | D3 com `will-change: transform` — serviu para decidir; ver D24 |
