@@ -172,9 +172,12 @@
    *
    * Glow ESTÁTICO, nunca animado: `box-shadow` animado custou 0,618 ms/quadro contra 0,475 de
    * `transform` + `opacity` (§9.2, ver o pulso acima). O que muda por quadro
-   * é `transform` (da lib, via `setLngLat`) e `opacity` (fade nas pontas) — `opacity` inline custa recálculo de
-   * estilo por quadro (~0,6 ms para 30 pings, bancada D23), não repintura do glow. `will-change: transform`
-   * foi medido e NÃO entrou: D3w 1,749 contra D3 1,863 ms/quadro (−6%, abaixo do corte de 10%). `--cor-ping` continua sendo o contrato lido pelo e2e (custom
+   * é `transform` (da lib, via `setLngLat`) e `opacity` (fade nas pontas). O `opacity` inline custa
+   * recálculo de estilo por quadro (~0,6 ms para 30 pings, bancada D23), não repintura do glow.
+   * `will-change: transform` ficou de fora: em 3 corridas a mediana deu D3w 1,630 contra D3 1,769
+   * ms/quadro (−7,9%, abaixo do corte de 10%) e as faixas se sobrepõem (1,529–1,749 contra
+   * 1,572–1,863), então o ganho é inconclusivo dentro do ruído e não justifica o custo de uma camada
+   * promovida por ping. `--cor-ping` continua sendo o contrato lido pelo e2e (custom
    * property inline, não `background-color`). */
   .map__ping {
     width: 5px; height: 5px; border: 0; border-radius: 50%;

@@ -48,9 +48,30 @@ pings em D3); o dev real tem 9 (27 pings).
 
 **Gate de D23:** 0% de quadros > 20 ms em todos os cenários e Δ CPU de BD3 sobre A ≤ 2,35 ms.
 `will-change: transform` só entra em `.map__ping` se D3w ficar mais de 10% abaixo de D3 (não ficou:
-−6%, ver `mapa.component.scss`).
+−7,9% na mediana, ver `mapa.component.scss`).
 
 `bench-final.png` é artefato de execução (captura do BD3 ao fim da corrida); nunca foi versionado.
+
+### Ruído entre corridas (D23)
+
+Uma corrida só não decide nada abaixo de ~20%: o cenário E foi de 2,086 para 3,169 ms entre duas
+corridas na mesma máquina. As decisões de D23 usam a **mediana de 3 corridas** (CPU main, ms/quadro):
+
+| cenário | corrida 1 | corrida 2 | corrida 3 | mediana |
+|---|---|---|---|---|
+| A | 0,174 | 0,134 | 0,153 | 0,153 |
+| BD2r | 1,894 | 1,498 | 1,554 | 1,554 |
+| D3 | 1,863 | 1,572 | 1,769 | 1,769 |
+| D3w | 1,749 | 1,630 | 1,529 | 1,630 |
+| BD3 | 2,148 | 1,927 | 1,720 | 1,927 |
+
+- D3w contra D3: −7,9% na mediana, faixas sobrepostas. **Inconclusivo dentro do ruído**; sem
+  `will-change`.
+- Δ BD3 sobre A na mediana: 1,774 ms (limite 2,35). Passa.
+- Quadros > 20 ms: 0% na corrida 1; nas corridas 2 e 3, 0–0,9% em vários cenários, **inclusive em A
+  (parado)**, com picos isolados de 20–35 ms (e centenas de ms no aquecimento de B/B5). Aparecem com o
+  mapa parado, então são da máquina e não da animação, mas o corte estrito de 0% não se repete.
+- `bench.json` = a última corrida (a 3).
 
 ## Duas métricas, porque uma sozinha engana
 
