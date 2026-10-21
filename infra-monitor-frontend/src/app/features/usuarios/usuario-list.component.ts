@@ -12,7 +12,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { ModalComponent } from '../../shared/modal/modal.component';
 
 type State = 'loading' | 'success' | 'empty' | 'error';
-@Component({ selector: 'app-usuario-list', imports: [ReactiveFormsModule, ActionMenuComponent, ConfirmDialogComponent, ModalComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './usuario-list.component.html', styleUrl: '../unidades/admin-list.component.scss' })
+@Component({ selector: 'app-usuario-list', imports: [ReactiveFormsModule, ActionMenuComponent, ConfirmDialogComponent, ModalComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './usuario-list.component.html', styleUrl: './usuario-list.component.scss' })
 export class UsuarioListComponent {
   private readonly api = inject(UsuarioApiService); private readonly fb = inject(FormBuilder); protected readonly authState = inject(AuthStateService);
   protected readonly items = signal<UsuarioResponse[]>([]); protected readonly state = signal<State>('loading'); protected readonly error = signal<string | null>(null); protected readonly notice = signal<string | null>(null);
