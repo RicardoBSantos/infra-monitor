@@ -52,7 +52,7 @@
       "caso": 2,
       "nome": "animação no ::after, nunca no elemento (DV13)",
       "ok": true,
-      "detalhe": "_ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none"
+      "detalhe": "_ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none"
     },
     {
       "caso": 2,
@@ -70,13 +70,13 @@
       "caso": 3,
       "nome": "há marcador isolado o bastante para hover determinístico",
       "ok": true,
-      "detalhe": "unidade 4, vizinho mais próximo a 198px"
+      "detalhe": "unidade 4, vizinho mais próximo a 203px"
     },
     {
       "caso": 3,
       "nome": "transform de autor não entra: a matriz nunca ganha escala",
       "ok": true,
-      "detalhe": "matrix(1, 0, 0, 1, 596.314, 299.714) -> matrix(1, 0, 0, 1, 591.5, 293.5)"
+      "detalhe": "matrix(1, 0, 0, 1, 604.476, 289.207) -> matrix(1, 0, 0, 1, 600.5, 281.5)"
     },
     {
       "caso": 3,
@@ -220,7 +220,7 @@
       "caso": 8,
       "nome": "fade nas pontas ativo e opacidade sempre em [0, 1] (D24)",
       "ok": true,
-      "detalhe": "18/81 leitura(s) abaixo de 1, mín 0.015"
+      "detalhe": "0 sem opacidade inline · 9/81 leitura(s) abaixo de 1, mín 0.110"
     },
     {
       "caso": 9,
