@@ -7,6 +7,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { EquipmentOperationalStatus } from '../../core/models/api-enums';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
 import { EquipamentoResponse } from '../../core/models/equipamento';
+import { AuthStateService } from '../../core/services/auth-state.service';
 import { EquipamentoListComponent } from './equipamento-list.component';
 
 function linha(overrides: Partial<DashboardEquipamentoLista> & { id: number }): DashboardEquipamentoLista {
@@ -148,12 +149,77 @@ describe('EquipamentoListComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.down')?.textContent).toContain('timeout');
   });
 
-  it('rotula a coluna de monitoramento a partir do campo ativo', () => {
+  it('rotula a coluna de monitoramento a partir do campo ativo, com o chip-ativo compartilhado', () => {
     const fixture = montar([linha({ id: 1, ativo: true }), linha({ id: 2, ativo: false })]);
-    const chips = (fixture.nativeElement as HTMLElement).querySelectorAll('.chip-monitoramento');
+    const elemento = fixture.nativeElement as HTMLElement;
+    const chips = elemento.querySelectorAll('.chip-ativo');
 
     expect(chips[0].textContent?.trim()).toBe('Ativado');
+    expect(chips[0].classList).not.toContain('chip-ativo--off');
     expect(chips[1].textContent?.trim()).toBe('Desativado');
+    expect(chips[1].classList).toContain('chip-ativo--off');
+    expect(elemento.querySelector('.chip-monitoramento')).toBeNull();
+  });
+
+  it('usa mono só no que se compara caractere a caractere: IP e hostname, não o nome', () => {
+    const fixture = montar([linha({ id: 1 })]);
+    const celulas = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('tbody tr:first-child td');
+
+    expect(celulas[0].textContent?.trim()).toBe('EQ-1');
+    expect(celulas[0].querySelector('.mono')).toBeNull();
+    expect(celulas[0].classList).not.toContain('mono');
+    expect(celulas[3].textContent?.trim()).toBe('eq-1.local');
+    expect(celulas[3].classList).toContain('mono');
+    expect(celulas[4].textContent?.trim()).toBe('10.0.0.1');
+    expect(celulas[4].classList).toContain('mono');
+  });
+
+  // ---- Modal compartilhado ----------------------------------------------------
+
+  function preencherCriacao(fixture: ComponentFixture<EquipamentoListComponent>): void {
+    fixture.componentInstance['abrirCriacao']();
+    fixture.componentInstance['form'].patchValue({ nome: 'SW-1', tipoEquipamentoId: 2, unidadeId: 1, ip: '10.0.0.9' });
+    fixture.detectChanges();
+  }
+
+  function escape(): void {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  }
+
+  it('abre a criação no app-modal e fecha com Escape sem foco prévio em nada', () => {
+    const fixture = montar([]);
+    const elemento = fixture.nativeElement as HTMLElement;
+    preencherCriacao(fixture);
+
+    expect(elemento.querySelector('app-modal section.modal form.modal-form')).not.toBeNull();
+    expect(elemento.querySelector('app-modal section.modal')?.textContent).toContain('Novo equipamento');
+    expect(elemento.querySelector('.dialog-backdrop, .equipamento-modal')).toBeNull();
+
+    escape();
+    fixture.detectChanges();
+
+    expect(elemento.querySelector('app-modal section.modal')).toBeNull();
+  });
+
+  it('durante a gravação o Escape não fecha e o × fica desabilitado', () => {
+    const fixture = montar([]);
+    const elemento = fixture.nativeElement as HTMLElement;
+    preencherCriacao(fixture);
+
+    elemento.querySelector<HTMLFormElement>('app-modal form.modal-form')!.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+    const post = http.expectOne((requisicao) => requisicao.method === 'POST');
+
+    escape();
+    fixture.detectChanges();
+
+    expect(elemento.querySelector('app-modal section.modal')).not.toBeNull();
+    expect(elemento.querySelector<HTMLButtonElement>('app-modal .modal__fechar')!.disabled).toBe(true);
+
+    post.flush({ ...CADASTRO_COMPLETO, nome: 'SW-1' });
+    http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush([]);
+    fixture.detectChanges();
+    expect(elemento.querySelector('app-modal section.modal')).toBeNull();
   });
 
   it('carrega o cadastro completo na edição e reenvia todos os campos ao salvar sem alterações', () => {
@@ -165,7 +231,7 @@ describe('EquipamentoListComponent', () => {
     http.expectOne((requisicao) => requisicao.url.endsWith('/equipamentos/1')).flush(CADASTRO_COMPLETO);
     fixture.detectChanges();
 
-    (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('.equipamento-modal form')!
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('app-modal form.modal-form')!
       .dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
@@ -301,6 +367,53 @@ describe('EquipamentoListComponent', () => {
     expect(harness.routeNativeElement!.querySelector('app-equipamento-detalhe-drawer')).not.toBeNull();
   });
 
+  it('fechar o modal aberto pela gaveta devolve o foco ao "Editar", dentro da gaveta', async () => {
+    TestBed.inject(AuthStateService).setSession({
+      accessToken: 'test', tokenType: 'Bearer', expiresIn: 60,
+      usuario: { id: 1, nome: 'Admin', email: 'admin@example.test', papel: 'ADMIN', trocaSenhaObrigatoria: false },
+    });
+    // O jsdom não implementa `inert`; no navegador, focus() em elemento sob ancestral inerte
+    // falha em silêncio. Simular isso é o que deixa o teste pegar a ordem errada.
+    const focoOriginal = HTMLElement.prototype.focus;
+    const espiao = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, opcoes?: FocusOptions) {
+      if (this.closest('[inert]')) return;
+      focoOriginal.call(this, opcoes);
+    });
+
+    try {
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/equipamentos/7');
+      responderTudo(harness);
+      const raiz = harness.routeNativeElement!;
+      const gaveta = raiz.querySelector<HTMLElement>('app-equipamento-detalhe-drawer')!;
+
+      const editar = Array.from(gaveta.querySelectorAll<HTMLButtonElement>('.gaveta__acoes button'))
+        .find((botao) => botao.textContent?.includes('Editar'))!;
+      editar.focus();
+      editar.click();
+      harness.detectChanges();
+      http.expectOne((requisicao) => requisicao.url.endsWith('/equipamentos/7')).flush({ ...CADASTRO_COMPLETO, id: 7, nome: 'EQ-7' });
+      harness.detectChanges();
+
+      expect(gaveta.hasAttribute('inert')).toBe(true);
+      expect(raiz.querySelector('app-modal section.modal')?.contains(document.activeElement)).toBe(true);
+
+      escape();
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      await new Promise((resolver) => setTimeout(resolver, 0));
+
+      expect(raiz.querySelector('app-modal section.modal')).toBeNull();
+      expect(gaveta.hasAttribute('inert')).toBe(false);
+      expect(document.activeElement).not.toBe(document.body);
+      expect(gaveta.contains(document.activeElement)).toBe(true);
+      // O app-modal devolve ao gatilho; o painel da gaveta só entra se o gatilho não recebeu o foco.
+      expect(document.activeElement).toBe(editar);
+    } finally {
+      espiao.mockRestore();
+    }
+  });
+
   describe('validação do IP no formulário', () => {
     const IPV6 = 'Apenas IPv4 é suportado: o monitoramento ICMP não sonda IPv6';
 
@@ -313,7 +426,7 @@ describe('EquipamentoListComponent', () => {
     }
 
     function enviar(fixture: ComponentFixture<EquipamentoListComponent>): void {
-      (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('.equipamento-modal form')!
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('app-modal form.modal-form')!
         .dispatchEvent(new Event('submit'));
       fixture.detectChanges();
     }
@@ -327,7 +440,7 @@ describe('EquipamentoListComponent', () => {
       const erro = raiz.querySelector('#equipamento-ip-erro');
       expect(erro?.textContent?.trim()).toBe(IPV6);
       expect(raiz.querySelector('input[formControlName="ip"]')?.getAttribute('aria-invalid')).toBe('true');
-      const repetidos = Array.from(raiz.querySelectorAll('small.campo-erro')).filter((el) => el.textContent?.trim() === IPV6);
+      const repetidos = Array.from(raiz.querySelectorAll('small.field-error')).filter((el) => el.textContent?.trim() === IPV6);
       expect(repetidos.length).toBe(1);
     });
 

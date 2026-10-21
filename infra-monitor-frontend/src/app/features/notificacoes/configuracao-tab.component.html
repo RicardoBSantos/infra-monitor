@@ -1,5 +1,5 @@
 @if (estado() === 'loading') {
-  <div class="skeleton" aria-label="Carregando configuração do Telegram">
+  <div class="esqueleto" role="status" aria-label="Carregando configuração do Telegram">
     @for (bloco of [1,2,3]; track bloco) { <span></span> }
   </div>
 } @else if (estado() === 'error') {

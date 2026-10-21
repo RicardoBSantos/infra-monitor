@@ -86,7 +86,7 @@ const lerLinhas = (page) => page.evaluate(() => {
     return classe ? classe.slice(prefixo.length + 2) : null;
   };
   const caixa = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; };
-  return [...document.querySelectorAll('.tabela .unidade')].map((linha) => {
+  return [...document.querySelectorAll('.painel-grade .unidade')].map((linha) => {
     const marca = linha.querySelector('.marca');
     const icone = marca?.querySelector('[data-icone]');
     const svg = icone?.querySelector('svg');
@@ -166,7 +166,7 @@ const lerAbas = (page) => page.evaluate(() => ({
   })),
   // null = sem aviso; '' = aviso presente mas vazio (tem de falhar, não pode passar por "índice completo")
   parcial: document.querySelector('.abas__parcial') ? document.querySelector('.abas__parcial').textContent.trim() : null,
-  linhas: document.querySelectorAll('.tabela .unidade').length,
+  linhas: document.querySelectorAll('.painel-grade .unidade').length,
   contagemTexto: document.querySelector('.contagem')?.textContent.trim() ?? null,
 }));
 
@@ -200,11 +200,11 @@ function verificarContagens(caso, nome, estado, esperado) {
 /** Espera o texto "N de M unidades" refletir N — mesmo ciclo de detecção que redesenha as linhas. */
 const esperarContagem = (page, n) => page.waitForFunction((esperado) => {
   const texto = document.querySelector('.contagem')?.textContent.trim() ?? '';
-  return texto.startsWith(`${esperado} de `) && document.querySelectorAll('.tabela .unidade').length === esperado;
+  return texto.startsWith(`${esperado} de `) && document.querySelectorAll('.painel-grade .unidade').length === esperado;
 }, n, { timeout: 5000 });
 
 const esperarFaixa = (page, visivel) => page.waitForFunction((v) => {
-  const faixa = document.querySelector('.tabela .faixa');
+  const faixa = document.querySelector('.painel-grade .faixa');
   return !!faixa && (getComputedStyle(faixa).display !== 'none') === v;
 }, visivel, { timeout: 5000 });
 
@@ -228,7 +228,7 @@ async function entrarNoPainel(page) {
   await page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 20000 });
   await page.click('.navigation__item[href="/dashboard"]');
   await page.waitForURL(/\/dashboard$/, { timeout: 20000 });
-  await page.waitForSelector('.tabela .unidade', { timeout: 30000 });
+  await page.waitForSelector('.painel-grade .unidade', { timeout: 30000 });
   // Abas prontas: catálogo carregado e índice resolvido (parcial ou com contador no "Todos").
   await page.waitForFunction(() => document.querySelectorAll('.abas .aba').length > 1
     && (document.querySelector('.abas__parcial') || document.querySelector('.abas .aba .aba__contagem')), null, { timeout: 30000 });
@@ -262,7 +262,7 @@ async function novaPagina(browser, rotulo) {
     const linhas = await lerLinhas(page);
     medidas.linhas1440 = linhas;
     verificarLinhas('1440', linhas, { larguraTotal: true });
-    await capturar(page.locator('.tabela'), '02-linhas-reais.png');
+    await capturar(page.locator('.painel-grade'), '02-linhas-reais.png');
 
     if (DEV) {
       checar('dev.1', 'dev: 11 unidades no painel', linhas.length === 11, `${linhas.length} linhas`);
@@ -273,7 +273,7 @@ async function novaPagina(browser, rotulo) {
       checar('dev.2b', 'dev: Atalaia — manutenção é segmento info, não warning (faixa__warn 0, faixa__info > 0; contagens warn 0, info 1)',
         atalaia?.segmentos && atalaia.segmentos.warn === 0 && atalaia.segmentos.info > 0 && atalaia.contagens.warn === '0' && atalaia.contagens.info === '1',
         JSON.stringify({ segmentos: atalaia?.segmentos, contagens: atalaia?.contagens }));
-      await capturar(page.locator('.tabela .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia.png');
+      await capturar(page.locator('.painel-grade .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia.png');
     }
 
     // --------------------------------------------------------------- tema escuro (linhas reais)
@@ -281,8 +281,8 @@ async function novaPagina(browser, rotulo) {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 5000 });
     await capturar(page, '01-tela-inteira-escuro.png');
-    await capturar(page.locator('.tabela'), '02-linhas-reais-escuro.png');
-    if (DEV) await capturar(page.locator('.tabela .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia-escuro.png');
+    await capturar(page.locator('.painel-grade'), '02-linhas-reais-escuro.png');
+    if (DEV) await capturar(page.locator('.painel-grade .unidade', { hasText: 'Hotel Sesc Atalaia' }), '03-linha-atalaia-escuro.png');
     await alternarTema(page, 'light');
 
     // --------------------------------------------------------------- abas sem filtro
@@ -359,7 +359,7 @@ async function novaPagina(browser, rotulo) {
     }));
     medidas.chips860 = chips860;
     informar('860.r', '860px: reticências no chip (registro)', JSON.stringify(chips860));
-    await capturar(page.locator('.tabela'), '07-linhas-860.png');
+    await capturar(page.locator('.painel-grade'), '07-linhas-860.png');
     await page.setViewportSize({ width: 1440, height: 900 });
     await esperarFaixa(page, true);
 
@@ -409,7 +409,7 @@ async function novaPagina(browser, rotulo) {
     // Recorte só das 4 linhas sintéticas, em coordenadas da PÁGINA (fullPage + clip): o clique no botão de
     // tema rola a página para o topo, e um clip relativo à viewport recortaria as linhas erradas.
     const recorteSintetico = () => page.evaluate(() => {
-      const rs = [...document.querySelectorAll('.tabela .unidade')].filter((e) => e.textContent.includes('[sintético]')).map((e) => e.getBoundingClientRect());
+      const rs = [...document.querySelectorAll('.painel-grade .unidade')].filter((e) => e.textContent.includes('[sintético]')).map((e) => e.getBoundingClientRect());
       const x = Math.min(...rs.map((r) => r.x)); const y = Math.min(...rs.map((r) => r.y));
       return { x: x + scrollX, y: y + scrollY, width: Math.max(...rs.map((r) => r.right)) - x, height: Math.max(...rs.map((r) => r.bottom)) - y };
     });

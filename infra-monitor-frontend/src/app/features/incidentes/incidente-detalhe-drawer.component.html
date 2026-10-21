@@ -41,7 +41,7 @@
     </div>
   } @else if (estado() === 'loading' && !ocorrencia()) {
     <div class="gaveta__corpo">
-      <div class="esqueleto" aria-label="Carregando ocorrência">@for (linha of [1, 2, 3, 4]; track linha) { <span></span> }</div>
+      <div class="esqueleto" role="status" aria-label="Carregando ocorrência">@for (linha of [1, 2, 3, 4]; track linha) { <span></span> }</div>
     </div>
   } @else if (ocorrencia(); as item) {
     <div class="gaveta__corpo">
@@ -128,7 +128,7 @@
       <section class="cartao" aria-labelledby="titulo-timeline">
         <h3 class="cartao__titulo" id="titulo-timeline">Linha do tempo</h3>
         @if (medicoesEstado() === 'loading' || notificacoesEstado() === 'loading') {
-          <div class="esqueleto" aria-label="Carregando linha do tempo">@for (linha of [1, 2, 3]; track linha) { <span></span> }</div>
+          <div class="esqueleto" role="status" aria-label="Carregando linha do tempo">@for (linha of [1, 2, 3]; track linha) { <span></span> }</div>
         } @else {
           @if (medicoesEstado() === 'error') {
             <p class="aviso-bloco" role="alert">As medições não puderam ser carregadas: os eventos de ping estão de fora desta linha do tempo.</p>
@@ -190,7 +190,7 @@
       <section class="cartao" aria-labelledby="titulo-notificacoes">
         <h3 class="cartao__titulo" id="titulo-notificacoes">Notificações relacionadas</h3>
         @if (notificacoesEstado() === 'loading') {
-          <div class="esqueleto" aria-label="Carregando notificações">@for (linha of [1, 2]; track linha) { <span></span> }</div>
+          <div class="esqueleto" role="status" aria-label="Carregando notificações">@for (linha of [1, 2]; track linha) { <span></span> }</div>
         } @else if (notificacoesEstado() === 'error') {
           <div class="vazio">
             <strong>Não foi possível carregar as notificações.</strong>

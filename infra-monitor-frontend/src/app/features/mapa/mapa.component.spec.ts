@@ -1,3 +1,5 @@
+// @ts-expect-error -- sem @types/node no projeto; o vitest roda em Node e resolve o modulo (so este spec le o fonte).
+import { readFileSync } from 'node:fs';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { agruparUnidades, ajusteDeEncaixe, arcoEntre, caixaDosPontos, convexoIntersectaRetangulo, envoltoriaConvexa, margensParaEvitar, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
@@ -334,5 +336,41 @@ describe('encaixe calculado do estado (D22)',()=>{
     const [v,h]=margensParaEvitar(m,{x0:12,y0:521,x1:304,y1:788},800,800,12,false);
     expect(v).toEqual({top:24,right:24,bottom:291,left:24});
     expect(h).toEqual({top:24,right:24,bottom:24,left:316});
+  });
+});
+
+/*
+ * Marcacao do template (D23). O componente nao monta no jsdom (ver nota acima), entao estas
+ * verificacoes leem o HTML e o SCSS-fonte: travam o que a rodada 2 de consistencia visual decidiu.
+ */
+describe('placa do titulo e botoes (D23)', () => {
+  const html = readFileSync('src/app/features/mapa/mapa.component.html', 'utf8');
+  const scss = readFileSync('src/app/features/mapa/mapa.component.scss', 'utf8');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  it('a placa nao tem sobretitulo', () => {
+    const placa = doc.querySelector('.map-titulo');
+    expect(placa).not.toBeNull();
+    expect(placa!.querySelector('.map-titulo__eyebrow')).toBeNull();
+    expect(scss).not.toContain('map-titulo__eyebrow');
+    expect(placa!.querySelector('h1')).not.toBeNull();
+  });
+
+  it('"Ver unidade" e botao comum, nao primario', () => {
+    const botao = Array.from(doc.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Ver unidade');
+    expect(botao).toBeDefined();
+    expect(botao!.classList.contains('botao')).toBe(true);
+    expect(botao!.classList.contains('botao--primario')).toBe(false);
+  });
+
+  it('a fonte mono vem do token, sem literal', () => {
+    expect(scss).not.toContain('IBM Plex Mono');
+  });
+
+  it('no meta do equipamento afetado so o IP e mono', () => {
+    const meta = doc.querySelector('.afetados__meta');
+    expect(meta).not.toBeNull();
+    expect(meta!.querySelector('.mono')).not.toBeNull();
+    expect(scss).not.toMatch(/\.afetados__meta[^}]*var\(--im-mono\)/);
   });
 });

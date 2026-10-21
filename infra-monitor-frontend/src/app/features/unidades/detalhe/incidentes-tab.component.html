@@ -1,6 +1,6 @@
 <div class="incidentes-aba">
   @if (estado() === 'loading') {
-    <div class="esqueleto" aria-label="Carregando incidentes">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+    <div class="esqueleto" role="status" aria-label="Carregando incidentes">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
   } @else if (estado() === 'error') {
     <div class="vazio" role="alert">
       <strong>Não foi possível carregar os incidentes.</strong>
@@ -24,7 +24,7 @@
           @for (incidente of ordenados(); track incidente.id) {
             <tr>
               <td class="mono"><a [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a></td>
-              <td class="mono">{{ incidente.monitor.equipamentoNome }}</td>
+              <td>{{ incidente.monitor.equipamentoNome }}</td>
               <td>
                 {{ incidente.motivo ?? 'Indisponibilidade consolidada' }}
                 @if (rotuloEncerramento(incidente); as encerramento) {

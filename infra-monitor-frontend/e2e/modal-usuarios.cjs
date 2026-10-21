@@ -136,7 +136,7 @@ const geometria = (seletor) => (el) => {
     await page.click('a.navigation__item[href="/equipamentos"]');
     await page.waitForSelector('#equipamentos-titulo');
     await page.locator('button.botao--primario', { hasText: 'Novo equipamento' }).first().click();
-    const modalEq = page.locator('section.equipamento-modal[role="dialog"]');
+    const modalEq = page.locator('app-modal section.modal[role="dialog"]');
     await modalEq.waitFor(); await page.waitForTimeout(300);
     const ge = await modalEq.evaluate(geometria());
     checar('mesma borda superior do equipamento', ge.borderTop === g.borderTop, `${ge.borderTop} × ${g.borderTop}`);

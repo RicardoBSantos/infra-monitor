@@ -89,7 +89,7 @@ async function abrirIncidentes(page, aba) {
   await clicarNoMenu(page, '/incidentes');
   await page.waitForURL(/\/incidentes(\/.*)?$/, { timeout: 20000 });
   await page.locator('.aba', { hasText: aba }).click();
-  await page.waitForSelector('.table-wrap tbody tr', { timeout: 20000 });
+  await page.waitForSelector('.incidentes__rolagem tbody tr', { timeout: 20000 });
 }
 
 (async () => {

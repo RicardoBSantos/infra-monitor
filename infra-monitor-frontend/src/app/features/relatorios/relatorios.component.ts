@@ -1,5 +1,5 @@
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChildren } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, Observable, take } from 'rxjs';
@@ -27,6 +27,7 @@ import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
+import { navegarAbas } from '../../shared/a11y/navegar-abas';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { formatDurationSeconds } from './report-formatters';
@@ -68,6 +69,7 @@ export class RelatoriosComponent {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
 
+  private readonly abas = viewChildren<ElementRef<HTMLButtonElement>>('aba');
   protected readonly activeTab = signal<Tab>('equipamentos');
   protected readonly overviewForm = this.fb.nonNullable.group({ inicio: localDateTime(-24), fim: localDateTime(0) });
   protected readonly form = this.availabilityForm();
@@ -194,6 +196,7 @@ export class RelatoriosComponent {
     return true;
   }
 
+  protected aoTeclarAba(evento: KeyboardEvent, indice: number) { navegarAbas(evento, indice, this.abas().map(r => r.nativeElement)); }
   protected selectTab(tab: Tab) { this.activeTab.set(tab); this.search(); }
   protected onUnidadeChange(kind: HierarchyKind) {
     const form = this.formFor(kind);

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, viewChildren } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { navegarAbas } from '../../shared/a11y/navegar-abas';
 
 interface Aba { caminho: string; rotulo: string; }
 
@@ -23,13 +24,7 @@ export class NotificacaoTelegramComponent {
   private readonly gatilhosDeAba = viewChildren<ElementRef<HTMLAnchorElement>>('gatilhoAba');
   protected readonly abas = ABAS;
 
-  protected navegarPorTeclado(evento: KeyboardEvent, indice: number): void {
-    const passo = evento.key === 'ArrowRight' ? 1 : evento.key === 'ArrowLeft' ? -1 : 0;
-    if (passo === 0) return;
-    evento.preventDefault();
-    const gatilhos = this.gatilhosDeAba();
-    const destino = (indice + passo + gatilhos.length) % gatilhos.length;
-    gatilhos[destino]?.nativeElement.focus();
-    gatilhos[destino]?.nativeElement.click();
+  protected aoTeclarAba(evento: KeyboardEvent, indice: number): void {
+    navegarAbas(evento, indice, this.gatilhosDeAba().map((r) => r.nativeElement));
   }
 }

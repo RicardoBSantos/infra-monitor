@@ -22,4 +22,4 @@
 
 .grafico__eixo { display: flex; justify-content: space-between; padding: 6px 14px 14px; color: var(--im-text-dim); font-size: 10.5px; }
 .esqueleto--grafico { padding: 0 14px 14px; span { height: 132px; } }
-.mono { font-family: 'IBM Plex Mono', monospace; }
+.mono { font-family: var(--im-mono); }

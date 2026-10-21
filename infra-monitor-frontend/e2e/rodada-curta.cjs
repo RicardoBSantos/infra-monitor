@@ -72,7 +72,7 @@ async function abrirIncidentes(page, aba) {
   await clicarNoMenu(page, '/incidentes');
   await page.waitForURL(/\/incidentes(\/.*)?$/, { timeout: 20000 });
   await page.locator('.aba', { hasText: aba }).click();
-  await page.waitForSelector('.table-wrap tbody tr', { timeout: 20000 });
+  await page.waitForSelector('.incidentes__rolagem tbody tr', { timeout: 20000 });
 }
 
 /** Abre a gaveta pelo botão do código (INC-n / LAT-n) e espera o item de fechamento com o rótulo dado. */
@@ -129,7 +129,7 @@ async function fecharGaveta(page) {
 
     // --------------------------------------------------------------- 2 e 3 episódios
     await page.locator('.aba', { hasText: 'Todos' }).click();
-    await page.waitForSelector('.table-wrap tbody tr', { timeout: 20000 });
+    await page.waitForSelector('.incidentes__rolagem tbody tr', { timeout: 20000 });
     const codigoLat = async (equipamento) => {
       const linha = page.locator('tbody tr', { hasText: equipamento })
         .filter({ has: page.locator('button.link', { hasText: /^\s*LAT-\d+\s*$/ }) }).first();
@@ -181,7 +181,7 @@ async function fecharGaveta(page) {
       const texto = (await erro.textContent()).trim();
       const posts = rede.filter((r) => r.quando >= antes && r.metodo === 'POST' && /^\/equipamentos(\?|$)/.test(r.url)).length;
       const invalido = await form.locator('input[formControlName="ip"]').getAttribute('aria-invalid');
-      const repetidas = await form.locator('small.campo-erro', { hasText: esperado }).count();
+      const repetidas = await form.locator('small.field-error', { hasText: esperado }).count();
       await form.screenshot({ path: path.join(OUT, arquivo) });
       checar(caso, `IP "${ip}": mensagem sob o campo, aria-invalid e nenhum POST enviado`,
         texto === esperado && posts === 0 && invalido === 'true' && repetidas === 1,

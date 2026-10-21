@@ -1,5 +1,5 @@
-<section class="painel" aria-labelledby="painel-titulo">
-  <header class="painel__header">
+<section class="painel pagina pagina--grade" aria-labelledby="painel-titulo">
+  <header class="painel__header pagina__cabecalho">
     <div>
       <h1 id="painel-titulo">Visão Geral da Infraestrutura</h1>
       @if (resumo(); as data) {
@@ -71,8 +71,8 @@
   } @else if (unidadesState() === 'error') {
     <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar as unidades.</strong><p>{{ unidadesError()?.message }}</p></div><button class="botao" type="button" (click)="atualizar()">Tentar novamente</button></div>
   } @else {
-    <div class="tabela">
-      <div class="tabela__cabecalho" aria-hidden="true">
+    <div class="painel-grade">
+      <div class="painel-grade__cabecalho" aria-hidden="true">
         <span>UNIDADE</span><span>STATUS</span><span class="col-composicao">COMPOSIÇÃO</span><span class="numerico col-dispositivos">DISPOSITIVOS</span><span class="numerico col-disponibilidade">DISPONIBILIDADE</span><span class="numerico col-latencia">LATÊNCIA MÉDIA</span><span class="numerico">INCIDENTES</span><span></span>
       </div>
 
@@ -118,18 +118,18 @@
                 </div>
 
                 @if (dados.estado === 'loading') {
-                  <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+                  <div class="esqueleto" role="status" aria-label="Carregando equipamentos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
                 }
                 @else if (dados.estado === 'error') { <p class="detalhe__estado detalhe__estado--erro">não foi possível carregar os equipamentos desta unidade.</p> }
                 @else if (dados.estado === 'empty') { <p class="detalhe__estado">esta unidade não possui equipamentos.</p> }
                 @else if (equipamentosVisiveis(unidade).length === 0) { <p class="detalhe__estado">nenhum equipamento para o filtro atual.</p> }
                 @else {
-                  <table class="equipamentos">
+                  <table class="tabela equipamentos">
                     <thead><tr><th>NOME</th><th>TIPO</th><th>ENDEREÇO IP</th><th>STATUS</th><th class="numerico">LATÊNCIA</th><th class="numerico">DISPONIBILIDADE</th><th class="numerico">ÚLTIMA VERIFICAÇÃO</th></tr></thead>
                     <tbody>
                       @for (equipamento of equipamentosVisiveis(unidade); track trackEquipamento($index, equipamento)) {
                         <tr>
-                          <td class="mono forte"><i class="ponto" [class]="'ponto ponto--' + severidadeDoEquipamento(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}</td>
+                          <td class="forte"><i class="ponto" [class]="'ponto ponto--' + severidadeDoEquipamento(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}</td>
                           <td>{{ equipamento.tipoEquipamento.nome }}</td>
                           <td class="mono">{{ equipamento.ip ?? '—' }}</td>
                           <td><app-status-badge [status]="equipamento.status" /></td>

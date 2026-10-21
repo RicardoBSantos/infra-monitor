@@ -1,8 +1,8 @@
-<section class="unidades" aria-labelledby="unidades-titulo">
-  <header class="unidades__topo">
+<section class="unidades pagina pagina--grade" aria-labelledby="unidades-titulo">
+  <header class="unidades__topo pagina__cabecalho">
     <div>
       <h1 id="unidades-titulo">Unidades</h1>
-      <p>Locais físicos monitorados pela plataforma. Todo equipamento pertence a exatamente uma unidade.</p>
+      <p class="pagina__descricao">Locais físicos monitorados pela plataforma. Todo equipamento pertence a exatamente uma unidade.</p>
     </div>
     @if (authState.canManageInventory()) {
       <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Nova unidade</button>
@@ -32,7 +32,7 @@
 
   <div class="cartao">
     @if (estado() === 'loading') {
-      <div class="esqueleto" aria-label="Carregando unidades">
+      <div class="esqueleto" role="status" aria-label="Carregando unidades">
         @for (linha of [1,2,3,4,5]; track linha) { <span></span> }
       </div>
     } @else if (estado() === 'error') {
@@ -68,7 +68,7 @@
               <th class="numerico">EQUIPAMENTOS</th>
               <th class="numerico">DISPONIBILIDADE</th>
               <th class="numerico">INCIDENTES</th>
-              @if (authState.canManageInventory()) { <th class="numerico">AÇÕES</th> }
+              @if (authState.canManageInventory()) { <th class="acoes">AÇÕES</th> }
             </tr>
           </thead>
           <tbody>
@@ -76,7 +76,7 @@
               <tr [class.unidades__linha--inativa]="!linha.cadastro.ativo">
                 <td>
                   <span class="forte">{{ linha.cadastro.nome }}</span>
-                  @if (!linha.cadastro.ativo) { <span class="chip-manutencao">Inativa</span> }
+                  @if (!linha.cadastro.ativo) { <span class="chip-ativo chip-ativo--off">Inativa</span> }
                 </td>
                 <td class="mono">{{ linha.cadastro.sigla }}</td>
                 <td>{{ linha.cadastro.cidade || '—' }}</td>
@@ -94,7 +94,7 @@
                 <td class="numerico mono" [class.apagado]="linha.disponibilidade === '—'">{{ linha.disponibilidade }}</td>
                 <td class="numerico mono" [class.down]="(linha.incidentes ?? 0) > 0">{{ linha.incidentes ?? '—' }}</td>
                 @if (authState.canManageInventory()) {
-                  <td class="unidades__acoes">
+                  <td class="acoes unidades__acoes">
                     <a class="botao botao--discreto" [routerLink]="['/unidades', linha.cadastro.id]">Ver</a>
                     @if (linha.cadastro.ativo) {
                       <button class="botao botao--discreto" type="button" (click)="confirmar('desativar', linha.cadastro)" [disabled]="alternandoId() !== null">Desativar</button>

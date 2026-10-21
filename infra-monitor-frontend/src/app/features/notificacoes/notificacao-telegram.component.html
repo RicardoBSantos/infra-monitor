@@ -1,9 +1,8 @@
-<section class="telegram" aria-labelledby="telegram-titulo">
-  <header class="telegram__header">
+<section class="telegram pagina pagina--grade" aria-labelledby="telegram-titulo">
+  <header class="pagina__cabecalho">
     <div>
-      <p class="telegram__secao">ADMINISTRAÇÃO · CANAL TELEGRAM</p>
       <h1 id="telegram-titulo">Notificação via Telegram</h1>
-      <small>Envio de alertas para mudanças de estado e eventos de latência.</small>
+      <p class="pagina__descricao">Envio de alertas para mudanças de estado e eventos de latência.</p>
     </div>
   </header>
 
@@ -17,7 +16,7 @@
         #ativa="routerLinkActive"
         [routerLink]="[aba.caminho]"
         [attr.aria-selected]="ativa.isActive"
-        (keydown)="navegarPorTeclado($event, i)"
+        (keydown)="aoTeclarAba($event, i)"
       >{{ aba.rotulo }}</a>
     }
   </nav>

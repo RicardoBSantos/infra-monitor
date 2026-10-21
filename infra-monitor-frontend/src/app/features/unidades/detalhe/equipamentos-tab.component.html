@@ -27,7 +27,7 @@
   </div>
 
   @if (store.equipamentosEstado() === 'loading') {
-    <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3,4,5]; track linha) { <span></span> }</div>
+    <div class="esqueleto" role="status" aria-label="Carregando equipamentos">@for (linha of [1,2,3,4,5]; track linha) { <span></span> }</div>
   } @else if (store.equipamentosEstado() === 'error') {
     <div class="vazio" role="alert">
       <strong>Não foi possível carregar os equipamentos.</strong>
@@ -52,13 +52,13 @@
           <tr>
             <th>NOME</th><th>TIPO</th><th>HOSTNAME</th><th>ENDEREÇO IP</th><th>STATUS</th>
             <th class="numerico">LATÊNCIA</th><th class="numerico">DISPONIBILIDADE</th>
-            <th class="numerico">ÚLTIMA VERIFICAÇÃO</th><th class="numerico">AÇÕES</th>
+            <th class="numerico">ÚLTIMA VERIFICAÇÃO</th><th class="acoes">AÇÕES</th>
           </tr>
         </thead>
         <tbody>
           @for (equipamento of filtrados(); track equipamento.id) {
             <tr>
-              <td class="mono forte">
+              <td class="forte">
                 <i class="ponto" [class]="'ponto ponto--' + severidade(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}
               </td>
               <td>{{ equipamento.tipoEquipamento.nome }}</td>
@@ -68,7 +68,7 @@
               <td class="numerico mono" [class.down]="equipamento.status === 'INDISPONIVEL'">{{ latencia(equipamento) }}</td>
               <td class="numerico mono">{{ disponibilidade(equipamento.id) }}</td>
               <td class="numerico mono apagado">{{ ultimaVerificacao(equipamento) }}</td>
-              <td class="numerico">
+              <td class="acoes">
                 <!-- Ação única por decisão: um botão "Ver" solto lê melhor que um menu com
                      um item só. O componente que faltava agora existe
                      (shared/action-menu, usado na tela de Equipamentos): ao surgir a

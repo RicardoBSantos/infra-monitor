@@ -8,6 +8,7 @@ import { isApiError } from '../../core/models/api-error';
 import { NotificationChannel, NotificationEventType, NotificationStatus } from '../../core/models/api-enums';
 import { NotificacaoListQuery, NotificacaoResponse } from '../../core/models/notificacao';
 import { NotificacaoApiService } from '../../core/services/notificacao-api.service';
+import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 
 const ROTULOS_EVENTO: Record<NotificationEventType, string> = {
@@ -19,7 +20,7 @@ const ROTULOS_EVENTO: Record<NotificationEventType, string> = {
   [NotificationEventType.LatencyClosedByMaintenance]: 'Latência encerrada por manutenção',
 };
 type State = 'loading' | 'success' | 'empty' | 'error'; type Sort = 'createdAt,desc' | 'createdAt,asc' | 'enviadoEm,desc' | 'status,asc' | 'tentativas,desc' | 'id,desc';
-@Component({ selector: 'app-notificacao-list', imports: [DatePipe, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './notificacao-list.component.html', styleUrl: './notificacao-list.component.scss' })
+@Component({ selector: 'app-notificacao-list', imports: [DatePipe, PaginacaoComponent, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './notificacao-list.component.html', styleUrl: './notificacao-list.component.scss' })
 export class NotificacaoListComponent {
   protected readonly plural = plural;
   private readonly api = inject(NotificacaoApiService); private readonly router = inject(Router);

@@ -372,7 +372,19 @@ export class EquipamentoDetalheDrawerComponent {
 
   /** Escape fecha, como no unidade-form-drawer. */
   protected aoTeclar(evento: KeyboardEvent): void {
-    if (evento.key === 'Escape') { evento.stopPropagation(); this.pedirFechamento(); }
+    if (evento.key !== 'Escape' || this.dentroDeDialogoAninhado(evento.target)) return;
+    evento.stopPropagation();
+    this.pedirFechamento();
+  }
+
+  /**
+   * Escape vindo de um app-modal (dialog) ou app-confirm-dialog (alertdialog) aberto DENTRO da
+   * gaveta — o modal do app-monitor-management embutido — é desse diálogo: ele escuta no document
+   * e o evento precisa subir sem ser parado aqui. A própria gaveta também é role=dialog e fica de fora.
+   */
+  private dentroDeDialogoAninhado(alvo: EventTarget | null): boolean {
+    const dialogo = alvo instanceof Element ? alvo.closest('[role="dialog"], [role="alertdialog"]') : null;
+    return dialogo !== null && dialogo !== this.painel()?.nativeElement;
   }
 
   /**

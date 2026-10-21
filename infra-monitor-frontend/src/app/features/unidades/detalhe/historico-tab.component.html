@@ -7,7 +7,7 @@
   </div>
 
   @if (estado() === 'loading') {
-    <div class="esqueleto" aria-label="Carregando histórico">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+    <div class="esqueleto" role="status" aria-label="Carregando histórico">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
   } @else if (estado() === 'error') {
     <div class="vazio" role="alert">
       <strong>Não foi possível carregar o histórico.</strong>
