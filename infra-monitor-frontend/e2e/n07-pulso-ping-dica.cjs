@@ -24,7 +24,7 @@ const { chromium } = require('playwright');
 const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
-const BASE = 'http://127.0.0.1:4200';
+const BASE = process.env.FRONT_URL || 'http://127.0.0.1:4200';
 const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N07_SENHA;
 if (!SENHA) throw new Error('N07_SENHA é obrigatória');
