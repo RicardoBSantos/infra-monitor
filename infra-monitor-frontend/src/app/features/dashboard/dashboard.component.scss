@@ -57,11 +57,13 @@
 
 .rodape-nota { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
 
-@media (max-width: 1240px) {
+/* Pontos de quebra derivam dos mínimos das colunas + sidebar (224px) + .pagina (2×22px) + borda/padding da linha (32px):
+   8 colunas = 972 + 7×12 + 32 = 1088px de conteúdo -> viewport 1356px; 6 colunas = 712 + 5×12 + 32 = 804px -> viewport 1072px. */
+@media (max-width: 1365px) {
   :host { --pn-colunas: minmax(180px, 1.4fr) 132px 150px 128px 96px 26px; }
   .col-composicao, .col-latencia { display: none; }
 }
-@media (max-width: 860px) {
+@media (max-width: 1080px) {
   /* 2ª coluna cabe "1 em manutenção" no chip (mono 10px + ícone); acima disso o chip corta com reticências. */
   :host { --pn-colunas: 1fr 126px 56px 26px; }
   .painel-grade__cabecalho { display: none; }
