@@ -78,4 +78,32 @@ describe('NotificacaoDetailComponent', () => {
     expect(text).not.toContain('Em andamento');
     expect(text).toContain('20/08/2026');
   });
+
+  it('usa a casca .pagina, sem sobretitulo, e mostra o id como descricao', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush(incidentNotification);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('section.pagina')).not.toBeNull();
+    expect(el.querySelector('header p:not(.pagina__descricao)')).toBeNull();
+    expect(el.querySelector('header .pagina__descricao')?.textContent).toContain('Notificação #5');
+  });
+
+  it('carregando mostra o esqueleto compartilhado', () => {
+    fixture.detectChanges();
+    const esqueleto = fixture.nativeElement.querySelector('.esqueleto[role="status"]');
+    expect(esqueleto).not.toBeNull();
+    expect(esqueleto.querySelectorAll('span').length).toBe(4);
+    http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush(incidentNotification);
+  });
+
+  it('erro oferece "Tentar novamente" que recarrega', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush({}, { status: 500, statusText: 'Erro' });
+    fixture.detectChanges();
+    const botao: HTMLButtonElement = fixture.nativeElement.querySelector('button.botao');
+    expect(botao.textContent).toContain('Tentar novamente');
+    botao.click();
+    http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush(incidentNotification);
+  });
 });
