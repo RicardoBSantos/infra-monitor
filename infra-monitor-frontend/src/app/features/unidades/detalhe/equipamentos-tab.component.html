@@ -58,7 +58,7 @@
         <tbody>
           @for (equipamento of filtrados(); track equipamento.id) {
             <tr>
-              <td class="mono forte">
+              <td class="forte">
                 <i class="ponto" [class]="'ponto ponto--' + severidade(equipamento)" aria-hidden="true"></i>{{ equipamento.nome }}
               </td>
               <td>{{ equipamento.tipoEquipamento.nome }}</td>

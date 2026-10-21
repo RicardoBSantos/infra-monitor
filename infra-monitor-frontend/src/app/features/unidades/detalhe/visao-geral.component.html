@@ -21,7 +21,7 @@
         @for (linha of maioresLatencias(); track linha.id) {
           <li>
             <i class="ponto" [class]="'ponto ponto--' + linha.severidade" aria-hidden="true"></i>
-            <span class="mono forte latencias__nome">{{ linha.nome }}</span>
+            <span class="forte latencias__nome">{{ linha.nome }}</span>
             <span class="latencias__tipo">{{ linha.tipo }}</span>
             <span class="barra" [class.barra--down]="linha.offline"><i [style.width]="linha.largura"></i></span>
             <span class="mono numerico latencias__valor" [class.down]="linha.offline">

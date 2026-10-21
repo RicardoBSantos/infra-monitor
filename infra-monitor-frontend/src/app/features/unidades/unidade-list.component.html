@@ -1,8 +1,8 @@
-<section class="unidades" aria-labelledby="unidades-titulo">
-  <header class="unidades__topo">
+<section class="unidades pagina" aria-labelledby="unidades-titulo">
+  <header class="unidades__topo pagina__cabecalho">
     <div>
       <h1 id="unidades-titulo">Unidades</h1>
-      <p>Locais físicos monitorados pela plataforma. Todo equipamento pertence a exatamente uma unidade.</p>
+      <p class="pagina__descricao">Locais físicos monitorados pela plataforma. Todo equipamento pertence a exatamente uma unidade.</p>
     </div>
     @if (authState.canManageInventory()) {
       <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Nova unidade</button>
@@ -76,7 +76,7 @@
               <tr [class.unidades__linha--inativa]="!linha.cadastro.ativo">
                 <td>
                   <span class="forte">{{ linha.cadastro.nome }}</span>
-                  @if (!linha.cadastro.ativo) { <span class="chip-manutencao">Inativa</span> }
+                  @if (!linha.cadastro.ativo) { <span class="chip-ativo chip-ativo--off">Inativa</span> }
                 </td>
                 <td class="mono">{{ linha.cadastro.sigla }}</td>
                 <td>{{ linha.cadastro.cidade || '—' }}</td>

@@ -24,7 +24,7 @@
           @for (incidente of ordenados(); track incidente.id) {
             <tr>
               <td class="mono"><a [routerLink]="['/incidentes', incidente.id]">#{{ incidente.id }}</a></td>
-              <td class="mono">{{ incidente.monitor.equipamentoNome }}</td>
+              <td>{{ incidente.monitor.equipamentoNome }}</td>
               <td>
                 {{ incidente.motivo ?? 'Indisponibilidade consolidada' }}
                 @if (rotuloEncerramento(incidente); as encerramento) {

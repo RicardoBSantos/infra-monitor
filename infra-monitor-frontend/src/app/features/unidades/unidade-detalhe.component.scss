@@ -2,7 +2,7 @@
    KPIs, abas, badges, avisos e utilitários vêm de styles/_ui.scss. */
 :host { display: block; }
 
-.unidade-detalhe { display: grid; gap: 14px; padding: 18px 20px 28px; }
+.unidade-detalhe { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 
 .unidade-detalhe__voltar { justify-self: start; color: var(--im-text-secondary); font-size: 12px; text-decoration: none; }
 .unidade-detalhe__voltar:hover { color: var(--im-text); }
@@ -10,13 +10,11 @@
 .unidade-detalhe__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .unidade-detalhe__identidade { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .unidade-detalhe__titulo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.unidade-detalhe__titulo h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
 .unidade-detalhe__meta { margin: 5px 0 0; color: var(--im-text-secondary); font: 11.5px var(--im-mono); }
 .unidade-detalhe__acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .abas { align-self: start; }
 
 @media (max-width: 860px) {
-  .unidade-detalhe { padding: 14px 12px 24px; }
   .unidade-detalhe__acoes { width: 100%; }
 }

@@ -117,6 +117,25 @@ describe('UnidadeDetalheComponent', () => {
       .toEqual(['Visão geral', 'Equipamentos', 'Incidentes', 'Histórico', 'Configurações']);
   });
 
+  it('usa a casca .pagina na raiz', async () => {
+    await configurar('7');
+    const fixture = criar();
+    responder(fixture);
+    expect((fixture.nativeElement as HTMLElement).querySelector('section.unidade-detalhe.pagina')).not.toBeNull();
+  });
+
+  it('navega as abas com setas e End pelo helper compartilhado', async () => {
+    await configurar('7');
+    const fixture = criar();
+    responder(fixture);
+    const abas = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[role="tab"]')];
+    abas.forEach((aba) => aba.addEventListener('click', (e) => e.preventDefault()));
+    abas[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(abas[1]);
+    abas[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(abas[abas.length - 1]);
+  });
+
   it('publica o nome da unidade na migalha e no título do documento', async () => {
     await configurar('7');
     const fixture = criar();

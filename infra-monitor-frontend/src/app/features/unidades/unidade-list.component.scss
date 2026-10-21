@@ -2,11 +2,9 @@
    estados vazios vêm de styles/_ui.scss — aqui só o arranjo da página. */
 :host { display: block; }
 
-.unidades { display: grid; gap: 14px; padding: 18px 20px 28px; }
+.unidades { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 
 .unidades__topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.unidades__topo h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
-.unidades__topo p { margin: 5px 0 0; max-width: 72ch; color: var(--im-text-secondary); font-size: 12px; }
 
 .unidades__aviso { margin: 0; padding: 9px 11px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-secondary); font-size: 12px; }
 
@@ -16,11 +14,7 @@
 .unidades__rolagem { overflow-x: auto; }
 
 .unidades__linha--inativa td { opacity: .55; }
-.unidades__linha--inativa .chip-manutencao { margin-left: 6px; opacity: 1; }
+.unidades__linha--inativa .chip-ativo { margin-left: 6px; opacity: 1; }
 
 .unidades__acoes { display: flex; justify-content: flex-end; gap: 6px; white-space: nowrap; }
 
-
-@media (max-width: 860px) {
-  .unidades { padding: 14px 12px 24px; }
-}
