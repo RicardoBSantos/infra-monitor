@@ -2,8 +2,6 @@
    estados vazios vêm de styles/_ui.scss — aqui só o arranjo da página. */
 :host { display: block; }
 
-.unidades__topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-
 .unidades__aviso { margin: 0; padding: 9px 11px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-secondary); font-size: 12px; }
 
 .unidades__busca { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -12,7 +10,7 @@
 .unidades__rolagem { overflow-x: auto; }
 
 .unidades__linha--inativa td { opacity: .55; }
-.unidades__linha--inativa .chip-ativo { margin-left: 6px; opacity: 1; }
+.unidades__linha--inativa .chip-ativo { margin-left: 6px; }
 
 .unidades__acoes { display: flex; justify-content: flex-end; gap: 6px; white-space: nowrap; }
 

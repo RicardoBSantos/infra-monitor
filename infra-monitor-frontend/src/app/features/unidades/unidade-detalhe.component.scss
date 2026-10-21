@@ -5,7 +5,6 @@
 .unidade-detalhe__voltar { justify-self: start; color: var(--im-text-secondary); font-size: 12px; text-decoration: none; }
 .unidade-detalhe__voltar:hover { color: var(--im-text); }
 
-.unidade-detalhe__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .unidade-detalhe__identidade { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .unidade-detalhe__titulo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .unidade-detalhe__meta { margin: 5px 0 0; color: var(--im-text-secondary); font: 11.5px var(--im-mono); }
