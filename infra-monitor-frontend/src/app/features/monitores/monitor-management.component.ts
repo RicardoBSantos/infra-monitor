@@ -10,6 +10,8 @@ import { MonitorCreateRequest, MonitorListQuery, MonitorResponse } from '../../c
 import { EquipamentoApiService } from '../../core/services/equipamento-api.service';
 import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ModalComponent } from '../../shared/modal/modal.component';
+import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { AuthStateService } from '../../core/services/auth-state.service';
 
 type State = 'loading' | 'success' | 'empty' | 'error';
@@ -18,7 +20,7 @@ type Sort = 'nome,asc' | 'nome,desc' | 'tipo,asc' | 'intervaloSegundos,asc' | 't
 
 @Component({
   selector: 'app-monitor-management',
-  imports: [ReactiveFormsModule, ConfirmDialogComponent],
+  imports: [ReactiveFormsModule, ConfirmDialogComponent, ModalComponent, PaginacaoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './monitor-management.component.html',
   styleUrl: './monitor-management.component.scss',
