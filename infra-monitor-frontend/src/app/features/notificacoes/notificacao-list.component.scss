@@ -1,6 +1,18 @@
-@use '../medicoes/medicao-list.component.scss';
-/* Só existe dentro da casca .telegram, que já dá padding e largura: o .operational-page herdado
-   de Medições duplicava os dois. */
-.operational-page{max-width:none;margin:0;padding:0}
-@media(max-width:620px){.operational-page{padding:0}}
-.filters{grid-template-columns:repeat(7,minmax(120px,1fr))}.right{text-align:right}.link,.mono a{border:0;background:transparent;color:var(--im-link);cursor:pointer;font-size:12px;text-decoration:none}.error-cell{min-width:180px;max-width:330px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}@media(max-width:1150px){.filters{grid-template-columns:repeat(4,1fr)}}@media(max-width:620px){.filters{grid-template-columns:1fr 1fr}}@media(max-width:400px){.filters{grid-template-columns:1fr}}
+/* Vive dentro da casca .telegram (.pagina), que dá padding e largura.
+   Tabela (.tabela), paginação (app-paginacao), esqueleto (.esqueleto) e .mono vêm de styles/_ui.scss;
+   aqui só o que o template usa além delas: filtros, avisos, link da origem e a célula de erro. */
+.filters{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:9px;margin-bottom:12px;padding:12px;border:1px solid var(--im-border);border-radius:var(--im-radius);background:var(--im-surface)}
+.filters label{display:grid;gap:5px;color:var(--im-text-secondary);font:600 10px var(--im-mono);letter-spacing:.05em}
+.filters input{box-sizing:border-box;width:100%;min-height:34px;border:1px solid var(--im-border-strong);border-radius:var(--im-radius);background:var(--im-surface);padding:7px;color:var(--im-text);font:13px 'IBM Plex Sans',sans-serif}
+.filters .campo-select{width:100%}
+.filters .campo-select select{height:auto;min-height:34px;padding:7px 26px 7px 7px;font:13px 'IBM Plex Sans',sans-serif}
+.feedback{display:flex;gap:9px;align-items:center;margin-bottom:12px;padding:11px;border:1px solid var(--im-border-strong);border-radius:var(--im-radius);background:var(--im-surface);color:var(--im-text-secondary);font-size:12px}
+.feedback--error{border-left:3px solid var(--im-danger)}
+.feedback .botao{margin-left:auto}
+.mono a{color:var(--im-link);font-size:12px;text-decoration:none}
+.error-cell{min-width:180px;max-width:330px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+.notificacoes__rolagem{overflow-x:auto}
+.notificacoes__rolagem .tabela{min-width:850px}
+@media(max-width:1150px){.filters{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:620px){.filters{grid-template-columns:1fr 1fr}.feedback{align-items:flex-start;flex-wrap:wrap}.feedback .botao{margin-left:0}}
+@media(max-width:400px){.filters{grid-template-columns:1fr}}

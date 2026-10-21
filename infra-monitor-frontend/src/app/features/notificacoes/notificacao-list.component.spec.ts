@@ -49,6 +49,34 @@ describe('NotificacaoListComponent', () => { let fixture: ComponentFixture<Notif
     request.flush(page([latencyItem()]));
   });
 
+  it('pagina pelo app-paginacao compartilhado, em base 1 na tela e base 0 na API', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes')).flush({ content: [item()], page: 0, totalPages: 2, totalElements: 21, size: 20, first: true, last: false });
+    fixture.detectChanges();
+    const paginacao = fixture.nativeElement.querySelector('app-paginacao') as HTMLElement;
+    expect(paginacao).toBeTruthy();
+    expect(paginacao.textContent).toContain('Página 1 de 2');
+    const proxima = Array.from(paginacao.querySelectorAll('button')).find(botao => botao.textContent?.trim() === 'Próxima ›') as HTMLButtonElement;
+    proxima.click();
+    const request = http.expectOne(value => value.url.endsWith('/notificacoes'));
+    expect(request.request.params.get('page')).toBe('1');
+    request.flush({ content: [item()], page: 1, totalPages: 2, totalElements: 21, size: 20, first: false, last: true });
+  });
+
+  it('não renderiza app-paginacao sem resultados', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes')).flush({ content: [], page: 0, totalPages: 0, totalElements: 0, size: 20, first: true, last: true });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-paginacao')).toBeNull();
+  });
+
+  it('anuncia o carregamento com o esqueleto compartilhado', () => {
+    fixture.detectChanges();
+    const request = http.expectOne(value => value.url.endsWith('/notificacoes'));
+    expect(fixture.nativeElement.querySelector('.esqueleto[role="status"]')).toBeTruthy();
+    request.flush(page([]));
+  });
+
   it('não tem h1 nem cabeçalho próprio: vive dentro da casca do Telegram, que já tem o h1', () => {
     fixture.detectChanges();
     http.expectOne(value => value.url.endsWith('/notificacoes')).flush(page([]));

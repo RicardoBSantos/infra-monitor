@@ -1,9 +1,8 @@
-<section class="operational-page" aria-labelledby="incidents-title">
-  <header>
+<section class="operational-page pagina" aria-labelledby="incidents-title">
+  <header class="pagina__cabecalho">
     <div>
-      <p>OPERAÇÕES · INDISPONIBILIDADE E LATÊNCIA</p>
       <h1 id="incidents-title">Incidentes</h1>
-      <small>Incidentes de indisponibilidade e episódios de latência na mesma linha do tempo.</small>
+      <p class="pagina__descricao">Incidentes de indisponibilidade e episódios de latência na mesma linha do tempo.</p>
     </div>
   </header>
 
@@ -33,62 +32,66 @@
   @if (erroApoio()) { <div class="feedback feedback--error" role="alert">{{ erroApoio() }} A lista de unidades pode estar incompleta.</div> }
 
   @if (estado() === 'loading') {
-    <div class="skeleton" aria-label="Carregando ocorrências">@for (x of [1, 2, 3, 4]; track x) { <span></span> }</div>
+    <div class="esqueleto" role="status" aria-label="Carregando ocorrências">@for (x of [1, 2, 3, 4]; track x) { <span></span> }</div>
   } @else if (estado() === 'error') {
     <div class="feedback feedback--error" role="alert"><strong>Não foi possível carregar as ocorrências.</strong><span>{{ erro() }}</span><button class="botao" type="button" (click)="carregarLista()">Tentar novamente</button></div>
   } @else if (estado() === 'empty') {
     <div class="feedback"><strong>Nenhuma ocorrência corresponde aos filtros.</strong><span>A infraestrutura não registrou indisponibilidade nem latência alta neste escopo.</span></div>
   } @else {
     @if (erro()) { <div class="feedback feedback--error" role="alert">{{ erro() }}</div> }
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th class="numerico">DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="right">AÇÕES</th></tr></thead>
-        <tbody>
-          @for (linha of linhas(); track chave(linha)) {
-            <tr>
-              <td class="sev"><span class="severidade" [class.severidade--alta]="linha.severidade === 'ALTA'"
-                    [attr.aria-label]="rotuloSeveridade(linha.severidade)" [title]="rotuloSeveridade(linha.severidade)" role="img"></span></td>
-              <td class="mono"><button class="link" type="button" (click)="abrir(linha)">{{ linha.tipo === IncidentKind.Latency ? 'LAT' : 'INC' }}-{{ linha.id }}</button></td>
-              <td>{{ linha.unidadeNome }}</td>
-              <td>{{ linha.equipamentoNome }}</td>
-              <td class="evento">
-                <app-icon [name]="iconeEvento(linha.tipo)" />
-                <span>{{ rotuloEvento(linha.tipo) }}</span>
-              </td>
-              <td class="mono">{{ linha.iniciadoEm | date:'dd/MM/yyyy HH:mm' }}</td>
-              <td class="mono numerico" [class.duracao--em-curso]="linha.encerradoEm === null">{{ duracao(linha) }}</td>
-              <td>
-                @if (statusNotificacao(linha); as status) {
-                  <span class="notificado">
-                    <span class="notificado__canal">{{ linha.notificacaoCanal }}</span>
-                    <app-status-badge [status]="status" />
+    <div class="cartao">
+      <div class="incidentes__rolagem">
+        <table class="tabela">
+          <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th class="numerico">DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="acoes">AÇÕES</th></tr></thead>
+          <tbody>
+            @for (linha of linhas(); track chave(linha)) {
+              <tr>
+                <td class="sev"><span class="severidade" [class.severidade--alta]="linha.severidade === 'ALTA'"
+                      [attr.aria-label]="rotuloSeveridade(linha.severidade)" [title]="rotuloSeveridade(linha.severidade)" role="img"></span></td>
+                <td class="mono"><button class="link" type="button" (click)="abrir(linha)">{{ linha.tipo === IncidentKind.Latency ? 'LAT' : 'INC' }}-{{ linha.id }}</button></td>
+                <td>{{ linha.unidadeNome }}</td>
+                <td>{{ linha.equipamentoNome }}</td>
+                <td>
+                  <span class="evento">
+                    <app-icon [name]="iconeEvento(linha.tipo)" />
+                    <span>{{ rotuloEvento(linha.tipo) }}</span>
                   </span>
-                } @else {
-                  <span class="apagado" [title]="linha.notificacaoCanal ? 'Canal ' + linha.notificacaoCanal + ' sem status conhecido.' : 'Nenhuma notificação enviada para esta ocorrência.'">—</span>
-                }
-              </td>
-              <td>
-                <app-status-badge [status]="linha.status" />
-                @if (linha.motivoEncerramento === IncidentClosureReason.Maintenance) {
-                  <span class="marca-manutencao" title="Encerrado por entrada em manutenção">🔧<span class="visualmente-oculto"> — Encerrado por entrada em manutenção</span></span>
-                }
-              </td>
-              <td class="reconhecido">
-                @if (linha.reconhecidoPorNome) { {{ linha.reconhecidoPorNome }} }
-                @else { <span class="apagado">—</span> }
-              </td>
-              <td class="actions">
-                @if (podeReconhecer(linha)) {
-                  <button class="botao botao--discreto" type="button" (click)="reconhecer(linha)" [disabled]="reconhecendo() !== null">{{ reconhecendo() === linha.id ? 'Reconhecendo…' : 'Reconhecer' }}</button>
-                }
-                <button class="botao botao--discreto" type="button" (click)="abrir(linha)">Ver</button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+                </td>
+                <td class="mono">{{ linha.iniciadoEm | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="mono numerico" [class.duracao--em-curso]="linha.encerradoEm === null">{{ duracao(linha) }}</td>
+                <td>
+                  @if (statusNotificacao(linha); as status) {
+                    <span class="notificado">
+                      <span class="notificado__canal">{{ linha.notificacaoCanal }}</span>
+                      <app-status-badge [status]="status" />
+                    </span>
+                  } @else {
+                    <span class="apagado" [title]="linha.notificacaoCanal ? 'Canal ' + linha.notificacaoCanal + ' sem status conhecido.' : 'Nenhuma notificação enviada para esta ocorrência.'">—</span>
+                  }
+                </td>
+                <td>
+                  <app-status-badge [status]="linha.status" />
+                  @if (linha.motivoEncerramento === IncidentClosureReason.Maintenance) {
+                    <span class="marca-manutencao" title="Encerrado por entrada em manutenção">🔧<span class="visualmente-oculto"> — Encerrado por entrada em manutenção</span></span>
+                  }
+                </td>
+                <td class="reconhecido">
+                  @if (linha.reconhecidoPorNome) { {{ linha.reconhecidoPorNome }} }
+                  @else { <span class="apagado">—</span> }
+                </td>
+                <td class="acoes">
+                  @if (podeReconhecer(linha)) {
+                    <button class="botao botao--discreto" type="button" (click)="reconhecer(linha)" [disabled]="reconhecendo() !== null">{{ reconhecendo() === linha.id ? 'Reconhecendo…' : 'Reconhecer' }}</button>
+                  }
+                  <button class="botao botao--discreto" type="button" (click)="abrir(linha)">Ver</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginacao [paginaAtual]="pagina() + 1" [totalPaginas]="totalPaginas()" [contagem]="contagem()" rotulo="Paginação de ocorrências" (mudarPagina)="irParaPagina($event)" />
     </div>
-    <app-paginacao [paginaAtual]="pagina() + 1" [totalPaginas]="totalPaginas()" [contagem]="contagem()" rotulo="Paginação de ocorrências" (mudarPagina)="irParaPagina($event)" />
   }
 
   <!-- Gaveta de detalhe: montada pelas rotas filhas, fora do @if de estado da lista

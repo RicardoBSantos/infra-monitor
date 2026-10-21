@@ -42,7 +42,7 @@ describe('ConfiguracaoTabComponent', () => {
   it('mostra o esqueleto durante o carregamento e depois o conteúdo', () => {
     fixture.detectChanges();
     const pedido = pedidoConfig();
-    expect(fixture.nativeElement.querySelector('[aria-label="Carregando configuração do Telegram"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.esqueleto[role="status"][aria-label="Carregando configuração do Telegram"]')).toBeTruthy();
 
     pedido.flush(config());
     fixture.detectChanges();
