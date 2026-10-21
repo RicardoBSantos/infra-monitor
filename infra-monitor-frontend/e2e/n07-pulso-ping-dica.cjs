@@ -488,10 +488,16 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * inline < 1 — o fade está ativo — e nenhuma opacidade sai de [0, 1]. Com 27 pings defasados de
      * ⅓, 16% de cada arco está em fade a qualquer instante; não ver nenhum seria o fade morto.
      */
-    const opacidades = amostras.flat().map((p) => Number(p.opacidade));
+    /* Inline vazio tem de reprovar: `Number('')` é 0, e sem esta guarda um CSS sem fade nenhum (o
+     * componente nunca escrevendo `opacity`) passaria por "< 1" de graça. */
+    const lidas = amostras.flat().map((p) => p.opacidade);
+    const vazias = lidas.filter((o) => o === '' || o == null).length;
+    const opacidades = lidas.filter((o) => o !== '' && o != null).map(Number);
     checar(8, 'fade nas pontas ativo e opacidade sempre em [0, 1] (D23)',
-      opacidades.some((o) => o < 1) && opacidades.every((o) => Number.isFinite(o) && o >= 0 && o <= 1),
-      `${opacidades.filter((o) => o < 1).length}/${opacidades.length} leitura(s) abaixo de 1, mín ${Math.min(...opacidades).toFixed(3)}`);
+      vazias === 0 && opacidades.length > 0
+      && opacidades.every((o) => !Number.isNaN(o) && o >= 0 && o <= 1)
+      && opacidades.some((o) => o < 1),
+      `${vazias} sem opacidade inline · ${opacidades.filter((o) => o < 1).length}/${opacidades.length} leitura(s) abaixo de 1, mín ${opacidades.length ? Math.min(...opacidades).toFixed(3) : '—'}`);
 
     // ---------------------------------------- 9. prefers-reduced-motion: sem movimento nenhum
     const reduzido = await browser.newContext({ viewport: { width: 1500, height: 950 }, reducedMotion: 'reduce' });
