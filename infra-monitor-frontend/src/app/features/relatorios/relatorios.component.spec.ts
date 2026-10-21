@@ -39,6 +39,16 @@ describe('RelatoriosComponent', () => {
     http.match(() => true);
     expect(abas()[6].getAttribute('aria-selected')).toBe('true');
   });
+  it('keeps the pagination bar mounted while the next page is loading', () => {
+    const { fixture, request } = create({ ...page([equipment()]), totalPages: 2, last: false } as ReturnType<typeof page>);
+    request.flush({ ...page([equipment()]), totalPages: 2, last: false }); fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    (Array.from(el.querySelectorAll('.pagination button')) as HTMLButtonElement[]).find(x => x.textContent?.trim().startsWith('Próxima'))!.click(); fixture.detectChanges();
+    const pendente = http.expectOne(r => r.url.includes('/relatorios/disponibilidade/equipamentos'));
+    expect(el.textContent).toContain('Carregando relatório');
+    expect(el.querySelector('.pagination')).not.toBeNull();
+    pendente.flush(page([equipment()]));
+  });
   it('uses the shared page shell and neutral query buttons', () => {
     const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
