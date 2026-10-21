@@ -908,10 +908,12 @@ export class MapaComponent implements OnDestroy {
 
   /**
    * Pings percorrendo as linhas de conexão — ICMP echo como desenho. Três por linha, a ⅓ um do
-   * outro, em fluxo contínuo hub → unidade (D24), com fade nas duas pontas. `style.opacity` por
-   * quadro NÃO fica de graça: na bancada (D24) a tela inteira custou 1,77 ms/quadro sobre o mapa parado (mediana de 3 corridas)
-   * (BD3), dos quais ~0,6 ms são recálculo de estilo — o `opacity` inline invalida estilo a cada
-   * quadro em cada ping. Cabe (11,5% do orçamento; 23,8% com 5×), então fica.
+   * outro, em fluxo contínuo hub → unidade (D24), com fade nas duas pontas. Não fica de graça: na
+   * bancada (D24) a tela inteira (BD3) custou 1,77 ms/quadro acima do mapa parado na mediana de 3
+   * corridas (1,51 numa corrida única depois de `setOpacity`), ~0,55 ms disso em recálculo de
+   * estilo — que acompanha o número de pings com o CSS real, não o fade (D2r, 20 pings sem fade, já
+   * gastava 0,42). Cabe: 11,5% do orçamento de 16,7 ms; a 5× (BD3x5), 3,97–4,36 ms em corridas
+   * únicas, cerca de ¼ do orçamento.
    *
    * Um `Marker` DOM por ping, reposicionado por `setLngLat` a cada quadro. Escolhido contra as duas
    * alternativas conhecidas, com medição (ver `mapa-contexto-atual.md` §9.2, cenários D/E/F):

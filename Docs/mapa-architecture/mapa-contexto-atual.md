@@ -770,7 +770,7 @@ Decisão em [D24](mapa-decisoes.md). Substitui, para o ping, a linha e o glow do
 | Paleta | D19 | vibrante, tabela em D24; legenda com os seis hex literais |
 | Topologia real | dev 11 unidades / 9 linhas → 18 pings; carga 2 / 1 → 2 | dev 27 pings; carga 3 |
 
-### Bancada `perf:mapa` — corrida 3 (`bench.json`)
+### Bancada `perf:mapa` — corrida 3 (antes de `setOpacity`; o `bench.json` atual é a corrida única abaixo)
 
 Intel UHD 770 (ANGLE/D3D11), 1280x800, 6 s por cenário, 10 linhas sintéticas. Nesta corrida a cadência
 ficou em 56,5–57,1 fps em **todos** os cenários, inclusive A — é a máquina, não a animação (na corrida 1
@@ -812,21 +812,26 @@ a 3,17 ms entre corridas):
   inclusive A, com picos isolados de 20–35 ms (e centenas de ms no aquecimento de B/B5). Avaliado contra
   o piso de A na mesma corrida, nenhum cenário animado fica acima dele. BD3x5, a 5×, também não se
   destacou — o que dá alguma garantia de que um custo real < 1% não está escondido no ruído.
-- **O que cresce é estilo**, não pintura: D3 0,59 contra D 0,09 ms de recálculo por quadro. É o
-  `style.opacity` inline do fade, escrito em cada ping a cada quadro. Candidato a otimização se um dia
-  pesar: escrever só quando o valor muda (no meio do arco ele é 1 constante).
+- **O que cresce é estilo**, não pintura: D3 0,59 contra D 0,09 ms de recálculo por quadro. Acompanha o
+  número de pings com o CSS real do orbe, não o fade: D2r (20 pings, sem fade) já gastava 0,42, e com
+  `setOpacity` — que só escreve quando o valor muda, e no meio do arco ele é 1 constante — D3 foi a 0,56.
+- **Confirmado após `setOpacity`** (corrida única, `bench.json` atual): A 0,146, D3 1,718, D3w 1,509,
+  BD2r 1,543, BD3 1,655, BD3x5 4,361 ms; **Δ BD3 sobre A = 1,509 ms** (−15% sobre a mediana de 1,774,
+  dentro da faixa das três corridas). Gate segue passando; uma corrida não separa a correção do ruído.
 - **`will-change`:** −7,9% na mediana, faixas sobrepostas. Inconclusivo; não entrou.
 
 ### Aplicação real `perf:mapa-app`
 
 CDP `Performance.getMetrics`, 6 s, 1600x900, clones descartáveis dos bancos de dev e da carga. "Antes" =
 `8f8b78d` (merge-base do branch); "depois" = este branch. 59,9 fps e 0% de quadros lentos nos oito
-registros.
+registros; a linha `setOpacity` (outra sessão) deu 56,8 fps e 0,9% lentos no `parado`, ruído de máquina
+sem animação nenhuma.
 
 | Banco | Rótulo | Marcadores | Pings | Animado | Parado | Δ |
 |---|---|---|---|---|---|---|
 | dev | antes | 11 | 18 | 4,453 | 1,620 | 2,833 |
 | dev | depois | 11 | 27 | 3,957 | 0,950 | 3,007 |
+| dev | depois, `setOpacity` | 11 | 27 | 3,775 | 0,964 | 2,811 |
 | carga | antes | 2 | 2 | 2,524 | 0,676 | 1,848 |
 | carga | depois | 2 | 3 | 2,798 | 0,734 | 2,064 |
 

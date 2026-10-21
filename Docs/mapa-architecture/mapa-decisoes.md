@@ -1251,8 +1251,31 @@ Bancada `perf:mapa` (Intel UHD 770; sintética, 10 linhas = 30 pings) em 3 corri
 mediana (contexto §17): Δ de BD3 (tela inteira depois) sobre A = **1,774 ms**, limite 2,35 (Δ do
 cenário E, a alternativa já rejeitada por custo) — passa. BD3 contra BD2r (tela inteira antes, mesma
 corrida): 1,927 × 1,554 ms na mediana, com 50% mais pings, halo e glow. O que cresce é recálculo de
-estilo (D3 0,59 ms contra D 0,09 ms na corrida 3): o `opacity` inline do fade invalida estilo em cada
-ping a cada quadro. Cabe — 11,5% do orçamento de 16,7 ms; BD3x5 (150 pings, 55 marcadores) 23,8%.
+estilo (D3 0,59 ms contra D 0,09 ms na corrida 3), e ele acompanha o número de pings com o CSS real do
+orbe, não o fade: D2r (20 pings, CSS de antes, sem fade) já gastava 0,42, e tirar ~84% das escritas de
+`opacity` (abaixo) só levou D3 de 0,59 a 0,56. Cabe — 11,5% do orçamento de 16,7 ms; BD3x5 (150 pings,
+55 marcadores) 3,97–4,36 ms em corridas únicas, cerca de ¼ do orçamento.
+
+Depois de `setOpacity` (abaixo), corrida única da bancada: A 0,146, BD3 1,655, **Δ 1,509 ms** (−15% sobre
+a mediana de 1,774; dentro da faixa das três corridas, corrida 3 deu 1,567) — gate segue passando. App
+dev (`app-depois-dev-setopacity.json`): animado 3,775, parado 0,964, Δ 2,811 ms (−6,5% sobre 3,007).
+Uma corrida não separa a correção do ruído; o que ela prova é que não piorou.
+
+### Opacidade do ping é da lib — achado da revisão final
+
+O fade escrevia `elemento.style.opacity` no elemento do `Marker`. Lendo o fonte do maplibre-gl 6.9.0
+(`src/ui/marker.ts`, igual no `dist/maplibre-gl.mjs`) na revisão final: `Marker._update` — chamado por
+todo `setLngLat` e por todo `move`/`moveend` da câmera — agenda por `frameAsync` um `_updateOpacity`,
+que sem terreno faz `if (style.opacity !== this._opacity) style.opacity = this._opacity`, e `_opacity`
+é `'1'` por padrão. Eram duas escritas por ping por quadro e, com a câmera andando (arrasto, zoom, o
+`easeTo` de 600 ms), o callback da lib podia rodar depois do `passo`: ping em fade pintado opaco e o
+salto u≈1→0 aparecendo. Mesmo caso do `transform` em DV13 — propriedade que a lib escreve no elemento
+é da lib. Correção: `Marker` criado com `opacity: '0'` e `setOpacity(String(opacidadeNaPonta(u)))` no
+passo; `setOpacity` grava `_opacity` e chama `_updateOpacity(true)`, que escreve o inline (o n07 continua
+lendo `style.opacity`) e pula valor igual. `opacidadeNaPonta` passou a arredondar a duas casas: o
+navegador normaliza o que devolve (0.43750000000000006 → "0.4375") e, sem isso, a comparação nunca
+batia no fade. No meio do arco o valor é `'1'` constante e nenhuma escrita acontece. A bancada espelha
+no caminho D3/BD3 e devolve `setOpacity('1')` ao pool, para os cenários antigos não herdarem o fade.
 
 Quadros > 20 ms: 0% em todos os 17 cenários na corrida 1; nas corridas 2 e 3, 0–0,9% em vários,
 **inclusive em A** (mapa parado), com picos isolados de 20–35 ms. O gate "0% de quadros lentos" passou
@@ -1269,11 +1292,11 @@ App real `perf:mapa-app` (CDP, 6 s, 1600x900), antes = `8f8b78d`, depois = este 
 nos oito registros. O absoluto do `parado` do dev caiu de 1,62 para 0,95 ms entre as duas sessões —
 ruído de máquina, por isso a comparação é pelo Δ.
 
-`ng test` 580/580 (55 arquivos) e `ng build` sem erro depois do rebase em `origin/main`; o aviso de
-budget do SCSS do mapa (97,34 kB) é DV04, pré-existente. `e2e:n06` 50/50, `e2e:n07` 50/50 (27 pings =
-9 × 3; orbe 5px, borda 0, nenhuma sombra branca; fade com opacidade inline em toda leitura e sempre em
-[0, 1]) e `e2e:n08` 52/52, no clone do banco de dev, antes do rebase. `e2e:d24` 15/15 no dev e 13/13
-na carga, nos dois lados. Capturas em `e2e/d24-evidence/` ("antes" saiu do `ng serve` de `8f8b78d`, o
+`ng test` 581/581 (55 arquivos) e `ng build` sem erro depois do rebase em `origin/main` e de
+`setOpacity`; o aviso de budget do SCSS do mapa (97,34 kB) é DV04, pré-existente. `e2e:n06` 50/50,
+`e2e:n07` 50/50 (27 pings = 9 × 3; orbe 5px, borda 0, nenhuma sombra branca; fade com opacidade inline
+em toda leitura e sempre em [0, 1], 9/81 leituras abaixo de 1) e `e2e:n08` 52/52, no clone do banco de
+dev, refeitos depois do rebase e de `setOpacity`. `e2e:d24` 15/15 no dev e 13/13 na carga, idem. Capturas em `e2e/d24-evidence/` ("antes" saiu do `ng serve` de `8f8b78d`, o
 merge-base, e não de `origin/main`, que já tinha o r2 mexendo no mesmo SCSS por outra razão); as da
 carga ficaram fora do repositório.
 

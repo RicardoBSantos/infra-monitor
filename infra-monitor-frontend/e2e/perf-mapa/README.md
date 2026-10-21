@@ -71,7 +71,9 @@ corridas na mesma máquina. As decisões de D24 usam a **mediana de 3 corridas**
 - Quadros > 20 ms: 0% na corrida 1; nas corridas 2 e 3, 0–0,9% em vários cenários, **inclusive em A
   (parado)**, com picos isolados de 20–35 ms (e centenas de ms no aquecimento de B/B5). Aparecem com o
   mapa parado, então são da máquina e não da animação, mas o corte estrito de 0% não se repete.
-- `bench.json` = a última corrida (a 3).
+- `bench.json` = corrida única depois de `setOpacity` (revisão final de D24): A 0,146, BD3 1,655,
+  **Δ 1,509 ms** (−15% sobre a mediana; corrida 3 deu 1,567). Confirma o gate; não separa a correção
+  do ruído. `app-depois-dev-setopacity.json`: Δ 2,811 ms contra 3,007 de `app-depois-dev.json`.
 
 ## Duas métricas, porque uma sozinha engana
 
