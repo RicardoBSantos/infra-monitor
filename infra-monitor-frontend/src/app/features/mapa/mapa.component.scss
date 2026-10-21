@@ -70,8 +70,15 @@
    * A conta que o aro fazia foi transferida para a cor do miolo: os dois status escuros foram
    * clareados em D19 até passarem 3:1 sozinhos contra #16283a. Ver o comentário de `COR_DO_STATUS`
    * em `mapa.component.ts`. A `box-shadow` escura de contato fica — ela não é contraste, é
-   * profundidade, e separa o marcador da linha de conexão quando os dois se cruzam. */
-  .map__unidade { width: 13px; height: 13px; padding: 0; border: 0; border-radius: 50%; background: var(--cor-unidade, #9dabb9); box-shadow: 0 1px 3px rgba(0, 0, 0, .6); cursor: pointer; transition: width .12s ease, height .12s ease, box-shadow .12s ease; }
+   * profundidade, e separa o marcador da linha de conexão quando os dois se cruzam.
+   *
+   * GLOW (D23): translúcido, na cor do status, POR FORA do miolo. O miolo continua OPACO porque
+   * desde D19 é ele quem carrega o contraste (pior caso `sem-equipamentos`, 3,95:1 contra #16283a);
+   * translucidez no miolo derrubaria esse número abaixo de 3:1. O glow começa no raio do miolo e se
+   * espalha 6px — fica por baixo do anel de foco (`outline`, que pinta por cima) e não altera a
+   * geometria de D19. No selecionado o anel vem PRIMEIRO de propósito: o e2e `corBateComSombra` lê
+   * a primeira cor da `box-shadow`. */
+  .map__unidade { width: 13px; height: 13px; padding: 0; border: 0; border-radius: 50%; background: var(--cor-unidade, #9dabb9); box-shadow: 0 0 6px 1px color-mix(in srgb, var(--cor-unidade, #9dabb9) 55%, transparent), 0 1px 3px rgba(0, 0, 0, .6); cursor: pointer; transition: width .12s ease, height .12s ease, box-shadow .12s ease; }
 
   /* Crescer por largura/altura, e NUNCA por `transform` — ver DV13. O MapLibre reescreve
    * `style.transform` do elemento do Marker a cada reposicionamento, e estilo inline vence regra de
@@ -117,7 +124,7 @@
    *   foco         12,5 → 14,5px (outline 2px, offset 3px) — tangente, nunca sobreposto
    *   pulso nasce  15,5px        (::after com inset -6px) — fora do foco
    * Mudar o tamanho da caixa OU o offset do foco OU a espessura do anel exige refazer esta conta. */
-  .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #9dabb9) 78%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
+  .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #9dabb9) 78%, transparent), 0 0 9px 2px color-mix(in srgb, var(--cor-unidade, #9dabb9) 45%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
 
   /* --- Pulso (N07, generalizado em D19) -----------------------------------------------------
    *
@@ -142,42 +149,44 @@
     .map__unidade--pulsa::after { animation: none; transform: scale(1.25); opacity: .55; }
   }
 
-  /* --- Ping na linha de conexão (N07 + volume D18) -------------------------------------------
+  /* --- Ping na linha de conexão (N07; orbe D23) ---------------------------------------------
    *
    * `--cor-ping` é o status da unidade CONECTADA — a mesma cor que, com D18, a linha inteira já
    * carrega. O ping continua existindo mesmo assim: ele é o elemento que se MOVE, e é o movimento
-   * que lê como "sonda ativa"; a linha estática, ainda que colorida, não carrega essa leitura.
+   * que lê como "sonda ativa"; a linha estática, ainda que colorida, não carrega essa leitura. Sem
+   * `pointer-events`: o ping cruza os marcadores e não pode roubar o clique de nenhum.
    *
-   * Aro claro pela mesma razão que justificava o do marcador antes de D19: sem ele o ping de uma
-   * unidade `sem-equipamentos` (#667b8b, hoje já a 3,41:1 sozinho) seria mais difícil de ver sobre
-   * o município — o argumento ficou mais fraco com o clareamento, mas continua valendo para um
-   * disco de 7px, bem menor que os 13px do marcador. Sem `pointer-events`: o ping cruza os marcadores
-   * e não pode roubar o clique de nenhum.
+   * ORBE LUMINOSO (D23, a pedido) no lugar da esfera de D18-B: núcleo claro (`#fff` a 55% sobre a
+   * cor), a cor pura a 45% do raio, e borda que some no fundo — ponto de luz, não bola sombreada.
+   * O glow é NA COR do status, não branco.
    *
-   * Volume por CSS (D18, variação B sobre captura comparativa): o ping é o único elemento do mapa
-   * que representa tráfego — dar-lhe esfera o separa visualmente do marcador de unidade, que é
-   * chapado de propósito. `radial-gradient` com highlight deslocado (32% 28%, fora do centro)
-   * simula a luz vindo de cima-esquerda; a segunda parada escurece a própria `--cor-ping` com
-   * `color-mix` (não branco semitransparente — isso deixava o fundo escuro do cartão atravessar o
-   * disco e virar borrão cinza). A `box-shadow` empilha três camadas: o glow externo que já existia
-   * (`rgba(232,240,248,.3)`), uma sombra interna escura simulando a face oposta à luz, e uma sombra
-   * de contato leve embaixo. Não é extrusão geométrica (isso foi descartado de propósito) — é
-   * shading 2D que lê como esfera a 7px. `--cor-ping` continua sendo o contrato lido pelo e2e
-   * (custom property inline, não `background-color`). */
+   * O contorno branco eram DUAS camadas, e as duas saíram: `border: 1px solid rgba(232,240,248,.8)`
+   * e a primeira sombra `0 0 5px 1px rgba(232,240,248,.3)`. O aro existia pela razão que valia para o
+   * marcador antes de D19 (o `sem-equipamentos` escuro sumia no município); com a paleta de D23 o
+   * pior caso é #6e8698 a 3,95:1 sozinho, e o glow da cor faz o resto.
+   *
+   * 7px → 5px: com três pings por arco (D23), 7px enchia a linha de bolas; 5px + glow de 4px lê
+   * como ponto de luz. Sem parada escura no gradiente — fecha DV16: o `70% + #000` de D18, que
+   * escurecia a borda e virava mancha suja sobre o halo, não existe mais. A sombra interna e a de
+   * contato saíram junto: eram o shading de esfera, e o orbe não tem face oposta à luz.
+   *
+   * Glow ESTÁTICO, nunca animado: `box-shadow` animado custou 0,618 ms/quadro contra 0,475 de
+   * `transform` + `opacity` (§9.2, ver o pulso acima). O que muda por quadro
+   * é `transform` (da lib, via `setLngLat`) e `opacity` (fade nas pontas) — ambos tendem a ficar no
+   * compositor; medido na bancada (D23). `--cor-ping` continua sendo o contrato lido pelo e2e (custom
+   * property inline, não `background-color`). */
   .map__ping {
-    width: 7px; height: 7px; border: 1px solid rgba(232, 240, 248, .8); border-radius: 50%;
+    width: 5px; height: 5px; border: 0; border-radius: 50%;
     /* Declaração plana antes do gradiente: `--cor-ping` é guaranteed-invalid se faltar, o que
        derrubaria o `background` inteiro para `transparent` (ping oco, não cinza) — e é a primeira
        ocorrência de `color-mix` no codebase, sem navegador de rede conhecida que não faça o parse,
        mas a plana sobrevive de graça se algum dia não fizer. */
     background: var(--cor-ping, #9dabb9);
-    background: radial-gradient(circle at 32% 28%,
-      color-mix(in srgb, #fff 62%, var(--cor-ping, #9dabb9)) 0%,
-      var(--cor-ping, #9dabb9) 52%,
-      color-mix(in srgb, var(--cor-ping, #9dabb9) 70%, #000) 100%);
-    box-shadow: 0 0 5px 1px rgba(232, 240, 248, .3),
-      inset -1.5px -1.5px 2.5px rgba(0, 0, 0, .38),
-      0 1px 2px rgba(0, 0, 0, .45);
+    background: radial-gradient(circle,
+      color-mix(in srgb, #fff 55%, var(--cor-ping, #9dabb9)) 0%,
+      var(--cor-ping, #9dabb9) 45%,
+      color-mix(in srgb, var(--cor-ping, #9dabb9) 0%, transparent) 100%);
+    box-shadow: 0 0 4px 1px color-mix(in srgb, var(--cor-ping, #9dabb9) 70%, transparent);
     pointer-events: none; z-index: 1;
   }
 

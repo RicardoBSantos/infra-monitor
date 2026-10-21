@@ -94,14 +94,14 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * escuro à vontade: quem separava o marcador do município era o aro, a 13,05:1. Com o aro removido
  * (D19 item 1) o miolo virou o único portador de contraste, e os valores de N06 não sustentam o
  * papel: `sem-dados` #435464 dava 1,92:1 contra #16283a e `sem-equipamentos` #263744 dava 1,22:1 —
- * a 13px, marcador invisível. #8797a6 dava 5,01:1 e #667b8b dava 3,41:1 (D19; D23 os subiu, ver abaixo), ambos acima dos 3:1 de
- * WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os dois tons mais dessaturados da
- * tabela, que é o que os faz ler como ausência de dado e não como estado; o que mudou foi a
- * luminância, não o matiz.
+ * a 13px, marcador invisível. #8797a6 dava 5,01:1 e #667b8b dava 3,41:1 (D19; D23 os subiu, ver
+ * abaixo), ambos acima dos 3:1 de WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os
+ * dois tons mais dessaturados da tabela, que é o que os faz ler como ausência de dado e não como
+ * estado; o que mudou foi a luminância, não o matiz.
  *
  * Esse clareamento é também o que sustenta o pulso geral de D19: o argumento de N07 para pulsar só
  * dois status era, em parte, que `sem-dados` (1,92:1) e `sem-equipamentos` (1,22:1) gerariam anel de
- * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu os seis pulsam com anel legível.
+ * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu: os seis pulsam com anel legível.
  *
  * D23 tornou a paleta vibrante, porque a linha agora tem halo e precisa de cor que brilhe sobre o
  * fundo escuro. Valores calculados por script em HSL: coloridos com `S×1,18+0,04` e `L+0,05` (teto
@@ -140,8 +140,9 @@ function corDoStatus(status: string): string {
  * passa a ter um portador só, o marcador de unidade.
  *
  * O valor fica entre o `none` antigo (#0c1722, escuro demais — o polígono sumia no gradiente do
- * cartão) e o `sem-equipamentos` (#667b8b, já encostado na faixa de status): claro o bastante para o
- * contorno recortar a forma, escuro o bastante para o marcador colorido vencer por contraste.
+ * cartão) e o `sem-equipamentos` (#6e8698 desde D23, #667b8b em D19 — encostado na faixa de
+ * status): claro o bastante para o contorno recortar a forma, escuro o bastante para o marcador
+ * colorido vencer por contraste.
  */
 const COR_MUNICIPIO = '#16283a';
 
@@ -156,9 +157,10 @@ const COR_MUNICIPIO = '#16283a';
  * #456a8e dá 2,65:1. Não chega aos 3:1 de WCAG 1.4.11 de propósito: a 75 municípios num zoom de
  * estado, traço com contraste de controle de interface vira grade, e a divisa é contexto — o
  * conteúdo essencial (o estado operacional) está no marcador. Desde D19 o marcador não tem mais
- * aro: o miolo sozinho carrega o contraste, entre 3,41:1 (`sem-equipamentos`, o pior caso) e
- * 6,96:1 (`degradada`) contra #16283a — ver o comentário de `COR_DO_STATUS`. 2,65:1 é onde a forma
- * se lê sem a malha competir com os marcadores; medido por captura, não estimado.
+ * aro: o miolo sozinho carrega o contraste — desde D23 entre 3,95:1 (`sem-equipamentos` #6e8698, o
+ * pior caso) e 8,70:1 (`disponivel`) contra #16283a; em D19 era 3,41:1 a 6,96:1 — ver o comentário
+ * de `COR_DO_STATUS`. 2,65:1 é onde a forma se lê sem a malha competir com os marcadores; medido
+ * por captura, não estimado.
  */
 const COR_CONTORNO_MUNICIPIO = '#456a8e';
 
@@ -351,15 +353,16 @@ const DURACAO_CAMERA_MS = 600;
 /** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
 const PADDING_MUNICIPIO = { top: 110, right: 70, bottom: 50, left: 60 };
 
+/** Largura do núcleo da linha de conexão (D23: 1,4 → 1,6, para a cor vibrante ler sobre o halo). */
 const LARGURA_CONEXAO = 1.6;
 /**
  * Núcleo da linha, quase opaco (D23): a translucidez passou para o halo por baixo, que carrega o
  * brilho; o núcleo fino pode ficar firme sem recortar o bloco. Antes (D18) era a linha única, 0,65.
  *
- * Linha translucida. Ela cruza o estado inteiro e passa por cima de municipios cuja cor de status e
- * o dado que importa; opaca, ela recortava o bloco em dois. Com D18 a linha inteira carrega a cor
- * do status, e a translucidez continua cumprindo o mesmo papel: deixar o município por baixo
- * legível mesmo com a linha colorida de ponta a ponta por cima dele.
+ * O papel que a translucidez de D18 cumpria continua, agora no halo: a conexão cruza o estado
+ * inteiro e passa por cima de municípios; opaca e larga, recortava o bloco em dois. O halo é largo
+ * e translúcido (0,28), o núcleo é fino — o município por baixo segue legível mesmo com a linha
+ * colorida de ponta a ponta por cima dele.
  */
 const OPACIDADE_CONEXAO = 0.85;
 /**
@@ -901,7 +904,7 @@ export class MapaComponent implements OnDestroy {
   /**
    * Pings percorrendo as linhas de conexão — ICMP echo como desenho. Três por linha, a ⅓ um do
    * outro, em fluxo contínuo hub → unidade (D23), com fade nas duas pontas. `style.opacity` por
-   * quadro é propriedade de compositor — não repinta o glow.
+   * quadro tende a ficar no compositor, sem repintar o glow; medido na bancada (D23).
    *
    * Um `Marker` DOM por ping, reposicionado por `setLngLat` a cada quadro. Escolhido contra as duas
    * alternativas conhecidas, com medição (ver `mapa-contexto-atual.md` §9.2, cenários D/E/F):
