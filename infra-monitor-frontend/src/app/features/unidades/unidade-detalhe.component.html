@@ -18,7 +18,7 @@
       <button class="botao" type="button" (click)="recarregar()">Tentar novamente</button>
     </div>
   } @else if (store.estado() === 'loading') {
-    <div class="kpis" aria-label="Carregando unidade">
+    <div class="kpis" role="status" aria-label="Carregando unidade">
       @for (card of [1,2,3,4,5,6,7]; track card) {
         <div class="kpi kpi--carregando"><span></span><strong></strong><small></small></div>
       }

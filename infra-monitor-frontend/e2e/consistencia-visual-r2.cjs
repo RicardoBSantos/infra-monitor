@@ -81,14 +81,15 @@ async function verificarTela(page, rotulo, tema) {
     const h1Estilo = h1 ? { tamanho: getComputedStyle(h1).fontSize, peso: getComputedStyle(h1).fontWeight } : null;
     const raiz = document.querySelector('.shell__main section');
     const raizEstilo = raiz ? { classes: raiz.className, padding: getComputedStyle(raiz).paddingLeft, maxWidth: getComputedStyle(raiz).maxWidth } : null;
-    const proximo = h1 ? h1.nextElementSibling : null;
+    let proximo = h1 ? h1.nextElementSibling : null;
+    while (proximo && proximo.tagName.toLowerCase() === 'app-status-badge') proximo = proximo.nextElementSibling;
     const mono = [];
     for (const el of document.querySelectorAll('body *')) {
       if (!visivel(el)) continue;
       const f = getComputedStyle(el).fontFamily;
       if (f.startsWith('"JetBrains Mono"') || f.startsWith('ui-monospace')) mono.push(el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/)[0] : ''));
     }
-    return { sobretitulos, h1Estilo, raizEstilo, proximo: proximo ? proximo.tagName.toLowerCase() : null, headerSmall: document.querySelectorAll('header small').length, mono: [...new Set(mono)].slice(0, 8), monoTotal: mono.length };
+    return { sobretitulos, h1Estilo, raizEstilo, proximo: proximo ? proximo.tagName.toLowerCase() : null, headerSmall: document.querySelectorAll('.shell__main header small').length, mono: [...new Set(mono)].slice(0, 8), monoTotal: mono.length };
   });
 
   checar(`${rotulo}.v1.${tema}`, 'sem sobretítulo', r.sobretitulos.length === 0, r.sobretitulos.join('; '));
