@@ -6,7 +6,6 @@
 /* Manutenção é info em todo o Painel (pill, badge, chip, faixa). Não é .kpi--info: nos drawers esse é o tom de latência. */
 .kpi--manutencao { border-top-color: var(--im-info-soft); } .kpi--manutencao strong { color: var(--im-info-soft); }
 
-.painel { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 .painel__meta { margin: 4px 0 0; color: var(--im-text-secondary); font: 11.5px var(--im-mono); }
 .painel__acoes { display: flex; gap: 8px; }
 

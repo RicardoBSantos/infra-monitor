@@ -1,4 +1,4 @@
-<section class="unidades pagina" aria-labelledby="unidades-titulo">
+<section class="unidades pagina pagina--grade" aria-labelledby="unidades-titulo">
   <header class="unidades__topo pagina__cabecalho">
     <div>
       <h1 id="unidades-titulo">Unidades</h1>
@@ -32,7 +32,7 @@
 
   <div class="cartao">
     @if (estado() === 'loading') {
-      <div class="esqueleto" aria-label="Carregando unidades">
+      <div class="esqueleto" role="status" aria-label="Carregando unidades">
         @for (linha of [1,2,3,4,5]; track linha) { <span></span> }
       </div>
     } @else if (estado() === 'error') {

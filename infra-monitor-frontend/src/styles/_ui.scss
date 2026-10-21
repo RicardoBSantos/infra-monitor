@@ -19,6 +19,9 @@
 .pagina__cabecalho { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .pagina__cabecalho h1 { margin: 0; color: var(--im-text-strong); font-size: 20px; font-weight: 700; line-height: 1.25; }
 .pagina__descricao { margin: 4px 0 0; color: var(--im-text-secondary); font-size: 12px; }
+/* Telas cuja raiz é grade (Painel, Unidades, Detalhe da unidade, Telegram): o gap da grade já separa o cabeçalho. */
+.pagina--grade { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.pagina--grade > .pagina__cabecalho { margin-bottom: 0; }
 @media (max-width: 760px) { .pagina { padding: 16px; } }
 .botao { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-soft); font-size: 12px; text-decoration: none; cursor: pointer; }
 .botao:hover { border-color: var(--im-border-muted); color: var(--im-text); }
@@ -174,17 +177,6 @@
 .campo-busca:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
 
 .visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-
-/* Chip de monitoramento (Ativado/Desativado). Somente leitura em toda parte: diz o
-   estado da flag `ativo`, nunca é o controle que a altera. Vive aqui porque a coluna
-   MONITORAMENTO da lista de equipamentos e o card do drawer de detalhe precisam do
-   mesmo tom — se um dos dois divergir, o mesmo dado passa a ter duas aparências. */
-.chip-monitoramento {
-  display: inline-flex; align-items: center; height: 18px; padding: 0 8px;
-  border: 1px solid var(--im-success-border); border-radius: var(--im-radius-pill);
-  color: var(--im-success); font: 10px var(--im-mono);
-}
-.chip-monitoramento--off { border-color: var(--im-border-strong); color: var(--im-text-muted); }
 
 /* Estado de cadastro ativo/inativo (booleano). Não é DisplayStatus: verde de "Ativo" no visual do badge
    de "Disponível" misturaria cadastro com operação. Rótulo é da tela (Ativo/Inativo, Ativado/Desativado). */

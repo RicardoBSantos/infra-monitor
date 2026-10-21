@@ -1,4 +1,4 @@
-<section class="painel pagina" aria-labelledby="painel-titulo">
+<section class="painel pagina pagina--grade" aria-labelledby="painel-titulo">
   <header class="painel__header pagina__cabecalho">
     <div>
       <h1 id="painel-titulo">Visão Geral da Infraestrutura</h1>
@@ -118,7 +118,7 @@
                 </div>
 
                 @if (dados.estado === 'loading') {
-                  <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+                  <div class="esqueleto" role="status" aria-label="Carregando equipamentos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
                 }
                 @else if (dados.estado === 'error') { <p class="detalhe__estado detalhe__estado--erro">não foi possível carregar os equipamentos desta unidade.</p> }
                 @else if (dados.estado === 'empty') { <p class="detalhe__estado">esta unidade não possui equipamentos.</p> }

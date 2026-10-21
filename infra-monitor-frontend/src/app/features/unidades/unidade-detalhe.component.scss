@@ -2,8 +2,6 @@
    KPIs, abas, badges, avisos e utilitários vêm de styles/_ui.scss. */
 :host { display: block; }
 
-.unidade-detalhe { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
-
 .unidade-detalhe__voltar { justify-self: start; color: var(--im-text-secondary); font-size: 12px; text-decoration: none; }
 .unidade-detalhe__voltar:hover { color: var(--im-text); }
 

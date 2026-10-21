@@ -2,10 +2,4 @@
    Padding, largura e cabeçalho vêm de .pagina; abas, avisos e utilitários de styles/_ui.scss. */
 :host { display: block; }
 
-/* minmax(0, 1fr): sem ele a tabela larga do histórico empurra a página para fora da tela. */
-.telegram { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
-
-/* O gap do grid já separa o cabeçalho das abas. */
-.pagina__cabecalho { margin-bottom: 0; }
-
 .abas { align-self: start; }
