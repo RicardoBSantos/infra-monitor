@@ -16,7 +16,7 @@
  *     -> `monitorados` vazio e `ativos` contém EM_MANUTENCAO -> StatusOperacionalUnidade.EM_MANUTENCAO.
  *   - mapa.component.ts, COR_DO_STATUS: 'em-manutencao': '#7fadff' -> rgb(127, 173, 255),
  *     aplicada por `alvo.style.setProperty('--cor-unidade', corDoStatus(unidade.status))` e lida em
- *     `.map__unidade { background: var(--cor-unidade, #8797a6) }` (mapa.component.scss).
+ *     `.map__unidade { background: var(--cor-unidade, #9dabb9) }` (mapa.component.scss).
  * Se a cor obtida divergir, o roteiro REGISTRA esperado × obtido e segue — não ajusta nada.
  *
  * ARMADILHAS conhecidas deste projeto:
@@ -36,7 +36,7 @@ if (!EMAIL || !SENHA) throw new Error('MAPA_EMAIL e MAPA_SENHA são obrigatória
 const UNIDADE_MANUTENCAO = { id: '1', nome: 'Unidade E2E Mapa Manutencao', equipamento: 'EQ-192.0.2.11' };
 const UNIDADE_CONTRASTE = { id: '2', nome: 'Unidade E2E Mapa Contraste' };
 const ESPERADO_MANUTENCAO = { status: 'EM_MANUTENCAO', hex: '#7fadff', rgb: 'rgb(127, 173, 255)' };
-const ESPERADO_CONTRASTE = { status: 'INDISPONIVEL', hex: '#e5484d', rgb: 'rgb(229, 72, 77)' };
+const ESPERADO_CONTRASTE = { status: 'INDISPONIVEL', hex: '#f84e54', rgb: 'rgb(248, 78, 84)' };
 
 // MAPA_EXECUCAO separa execuções num subdiretório (a 1ª rodada, com código IBGE divergente da
 // coordenada, fica guardada à parte — ver documento).

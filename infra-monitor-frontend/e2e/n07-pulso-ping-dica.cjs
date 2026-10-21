@@ -18,7 +18,9 @@
  * - o anel de seleção sai de --cor-unidade e o selecionado cresce, nos seis status;
  * - os pings são invisíveis para teclado e leitor de tela (requisito de aceite, não detalhe);
  * - a dica aparece no FOCO e não só no hover, e focar não seleciona;
- * - a conexão é inteiramente da cor do status da unidade conectada (D18).
+ * - a conexão é inteiramente da cor do status da unidade conectada (D18);
+ * - três pings por linha, a ⅓ um do outro em fluxo hub → unidade, orbe de 5px sem contorno branco,
+ *   com fade de opacidade nas pontas (D23 — substituiu o par em fases opostas de D16).
  */
 const { chromium } = require('playwright');
 const { apontarApi } = require('./api-porta.cjs');
@@ -37,8 +39,8 @@ const checar = (caso, nome, ok, detalhe) => { resultados.push({ caso, nome, ok: 
 
 /** Cores do canvas, espelhadas do componente. Divergir daqui é o teste falhar, que é o certo. */
 const COR = {
-  disponivel: '#34c77b', indisponivel: '#e5484d', degradada: '#e8a33d',
-  'em-manutencao': '#7fadff', 'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b',
+  disponivel: '#35e087', indisponivel: '#f84e54', degradada: '#fcb142',
+  'em-manutencao': '#7fadff', 'sem-dados': '#9dabb9', 'sem-equipamentos': '#6e8698',
 };
 
 const lerUnidades = (page) => page.evaluate(() => [...document.querySelectorAll('.map__unidade')].map((botao) => {
@@ -101,6 +103,12 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
   // custom property inline, não backgroundColor: o volume (D18) usa radial-gradient em `background`,
   // que não altera --cor-ping — a leitura abaixo continua válida sem mudança.
   cor: no.style.getPropertyValue('--cor-ping'),
+  // Inline, escrito por quadro pelo fade das pontas (D23); o computado incluiria herança, e o que
+  // se prova é o valor que o componente escreveu.
+  opacidade: no.style.opacity,
+  largura: getComputedStyle(no).width,
+  borda: getComputedStyle(no).borderTopWidth,
+  sombra: getComputedStyle(no).boxShadow,
   x: Math.round(no.getBoundingClientRect().x), y: Math.round(no.getBoundingClientRect().y),
 })));
 
@@ -375,9 +383,19 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     const conexoesEsperadas = unidadesDaApi.filter((u) => u.conectaAUnidadeId != null
       && u.latitude != null && u.longitude != null && u.codigoIbge != null
       && unidadesDaApi.some((p) => p.id === u.conectaAUnidadeId && p.latitude != null && p.longitude != null && p.codigoIbge != null)).length;
-    checar(7, 'dois pings por linha de conexão desenhável, em fases opostas',
-      pings.length === conexoesEsperadas * 2,
+    checar(7, 'três pings por linha de conexão desenhável, a ⅓ (D23)',
+      pings.length === conexoesEsperadas * 3,
       `${pings.length} ping(s) para ${conexoesEsperadas} linha(s)`);
+    /*
+     * D23: o contorno branco eram duas camadas — `border` de 1px e a primeira sombra
+     * rgba(232, 240, 248, .3). As duas saíram; o glow é na cor do status. Branco puro também é
+     * barrado: o núcleo claro do orbe vive no gradiente, nunca na sombra.
+     */
+    const contornados = pings.filter((p) => p.largura !== '5px' || p.borda !== '0px'
+      || /232,\s*240,\s*248/.test(p.sombra) || /255,\s*255,\s*255/.test(p.sombra));
+    checar(7, 'todo ping é orbe de 5px sem contorno branco (D23)',
+      pings.length > 0 && contornados.length === 0,
+      contornados.length ? `${contornados.length} fora: ${JSON.stringify(contornados[0])}` : `${pings.length} a 5px, borda 0, sombra ${pings[0]?.sombra}`);
     checar(7, 'todo ping é aria-hidden', pings.length > 0 && pings.every((p) => p.oculto === 'true'));
     checar(7, 'nenhum ping tem tabindex', pings.every((p) => p.tabindex === null));
     checar(7, 'ping é <div>, não elemento focável por natureza', pings.every((p) => p.tag === 'DIV'));
@@ -452,9 +470,11 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * 18 por isso, com a animação funcionando. Somar o percurso em três instantes cobre o ciclo
      * inteiro: nenhum ping fica parado em duas janelas seguidas.
      */
-    /* A janela acompanha o periodo: com D17 o ciclo passou de 2600ms para 4200ms, e 650ms deixaram
-     * de ser um quarto de ciclo. 1050ms mantem as tres amostras cobrindo meio ciclo, que e a razao
-     * de o check nao acusar falso parado perto do ponto de retorno. */
+    /* A janela acompanha o periodo: 1050ms sao ¼ de uma travessia hub -> unidade (4200ms, D23 — em
+     * D17 eram ¼ do vai-e-volta). Com o fluxo em dente de serra nao ha mais ponto de retorno, mas
+     * a virada u≈1 -> 0 cai dentro de uma janela de vez em quando, e somar tres amostras continua
+     * sendo o que evita falso parado. O fade zera a OPACIDADE perto das pontas, nao a posicao: o
+     * criterio de distancia segue valido para ping invisivel. */
     const amostras = [pings];
     for (let i = 0; i < 2; i++) { await page.waitForTimeout(1050); amostras.push(await lerPings(page)); }
     const percurso = pings.map((_, i) => amostras.slice(1).reduce((soma, atual, k) =>
@@ -463,6 +483,15 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     checar(8, 'todo ping percorre a linha — nenhum fica parado',
       parados === 0,
       `${pings.length - parados}/${pings.length} em movimento · percurso mínimo ${Math.min(...percurso).toFixed(1)}px em 2,1s`);
+    /*
+     * Fade das pontas (D23), forma simples (Ruling B): nas três amostras há ping com opacidade
+     * inline < 1 — o fade está ativo — e nenhuma opacidade sai de [0, 1]. Com 27 pings defasados de
+     * ⅓, 16% de cada arco está em fade a qualquer instante; não ver nenhum seria o fade morto.
+     */
+    const opacidades = amostras.flat().map((p) => Number(p.opacidade));
+    checar(8, 'fade nas pontas ativo e opacidade sempre em [0, 1] (D23)',
+      opacidades.some((o) => o < 1) && opacidades.every((o) => Number.isFinite(o) && o >= 0 && o <= 1),
+      `${opacidades.filter((o) => o < 1).length}/${opacidades.length} leitura(s) abaixo de 1, mín ${Math.min(...opacidades).toFixed(3)}`);
 
     // ---------------------------------------- 9. prefers-reduced-motion: sem movimento nenhum
     const reduzido = await browser.newContext({ viewport: { width: 1500, height: 950 }, reducedMotion: 'reduce' });
@@ -535,8 +564,8 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
 
     // ------------------------------- 9c. anel de seleção na cor do status (D19 item 3)
     const STATUS_TODOS = [
-      ['disponivel', '#34c77b'], ['indisponivel', '#e5484d'], ['degradada', '#e8a33d'],
-      ['em-manutencao', '#7fadff'], ['sem-dados', '#8797a6'], ['sem-equipamentos', '#667b8b'],
+      ['disponivel', '#35e087'], ['indisponivel', '#f84e54'], ['degradada', '#fcb142'],
+      ['em-manutencao', '#7fadff'], ['sem-dados', '#9dabb9'], ['sem-equipamentos', '#6e8698'],
     ];
 
     /*
@@ -630,7 +659,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * unidade real.
      */
     await page.evaluate(() => {
-      const cores = ['#34c77b', '#e5484d', '#e8a33d'];
+      const cores = ['#35e087', '#f84e54', '#fcb142'];
       const nos = [...document.querySelectorAll('.map__unidade')]
         .map((b) => ({ b, x: b.getBoundingClientRect().x }))
         .sort((a, z) => a.x - z.x);

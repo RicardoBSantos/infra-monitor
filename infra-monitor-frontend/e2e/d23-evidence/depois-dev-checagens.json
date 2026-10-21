@@ -1,0 +1,82 @@
+{
+  "rotulo": "depois-dev",
+  "base": "http://127.0.0.1:4201",
+  "checagens": [
+    {
+      "nome": "tema escuro aplicado (depois-dev)",
+      "resultado": "ok",
+      "detalhe": "data-theme=dark"
+    },
+    {
+      "nome": "sintético usa o .map__ping real da fase depois",
+      "resultado": "ok",
+      "detalhe": "{\"ping\":\"5px\",\"borda\":\"0px\",\"sombra\":\"color(srgb 0.207843 0.878431 0.529412 / 0.7) 0px 0px 4px 1px\",\"marcador\":\"13px\"}"
+    },
+    {
+      "nome": "tema escuro aplicado (depois-dev)",
+      "resultado": "ok",
+      "detalhe": "data-theme=dark"
+    },
+    {
+      "nome": "escuro: 3 pings por linha desenhável",
+      "resultado": "ok",
+      "detalhe": "27 pings, 9 linhas, 11 marcadores"
+    },
+    {
+      "nome": "escuro: zoom no município de Aracaju",
+      "resultado": "ok",
+      "detalhe": "6 clique(s)"
+    },
+    {
+      "nome": "escuro: hub selecionado no zoom",
+      "resultado": "ok",
+      "detalhe": "hub Sede Administrativa"
+    },
+    {
+      "nome": "escuro: nenhum erro de página",
+      "resultado": "ok",
+      "detalhe": ""
+    },
+    {
+      "nome": "tema claro aplicado (depois-dev)",
+      "resultado": "ok",
+      "detalhe": "data-theme=light"
+    },
+    {
+      "nome": "claro: 3 pings por linha desenhável",
+      "resultado": "ok",
+      "detalhe": "27 pings, 9 linhas, 11 marcadores"
+    },
+    {
+      "nome": "claro: zoom no município de Aracaju",
+      "resultado": "ok",
+      "detalhe": "6 clique(s)"
+    },
+    {
+      "nome": "claro: hub selecionado no zoom",
+      "resultado": "ok",
+      "detalhe": "hub Sede Administrativa"
+    },
+    {
+      "nome": "claro: nenhum erro de página",
+      "resultado": "ok",
+      "detalhe": ""
+    },
+    {
+      "nome": "tema escuro aplicado (depois-dev)",
+      "resultado": "ok",
+      "detalhe": "data-theme=dark"
+    },
+    {
+      "nome": "reduced-motion: nenhum ping criado",
+      "resultado": "ok",
+      "detalhe": "0 ping(s)"
+    },
+    {
+      "nome": "reduced-motion: ::after com animation-name none",
+      "resultado": "ok",
+      "detalhe": "11 anel(éis): none"
+    }
+  ],
+  "fatal": null
+}
