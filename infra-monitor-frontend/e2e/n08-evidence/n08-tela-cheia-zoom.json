@@ -256,7 +256,7 @@
       "caso": 1,
       "nome": "1280x720: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
-      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1268/1280 · doc H 16 (registrado; pré-existente: topbar) · main H 0"
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1268/1280 · doc H 10 (registrado; pré-existente: topbar) · main H 0"
     },
     {
       "caso": 2,
@@ -268,7 +268,7 @@
       "caso": 1,
       "nome": "1024x768: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
-      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1012/1024 · doc H 48 (registrado; pré-existente: topbar) · main H 0"
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1012/1024 · doc H 42 (registrado; pré-existente: topbar) · main H 0"
     },
     {
       "caso": 1,
@@ -389,7 +389,7 @@
       "1280x720": {
         "mainV": 0,
         "docV": 0,
-        "docH": 16,
+        "docH": 10,
         "mainH": 0,
         "mapPageH": 0,
         "layoutDireita": 1268,
@@ -398,7 +398,7 @@
       "1024x768": {
         "mainV": 0,
         "docV": 0,
-        "docH": 48,
+        "docH": 42,
         "mainH": 0,
         "mapPageH": 0,
         "layoutDireita": 1012,
