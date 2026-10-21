@@ -9,11 +9,11 @@
 // O período virou um chip: a coluna acompanha o conteúdo em vez de reservar 2fr para
 // uma fileira de botões que não existe mais.
 .filters { display: grid; grid-template-columns: repeat(3, minmax(130px, 1fr)) auto; align-items: end; gap: 9px; margin-bottom: 12px; padding: 12px; border: 1px solid var(--im-border); border-radius: var(--im-radius); background: var(--im-surface); }
-.filters label { display: grid; gap: 5px; color: var(--im-text-secondary); font: 600 10px var(--im-mono); letter-spacing: .05em; }
+.filters label { display: grid; gap: 5px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
 .filters .campo-select { width: 100%; }
-.filters .campo-select select { height: auto; min-height: 34px; padding: 7px 26px 7px 7px; font: 13px 'IBM Plex Sans', sans-serif; }
+.filters .campo-select select { height: auto; min-height: 34px; padding: 7px 26px 7px 7px; font:inherit;font-size:13px; }
 .filters__periodo { display: grid; gap: 5px; justify-items: start; }
-.filters__rotulo { color: var(--im-text-secondary); font: 600 10px var(--im-mono); letter-spacing: .05em; }
+.filters__rotulo { color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
 
 .feedback { display: flex; gap: 9px; align-items: center; margin-bottom: 12px; padding: 11px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius); background: var(--im-surface); color: var(--im-text-secondary); font-size: 12px; }
 .feedback--error { border-left: 3px solid var(--im-danger); }

@@ -1,10 +1,10 @@
 /* Casca (.pagina), tabela (.tabela), paginação (app-paginacao), esqueleto (.esqueleto) e .mono
    vêm das primitivas de styles/_ui.scss. Aqui só filtros, avisos e a rolagem da tabela. */
 .filters{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:9px;margin-bottom:12px;padding:12px;border:1px solid var(--im-border);border-radius:var(--im-radius);background:var(--im-surface)}
-.filters label{display:grid;gap:5px;color:var(--im-text-secondary);font:600 10px var(--im-mono);letter-spacing:.05em}
-.filters input{box-sizing:border-box;width:100%;min-height:34px;border:1px solid var(--im-border-strong);border-radius:var(--im-radius);background:var(--im-surface);padding:7px;color:var(--im-text);font:13px 'IBM Plex Sans',sans-serif}
+.filters label{display:grid;gap:5px;color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em}
+.filters input{box-sizing:border-box;width:100%;min-height:34px;border:1px solid var(--im-border-strong);border-radius:var(--im-radius);background:var(--im-surface);padding:7px;color:var(--im-text);font:inherit;font-size:13px}
 .filters .campo-select{width:100%}
-.filters .campo-select select{height:auto;min-height:34px;padding:7px 26px 7px 7px;font:13px 'IBM Plex Sans',sans-serif}
+.filters .campo-select select{height:auto;min-height:34px;padding:7px 26px 7px 7px;font:inherit;font-size:13px}
 .feedback{display:flex;gap:9px;align-items:center;margin-bottom:12px;padding:11px;border:1px solid var(--im-border-strong);border-radius:var(--im-radius);background:var(--im-surface);color:var(--im-text-secondary);font-size:12px}
 .feedback--error{border-left:3px solid var(--im-danger)}
 .feedback .botao{margin-left:auto}

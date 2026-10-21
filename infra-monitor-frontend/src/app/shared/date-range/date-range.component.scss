@@ -25,7 +25,7 @@
 .date-range__atalhos { display: flex; flex-wrap: wrap; gap: 6px; }
 .date-range__atalhos .botao--ativo { border-color: var(--im-border-strong); background: var(--im-surface-raised); color: var(--im-text-strong); }
 .date-range__campos { display: flex; gap: 8px; }
-.date-range__campos label { display: grid; gap: 4px; color: var(--im-text-secondary); font: 600 10px var(--im-mono); letter-spacing: .05em; }
+.date-range__campos label { display: grid; gap: 4px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
 .date-range__campos input { min-width: 0; min-height: 30px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius); background: var(--im-surface); padding: 5px 7px; color: var(--im-text); font: 12px 'IBM Plex Sans', sans-serif; }
 .date-range__erro { margin: 0; color: var(--im-danger-soft); font-size: 12px; }
 
