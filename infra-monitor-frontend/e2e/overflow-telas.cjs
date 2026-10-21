@@ -51,7 +51,7 @@ const medir = (page) => page.evaluate(() => {
 });
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ args: ['--hide-scrollbars=false'] });
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 } });
   await apontarApi(ctx);
   const page = await ctx.newPage();
