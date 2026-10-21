@@ -43,7 +43,7 @@
     border-radius: var(--im-radius-pill);
     background: var(--im-surface);
     color: var(--im-text-secondary);
-    font: 11.5px inherit;
+    font: inherit; font-size: 11.5px;
     cursor: pointer;
 
     &:hover { border-color: var(--im-border-muted); color: var(--im-text); }

@@ -54,6 +54,8 @@
 .detalhe__cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
 .detalhe__estado { margin: 0; padding: 0 14px 14px; color: var(--im-text-secondary); font-size: 12px; }
 .detalhe__estado--erro { color: var(--im-danger); }
+/* A tabela expandida segue o cabeçalho do detalhe (já tem respiro); não é a primeira coisa do cartão. */
+table.equipamentos th { padding-top: 0; }
 
 .rodape-nota { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
 

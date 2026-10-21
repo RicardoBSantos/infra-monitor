@@ -7,7 +7,6 @@
 .equipamentos-aba__contagem { margin-left: auto; }
 
 .equipamentos-aba__rolagem { overflow-x: auto; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); }
-.equipamentos-aba__rolagem .tabela th { padding-top: 12px; }
 
 @media (max-width: 860px) {
   .equipamentos-aba__contagem { margin-left: 0; }

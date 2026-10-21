@@ -145,7 +145,7 @@
 
 /* Tabela de dados densa, compartilhada pelas abas e pela lista administrativa. */
 .tabela { width: 100%; border-collapse: collapse; }
-.tabela th { padding: 0 14px 8px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-align: left; white-space: nowrap; }
+.tabela th { padding: 12px 14px 8px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-align: left; white-space: nowrap; }
 .tabela td { padding: 8px 14px; border-top: 1px solid var(--im-border); font-size: 12px; }
 .tabela th.numerico, .tabela td.numerico { text-align: right; }
 .tabela tbody tr:hover { background: var(--im-surface-hover); }
@@ -196,7 +196,7 @@
 .modal-form input, .modal-form textarea {
   box-sizing: border-box; width: 100%; padding: 8px;
   border: 1px solid var(--im-border-strong); border-radius: var(--im-radius);
-  background: var(--im-surface); color: var(--im-text); font: 13px inherit;
+  background: var(--im-surface); color: var(--im-text); font: inherit; font-size: 13px;
 }
 .modal-form input:focus-visible, .modal-form textarea:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
 .modal-form .campo-select { width: 100%; }
