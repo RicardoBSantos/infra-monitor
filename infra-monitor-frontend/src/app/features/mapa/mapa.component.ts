@@ -163,31 +163,52 @@ const COR_MUNICIPIO = '#16283a';
 const COR_CONTORNO_MUNICIPIO = '#456a8e';
 
 /**
- * Duração de uma travessia completa do ping — hub → unidade → hub.
+ * Duração de uma travessia completa do ping — desde D23, UMA travessia hub → unidade (D16/D17
+ * falavam em hub → unidade → hub).
  *
  * 4200 ms, e não os 2600 de N07. O valor antigo foi escolhido contra uma linha reta e curta; com
  * vinte pings simultâneos no estado inteiro o conjunto lia como tráfego agitado, não como um
- * batimento de sonda. O período é a ÚNICA variável do movimento (a fase de ida-e-volta e o passo
+ * batimento de sonda. O período é a ÚNICA variável do movimento (a fase de fluxo e o passo
  * são funções puras dele), então desacelerar é trocar este número — nada mais muda.
+ *
+ * Desde D23 é UMA travessia hub → unidade, não ida e volta: a velocidade caiu à metade, o que
+ * compensa a densidade 3× (chega um ping na unidade a cada 1400 ms); mesmo argumento de D17 contra
+ * "tráfego agitado".
  */
 const PERIODO_PING_MS = 4200;
 
 /**
- * Pings simultâneos por linha. Dois, em fase oposta: enquanto um vai, o outro volta — é isto que
- * entrega o "ida e volta" do ICMP echo sem nenhuma camada extra nem inversão periódica de animação.
+ * Pings simultâneos por linha. Três, a ⅓ um do outro, em fluxo hub → unidade (D23 substituiu o par
+ * em fase oposta de D16, que fazia o "ida e volta").
  */
-const PINGS_POR_LINHA = 2;
+const PINGS_POR_LINHA = 3;
 
 /**
- * Posição na ida-e-volta, dado o tempo em ciclos. `0 → 1 → 0` num ciclo. Pura.
+ * Posição no fluxo, dado o tempo em ciclos. `0 → 1` e recomeça no hub. Pura.
  *
- * É o que torna a técnica escolhida barata: as linhas de conexão têm EXATAMENTE dois vértices
- * (hub e unidade), então "quanto do caminho já andei" é um número só, e a volta é o mesmo número
- * espelhado. Não há comprimento de arco a percorrer nem vértice intermediário a procurar.
+ * D23 trocou o vai-e-volta de D16 por fluxo num sentido só, a pedido: três pings com espaçamento
+ * REGULAR ao longo do arco. Na onda triangular de D16 isso é impossível — com duas fases opostas os
+ * pings se cruzam no meio, e com fases 0/⅓/⅔ dois deles coincidem. Em dente de serra, defasar de
+ * k/3 mantém a distância de ⅓ em qualquer instante. O custo continua O(1) por quadro: muda a
+ * função de fase, não a técnica (`Marker` DOM + `pontoNoArco`). As linhas de conexão têm EXATAMENTE
+ * dois vértices (hub e unidade), então "quanto do caminho já andei" é um número só.
  */
-export function faseVaiEVolta(ciclos: number): number {
-  const fase = ((ciclos % 1) + 1) % 1;
-  return fase < 0.5 ? fase * 2 : (1 - fase) * 2;
+export function faseDeFluxo(ciclos: number): number {
+  return ((ciclos % 1) + 1) % 1;
+}
+
+/** Fração do arco, em cada ponta, em que o ping nasce e some. */
+const FADE_NA_PONTA = 0.08;
+
+/**
+ * Opacidade do ping na posição `u` do arco. Pura.
+ *
+ * Zero nas duas pontas exatas: é o que esconde a virada do dente de serra, quando o ping salta de
+ * u≈1 para u=0. Linear em 8% de cada lado — o ping nasce no hub e se apaga ao chegar na unidade,
+ * em vez de surgir do nada sobre o marcador.
+ */
+export function opacidadeNaPonta(u: number): number {
+  return Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA));
 }
 
 /** Ponto a `u` do caminho entre dois pares [lng, lat]. Pura. */
@@ -878,7 +899,9 @@ export class MapaComponent implements OnDestroy {
   }
 
   /**
-   * Pings percorrendo as linhas de conexão — ICMP echo como desenho.
+   * Pings percorrendo as linhas de conexão — ICMP echo como desenho. Três por linha, a ⅓ um do
+   * outro, em fluxo contínuo hub → unidade (D23), com fade nas duas pontas. `style.opacity` por
+   * quadro é propriedade de compositor — não repinta o glow.
    *
    * Um `Marker` DOM por ping, reposicionado por `setLngLat` a cada quadro. Escolhido contra as duas
    * alternativas conhecidas, com medição (ver `mapa-contexto-atual.md` §9.2, cenários D/E/F):
@@ -887,8 +910,8 @@ export class MapaComponent implements OnDestroy {
    *   0,99 ms desta — 2,9x mais cara, quase toda em reparse do GeoJSON no worker.
    * - `line-dasharray` animado por `setPaintProperty`: 1,65 ms por quadro mesmo rodando a 20 Hz e
    *   não a 60, porque cada troca reconstrói a textura de tracejado. Além do custo, o movimento é
-   *   em degraus e o tracejado não é bidirecional: "ida e volta" exigiria duas camadas sobrepostas
-   *   em fase invertida.
+   *   em degraus e o tracejado não é bidirecional: o "ida e volta" de D16 exigiria duas camadas
+   *   sobrepostas em fase invertida (D23 abandonou a ida e volta, mas o custo segue valendo).
    *
    * E é o padrão que N02 e N06 já fixaram: a lib reposiciona o elemento em pan, zoom, pitch e
    * rotate sem sincronização manual.
@@ -923,18 +946,21 @@ export class MapaComponent implements OnDestroy {
          */
         elemento.setAttribute('aria-hidden', 'true');
         elemento.style.setProperty('--cor-ping', corDoStatus(status));
+        elemento.style.opacity = '0';   // sem flash no primeiro quadro
         const marcador = new Marker({ element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
           .setLngLat(origem).addTo(map);
         this.pings.push(marcador);
-        return { marcador, origem, destino, defasagem: indice / PINGS_POR_LINHA };
+        return { marcador, elemento, origem, destino, defasagem: indice / PINGS_POR_LINHA };
       });
     });
 
     const inicio = performance.now();
     const passo = (): void => {
       const ciclos = (performance.now() - inicio) / PERIODO_PING_MS;
-      for (const { marcador, origem, destino, defasagem } of trajetos) {
-        marcador.setLngLat(pontoNoArco(origem, destino, faseVaiEVolta(ciclos + defasagem)));
+      for (const { marcador, elemento, origem, destino, defasagem } of trajetos) {
+        const u = faseDeFluxo(ciclos + defasagem);
+        marcador.setLngLat(pontoNoArco(origem, destino, u));
+        elemento.style.opacity = String(opacidadeNaPonta(u));
       }
       this.quadroPing = requestAnimationFrame(passo);
     };
