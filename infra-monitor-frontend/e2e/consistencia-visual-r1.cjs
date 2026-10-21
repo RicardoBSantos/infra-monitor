@@ -58,7 +58,7 @@ async function entrar(page) {
 
 async function aguardarCarga(page) {
   await page.waitForFunction(
-    () => document.querySelectorAll('.skeleton, .kpi--carregando, .linha--carregando').length === 0,
+    () => document.querySelectorAll('.skeleton, .esqueleto, .kpi--carregando, .linha--carregando').length === 0,
     null, { timeout: 15000 },
   );
 }
@@ -146,9 +146,9 @@ async function verificarMotion(page) {
   const atrasar = async (route) => { await new Promise((r) => setTimeout(r, 1500)); await route.fallback(); };
   await page.route(padraoMedicoes, atrasar);
   await page.click('.navigation__item[href="/medicoes"]');
-  const vistoEsq = await page.locator('.skeleton span').first().waitFor({ state: 'attached', timeout: 3000 }).then(() => true, () => false);
+  const vistoEsq = await page.locator('.esqueleto span, .skeleton span').first().waitFor({ state: 'attached', timeout: 3000 }).then(() => true, () => false);
   if (vistoEsq) {
-    const nome = await page.locator('.skeleton span').first().evaluate((el) => getComputedStyle(el).animationName);
+    const nome = await page.locator('.esqueleto span, .skeleton span').first().evaluate((el) => getComputedStyle(el).animationName);
     checar('motion.skeleton', 'esqueleto sem animação com reduced-motion', nome === 'none', `animationName=${nome}`);
   } else naoAplicavel('motion.skeleton', 'esqueleto sem animação com reduced-motion', 'esqueleto não apareceu em 3 s mesmo com a API atrasada');
   await aguardarCarga(page);

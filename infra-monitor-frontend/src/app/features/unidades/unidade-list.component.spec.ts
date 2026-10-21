@@ -104,8 +104,15 @@ describe('UnidadeListComponent', () => {
     const linha = fixture.nativeElement.querySelector('tbody tr') as HTMLElement;
     expect(linha.classList).toContain('unidades__linha--inativa');
     expect(linha.textContent).toContain('Inativa');
+    expect(linha.querySelector('span.chip-ativo.chip-ativo--off')?.textContent?.trim()).toBe('Inativa');
+    expect(linha.querySelector('.chip-manutencao')).toBeNull();
     expect((linha.querySelectorAll('td')[4] as HTMLElement).textContent!.trim()).toBe('—');
     expect(linha.querySelector('.unidades__acoes')!.textContent).toContain('Ativar');
+  });
+
+  it('usa a casca .pagina na raiz', () => {
+    const fixture = criar({ cadastros: [unidade(1)], operacionais: [operacional(1)] });
+    expect((fixture.nativeElement as HTMLElement).querySelector('section.unidades.pagina')).not.toBeNull();
   });
 
   it('filtra em memória por nome, código ou cidade, sem refazer as chamadas', () => {

@@ -204,8 +204,8 @@
   .map__unidade:hover .map__dica, .map__unidade:focus-visible .map__dica { opacity: 1; visibility: visible; }
   .map__dica-nome { color: var(--im-text-strong); font-weight: 600; line-height: 1.3; }
   .map__dica-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .map__dica-rotulo { color: var(--im-text-muted); font: 600 9px 'IBM Plex Mono', monospace; letter-spacing: .08em; }
-  .map__dica-valor { color: var(--im-text-strong); font: 600 11px 'IBM Plex Mono', monospace; }
+  .map__dica-rotulo { color: var(--im-text-muted); font: 600 9px var(--im-mono); letter-spacing: .08em; }
+  .map__dica-valor { color: var(--im-text-strong); font: 600 11px var(--im-mono); }
   @media (prefers-reduced-motion: reduce) { .map__dica { transition: none; } }
 }
 
@@ -223,7 +223,7 @@
  * lado, e a coluna do mapa passa de 1119 para ~1320px.
  */
 .map-page { display:flex; flex-direction:column; height:calc(100dvh - var(--im-topbar-height)); min-height:480px; padding:var(--im-space-3); color:var(--im-text); }
-.panel-label { margin:0 0 4px; color:var(--im-text-muted); font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.12em; }
+.panel-label { margin:0 0 4px; color:var(--im-text-muted); font:600 10px var(--im-mono); letter-spacing:.12em; }
 /*
  * Página na altura da viewport (D20): `100dvh` menos a topbar, sem `--altura-mapa` e sem o cabeçalho
  * em faixa (o título foi para dentro do cartão). Cartão e painel ocupam a linha inteira da grade e
@@ -243,21 +243,21 @@
 /* Sem `justify-content:space-between` (D14): com o rodapé fora e a legenda no cartão (D21), ele abriria vãos
  * entre os blocos. A sobra de altura fica no fim da coluna. Rolagem própria: a lista de afetados
  * pode crescer sem empurrar o mapa para fora da viewport (D11). */
-.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:#8797a6; }/* Hex literal e não token: espelha `COR_DO_STATUS['sem-dados']` em mapa.component.ts (D19) — muda junto. */.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:#667b8b; }/* Idem, espelha `COR_DO_STATUS['sem-equipamentos']`. */.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px 'IBM Plex Mono',monospace; letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
+.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:#8797a6; }/* Hex literal e não token: espelha `COR_DO_STATUS['sem-dados']` em mapa.component.ts (D19) — muda junto. */.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:#667b8b; }/* Idem, espelha `COR_DO_STATUS['sem-equipamentos']`. */.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px var(--im-mono); }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px var(--im-mono); letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
 
 /* --- Painel lateral (M03) ------------------------------------------------------------ */
 .geo-status,.unit-panel { padding:12px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface-raised); }
 .geo-status__list { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
 .geo-status__list li { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.geo-status__total { color:var(--im-text-strong); font:600 13px 'IBM Plex Mono',monospace; }
-.geo-status__foot { margin:10px 0 0; padding-top:9px; border-top:1px solid var(--im-border); color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }
+.geo-status__total { color:var(--im-text-strong); font:600 13px var(--im-mono); }
+.geo-status__foot { margin:10px 0 0; padding-top:9px; border-top:1px solid var(--im-border); color:var(--im-text-muted); font:10px var(--im-mono); }
 .unit-panel { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
 .unit-panel .panel-label { margin-top:4px; }
 .unit-panel__nome { color:var(--im-text-strong); font-size:13px; line-height:1.3; }
 .unit-kpis { display:grid; grid-template-columns:1fr 1fr; gap:7px; width:100%; margin:2px 0 0; }
 .unit-kpis div { padding:7px 8px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface); }
-.unit-kpis dt { margin:0 0 2px; color:var(--im-text-muted); font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.08em; }
-.unit-kpis dd { margin:0; color:var(--im-text-strong); font:600 15px 'IBM Plex Mono',monospace; }
+.unit-kpis dt { margin:0 0 2px; color:var(--im-text-muted); font:600 9px var(--im-mono); letter-spacing:.08em; }
+.unit-kpis dd { margin:0; color:var(--im-text-strong); font:600 15px var(--im-mono); }
 .unit-panel__acoes { display:flex; flex-wrap:wrap; gap:7px; width:100%; }
 .unit-panel__vazio { margin:0; color:var(--im-text-secondary); font-size:11px; line-height:1.5; }
 .unit-panel__vazio .botao { margin-top:8px; }
@@ -268,14 +268,14 @@
 .afetados__item { display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%; padding:7px 8px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface); color:inherit; font:inherit; text-align:left; cursor:pointer; }
 .afetados__item:hover,.afetados__item:focus-visible { border-color:var(--im-border-muted); border-left-color:var(--im-danger); }
 .afetados__nome { color:var(--im-text-strong); font-size:12px; }
-.afetados__meta { width:100%; color:var(--im-text-muted); font:10px 'IBM Plex Mono',monospace; }
+.afetados__meta { width:100%; color:var(--im-text-muted); font-size:10px; }
+.afetados__meta .mono { font-size:10px; }
 
 /* Título sobre o mapa (D20). z-index 5: acima dos Markers (até 4) — o canto superior esquerdo é vazio
  * no enquadramento, e se algum dia não for, a placa vence (o título é a referência da página).
  * pointer-events none: não rouba arraste nem clique do mapa. Placa translúcida com blur porque o
  * canvas é escuro nos dois temas e o cartão segue o tema. */
 .map-titulo { position:absolute; top:12px; left:12px; z-index:5; max-width:min(330px, calc(100% - 110px)); padding:10px 14px 11px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:color-mix(in srgb, var(--im-surface) 86%, transparent); backdrop-filter:blur(6px); box-shadow:0 4px 14px rgba(0,0,0,.18); pointer-events:none; }
-.map-titulo__eyebrow { margin:0 0 3px; color:var(--im-text-muted); font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.12em; }
 .map-titulo h1 { margin:0; color:var(--im-text-strong); font-size:18px; font-weight:600; line-height:1.25; }
 .map-titulo__sub { margin:3px 0 0; color:var(--im-text-secondary); font-size:12px; line-height:1.4; }
 /* Erro de carga centrado no cartão e fora da placa do título. */

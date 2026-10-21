@@ -9,11 +9,12 @@ import { MedicaoListQuery, MedicaoResponse } from '../../core/models/medicao';
 import { MonitorResponse } from '../../core/models/monitor';
 import { MedicaoApiService } from '../../core/services/medicao-api.service';
 import { MonitorApiService } from '../../core/services/monitor-api.service';
+import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 
 type State = 'loading' | 'success' | 'empty' | 'error';
 type Sort = 'executadoEm,desc' | 'executadoEm,asc' | 'latenciaMs,desc' | 'latenciaMs,asc' | 'status,asc' | 'id,desc';
-@Component({ selector: 'app-medicao-list', imports: [DatePipe, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './medicao-list.component.html', styleUrl: './medicao-list.component.scss' })
+@Component({ selector: 'app-medicao-list', imports: [DatePipe, PaginacaoComponent, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './medicao-list.component.html', styleUrl: './medicao-list.component.scss' })
 export class MedicaoListComponent {
   protected readonly plural = plural;
   private readonly api = inject(MedicaoApiService); private readonly monitorsApi = inject(MonitorApiService);

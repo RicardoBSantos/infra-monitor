@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inj
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
+import { navegarAbas } from '../../shared/a11y/navegar-abas';
 import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
 import { BreadcrumbLabelService } from '../../shared/breadcrumbs/breadcrumb-label.service';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
@@ -68,14 +69,8 @@ export class UnidadeDetalheComponent {
   /** O cadastro salvo alimenta o cabeçalho e a aba de configurações; recarrega para refletir. */
   protected aoSalvarCadastro(): void { this.gavetaAberta.set(false); this.recarregar(); }
 
-  /** Setas navegam entre abas, conforme o padrão de tablist. */
-  protected navegarPorTeclado(evento: KeyboardEvent, indice: number): void {
-    const passo = evento.key === 'ArrowRight' ? 1 : evento.key === 'ArrowLeft' ? -1 : 0;
-    if (passo === 0) return;
-    evento.preventDefault();
-    const gatilhos = this.gatilhosDeAba();
-    const destino = (indice + passo + gatilhos.length) % gatilhos.length;
-    gatilhos[destino]?.nativeElement.focus();
-    gatilhos[destino]?.nativeElement.click();
+  /** Setas, Home e End navegam entre abas, conforme o padrão de tablist. */
+  protected aoTeclarAba(evento: KeyboardEvent, indice: number): void {
+    navegarAbas(evento, indice, this.gatilhosDeAba().map((ref) => ref.nativeElement));
   }
 }

@@ -1,15 +1,12 @@
 /* Painel — grade densa de leitura operacional. Números sempre em mono.
    Primitivas (.kpi .botao .pill .aba .ponto .faixa .marca .aviso e utilitários)
    vivem em styles/_ui.scss, compartilhadas com o detalhe de unidade. */
-:host { --pn-colunas: minmax(220px, 1.4fr) 132px minmax(110px, 1fr) 150px 128px 110px 96px 26px; display: block; }
+:host { --pn-colunas: minmax(200px, 1.4fr) 132px minmax(110px, 1fr) 150px 128px 110px 96px 26px; display: block; }
 
 /* Manutenção é info em todo o Painel (pill, badge, chip, faixa). Não é .kpi--info: nos drawers esse é o tom de latência. */
 .kpi--manutencao { border-top-color: var(--im-info-soft); } .kpi--manutencao strong { color: var(--im-info-soft); }
 
-.painel { display: grid; gap: 14px; padding: 18px 20px 28px; }
-.painel__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.painel__header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
-.painel__meta { margin: 6px 0 0; color: var(--im-text-secondary); font: 11.5px var(--im-mono); }
+.painel__meta { margin: 4px 0 0; color: var(--im-text-secondary); font: 11.5px var(--im-mono); }
 .painel__acoes { display: flex; gap: 8px; }
 
 .alerta { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--im-danger-border); border-left: 3px solid var(--im-danger); border-radius: var(--im-radius-lg); background: var(--im-danger-bg); }
@@ -29,9 +26,9 @@
 .aba:disabled:hover { color: var(--im-text-secondary); background: transparent; }
 .abas__parcial { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
 
-.tabela { display: grid; gap: 8px; }
-.tabela__cabecalho, .detalhe__cabecalho, .equipamentos th { color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
-.tabela__cabecalho { display: grid; grid-template-columns: var(--pn-colunas); gap: 12px; padding: 0 14px; letter-spacing: .12em; }
+.painel-grade { display: grid; gap: 8px; }
+.painel-grade__cabecalho, .detalhe__cabecalho { color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
+.painel-grade__cabecalho { display: grid; grid-template-columns: var(--pn-colunas); gap: 12px; padding: 0 14px; letter-spacing: .12em; }
 
 .unidade { border: 1px solid var(--im-border); border-left: 3px solid var(--im-border-muted); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); overflow: hidden; }
 /* Tom da barra = tom do badge (tomDoStatus): uma só fonte, unidade.status. */
@@ -57,25 +54,24 @@
 .detalhe__cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
 .detalhe__estado { margin: 0; padding: 0 14px 14px; color: var(--im-text-secondary); font-size: 12px; }
 .detalhe__estado--erro { color: var(--im-danger); }
-
-.equipamentos { width: 100%; border-collapse: collapse; }
-.equipamentos th { padding: 0 14px 8px; text-align: left; }
-.equipamentos td { padding: 8px 14px; border-top: 1px solid var(--im-border); font-size: 12px; }
-.equipamentos th.numerico, .equipamentos td.numerico { text-align: right; }
-.equipamentos tbody tr:hover { background: var(--im-surface-hover); }
-.equipamentos .ponto { margin-right: 6px; }
+/* A tabela expandida segue o cabeçalho do detalhe (já tem respiro); não é a primeira coisa do cartão. */
+table.equipamentos th { padding-top: 0; }
 
 .rodape-nota { margin: 0; color: var(--im-text-dim); font: 11px var(--im-mono); }
 
-@media (max-width: 1240px) {
+/* Pontos de quebra derivam dos mínimos das colunas + sidebar (224px) + .pagina (2×22px) + borda/padding da linha (32px)
+   + barra de rolagem clássica (17px; o viewport do media query a inclui, overlay = 0):
+   8 colunas = 952 + 7×12 + 32 = 1068px de conteúdo -> viewport 1068 + 268 + 17 = 1353px (limiar 1355: 1356+ fica na grade cheia);
+   6 colunas = 712 + 5×12 + 32 = 804px -> viewport 804 + 268 + 17 = 1089px (limiar 1088);
+   4 colunas = 208 + 3×12 + 32 = 276px de conteúdo (piso; não há ponto de quebra abaixo). */
+@media (max-width: 1355px) {
   :host { --pn-colunas: minmax(180px, 1.4fr) 132px 150px 128px 96px 26px; }
   .col-composicao, .col-latencia { display: none; }
 }
-@media (max-width: 860px) {
+@media (max-width: 1088px) {
   /* 2ª coluna cabe "1 em manutenção" no chip (mono 10px + ícone); acima disso o chip corta com reticências. */
   :host { --pn-colunas: 1fr 126px 56px 26px; }
-  .painel { padding: 14px 12px 24px; }
-  .tabela__cabecalho { display: none; }
+  .painel-grade__cabecalho { display: none; }
   .col-dispositivos, .col-disponibilidade, .pills { display: none; }
   .equipamentos { display: block; overflow-x: auto; }
 }

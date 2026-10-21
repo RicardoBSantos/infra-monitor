@@ -1147,3 +1147,12 @@ Dev: **cinco** divergências reais no cadastro (não duas, como se supôs): Prop
 Sesc Itabaiana (2803005 = Itabaianinha), Estância (2802205 = Feira Nova), Simão Dias (2806800 = São
 Domingos), Socorro (2804607 = N. Sra. das Dores). Avisos de 2 a 3 linhas a 420px, contraste 7,69:1.
 Carga: nenhuma. O dado não foi corrigido — é o dado de demonstração; o teste fixa o que ele é.
+
+## D23 — Placa do título sem sobretítulo (rodada 2 de consistência visual)
+
+Data: 2026-10-21. O sobretítulo "OPERAÇÕES · SERGIPE" sai da placa `.map-titulo` (D20), junto com todos os
+sobretítulos do sistema. Decisão do usuário após captura com/sem: "Sergipe" já está na descrição e
+"Operações" é o grupo da barra lateral. A placa encolhe ~13px; o enquadramento é por encaixe calculado (D22),
+sem recalibração. Ficam os rótulos de seção do painel (`.panel-label`): são títulos de bloco, não de página.
+Na mesma rodada: "Ver unidade" deixa de ser `botao--primario` (botão de navegação, não ação principal) e
+as fontes mono do SCSS do mapa passam a `var(--im-mono)`; no `.afetados__meta` só o IP é mono.

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -19,6 +19,7 @@ import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu/action-menu.component';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ModalComponent } from '../../shared/modal/modal.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.component';
@@ -72,8 +73,8 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
  */
 @Component({
   selector: 'app-equipamento-list',
-  imports: [ReactiveFormsModule, ConfirmDialogComponent, PaginacaoComponent, StatusBadgeComponent, ActionMenuComponent,
-    EquipamentoDetalheDrawerComponent],
+  imports: [ReactiveFormsModule, ConfirmDialogComponent, ModalComponent, PaginacaoComponent, StatusBadgeComponent,
+    ActionMenuComponent, EquipamentoDetalheDrawerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipamento-list.component.html',
   styleUrl: './equipamento-list.component.scss',
@@ -127,6 +128,8 @@ export class EquipamentoListComponent {
 
   protected readonly formAberto = signal(false);
   private readonly gaveta = viewChild(EquipamentoDetalheDrawerComponent);
+  private readonly gavetaHost = viewChild(EquipamentoDetalheDrawerComponent, { read: ElementRef });
+  private gatilhoNaGaveta: HTMLElement | null = null;
   protected readonly emEdicao = signal<DashboardEquipamentoLista | null>(null);
   protected readonly carregandoEdicao = signal(false);
   protected readonly salvando = signal(false);
@@ -361,12 +364,15 @@ export class EquipamentoListComponent {
 
   protected editarDoDetalhe(): void {
     const linha = this.detalheLinha();
-    if (linha) this.abrirEdicao(linha);
+    if (!linha) return;
+    this.guardarGatilhoDaGaveta();
+    this.abrirEdicao(linha);
   }
 
   protected alternarDoDetalhe(): void {
     const linha = this.detalheLinha();
     if (!linha) return;
+    this.guardarGatilhoDaGaveta();
     this.executarAcao(linha, linha.ativo ? 'desativar' : 'ativar');
   }
 
@@ -463,6 +469,7 @@ export class EquipamentoListComponent {
         this.formAberto.set(false);
         this.emEdicao.set(null);
         this.erro.set(mensagemDe(erro, 'Não foi possível carregar o equipamento para edição.'));
+        this.devolverFocoAGaveta();
       },
     });
   }
@@ -494,9 +501,30 @@ export class EquipamentoListComponent {
     this.devolverFocoAGaveta();
   }
 
+  /** Botão da gaveta que abriu o modal ou a confirmação por cima dela. */
+  private guardarGatilhoDaGaveta(): void {
+    this.gatilhoNaGaveta = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+
+  /**
+   * Devolve o foco à gaveta quando um modal (formulário ou confirmação) fecha por cima dela.
+   *
+   * O app-modal tenta devolver o foco ao gatilho ("Editar equipamento") ao fechar, mas faz isso
+   * na mesma renderização que tira o `inert` da gaveta e chega antes: o gatilho ainda está sob o
+   * `inert`, o focus() falha em silêncio e o foco cai no <body> (provado no spec com `inert`
+   * simulado). O setTimeout roda depois dessa renderização, com a gaveta já focável: volta ao
+   * gatilho guardado e, sem ele, ao painel. Se o foco já está dentro da gaveta, não mexe.
+   */
   private devolverFocoAGaveta(): void {
     if (this.detalheId() === null) return;
-    setTimeout(() => this.gaveta()?.focarPainel());
+    setTimeout(() => {
+      const gatilho = this.gatilhoNaGaveta;
+      this.gatilhoNaGaveta = null;
+      const gaveta = this.gavetaHost()?.nativeElement;
+      if (!gaveta || gaveta.contains(document.activeElement)) return;
+      if (gatilho?.isConnected && gaveta.contains(gatilho)) gatilho.focus();
+      else this.gaveta()?.focarPainel();
+    });
   }
 
   protected avaliarIp(valor: string): void {

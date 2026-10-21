@@ -9,7 +9,7 @@
     <!-- Título sobre o mapa (D20), e não numa faixa acima: a faixa custava ~90px de altura de mapa.
          Placa translúcida própria: o canvas é escuro nos dois temas mas o fundo do cartão segue o
          tema, então só uma placa garante contraste independente do que estiver atrás. -->
-    <header class="map-titulo"><p class="map-titulo__eyebrow">OPERAÇÕES · SERGIPE</p><h1 id="map-title">Mapa operacional</h1><p class="map-titulo__sub">Visão cartográfica das unidades monitoradas no estado de Sergipe.</p></header>
+    <header class="map-titulo"><h1 id="map-title">Mapa operacional</h1><p class="map-titulo__sub">Visão cartográfica das unidades monitoradas no estado de Sergipe.</p></header>
     @if (state() === 'loading') { <div class="map-loading" role="status">Carregando cartografia e dados operacionais…</div> }
     @else if (state() === 'error') { <div class="map-feedback map-feedback--error" role="alert"><strong>Mapa indisponível</strong><p>{{ error() }}</p><button class="botao" type="button" (click)="load()">Tentar novamente</button></div> }
     @else { <div #host class="map" role="img" aria-label="Municípios de Sergipe e respectivas unidades operacionais"></div> }
@@ -63,7 +63,7 @@
           <div><dt>INCIDENTES ABERTOS</dt><dd>{{ unidade.incidentesAbertos }}</dd></div>
         </dl>
         <div class="unit-panel__acoes">
-          <button class="botao botao--primario" type="button" (click)="goToUnidade(unidade)">Ver unidade</button>
+          <button class="botao" type="button" (click)="goToUnidade(unidade)">Ver unidade</button>
           <button class="botao" type="button" (click)="goToIncidentes(unidade)">Incidentes</button>
         </div>
         <p class="panel-label">EQUIPAMENTOS AFETADOS</p>
@@ -77,7 +77,7 @@
                 <li><button class="afetados__item" type="button" (click)="abrirEquipamento(equipamento)">
                   <span class="afetados__nome">{{ equipamento.nome }}</span>
                   <app-status-badge [status]="equipamento.status" />
-                  <span class="afetados__meta">{{ equipamento.tipoEquipamento.nome }}@if (equipamento.ip) { · {{ equipamento.ip }} }</span>
+                  <span class="afetados__meta">{{ equipamento.tipoEquipamento.nome }}@if (equipamento.ip) { · <span class="mono">{{ equipamento.ip }}</span> }</span>
                 </button></li> }</ul>
             }
           }

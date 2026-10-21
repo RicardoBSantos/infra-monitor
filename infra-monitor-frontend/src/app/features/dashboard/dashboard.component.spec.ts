@@ -93,6 +93,24 @@ describe('DashboardComponent', () => {
     fixture.detectChanges();
   }
 
+  it('usa a casca .pagina, a tabela compartilhada e mono só nos dados técnicos', () => {
+    const fixture = create();
+    responderCarga(fixture);
+    expandirPrimeira(fixture);
+    const raiz = fixture.nativeElement as HTMLElement;
+    expect(raiz.querySelector('section')!.classList.contains('pagina')).toBe(true);
+    expect(raiz.querySelector('h1')!.closest('header')!.classList.contains('pagina__cabecalho')).toBe(true);
+    expect(raiz.querySelector('.painel-grade')).not.toBeNull();
+    expect(raiz.querySelector('.painel-grade__cabecalho')).not.toBeNull();
+    const tabela = raiz.querySelector('table.tabela')!;
+    expect(tabela).not.toBeNull();
+    const celulas = tabela.querySelectorAll('tbody tr:first-child td');
+    expect(celulas[0].classList.contains('mono')).toBe(false);
+    expect(celulas[1].classList.contains('mono')).toBe(false);
+    expect(celulas[2].classList.contains('mono')).toBe(true);
+    expect(celulas[4].classList.contains('mono')).toBe(true);
+  });
+
   it('mostra esqueleto de KPIs sem exibir zeros antes da resposta', () => {
     const fixture = create();
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kpi--carregando').length).toBe(9);

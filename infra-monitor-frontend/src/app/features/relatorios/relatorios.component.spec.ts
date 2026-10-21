@@ -19,11 +19,42 @@ describe('RelatoriosComponent', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  it('keeps the report tabs in their own horizontal scroll container on narrow viewports', () => {
+  it('uses the shared segmented tabs in a scrolling container and keeps the filters responsive', () => {
+    const fixture = TestBed.createComponent(RelatoriosComponent); fixture.detectChanges();
+    http.expectOne(r => r.url.endsWith('/unidades')).flush([]); http.expectOne(r => r.url.endsWith('/tipos-equipamento')).flush([]); http.expectOne(r => r.url.includes('/relatorios/disponibilidade/equipamentos'));
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.abas.abas--rolagem[role="tablist"]')).not.toBeNull();
+    expect(el.querySelectorAll('.abas .aba[role="tab"]').length).toBe(7);
     const styles = ((RelatoriosComponent as unknown as { ɵcmp: { styles: string[] } }).ɵcmp.styles ?? []).join('');
-    expect(styles).toMatch(/\.tabs[^{]*\{[^}]*overflow-x:\s*auto/);
-    expect(styles).toMatch(/\.tabs[^{]*button[^{]*\{[^}]*flex:\s*0\s+0\s+auto/);
     expect(styles).toMatch(/@media\s*\(max-width:\s*1200px\)[\s\S]*?\.filters[^{]*\{[^}]*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  });
+  it('moves selection with the keyboard (ArrowRight, End)', () => {
+    const fixture = TestBed.createComponent(RelatoriosComponent); fixture.detectChanges();
+    http.expectOne(r => r.url.endsWith('/unidades')).flush([]); http.expectOne(r => r.url.endsWith('/tipos-equipamento')).flush([]); http.expectOne(r => r.url.includes('/relatorios/disponibilidade/equipamentos'));
+    const abas = () => Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.aba')) as HTMLElement[];
+    abas()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); fixture.detectChanges();
+    http.match(() => true);
+    expect(abas()[1].getAttribute('aria-selected')).toBe('true'); expect(document.activeElement).toBe(abas()[1]);
+    abas()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true })); fixture.detectChanges();
+    http.match(() => true);
+    expect(abas()[6].getAttribute('aria-selected')).toBe('true');
+  });
+  it('keeps the pagination bar mounted while the next page is loading', () => {
+    const { fixture, request } = create({ ...page([equipment()]), totalPages: 2, last: false } as ReturnType<typeof page>);
+    request.flush({ ...page([equipment()]), totalPages: 2, last: false }); fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    (Array.from(el.querySelectorAll('.pagination button')) as HTMLButtonElement[]).find(x => x.textContent?.trim().startsWith('Próxima'))!.click(); fixture.detectChanges();
+    const pendente = http.expectOne(r => r.url.includes('/relatorios/disponibilidade/equipamentos'));
+    expect(el.textContent).toContain('Carregando relatório');
+    expect(el.querySelector('.pagination')).not.toBeNull();
+    pendente.flush(page([equipment()]));
+  });
+  it('uses the shared page shell and neutral query buttons', () => {
+    const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('header.pagina__cabecalho h1')).not.toBeNull();
+    expect(el.querySelector('button[type=submit].botao--primario')).toBeNull();
+    expect(el.querySelector('.cartao .tabela')).not.toBeNull();
   });
   function create(report = page([equipment()])) {
     const fixture = TestBed.createComponent(RelatoriosComponent); fixture.detectChanges();
@@ -93,7 +124,7 @@ describe('RelatoriosComponent', () => {
     const requests = overviewRequests(fixture);
     requests.units.flush(page()); requests.equipment.flush(page()); requests.latency.flush(page([latency()]));
     fixture.detectChanges();
-    const carregando = fixture.nativeElement.querySelectorAll('.kpi-card .skeleton');
+    const carregando = fixture.nativeElement.querySelectorAll('.kpi-card .widget-carregando');
     expect(carregando.length).toBe(3); expect(fixture.nativeElement.textContent).toContain('55,00 ms');
 
     requests.indicators.flush({ status: 500, code: 'INTERNAL_ERROR', message: 'segredo' }, { status: 500, statusText: 'Erro' });
@@ -132,7 +163,7 @@ describe('RelatoriosComponent', () => {
   it('refreshes and changes the Overview period with four requests and rejects periods over 31 days without calls', () => {
     const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges();
     let requests = overviewRequests(fixture); flushOverview(requests); fixture.detectChanges();
-    fixture.nativeElement.querySelector('.reports__header button').click(); fixture.detectChanges();
+    fixture.nativeElement.querySelector('.pagina__cabecalho button').click(); fixture.detectChanges();
     const refreshed = http.match(r => r.url.includes('/relatorios/')); expect(refreshed.length).toBe(4); refreshed.forEach(request => request.flush(page())); fixture.detectChanges();
     fixture.componentInstance['overviewForm'].patchValue({ inicio: '2026-01-01T00:00', fim: '2026-02-02T00:01' });
     fixture.nativeElement.querySelector('.filters--overview').dispatchEvent(new Event('submit')); fixture.detectChanges();
@@ -189,7 +220,7 @@ describe('RelatoriosComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Aberto'); expect(fixture.nativeElement.textContent).toContain('1h 1m'); expect(fixture.nativeElement.textContent).toContain('—');
     const sort = fixture.nativeElement.querySelector('.table-tools select'); sort.value = 'status'; sort.dispatchEvent(new Event('change')); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/incidentes')); expect(query.request.params.get('sort')).toBe('status,desc'); query.flush(page([incident()]));
     fixture.nativeElement.querySelector('.table-tools button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/incidentes')); expect(query.request.params.get('sort')).toBe('status,asc'); query.flush(page([incident()]));
-    fixture.nativeElement.querySelector('.reports__header button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/incidentes')); query.flush(page()); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Nenhum resultado encontrado');
+    fixture.nativeElement.querySelector('.pagina__cabecalho button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/incidentes')); query.flush(page()); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Nenhum resultado encontrado');
   });
   it('loads measurement history with default size 50, enum labels, null latency, errors and 31-day validation', () => {
     const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges();
@@ -212,7 +243,7 @@ describe('RelatoriosComponent', () => {
     const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges(); clickTab(fixture, 'Latência');
     let query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); query.flush(page()); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Nenhum resultado encontrado');
     for (const [status, expected] of [[400, 'A consulta não é válida'], [404, 'Um recurso selecionado não foi encontrado'], [500, 'O serviço de relatórios apresentou uma falha']] as const) {
-      fixture.nativeElement.querySelector('.reports__header button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); query.flush({ status, code: status === 404 ? 'RESOURCE_NOT_FOUND' : status === 400 ? 'INVALID_REQUEST' : 'INTERNAL_ERROR', message: 'segura' }, { status, statusText: 'Erro' }); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain(expected); expect(fixture.nativeElement.textContent).toContain('Tentar novamente');
+      fixture.nativeElement.querySelector('.pagina__cabecalho button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); query.flush({ status, code: status === 404 ? 'RESOURCE_NOT_FOUND' : status === 400 ? 'INVALID_REQUEST' : 'INTERNAL_ERROR', message: 'segura' }, { status, statusText: 'Erro' }); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain(expected); expect(fixture.nativeElement.textContent).toContain('Tentar novamente');
     }
   });
 
@@ -241,7 +272,7 @@ describe('RelatoriosComponent', () => {
     fixture.nativeElement.querySelector('.table-tools button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(query.request.params.get('sort')).toBe('avgLatenciaMs,desc'); query.flush({ ...page([latency()]), totalElements: 25, totalPages: 2, last: false }); fixture.detectChanges();
     (Array.from(fixture.nativeElement.querySelectorAll('.pagination button')) as HTMLButtonElement[]).find(x => x.textContent?.trim().startsWith('Próxima'))!.click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(query.request.params.get('page')).toBe('1'); query.flush({ ...page([latency()]), page: 1, totalElements: 25, totalPages: 2, first: false, last: true }); fixture.detectChanges();
     const size = fixture.nativeElement.querySelector('.pagination select'); size.value = '50'; size.dispatchEvent(new Event('change')); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(query.request.params.get('page')).toBe('0'); expect(query.request.params.get('size')).toBe('50'); query.flush(page([latency()]));
-    fixture.nativeElement.querySelector('.reports__header button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(query.request.params.get('sort')).toBe('avgLatenciaMs,desc'); expect(query.request.params.get('size')).toBe('50'); query.flush(page([latency()]));
+    fixture.nativeElement.querySelector('.pagina__cabecalho button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/latencia')); expect(query.request.params.get('sort')).toBe('avgLatenciaMs,desc'); expect(query.request.params.get('size')).toBe('50'); query.flush(page([latency()]));
   });
 
   it('loads notifications with real enums, exact attempts, dates and null sent date without local reorder', () => {
@@ -253,7 +284,7 @@ describe('RelatoriosComponent', () => {
 
   it('covers notifications empty, 400, 404 and 500 states', () => {
     const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges(); clickTab(fixture, 'Notificações'); let query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); query.flush(page()); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Nenhum resultado encontrado');
-    for (const [status, expected] of [[400, 'A consulta não é válida'], [404, 'Um recurso selecionado não foi encontrado'], [500, 'O serviço de relatórios apresentou uma falha']] as const) { fixture.nativeElement.querySelector('.reports__header button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); query.flush({ status, code: status === 404 ? 'RESOURCE_NOT_FOUND' : status === 400 ? 'INVALID_ENUM' : 'INTERNAL_ERROR', message: 'segura' }, { status, statusText: 'Erro' }); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain(expected); }
+    for (const [status, expected] of [[400, 'A consulta não é válida'], [404, 'Um recurso selecionado não foi encontrado'], [500, 'O serviço de relatórios apresentou uma falha']] as const) { fixture.nativeElement.querySelector('.pagina__cabecalho button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); query.flush({ status, code: status === 404 ? 'RESOURCE_NOT_FOUND' : status === 400 ? 'INVALID_ENUM' : 'INTERNAL_ERROR', message: 'segura' }, { status, statusText: 'Erro' }); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain(expected); }
   });
 
   it('blocks notification periods over 365 days and sends real filters exactly once per interaction', () => {
@@ -273,7 +304,7 @@ describe('RelatoriosComponent', () => {
     fixture.nativeElement.querySelector('.table-tools button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); expect(query.request.params.get('sort')).toBe('enviadoEm,asc'); query.flush({ ...page([notification()]), totalElements: 21, totalPages: 2, last: false }); fixture.detectChanges();
     (Array.from(fixture.nativeElement.querySelectorAll('.pagination button')) as HTMLButtonElement[]).find(x => x.textContent?.trim().startsWith('Próxima'))!.click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); expect(query.request.params.get('page')).toBe('1'); query.flush({ ...page([notification()]), page: 1, totalElements: 21, totalPages: 2, first: false }); fixture.detectChanges();
     const size = fixture.nativeElement.querySelector('.pagination select'); size.value = '10'; size.dispatchEvent(new Event('change')); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); expect(query.request.params.get('page')).toBe('0'); expect(query.request.params.get('size')).toBe('10'); query.flush(page([notification()]));
-    fixture.nativeElement.querySelector('.reports__header button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); expect(query.request.params.get('sort')).toBe('enviadoEm,asc'); expect(query.request.params.get('size')).toBe('10'); query.flush(page([notification()]));
+    fixture.nativeElement.querySelector('.pagina__cabecalho button').click(); fixture.detectChanges(); query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')); expect(query.request.params.get('sort')).toBe('enviadoEm,asc'); expect(query.request.params.get('size')).toBe('10'); query.flush(page([notification()]));
   });
 
   it('exports all six areas once per double click with current filters/sort, Blob headers and no page or size', () => {

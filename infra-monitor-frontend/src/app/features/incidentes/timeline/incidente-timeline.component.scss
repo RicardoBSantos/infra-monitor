@@ -51,4 +51,4 @@
 .timeline__item--ok .timeline__marca::after { background: var(--im-success); }
 .timeline__item--neutro .timeline__marca::after { background: var(--im-info-soft); }
 
-.mono { font-family: 'IBM Plex Mono', monospace; }
+.mono { font-family: var(--im-mono); }

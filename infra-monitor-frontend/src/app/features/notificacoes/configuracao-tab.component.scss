@@ -1,8 +1,5 @@
 /* Aba de configuração do Telegram, em modo leitura.
-   Cartões, botões, avisos, badges e .mono vêm de styles/_ui.scss e do status-badge.
-   O @use traz .skeleton, que não é primitiva global — mesmo padrão das demais telas
-   operacionais (ver notificacao-list, incidente-list). */
-@use '../medicoes/medicao-list.component.scss';
+   Cartões, botões, avisos, badges, .esqueleto e .mono vêm de styles/_ui.scss e do status-badge. */
 
 :host { display: block; }
 

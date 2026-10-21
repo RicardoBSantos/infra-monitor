@@ -2,7 +2,7 @@
    e páginas de autenticação. Globais de propósito: são as mesmas em toda a aplicação e
    assim não pesam no budget de SCSS de cada componente. Nomes já eram únicos por classe. */
 
-.eyebrow { display: block; color: var(--im-link); font: 600 11px 'IBM Plex Mono', monospace; letter-spacing: .12em; }
+.eyebrow { display: block; color: var(--im-link); font: 600 11px var(--im-mono); letter-spacing: .12em; }
 .field-error { display: block; margin-top: 5px; color: var(--im-danger-text); }
 
 /* Botões. `.botao` sozinho É o padrão secundário da aplicação — contorno fino, sem
@@ -13,6 +13,16 @@
    Não criar `.button` local de novo: as telas de Relatórios, Medições, Notificações,
    Mapa e Usuários tinham três definições divergentes desse nome, com aparências
    diferentes para a mesma ação. Foram consolidadas aqui e o nome não existe mais. */
+/* Casca de página (rodada 2 de consistência visual): toda tela de conteúdo põe .pagina na raiz.
+   O Mapa não usa — é cartografia presa à viewport, com folga própria de 12px (D20/D21). */
+.pagina { box-sizing: border-box; max-width: 1500px; margin: 0 auto; padding: 22px; color: var(--im-text); }
+.pagina__cabecalho { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.pagina__cabecalho h1 { margin: 0; color: var(--im-text-strong); font-size: 20px; font-weight: 700; line-height: 1.25; }
+.pagina__descricao { margin: 4px 0 0; color: var(--im-text-secondary); font-size: 12px; }
+/* Telas cuja raiz é grade (Painel, Unidades, Detalhe da unidade, Telegram): o gap da grade já separa o cabeçalho. */
+.pagina--grade { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.pagina--grade > .pagina__cabecalho { margin-bottom: 0; }
+@media (max-width: 760px) { .pagina { padding: 16px; } }
 .botao { display: inline-flex; height: 30px; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface-raised); color: var(--im-text-soft); font-size: 12px; text-decoration: none; cursor: pointer; }
 .botao:hover { border-color: var(--im-border-muted); color: var(--im-text); }
 .botao--perigo { border-color: var(--im-danger-border); color: var(--im-danger); background: var(--im-danger-bg); }
@@ -46,6 +56,10 @@
 .aba:hover, .pill:hover { color: var(--im-text); background: var(--im-surface-hover); }
 .aba--ativa, .pill--ativa { border-color: var(--im-border-strong); background: var(--im-surface-raised); color: var(--im-text); }
 
+/* Muitas abas de texto longo (Relatórios): rola na horizontal em vez de quebrar linha. */
+.abas--rolagem { display: flex; flex-wrap: nowrap; max-width: 100%; overflow-x: auto; }
+.abas--rolagem .aba { flex: 0 0 auto; }
+
 .ponto { display: inline-block; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--im-text-dim); }
 .ponto--ok { background: var(--im-success); }
 .ponto--warn { background: var(--im-warning); }
@@ -77,10 +91,21 @@
 .aviso--erro app-icon { color: var(--im-danger); }
 .aviso div { flex: 1; }
 
+/* Esqueleto de carregamento: a ÚNICA primitiva (o .skeleton local animado foi absorvido).
+   Marcação: <div class="esqueleto" role="status" aria-label="Carregando …"> com <span>s. */
 .esqueleto { display: grid; gap: 6px; padding: 0 14px 14px; }
-.esqueleto span { display: block; height: 26px; border-radius: 4px; background: var(--im-surface-hover); }
+.esqueleto span {
+  display: block; height: 26px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--im-surface-hover), var(--im-border), var(--im-surface-hover));
+  background-size: 200% 100%; animation: im-esqueleto 1.2s infinite;
+}
+@keyframes im-esqueleto { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .esqueleto span { animation: none; } }
 
 .numerico { text-align: right; justify-self: end; }
+/* Mono (rodada 2): para o que se compara caractere a caractere ou se alinha em coluna — IP, hostname,
+   série, sigla, códigos e ids, data/hora, duração, latência, %, contagens e KPIs, chips e badges.
+   Nomes (equipamento, monitor, unidade, tipo), texto livre e cabeçalhos de tabela ficam em sans. */
 .mono { font: 12px var(--im-mono); }
 .apagado { color: var(--im-text-dim); }
 .forte { font-weight: 600; }
@@ -120,11 +145,13 @@
 
 /* Tabela de dados densa, compartilhada pelas abas e pela lista administrativa. */
 .tabela { width: 100%; border-collapse: collapse; }
-.tabela th { padding: 0 14px 8px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-align: left; white-space: nowrap; }
+.tabela th { padding: 12px 14px 8px; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-align: left; white-space: nowrap; }
 .tabela td { padding: 8px 14px; border-top: 1px solid var(--im-border); font-size: 12px; }
 .tabela th.numerico, .tabela td.numerico { text-align: right; }
 .tabela tbody tr:hover { background: var(--im-surface-hover); }
 .tabela .ponto { margin-right: 6px; }
+.tabela td small { display: block; margin-top: 3px; color: var(--im-text-muted); }
+.tabela .acoes { text-align: right; white-space: nowrap; }
 
 /* Estado vazio: mensagem específica, nunca um "sem dados" genérico. */
 .vazio { display: grid; gap: 8px; justify-items: center; padding: 28px 14px; color: var(--im-text-secondary); font-size: 12px; text-align: center; }
@@ -151,16 +178,33 @@
 
 .visualmente-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-/* Chip de monitoramento (Ativado/Desativado). Somente leitura em toda parte: diz o
-   estado da flag `ativo`, nunca é o controle que a altera. Vive aqui porque a coluna
-   MONITORAMENTO da lista de equipamentos e o card do drawer de detalhe precisam do
-   mesmo tom — se um dos dois divergir, o mesmo dado passa a ter duas aparências. */
-.chip-monitoramento {
+/* Estado de cadastro ativo/inativo (booleano). Não é DisplayStatus: verde de "Ativo" no visual do badge
+   de "Disponível" misturaria cadastro com operação. Rótulo é da tela (Ativo/Inativo, Ativado/Desativado). */
+.chip-ativo {
   display: inline-flex; align-items: center; height: 18px; padding: 0 8px;
   border: 1px solid var(--im-success-border); border-radius: var(--im-radius-pill);
-  color: var(--im-success); font: 10px var(--im-mono);
+  color: var(--im-success); font: 10px var(--im-mono); white-space: nowrap;
 }
-.chip-monitoramento--off { border-color: var(--im-border-strong); color: var(--im-text-muted); }
+.chip-ativo--off { border-color: var(--im-border-strong); color: var(--im-text-muted); }
+
+/* Formulário dentro de app-modal (rodada 2): era copiado em Usuários, Equipamentos, Tipos e Monitoramento. */
+.modal-form { display: grid; gap: 10px; }
+.modal-form label {
+  display: grid; gap: 5px;
+  color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em;
+}
+.modal-form input, .modal-form textarea {
+  box-sizing: border-box; width: 100%; padding: 8px;
+  border: 1px solid var(--im-border-strong); border-radius: var(--im-radius);
+  background: var(--im-surface); color: var(--im-text); font: inherit; font-size: 13px;
+}
+.modal-form input:focus-visible, .modal-form textarea:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+.modal-form .campo-select { width: 100%; }
+.modal-form .campo-select select { height: auto; padding: 8px 26px 8px 8px; font-size: 13px; }
+.modal-form__linha { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal-form__rodape { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.modal-form__rodape p { margin: 0 auto 0 0; color: var(--im-text-secondary); font-size: 11.5px; }
+@media (max-width: 760px) { .modal-form__linha { grid-template-columns: 1fr; } }
 
 /* Severidade em valores soltos de listas de definição, onde a primitiva .kpi não cabe. */
 .valor--alerta { color: var(--im-warning); }

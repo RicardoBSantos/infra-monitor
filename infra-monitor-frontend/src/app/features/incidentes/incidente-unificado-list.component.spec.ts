@@ -120,6 +120,21 @@ describe('IncidenteUnificadoListComponent', () => {
     expect(texto).not.toContain('ICMP CORE');
   });
 
+  /** Rodada 2: tabela e cabeçalho nas primitivas compartilhadas, sem sobretítulo nem `small`. */
+  it('usa a tabela compartilhada, DURAÇÃO numérica e o cabeçalho da casca .pagina', () => {
+    responderCargaInicial();
+    const raiz = fixture.nativeElement as HTMLElement;
+    expect(raiz.querySelector('table')!.classList.contains('tabela')).toBe(true);
+    const cabecalhos = Array.from(raiz.querySelectorAll('thead th')) as HTMLElement[];
+    const coluna = cabecalhos.findIndex(th => th.textContent?.trim() === 'DURAÇÃO');
+    expect(coluna).toBeGreaterThan(-1);
+    const celula = raiz.querySelector('tbody tr')!.children[coluna] as HTMLElement;
+    expect(celula.tagName).toBe('TD');
+    expect(celula.classList.contains('numerico')).toBe(true);
+    expect(raiz.querySelector('header small')).toBeNull();
+    expect(raiz.querySelector('header p:not(.pagina__descricao)')).toBeNull();
+  });
+
   /** Ocorrência encerrada conta até o fim registrado; em curso, até agora. */
   it('mostra a duração da ocorrência encerrada e marca a que ainda está em curso', () => {
     responderCargaInicial([

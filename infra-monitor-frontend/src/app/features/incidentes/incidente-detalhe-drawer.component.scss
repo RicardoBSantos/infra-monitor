@@ -130,7 +130,7 @@
 .notificacoes a:hover { text-decoration: underline; }
 .notificacoes__evento { flex: 1; min-width: 0; font-size: 11.5px; }
 
-.mono { font-family: 'IBM Plex Mono', monospace; }
+.mono { font-family: var(--im-mono); }
 
 @media (max-width: 860px) {
   .gaveta { width: 100%; }

@@ -43,6 +43,19 @@ describe('UsuarioListComponent', () => {
     expect(failed.nativeElement.textContent).toContain('Falha de leitura');
   });
 
+  it('usa a casca, o esqueleto, a tabela e o chip compartilhados', () => {
+    const fixture = create(); const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.esqueleto[role="status"]')).not.toBeNull();
+    expect(el.querySelector('.pagina__cabecalho p:not(.pagina__descricao)')).toBeNull();
+    expect(el.querySelector('p.pagina__descricao')?.textContent).toContain('Controle de acesso e perfis da plataforma.');
+    http.expectOne('http://localhost:8080/api/v1/usuarios').flush([user, { ...user, id: 3, ativo: false }]); fixture.detectChanges();
+    expect(el.querySelector('table.tabela')).not.toBeNull();
+    const chips = el.querySelectorAll('span.chip-ativo');
+    expect(chips[0].classList.contains('chip-ativo--off')).toBe(false);
+    expect(chips[1].classList.contains('chip-ativo--off')).toBe(true);
+    expect(chips[1].textContent?.trim()).toBe('Inativo');
+  });
+
   it('validates and creates with the real payload, including validation and conflict feedback', () => {
     const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([]); fixture.detectChanges();
     (fixture.nativeElement.querySelector('.botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
