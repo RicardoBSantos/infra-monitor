@@ -1,8 +1,8 @@
-<section class="equipamentos" aria-labelledby="equipamentos-titulo">
-  <header class="equipamentos__topo">
+<section class="equipamentos pagina" aria-labelledby="equipamentos-titulo">
+  <header class="equipamentos__topo pagina__cabecalho">
     <div>
       <h1 id="equipamentos-titulo">Equipamentos</h1>
-      <p>Inventário completo de todas as unidades. O tipo de equipamento é um atributo, não um módulo separado.</p>
+      <p class="pagina__descricao">Inventário completo de todas as unidades. O tipo de equipamento é um atributo, não um módulo separado.</p>
     </div>
     @if (authState.canManageInventory()) {
       <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Novo equipamento</button>
@@ -132,7 +132,7 @@
           <tbody>
             @for (linha of visiveis(); track linha.id) {
               <tr>
-                <td><span class="mono forte">{{ linha.nome }}</span></td>
+                <td><span class="forte">{{ linha.nome }}</span></td>
                 <td>{{ linha.tipoNome }}</td>
                 <td>
                   <button class="link" type="button" (click)="abrirUnidade(linha)">{{ linha.unidadeNome }}</button>
@@ -150,7 +150,7 @@
                   }
                 </td>
                 <td>
-                  <span class="chip-monitoramento" [class.chip-monitoramento--off]="!linha.ativo">
+                  <span class="chip-ativo" [class.chip-ativo--off]="!linha.ativo">
                     {{ linha.ativo ? 'Ativado' : 'Desativado' }}
                   </span>
                 </td>
@@ -178,109 +178,93 @@
     }
   </div>
 
-  @if (formAberto()) {
-    <div class="dialog-backdrop" (click)="fecharFormulario()">
-      <section
-        class="equipamento-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="equipamento-form-titulo"
-        (click)="$event.stopPropagation()"
-        (keydown.escape)="fecharFormulario()"
-      >
-        <header class="equipamento-modal__topo">
-          <div>
-            <h2 id="equipamento-form-titulo">{{ emEdicao() ? 'Editar equipamento' : 'Novo equipamento' }}</h2>
-            <p>
-              {{ emEdicao()
-                ? 'As alterações valem a partir da próxima varredura ICMP.'
-                : 'O monitoramento ICMP começa na próxima varredura após a criação.' }}
-            </p>
-          </div>
-          <button class="equipamento-modal__fechar" type="button" aria-label="Fechar" (click)="fecharFormulario()">✕</button>
-        </header>
+  <app-modal
+    [aberto]="formAberto()"
+    [titulo]="emEdicao() ? 'Editar equipamento' : 'Novo equipamento'"
+    [subtitulo]="emEdicao()
+      ? 'As alterações valem a partir da próxima varredura ICMP.'
+      : 'O monitoramento ICMP começa na próxima varredura após a criação.'"
+    largura="640px"
+    [bloqueado]="salvando()"
+    (fechar)="fecharFormulario()"
+  >
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()">
+      @if (carregandoEdicao()) {
+        <p class="equipamento-modal__carregando" role="status">Carregando os dados atuais do equipamento…</p>
+      }
 
-        @if (carregandoEdicao()) {
-          <p class="equipamento-modal__carregando" role="status">Carregando os dados atuais do equipamento…</p>
-        }
+      <div class="modal-form__linha">
+        <label>NOME *
+          <input formControlName="nome" maxlength="150" autocomplete="off">
+        </label>
+        <label>TIPO
+          <span class="campo-select">
+            <select formControlName="tipoEquipamentoId">
+              <option [ngValue]="0">Selecione</option>
+              @for (tipo of tipos(); track tipo.id) { <option [ngValue]="tipo.id">{{ tipo.nome }}</option> }
+            </select>
+          </span>
+        </label>
+      </div>
 
-        <form [formGroup]="form" (ngSubmit)="salvar()">
-          <div class="equipamento-modal__linha">
-            <label>NOME *
-              <input formControlName="nome" maxlength="150" autocomplete="off">
-            </label>
-            <label>TIPO
-              <span class="campo-select">
-                <select formControlName="tipoEquipamentoId">
-                  <option [ngValue]="0">Selecione</option>
-                  @for (tipo of tipos(); track tipo.id) { <option [ngValue]="tipo.id">{{ tipo.nome }}</option> }
-                </select>
-              </span>
-            </label>
-          </div>
+      <label>UNIDADE
+        <span class="campo-select">
+          <select formControlName="unidadeId">
+            <option [ngValue]="0">Selecione</option>
+            @for (unidade of unidades(); track unidade.id) { <option [ngValue]="unidade.id">{{ unidade.nome }}</option> }
+          </select>
+        </span>
+      </label>
 
-          <label>UNIDADE
-            <span class="campo-select">
-              <select formControlName="unidadeId">
-                <option [ngValue]="0">Selecione</option>
-                @for (unidade of unidades(); track unidade.id) { <option [ngValue]="unidade.id">{{ unidade.nome }}</option> }
-              </select>
-            </span>
-          </label>
-
-          <div class="equipamento-modal__linha">
-            <label>HOSTNAME
-              <input formControlName="hostname" maxlength="255" autocomplete="off">
-            </label>
-            <label>ENDEREÇO IP *
-              <input formControlName="ip" maxlength="45" autocomplete="off" [attr.aria-invalid]="form.get('ip')?.touched && form.get('ip')?.invalid ? 'true' : null" [attr.aria-describedby]="form.get('ip')?.touched && form.get('ip')?.errors ? 'equipamento-ip-erro' : null" (blur)="avaliarIp($any($event.target).value)" (input)="avaliarIp($any($event.target).value)">
-              @if (dicaIp()) { <small class="equipamento-modal__dica">{{ dicaIp() }}</small> }
-              @if (form.get('ip')?.touched && form.get('ip')?.errors) {
-                <small class="campo-erro" id="equipamento-ip-erro" role="alert">{{ form.get('ip')?.errors?.['ipv4'] || form.get('ip')?.errors?.['backend'] || 'Revise este campo.' }}</small>
-              }
-            </label>
-          </div>
-
-          <div class="equipamento-modal__linha">
-            <label>FABRICANTE
-              <input formControlName="fabricante" maxlength="100" autocomplete="off">
-            </label>
-            <label>MODELO
-              <input formControlName="modelo" maxlength="150" autocomplete="off">
-            </label>
-          </div>
-
-          <label>NÚMERO DE SÉRIE
-            <input formControlName="numeroSerie" maxlength="150" autocomplete="off">
-          </label>
-
-          <label>LOCALIZAÇÃO
-            <input formControlName="localizacao" maxlength="255" autocomplete="off">
-          </label>
-
-          <label>DESCRIÇÃO
-            <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
-          </label>
-
-          @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','fabricante','modelo','numeroSerie','localizacao','descricao']; track campo) {
-            @if (form.get(campo)?.touched && form.get(campo)?.errors) {
-              <small class="campo-erro">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
-            }
+      <div class="modal-form__linha">
+        <label>HOSTNAME
+          <input formControlName="hostname" maxlength="255" autocomplete="off">
+        </label>
+        <label>ENDEREÇO IP *
+          <input formControlName="ip" maxlength="45" autocomplete="off" [attr.aria-invalid]="form.get('ip')?.touched && form.get('ip')?.invalid ? 'true' : null" [attr.aria-describedby]="form.get('ip')?.touched && form.get('ip')?.errors ? 'equipamento-ip-erro' : null" (blur)="avaliarIp($any($event.target).value)" (input)="avaliarIp($any($event.target).value)">
+          @if (dicaIp()) { <small class="equipamento-modal__dica">{{ dicaIp() }}</small> }
+          @if (form.get('ip')?.touched && form.get('ip')?.errors) {
+            <small class="field-error" id="equipamento-ip-erro" role="alert">{{ form.get('ip')?.errors?.['ipv4'] || form.get('ip')?.errors?.['backend'] || 'Revise este campo.' }}</small>
           }
+        </label>
+      </div>
 
-          <footer class="equipamento-modal__rodape">
-            <p>O monitoramento herda os padrões globais de ICMP.</p>
-            <div>
-              <button class="botao" type="button" (click)="fecharFormulario()" [disabled]="salvando()">Cancelar</button>
-              <button class="botao botao--primario" type="submit" [disabled]="salvando() || carregandoEdicao()">
-                {{ salvando() ? 'Salvando…' : emEdicao() ? 'Salvar alterações' : 'Criar equipamento' }}
-              </button>
-            </div>
-          </footer>
-        </form>
-      </section>
-    </div>
-  }
+      <div class="modal-form__linha">
+        <label>FABRICANTE
+          <input formControlName="fabricante" maxlength="100" autocomplete="off">
+        </label>
+        <label>MODELO
+          <input formControlName="modelo" maxlength="150" autocomplete="off">
+        </label>
+      </div>
+
+      <label>NÚMERO DE SÉRIE
+        <input formControlName="numeroSerie" maxlength="150" autocomplete="off">
+      </label>
+
+      <label>LOCALIZAÇÃO
+        <input formControlName="localizacao" maxlength="255" autocomplete="off">
+      </label>
+
+      <label>DESCRIÇÃO
+        <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
+      </label>
+
+      @for (campo of ['nome','tipoEquipamentoId','unidadeId','hostname','fabricante','modelo','numeroSerie','localizacao','descricao']; track campo) {
+        @if (form.get(campo)?.touched && form.get(campo)?.errors) {
+          <small class="field-error">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
+        }
+      }
+
+      <footer class="modal-form__rodape">
+        <p>O monitoramento herda os padrões globais de ICMP.</p>
+        <button class="botao" type="button" (click)="fecharFormulario()" [disabled]="salvando()">Cancelar</button>
+        <button class="botao botao--primario" type="submit" [disabled]="salvando() || carregandoEdicao()">
+          {{ salvando() ? 'Salvando…' : emEdicao() ? 'Salvar alterações' : 'Criar equipamento' }}
+        </button>
+      </footer>
+    </form>
+  </app-modal>
 
   @if (detalheId(); as id) {
     <!-- Com o modal de edicao (ou a confirmacao) aberto por cima, a gaveta continua

@@ -131,8 +131,9 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     responder(fixture, [], [monitor({ id: 10, ativo: true })]);
     const elemento = fixture.nativeElement as HTMLElement;
 
-    expect(elemento.querySelector('.chip-monitoramento')!.textContent!.trim()).toBe('Ativado');
-    expect(elemento.querySelector('.chip-monitoramento--off')).toBeNull();
+    expect(elemento.querySelector('.estado-monitoramento .chip-ativo')!.textContent!.trim()).toBe('Ativado');
+    expect(elemento.querySelector('.estado-monitoramento .chip-ativo--off')).toBeNull();
+    expect(elemento.querySelector('.chip-monitoramento')).toBeNull();
     // Ativar e desativar tem efeito no ICMP: só o botão do rodapé, que confirma antes.
     expect(elemento.querySelector('.gaveta__corpo input[type=checkbox]')).toBeNull();
     expect(elemento.querySelector('.gaveta__corpo button[role=switch]')).toBeNull();
@@ -142,9 +143,9 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     const fixture = montar();
     responder(fixture, [], [monitor({ id: 10, ativo: false })]);
 
-    const chip = (fixture.nativeElement as HTMLElement).querySelector('.chip-monitoramento')!;
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.estado-monitoramento .chip-ativo')!;
     expect(chip.textContent!.trim()).toBe('Desativado');
-    expect(chip.classList).toContain('chip-monitoramento--off');
+    expect(chip.classList).toContain('chip-ativo--off');
   });
 
   it('só o botão do rodapé pede a ação de monitoramento, e ele apenas emite', () => {

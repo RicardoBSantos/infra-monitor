@@ -5,7 +5,7 @@
   <header class="gaveta__topo">
     <div class="gaveta__identidade">
       <div class="gaveta__nome">
-        <h2 id="drawer-equipamento-titulo" class="mono">{{ linha()?.nome ?? cadastro()?.nome ?? 'Equipamento' }}</h2>
+        <h2 id="drawer-equipamento-titulo">{{ linha()?.nome ?? cadastro()?.nome ?? 'Equipamento' }}</h2>
         @if (statusAtual(); as status) { <app-status-badge [status]="status" /> }
       </div>
       <p class="gaveta__contexto">
@@ -187,7 +187,7 @@
           <!-- Somente leitura: ativar e desativar é uma ação com efeito no ICMP e vive
                no botão do rodapé, que confirma antes e trata a recusa da API. -->
           <p class="estado-monitoramento">
-            <span class="chip-monitoramento" [class.chip-monitoramento--off]="!monitor.ativo">
+            <span class="chip-ativo" [class.chip-ativo--off]="!monitor.ativo">
               {{ monitor.ativo ? 'Ativado' : 'Desativado' }}
             </span>
             <span>Monitoramento {{ monitor.tipo }}</span>
