@@ -641,7 +641,7 @@ o que §5, §8 e §10–§12 dizem sobre esses pontos.
 
 | | Antes (D19) | Agora (D20) |
 |---|---|---|
-| Cabeçalho | faixa acima do cartão, "Atualizar" à direita | placa `.map-titulo` no canto sup. esquerdo do cartão; "Atualizar" em `.map-panel__topo` |
+| Cabeçalho | faixa acima do cartão, "Atualizar" à direita | placa `.map-titulo` (h1 + descrição, sem sobretítulo — D23) no canto sup. esquerdo do cartão; "Atualizar" em `.map-panel__topo` |
 | Altura | `clamp(460px, 100dvh - 196px, 780px)` | `100dvh - --im-topbar-height`, linha `minmax(0,1fr)`, sem teto |
 | Clique no marcador | `selectMunicipio` → lista "Escolha uma" → `selectUnidade` | `selectUnidade` direto |
 | Clique no município | seleciona e lista unidades | aproxima (polígono, ou envelope das unidades se 2+ dentro dele) |
