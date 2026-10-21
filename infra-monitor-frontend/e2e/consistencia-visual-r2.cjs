@@ -224,10 +224,8 @@ async function verificarEsqueleto(page) {
 /** Roda um caso extra isolado: o erro vira falha registrada (com a mensagem) e o roteiro segue; tenta fechar diálogo preso. */
 async function isolado(page, caso, fn) {
   try { await fn(); } catch (e) {
-    checar(caso, 'caso executou sem erro', false, String(e).split('
-')[0]);
-    try { await fecharDialogoResidual(page); } catch (e2) { checar(caso + '.limpeza', 'limpeza de diálogo preso', false, String(e2).split('
-')[0]); }
+    checar(caso, 'caso executou sem erro', false, String(e).split('\n')[0]);
+    try { await fecharDialogoResidual(page); } catch (e2) { checar(caso + '.limpeza', 'limpeza de diálogo preso', false, String(e2).split('\n')[0]); }
   }
 }
 
