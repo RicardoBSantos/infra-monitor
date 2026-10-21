@@ -139,6 +139,39 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     expect(elemento.querySelector('.gaveta__corpo button[role=switch]')).toBeNull();
   });
 
+  it('Escape dentro de um diálogo aberto na gaveta é do diálogo, não fecha a gaveta', () => {
+    const fixture = montar();
+    responder(fixture);
+    let fechamentos = 0;
+    fixture.componentInstance.fechar.subscribe(() => (fechamentos += 1));
+    const corpo = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.gaveta__corpo')!;
+    // O app-modal escuta o Escape no document: ele precisa chegar lá.
+    let noDocument = 0;
+    const contar = (evento: KeyboardEvent) => { if (evento.key === 'Escape') noDocument += 1; };
+    document.addEventListener('keydown', contar);
+    onTestFinished(() => document.removeEventListener('keydown', contar));
+
+    // Mesma marcação que app-modal (dialog) e app-confirm-dialog (alertdialog) renderizam
+    // dentro da gaveta, como o modal do app-monitor-management embutido.
+    for (const papel of ['dialog', 'alertdialog']) {
+      const dialogo = document.createElement('section');
+      dialogo.setAttribute('role', papel);
+      const campo = document.createElement('input');
+      dialogo.appendChild(campo);
+      corpo.appendChild(dialogo);
+      campo.focus();
+
+      campo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      dialogo.remove();
+    }
+    expect(fechamentos).toBe(0);
+    expect(noDocument).toBe(2);
+
+    // Fora de diálogo aninhado o Escape continua fechando a gaveta.
+    corpo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(fechamentos).toBe(1);
+  });
+
   it('reflete o monitor desativado no mesmo chip', () => {
     const fixture = montar();
     responder(fixture, [], [monitor({ id: 10, ativo: false })]);
