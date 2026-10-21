@@ -33,29 +33,29 @@ cenários é estável, e foi ela que sustentou as escolhas de D16.
 | F | `line-dasharray` animado por `setPaintProperty` a 20 Hz — alternativa descartada |
 | BD | B + D juntos: a carga real da tela |
 | B5 / D5 / E5 | 5× a carga real — margem antes de doer |
-| D2r | 20 pings com o CSS de `origin/main` (7px, aro, esfera de 3 sombras), vai-e-volta — a produção ANTES de D23 |
+| D2r | 20 pings com o CSS de `origin/main` (7px, aro, esfera de 3 sombras), vai-e-volta — a produção ANTES de D24 |
 | BD2r | B + D2r — a tela inteira ANTES |
-| D3 | 30 pings com o CSS de D23 (5px, glow estático), fluxo hub→unidade, `faseDeFluxo` + `opacidadeNaPonta` por quadro |
-| D3w | D3 com `will-change: transform` — serviu para decidir; ver D23 |
+| D3 | 30 pings com o CSS de D24 (5px, glow estático), fluxo hub→unidade, `faseDeFluxo` + `opacidadeNaPonta` por quadro |
+| D3w | D3 com `will-change: transform` — serviu para decidir; ver D24 |
 | H | mapa parado com o halo das conexões visível |
-| BD3 | B com glow no marcador + D3 + halo — a tela inteira DEPOIS de D23 |
+| BD3 | B com glow no marcador + D3 + halo — a tela inteira DEPOIS de D24 |
 | BD3x5 | 5× BD3 (150 pings, 55 marcadores) — margem |
 
 Os cenários A–F, BD, B5, D5 e E5 não mudaram, para continuar comparáveis com a §9.2. Os novos usam a
-paleta de D23; `faseDeFluxo`/`opacidadeNaPonta` são cópias literais de `mapa.component.ts`, porque a
+paleta de D24; `faseDeFluxo`/`opacidadeNaPonta` são cópias literais de `mapa.component.ts`, porque a
 bancada não importa o componente — se mudarem lá, mudam aqui. A bancada tem 10 linhas sintéticas (30
 pings em D3); o dev real tem 9 (27 pings).
 
-**Gate de D23:** 0% de quadros > 20 ms em todos os cenários e Δ CPU de BD3 sobre A ≤ 2,35 ms.
+**Gate de D24:** 0% de quadros > 20 ms em todos os cenários e Δ CPU de BD3 sobre A ≤ 2,35 ms.
 `will-change: transform` só entra em `.map__ping` se D3w ficar mais de 10% abaixo de D3 (não ficou:
 −7,9% na mediana, ver `mapa.component.scss`).
 
 `bench-final.png` é artefato de execução (captura do BD3 ao fim da corrida); nunca foi versionado.
 
-### Ruído entre corridas (D23)
+### Ruído entre corridas (D24)
 
 Uma corrida só não decide nada abaixo de ~20%: o cenário E foi de 2,086 para 3,169 ms entre duas
-corridas na mesma máquina. As decisões de D23 usam a **mediana de 3 corridas** (CPU main, ms/quadro):
+corridas na mesma máquina. As decisões de D24 usam a **mediana de 3 corridas** (CPU main, ms/quadro):
 
 | cenário | corrida 1 | corrida 2 | corrida 3 | mediana |
 |---|---|---|---|---|

@@ -20,7 +20,7 @@
  * - a dica aparece no FOCO e não só no hover, e focar não seleciona;
  * - a conexão é inteiramente da cor do status da unidade conectada (D18);
  * - três pings por linha, a ⅓ um do outro em fluxo hub → unidade, orbe de 5px sem contorno branco,
- *   com fade de opacidade nas pontas (D23 — substituiu o par em fases opostas de D16).
+ *   com fade de opacidade nas pontas (D24 — substituiu o par em fases opostas de D16).
  */
 const { chromium } = require('playwright');
 const { apontarApi } = require('./api-porta.cjs');
@@ -103,7 +103,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
   // custom property inline, não backgroundColor: o volume (D18) usa radial-gradient em `background`,
   // que não altera --cor-ping — a leitura abaixo continua válida sem mudança.
   cor: no.style.getPropertyValue('--cor-ping'),
-  // Inline, escrito por quadro pelo fade das pontas (D23); o computado incluiria herança, e o que
+  // Inline, escrito por quadro pelo fade das pontas (D24); o computado incluiria herança, e o que
   // se prova é o valor que o componente escreveu.
   opacidade: no.style.opacity,
   largura: getComputedStyle(no).width,
@@ -383,17 +383,17 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     const conexoesEsperadas = unidadesDaApi.filter((u) => u.conectaAUnidadeId != null
       && u.latitude != null && u.longitude != null && u.codigoIbge != null
       && unidadesDaApi.some((p) => p.id === u.conectaAUnidadeId && p.latitude != null && p.longitude != null && p.codigoIbge != null)).length;
-    checar(7, 'três pings por linha de conexão desenhável, a ⅓ (D23)',
+    checar(7, 'três pings por linha de conexão desenhável, a ⅓ (D24)',
       pings.length === conexoesEsperadas * 3,
       `${pings.length} ping(s) para ${conexoesEsperadas} linha(s)`);
     /*
-     * D23: o contorno branco eram duas camadas — `border` de 1px e a primeira sombra
+     * D24: o contorno branco eram duas camadas — `border` de 1px e a primeira sombra
      * rgba(232, 240, 248, .3). As duas saíram; o glow é na cor do status. Branco puro também é
      * barrado: o núcleo claro do orbe vive no gradiente, nunca na sombra.
      */
     const contornados = pings.filter((p) => p.largura !== '5px' || p.borda !== '0px'
       || /232,\s*240,\s*248/.test(p.sombra) || /255,\s*255,\s*255/.test(p.sombra));
-    checar(7, 'todo ping é orbe de 5px sem contorno branco (D23)',
+    checar(7, 'todo ping é orbe de 5px sem contorno branco (D24)',
       pings.length > 0 && contornados.length === 0,
       contornados.length ? `${contornados.length} fora: ${JSON.stringify(contornados[0])}` : `${pings.length} a 5px, borda 0, sombra ${pings[0]?.sombra}`);
     checar(7, 'todo ping é aria-hidden', pings.length > 0 && pings.every((p) => p.oculto === 'true'));
@@ -470,7 +470,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
      * 18 por isso, com a animação funcionando. Somar o percurso em três instantes cobre o ciclo
      * inteiro: nenhum ping fica parado em duas janelas seguidas.
      */
-    /* A janela acompanha o periodo: 1050ms sao ¼ de uma travessia hub -> unidade (4200ms, D23 — em
+    /* A janela acompanha o periodo: 1050ms sao ¼ de uma travessia hub -> unidade (4200ms, D24 — em
      * D17 eram ¼ do vai-e-volta). Com o fluxo em dente de serra nao ha mais ponto de retorno, mas
      * a virada u≈1 -> 0 cai dentro de uma janela de vez em quando, e somar tres amostras continua
      * sendo o que evita falso parado. O fade zera a OPACIDADE perto das pontas, nao a posicao: o
@@ -484,7 +484,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
       parados === 0,
       `${pings.length - parados}/${pings.length} em movimento · percurso mínimo ${Math.min(...percurso).toFixed(1)}px em 2,1s`);
     /*
-     * Fade das pontas (D23), forma simples (Ruling B): nas três amostras há ping com opacidade
+     * Fade das pontas (D24), forma simples (Ruling B): nas três amostras há ping com opacidade
      * inline < 1 — o fade está ativo — e nenhuma opacidade sai de [0, 1]. Com 27 pings defasados de
      * ⅓, 16% de cada arco está em fade a qualquer instante; não ver nenhum seria o fade morto.
      */
@@ -493,7 +493,7 @@ const lerPings = (page) => page.evaluate(() => [...document.querySelectorAll('.m
     const lidas = amostras.flat().map((p) => p.opacidade);
     const vazias = lidas.filter((o) => o === '' || o == null).length;
     const opacidades = lidas.filter((o) => o !== '' && o != null).map(Number);
-    checar(8, 'fade nas pontas ativo e opacidade sempre em [0, 1] (D23)',
+    checar(8, 'fade nas pontas ativo e opacidade sempre em [0, 1] (D24)',
       vazias === 0 && opacidades.length > 0
       && opacidades.every((o) => !Number.isNaN(o) && o >= 0 && o <= 1)
       && opacidades.some((o) => o < 1),

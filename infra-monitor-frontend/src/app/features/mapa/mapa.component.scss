@@ -72,7 +72,7 @@
    * em `mapa.component.ts`. A `box-shadow` escura de contato fica — ela não é contraste, é
    * profundidade, e separa o marcador da linha de conexão quando os dois se cruzam.
    *
-   * GLOW (D23): translúcido, na cor do status, POR FORA do miolo. O miolo continua OPACO porque
+   * GLOW (D24): translúcido, na cor do status, POR FORA do miolo. O miolo continua OPACO porque
    * desde D19 é ele quem carrega o contraste (pior caso `sem-equipamentos`, 3,95:1 contra #16283a);
    * translucidez no miolo derrubaria esse número abaixo de 3:1. O glow começa no raio do miolo e se
    * espalha 6px — fica por baixo do anel de foco (`outline`, que pinta por cima) e não altera a
@@ -149,23 +149,23 @@
     .map__unidade--pulsa::after { animation: none; transform: scale(1.25); opacity: .55; }
   }
 
-  /* --- Ping na linha de conexão (N07; orbe D23) ---------------------------------------------
+  /* --- Ping na linha de conexão (N07; orbe D24) ---------------------------------------------
    *
    * `--cor-ping` é o status da unidade CONECTADA — a mesma cor que, com D18, a linha inteira já
    * carrega. O ping continua existindo mesmo assim: ele é o elemento que se MOVE, e é o movimento
    * que lê como "sonda ativa"; a linha estática, ainda que colorida, não carrega essa leitura. Sem
    * `pointer-events`: o ping cruza os marcadores e não pode roubar o clique de nenhum.
    *
-   * ORBE LUMINOSO (D23, a pedido) no lugar da esfera de D18-B: núcleo claro (`#fff` a 55% sobre a
+   * ORBE LUMINOSO (D24, a pedido) no lugar da esfera de D18-B: núcleo claro (`#fff` a 55% sobre a
    * cor), a cor pura a 45% do raio, e borda que some no fundo — ponto de luz, não bola sombreada.
    * O glow é NA COR do status, não branco.
    *
    * O contorno branco eram DUAS camadas, e as duas saíram: `border: 1px solid rgba(232,240,248,.8)`
    * e a primeira sombra `0 0 5px 1px rgba(232,240,248,.3)`. O aro existia pela razão que valia para o
-   * marcador antes de D19 (o `sem-equipamentos` escuro sumia no município); com a paleta de D23 o
+   * marcador antes de D19 (o `sem-equipamentos` escuro sumia no município); com a paleta de D24 o
    * pior caso é #6e8698 a 3,95:1 sozinho, e o glow ajuda a separar do município.
    *
-   * 7px → 5px: com três pings por arco (D23), 7px enchia a linha de bolas; 5px + glow de 4px lê
+   * 7px → 5px: com três pings por arco (D24), 7px enchia a linha de bolas; 5px + glow de 4px lê
    * como ponto de luz. Sem parada escura no gradiente — fecha DV16: o `70% + #000` de D18, que
    * escurecia a borda e virava mancha suja sobre o halo, não existe mais. A sombra interna e a de
    * contato saíram junto: eram o shading de esfera, e o orbe não tem face oposta à luz.
@@ -173,7 +173,7 @@
    * Glow ESTÁTICO, nunca animado: `box-shadow` animado custou 0,618 ms/quadro contra 0,475 de
    * `transform` + `opacity` (§9.2, ver o pulso acima). O que muda por quadro
    * é `transform` (da lib, via `setLngLat`) e `opacity` (fade nas pontas). O `opacity` inline custa
-   * recálculo de estilo por quadro (~0,6 ms para 30 pings, bancada D23), não repintura do glow.
+   * recálculo de estilo por quadro (~0,6 ms para 30 pings, bancada D24), não repintura do glow.
    * `will-change: transform` ficou de fora: em 3 corridas a mediana deu D3w 1,630 contra D3 1,769
    * ms/quadro (−7,9%, abaixo do corte de 10%) e as faixas se sobrepõem (1,529–1,749 contra
    * 1,572–1,863), então o ganho é inconclusivo dentro do ruído e não justifica o custo de uma camada
@@ -256,7 +256,7 @@
 /* Sem `justify-content:space-between` (D14): com o rodapé fora e a legenda no cartão (D21), ele abriria vãos
  * entre os blocos. A sobra de altura fica no fim da coluna. Rolagem própria: a lista de afetados
  * pode crescer sem empurrar o mapa para fora da viewport (D11). */
-.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:#35e087; }.legend__dot--danger { background:#f84e54; }.legend__dot--warning { background:#fcb142; }.legend__dot--neutral { background:#9dabb9; }/* Hex literal e não token: espelha `COR_DO_STATUS` em mapa.component.ts (D19 para os neutros, D23 para os seis) — muda junto. */.legend__dot--info { background:#7fadff; }.legend__dot--muted { background:#6e8698; }.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px var(--im-mono); }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px var(--im-mono); letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
+.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:#35e087; }.legend__dot--danger { background:#f84e54; }.legend__dot--warning { background:#fcb142; }.legend__dot--neutral { background:#9dabb9; }/* Hex literal e não token: espelha `COR_DO_STATUS` em mapa.component.ts (D19 para os neutros, D24 para os seis) — muda junto. */.legend__dot--info { background:#7fadff; }.legend__dot--muted { background:#6e8698; }.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px var(--im-mono); }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px var(--im-mono); letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
 
 /* --- Painel lateral (M03) ------------------------------------------------------------ */
 .geo-status,.unit-panel { padding:12px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface-raised); }

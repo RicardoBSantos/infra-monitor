@@ -158,13 +158,13 @@
     },
     {
       "caso": 7,
-      "nome": "três pings por linha de conexão desenhável, a ⅓ (D23)",
+      "nome": "três pings por linha de conexão desenhável, a ⅓ (D24)",
       "ok": true,
       "detalhe": "27 ping(s) para 9 linha(s)"
     },
     {
       "caso": 7,
-      "nome": "todo ping é orbe de 5px sem contorno branco (D23)",
+      "nome": "todo ping é orbe de 5px sem contorno branco (D24)",
       "ok": true,
       "detalhe": "27 a 5px, borda 0, sombra color(srgb 0.207843 0.878431 0.529412 / 0.7) 0px 0px 4px 1px"
     },
@@ -218,7 +218,7 @@
     },
     {
       "caso": 8,
-      "nome": "fade nas pontas ativo e opacidade sempre em [0, 1] (D23)",
+      "nome": "fade nas pontas ativo e opacidade sempre em [0, 1] (D24)",
       "ok": true,
       "detalhe": "18/81 leitura(s) abaixo de 1, mín 0.015"
     },

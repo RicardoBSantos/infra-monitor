@@ -1,12 +1,12 @@
 /*
- * D23 — capturas comparativas do arco: paleta vibrante, halo da linha, três pings em orbe de 5px.
+ * D24 — capturas comparativas do arco: paleta vibrante, halo da linha, três pings em orbe de 5px.
  *
  *   FRONT_URL=http://127.0.0.1:4201 API_PORT=8082 E2E_EMAIL=... CAP_SENHA=<senha> \
- *     CAP_ROTULO=depois-dev node e2e/d23-arco-capturas.cjs
+ *     CAP_ROTULO=depois-dev node e2e/d24-arco-capturas.cjs
  *
  * `CAP_ROTULO` = `<fase>-<banco>` (`antes-dev`, `depois-carga`…). A fase diz qual CSS está servindo
  * (`antes` = `ng serve` de origin/main, `depois` = este branch) e entra no nome de todo arquivo.
- * `CAP_SAIDA` muda a pasta (default `e2e/d23-evidence`): captura do banco da carga NUNCA entra no
+ * `CAP_SAIDA` muda a pasta (default `e2e/d24-evidence`): captura do banco da carga NUNCA entra no
  * repositório — vai para o scratchpad (memória `banco-carga-real-separado`).
  *
  * O que sai:
@@ -39,7 +39,7 @@ if (!SENHA) throw new Error('CAP_SENHA é obrigatória');
 const ROTULO = process.env.CAP_ROTULO || process.env.PERF_ROTULO || 'depois-dev';
 const [FASE, BANCO] = ROTULO.split('-');
 if (!['antes', 'depois'].includes(FASE) || !BANCO) throw new Error(`CAP_ROTULO inválido: ${ROTULO} (esperado antes-dev, depois-carga…)`);
-const OUT = path.resolve(process.env.CAP_SAIDA || path.join(__dirname, 'd23-evidence'));
+const OUT = path.resolve(process.env.CAP_SAIDA || path.join(__dirname, 'd24-evidence'));
 fs.mkdirSync(OUT, { recursive: true });
 
 const IBGE_ARACAJU = '2800308';
@@ -50,16 +50,16 @@ const PALETA = {
   antes: { disponivel: '#34c77b', indisponivel: '#e5484d', degradada: '#e8a33d', 'em-manutencao': '#7fadff', 'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b' },
   depois: { disponivel: '#35e087', indisponivel: '#f84e54', degradada: '#fcb142', 'em-manutencao': '#7fadff', 'sem-dados': '#9dabb9', 'sem-equipamentos': '#6e8698' },
 };
-/** Linha e pings por fase: LARGURA/OPACIDADE_CONEXAO, halo (só D23) e PINGS_POR_LINHA. */
+/** Linha e pings por fase: LARGURA/OPACIDADE_CONEXAO, halo (só D24) e PINGS_POR_LINHA. */
 const ERA = {
   antes: { largura: 1.4, opacidade: 0.65, halo: false, pings: [{ u: 0.3, o: 1 }, { u: 0.7, o: 1 }] },
   // 3 a ⅓ com o primeiro em u=0,04: opacidadeNaPonta(0,04) = 0,5 — o fade aparece na captura.
   depois: { largura: 1.6, opacidade: 0.85, halo: true, pings: [{ u: 0.04, o: 0.5 }, { u: 0.37, o: 1 }, { u: 0.70, o: 1 }] },
 };
 
-/** `.map__ping` de origin/main (pré-D23), copiado literal para o lado a lado. */
+/** `.map__ping` de origin/main (pré-D24), copiado literal para o lado a lado. */
 const CSS_PING_ANTES = `
-.d23-ping-antes { position:absolute; width:7px; height:7px; border:1px solid rgba(232,240,248,.8); border-radius:50%;
+.d24-ping-antes { position:absolute; width:7px; height:7px; border:1px solid rgba(232,240,248,.8); border-radius:50%;
   background: radial-gradient(circle at 32% 28%, color-mix(in srgb, #fff 62%, var(--cor-ping, #8797a6)) 0%,
     var(--cor-ping, #8797a6) 52%, color-mix(in srgb, var(--cor-ping, #8797a6) 70%, #000) 100%);
   box-shadow: 0 0 5px 1px rgba(232,240,248,.3), inset -1.5px -1.5px 2.5px rgba(0,0,0,.38), 0 1px 2px rgba(0,0,0,.45); }`;
@@ -125,7 +125,7 @@ async function sintetico(browser) {
       const estilo = document.createElement('style'); estilo.textContent = css; document.head.appendChild(estilo);
       const cartao = document.querySelector('.map-card');
       const painel = document.createElement('div');
-      painel.id = 'd23-seis';
+      painel.id = 'd24-seis';
       // Coluna, não linha: o cartão a 1100px de viewport mede ~700px e as duas lado a lado não cabiam —
       // a primeira execução cortou a coluna clara e mostrou o mapa por trás.
       painel.style.cssText = 'position:absolute;left:0;top:0;z-index:1000;display:flex;flex-direction:column;width:max-content;font:600 10px "IBM Plex Mono",monospace;';
@@ -166,13 +166,13 @@ async function sintetico(browser) {
 
       // Lado a lado do ping: antes (CSS inline de origin/main) × depois (classe real), um status por linha.
       const lado = document.createElement('div');
-      lado.id = 'd23-lado';
+      lado.id = 'd24-lado';
       lado.style.cssText = 'position:absolute;left:0;top:0;z-index:1000;background:#16283a;padding:10px 14px;display:grid;grid-template-columns:112px 70px 70px;gap:10px 8px;align-items:center;color:#c9d6e3;font:600 10px "IBM Plex Mono",monospace;';
       lado.innerHTML = '<span></span><span>antes 7px</span><span>depois 5px</span>';
       const antesPal = { disponivel: '#34c77b', indisponivel: '#e5484d', degradada: '#e8a33d', 'em-manutencao': '#7fadff', 'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b' };
       for (const [status, cor] of Object.entries(paleta)) {
         const r = document.createElement('span'); r.textContent = status; lado.appendChild(r);
-        for (const [classe, c, larg, opac] of [['d23-ping-antes', antesPal[status], 1.4, 0.65], ['map__ping', cor, 1.6, 0.85]]) {
+        for (const [classe, c, larg, opac] of [['d24-ping-antes', antesPal[status], 1.4, 0.65], ['map__ping', cor, 1.6, 0.85]]) {
           const cel = document.createElement('div'); cel.style.cssText = 'position:relative;width:70px;height:18px;';
           if (classe === 'map__ping') {
             const h = document.createElement('div');
@@ -188,22 +188,22 @@ async function sintetico(browser) {
       }
       // Guardado, não anexado: entra só depois da captura dos seis (sobrepunha o painel — `hidden` perde
       // para o `display:grid` inline, e a primeira execução saiu com os dois misturados).
-      window.__d23Lado = lado;
+      window.__d24Lado = lado;
     }, { paleta, era, css: CSS_PING_ANTES });
     await page.waitForTimeout(300);
     // Prova de que o CSS real alcançou o sintético (senão o PNG mostraria div sem estilo).
     const medido = await page.evaluate(() => {
-      const p = document.querySelector('#d23-seis .map__ping'); const m = document.querySelector('#d23-seis .map__unidade');
+      const p = document.querySelector('#d24-seis .map__ping'); const m = document.querySelector('#d24-seis .map__unidade');
       const ep = getComputedStyle(p);
       return { ping: ep.width, borda: ep.borderTopWidth, sombra: ep.boxShadow, marcador: getComputedStyle(m).width };
     });
     const esperado = FASE === 'antes' ? { ping: '7px', borda: '1px' } : { ping: '5px', borda: '0px' };
     checar(`sintético usa o .map__ping real da fase ${FASE}`, medido.ping === esperado.ping && medido.borda === esperado.borda && medido.marcador === '13px', JSON.stringify(medido));
-    await page.locator('#d23-seis').screenshot({ path: path.join(OUT, `seis-status-${FASE}.png`) });
+    await page.locator('#d24-seis').screenshot({ path: path.join(OUT, `seis-status-${FASE}.png`) });
     if (FASE === 'depois') {
-      await page.evaluate(() => { document.querySelector('#d23-seis').remove(); document.querySelector('.map-card').appendChild(window.__d23Lado); });
+      await page.evaluate(() => { document.querySelector('#d24-seis').remove(); document.querySelector('.map-card').appendChild(window.__d24Lado); });
       await page.waitForTimeout(150);
-      await page.locator('#d23-lado').screenshot({ path: path.join(OUT, 'ping-7px-vs-5px.png') });
+      await page.locator('#d24-lado').screenshot({ path: path.join(OUT, 'ping-7px-vs-5px.png') });
     }
   } finally { await fechar(ctx); }
 }

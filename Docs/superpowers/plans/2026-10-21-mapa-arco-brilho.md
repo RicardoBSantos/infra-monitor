@@ -1,10 +1,10 @@
-# Mapa — arco com três pings, orbe e paleta vibrante (D23) Implementation Plan
+# Mapa — arco com três pings, orbe e paleta vibrante (D24) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Três pings por arco em fluxo contínuo a ⅓, pings menores em orbe luminoso sem contorno branco, linha com halo WebGL e marcador com glow, todos na mesma paleta vibrante — medido, capturado e documentado.
 
-**Architecture:** Tudo em `features/mapa/`. TS: paleta `COR_DO_STATUS`, duas camadas em `camadasDeConexao()`, funções puras de fase/opacidade consumidas por `montarPings`. SCSS: `.map__ping` (orbe) e `.map__unidade` (glow). Bancada `e2e/perf-mapa/` ganha cenários com o CSS real; script novo mede a app real. Docs D23 no mesmo commit final.
+**Architecture:** Tudo em `features/mapa/`. TS: paleta `COR_DO_STATUS`, duas camadas em `camadasDeConexao()`, funções puras de fase/opacidade consumidas por `montarPings`. SCSS: `.map__ping` (orbe) e `.map__unidade` (glow). Bancada `e2e/perf-mapa/` ganha cenários com o CSS real; script novo mede a app real. Docs D24 no mesmo commit final.
 
 **Tech Stack:** Angular 20 standalone, MapLibre GL 6.9.0, Karma/Jasmine (`ng test`), Playwright (roteiros `.cjs` em `e2e/`), CDP `Performance.getMetrics`.
 
@@ -24,7 +24,7 @@
 - `prefers-reduced-motion`: pings não criados (já é assim — não regredir).
 - Comentários e docs em português, no estilo denso existente (o porquê, com número medido). Sem Lombok/irrelevante; sem abstração nova.
 - Commits terminam com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Usar `git commit -- <arquivos>` (agentes paralelos compartilham index).
-- Docs D23 (decisões, contexto, dívidas, índice) entram no commit da própria mudança visual (regra de `Docs/mapa-architecture/mapa-architecture.md`) — Task 7.
+- Docs D24 (decisões, contexto, dívidas, índice) entram no commit da própria mudança visual (regra de `Docs/mapa-architecture/mapa-architecture.md`) — Task 7.
 
 ## Review Focus
 
@@ -116,7 +116,7 @@ FRONT_URL=http://127.0.0.1:4201 API_PORT=8083 E2E_EMAIL=d23.perf@inframonitor.lo
 
 ```bash
 git add infra-monitor-frontend/e2e/perf-mapa/perf-mapa-app.cjs infra-monitor-frontend/e2e/perf-mapa/app-antes-dev.json infra-monitor-frontend/e2e/perf-mapa/app-antes-carga.json infra-monitor-frontend/e2e/perf-mapa/bench-antes.json infra-monitor-frontend/package.json infra-monitor-frontend/e2e/n06-marcadores-e-conexoes.cjs infra-monitor-frontend/e2e/n07-pulso-ping-dica.cjs infra-monitor-frontend/e2e/n08-tela-cheia-zoom.cjs
-git commit -m "test(mapa): medicao das animacoes na app real e linha de base de D23" -- <mesmos arquivos>
+git commit -m "test(mapa): medicao das animacoes na app real e linha de base de D24" -- <mesmos arquivos>
 ```
 
   Antes de commitar o JSON da carga: conferir que não contém nome de usuário/e-mail (só contagens e números).
@@ -136,7 +136,7 @@ git commit -m "test(mapa): medicao das animacoes na app real e linha de base de 
 - [ ] **Step 1: Teste que falha.** Substituir o `describe('camada de conexao (D18)'...)` por:
 
 ```ts
-describe('camadas de conexao (D18, halo de D23)',()=>{
+describe('camadas de conexao (D18, halo de D24)',()=>{
   const CORES_ESPERADAS = ['match', ['get','status'],
     'DISPONIVEL', '#35e087',
     'INDISPONIVEL', '#f84e54',
@@ -170,7 +170,7 @@ describe('camadas de conexao (D18, halo de D23)',()=>{
 - [ ] **Step 2: Rodar e ver falhar.** `cd infra-monitor-frontend && npx ng test --watch=false --include=src/app/features/mapa/mapa.component.spec.ts` → FAIL (1 camada, cores antigas).
 
 - [ ] **Step 3: Implementar.**
-  - `COR_DO_STATUS` com a paleta de Global Constraints. Acrescentar ao comentário um parágrafo "D23": valores vibrantes calculados por script (HSL: coloridos `S×1,18+0,04`, `L+0,05` com teto 0,72 sem baixar; neutros `S×1,1`, `L+0,08`/`+0,04`); contraste × `#16283a`: 8,70 / 4,44 / 8,23 / 6,67 / 6,41 / 3,95; ΔE OKLab mínimo 10,5 (manutenção × sem-dados), sem-dados × sem-equipamentos 9,7 → 12,8; `em-manutencao` já tinha saturação 100%. Atualizar os números de D19 citados no comentário existente sem apagar o histórico (dizer "eram 5,01/3,41 em D19").
+  - `COR_DO_STATUS` com a paleta de Global Constraints. Acrescentar ao comentário um parágrafo "D24": valores vibrantes calculados por script (HSL: coloridos `S×1,18+0,04`, `L+0,05` com teto 0,72 sem baixar; neutros `S×1,1`, `L+0,08`/`+0,04`); contraste × `#16283a`: 8,70 / 4,44 / 8,23 / 6,67 / 6,41 / 3,95; ΔE OKLab mínimo 10,5 (manutenção × sem-dados), sem-dados × sem-equipamentos 9,7 → 12,8; `em-manutencao` já tinha saturação 100%. Atualizar os números de D19 citados no comentário existente sem apagar o histórico (dizer "eram 5,01/3,41 em D19").
   - `LARGURA_CONEXAO = 1.6`, `OPACIDADE_CONEXAO = 0.85`, comentário: o halo carrega a translucidez, o núcleo pode ficar mais opaco.
   - Constantes novas logo abaixo: `LARGURA_HALO_CONEXAO = 6`, `BORRAO_HALO_CONEXAO = 4`, `OPACIDADE_HALO_CONEXAO = 0.28`, com comentário: brilho no WebGL — o canvas não aplica `filter`/`box-shadow`; uma segunda `line` larga e borrada por baixo é o equivalente nativo, estática, custo por quadro ~0 (medido na Task 5).
   - `camadasDeConexao()`: extrair a expressão de cor para uma `const corDaConexao = [...]` local e devolver:
@@ -186,7 +186,7 @@ return [{
 ```
 
   - Conferir com `grep -n "camadasDeConexao()" src/app/features/mapa/mapa.component.ts` que `montarMapa` espalha (`...camadasDeConexao()`) no array de camadas; se indexar `[0]`, corrigir para espalhar.
-  - SCSS linha 246: trocar `background:var(--im-success)` → `#35e087`, `var(--im-danger)` → `#f84e54`, `var(--im-warning)` → `#fcb142`, `var(--im-info-soft)` → `#7fadff`, `#8797a6` → `#9dabb9`, `#667b8b` → `#6e8698`; o comentário inline existente passa a dizer "Hex literal e não token: espelha `COR_DO_STATUS` em mapa.component.ts (D19 para os neutros, D23 para os seis) — muda junto." (um comentário só, removendo o "Idem").
+  - SCSS linha 246: trocar `background:var(--im-success)` → `#35e087`, `var(--im-danger)` → `#f84e54`, `var(--im-warning)` → `#fcb142`, `var(--im-info-soft)` → `#7fadff`, `#8797a6` → `#9dabb9`, `#667b8b` → `#6e8698`; o comentário inline existente passa a dizer "Hex literal e não token: espelha `COR_DO_STATUS` em mapa.component.ts (D19 para os neutros, D24 para os seis) — muda junto." (um comentário só, removendo o "Idem").
   - `grep -rn "8797a6\|667b8b\|34c77b\|e5484d\|e8a33d" src/app/features/mapa` — os fallbacks `var(--cor-unidade, #8797a6)`/`var(--cor-ping, #8797a6)` no SCSS passam a `#9dabb9`.
 
 - [ ] **Step 4: Rodar e passar.** Mesmo comando → PASS.
@@ -194,7 +194,7 @@ return [{
 - [ ] **Step 5: Commit**
 
 ```bash
-git commit -m "feat(mapa): paleta vibrante e halo WebGL na conexao (D23)" -- infra-monitor-frontend/src/app/features/mapa/mapa.component.ts infra-monitor-frontend/src/app/features/mapa/mapa.component.scss infra-monitor-frontend/src/app/features/mapa/mapa.component.spec.ts
+git commit -m "feat(mapa): paleta vibrante e halo WebGL na conexao (D24)" -- infra-monitor-frontend/src/app/features/mapa/mapa.component.ts infra-monitor-frontend/src/app/features/mapa/mapa.component.scss infra-monitor-frontend/src/app/features/mapa/mapa.component.spec.ts
 ```
 
 ---
@@ -220,7 +220,7 @@ git commit -m "feat(mapa): paleta vibrante e halo WebGL na conexao (D23)" -- inf
     expect(faseDeFluxo(2.5)).toBe(0.5);
   });
 
-  /* D23: tres pings por linha, a 1/3 um do outro EM QUALQUER instante — inclusive depois que um
+  /* D24: tres pings por linha, a 1/3 um do outro EM QUALQUER instante — inclusive depois que um
    * deles recomecou no hub. Distancia circular, porque 0,9 e 0,23 estao a 1/3 pela virada. */
   it('mantem os tres pings da mesma linha a 1/3 um do outro',()=>{
     const circular=(a:number,b:number)=>{const d=Math.abs(a-b)%1;return Math.min(d,1-d);};
@@ -257,7 +257,7 @@ git commit -m "feat(mapa): paleta vibrante e halo WebGL na conexao (D23)" -- inf
 /**
  * Posição no fluxo, dado o tempo em ciclos. `0 → 1` e recomeça no hub. Pura.
  *
- * D23 trocou o vai-e-volta de D16 por fluxo num sentido só, a pedido: três pings com espaçamento
+ * D24 trocou o vai-e-volta de D16 por fluxo num sentido só, a pedido: três pings com espaçamento
  * REGULAR ao longo do arco. Na onda triangular de D16 isso é impossível — com duas fases opostas os
  * pings se cruzam no meio, e com fases 0/⅓/⅔ dois deles coincidem. Em dente de serra, defasar de
  * k/3 mantém a distância de ⅓ em qualquer instante. O custo continua O(1) por quadro: muda a
@@ -282,8 +282,8 @@ export function opacidadeNaPonta(u: number): number {
 }
 ```
 
-  - `PINGS_POR_LINHA = 3` com comentário: três, a ⅓ um do outro, fluxo hub → unidade (D23 substituiu o par em fase oposta de D16).
-  - `PERIODO_PING_MS` continua 4200; acrescentar ao comentário: desde D23 é UMA travessia hub → unidade, não ida e volta — a velocidade caiu à metade, o que compensa a densidade 3× (chega um ping na unidade a cada 1400 ms); mesmo argumento de D17 contra "tráfego agitado".
+  - `PINGS_POR_LINHA = 3` com comentário: três, a ⅓ um do outro, fluxo hub → unidade (D24 substituiu o par em fase oposta de D16).
+  - `PERIODO_PING_MS` continua 4200; acrescentar ao comentário: desde D24 é UMA travessia hub → unidade, não ida e volta — a velocidade caiu à metade, o que compensa a densidade 3× (chega um ping na unidade a cada 1400 ms); mesmo argumento de D17 contra "tráfego agitado".
   - Em `montarPings`: no `return { marcador, origem, destino, defasagem }` incluir `elemento`; o laço vira:
 
 ```ts
@@ -302,7 +302,7 @@ export function opacidadeNaPonta(u: number): number {
 - [ ] **Step 5: Commit**
 
 ```bash
-git commit -m "feat(mapa): tres pings em fluxo continuo a 1/3 com fade nas pontas (D23)" -- infra-monitor-frontend/src/app/features/mapa/mapa.component.ts infra-monitor-frontend/src/app/features/mapa/mapa.component.spec.ts
+git commit -m "feat(mapa): tres pings em fluxo continuo a 1/3 com fade nas pontas (D24)" -- infra-monitor-frontend/src/app/features/mapa/mapa.component.ts infra-monitor-frontend/src/app/features/mapa/mapa.component.spec.ts
 ```
 
 ---
@@ -332,7 +332,7 @@ Use `frontend-design:frontend-design` para o acabamento visual; os valores abaix
   }
 ```
 
-  Reescrever o comentário acima: (a) D23 — orbe luminoso substitui a esfera de D18-B a pedido: núcleo claro, cor, borda que some no fundo; glow NA COR do status; (b) o contorno branco eram DUAS camadas — `border: 1px solid rgba(232,240,248,.8)` e a primeira sombra `0 0 5px 1px rgba(232,240,248,.3)` — ambas saíram; (c) 7px → 5px: com 3 pings por arco, 7px enchia a linha; 5px + glow de 4px lê como ponto de luz, não como bola; (d) sem stop escuro: fecha DV16 (o `70% + #000` não existe mais); (e) mantém a nota da declaração plana antes do gradiente; (f) `--cor-ping` continua o contrato do e2e; (g) glow estático, nunca animado (§9.2: `box-shadow` animado é 45% mais caro) — o que muda por quadro é `transform` (lib) e `opacity` (Task 3), ambos de compositor.
+  Reescrever o comentário acima: (a) D24 — orbe luminoso substitui a esfera de D18-B a pedido: núcleo claro, cor, borda que some no fundo; glow NA COR do status; (b) o contorno branco eram DUAS camadas — `border: 1px solid rgba(232,240,248,.8)` e a primeira sombra `0 0 5px 1px rgba(232,240,248,.3)` — ambas saíram; (c) 7px → 5px: com 3 pings por arco, 7px enchia a linha; 5px + glow de 4px lê como ponto de luz, não como bola; (d) sem stop escuro: fecha DV16 (o `70% + #000` não existe mais); (e) mantém a nota da declaração plana antes do gradiente; (f) `--cor-ping` continua o contrato do e2e; (g) glow estático, nunca animado (§9.2: `box-shadow` animado é 45% mais caro) — o que muda por quadro é `transform` (lib) e `opacity` (Task 3), ambos de compositor.
 
 - [ ] **Step 2: `will-change`** — NÃO adicionar agora. A Task 5 mede `D3` × `D3w`; se `D3w` ganhar > 10% de CPU, a Task 5 acrescenta `will-change: transform` aqui com o número no comentário.
 
@@ -348,7 +348,7 @@ box-shadow: 0 0 6px 1px color-mix(in srgb, var(--cor-unidade, #9dabb9) 55%, tran
 .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #9dabb9) 78%, transparent), 0 0 9px 2px color-mix(in srgb, var(--cor-unidade, #9dabb9) 45%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
 ```
 
-  Comentário curto antes de `.map__unidade`: D23 — glow translúcido na cor do status; o miolo continua OPACO porque desde D19 é ele quem carrega o contraste (pior caso sem-equipamentos 3,95:1); translucidez no miolo derrubaria esse número abaixo de 3:1. Glow começa no raio do miolo e se espalha 6px — fica por baixo do anel de foco (que é `outline`, pinta por cima) e não altera a geometria de D19. No selecionado: o anel vem primeiro de propósito (o e2e `corBateComSombra` lê a primeira cor da `box-shadow`).
+  Comentário curto antes de `.map__unidade`: D24 — glow translúcido na cor do status; o miolo continua OPACO porque desde D19 é ele quem carrega o contraste (pior caso sem-equipamentos 3,95:1); translucidez no miolo derrubaria esse número abaixo de 3:1. Glow começa no raio do miolo e se espalha 6px — fica por baixo do anel de foco (que é `outline`, pinta por cima) e não altera a geometria de D19. No selecionado: o anel vem primeiro de propósito (o e2e `corBateComSombra` lê a primeira cor da `box-shadow`).
 
 - [ ] **Step 4: Build e testes.** `npx ng build` (aviso de budget `anyComponentStyle` do mapa é pré-existente — aceitar só esse) e `npx ng test --watch=false` (suíte inteira) → PASS.
 
@@ -357,7 +357,7 @@ box-shadow: 0 0 6px 1px color-mix(in srgb, var(--cor-unidade, #9dabb9) 55%, tran
 - [ ] **Step 6: Commit**
 
 ```bash
-git commit -m "feat(mapa): ping em orbe luminoso sem contorno branco e glow no marcador (D23)" -- infra-monitor-frontend/src/app/features/mapa/mapa.component.scss
+git commit -m "feat(mapa): ping em orbe luminoso sem contorno branco e glow no marcador (D24)" -- infra-monitor-frontend/src/app/features/mapa/mapa.component.scss
 ```
 
 ---
@@ -375,8 +375,8 @@ git commit -m "feat(mapa): ping em orbe luminoso sem contorno branco e glow no m
 
 - [ ] **Step 2: Classes novas em `banco.html`:**
   - `.ping-d18` = CSS de `.map__ping` em `origin/main` (7px, `border: 1px solid rgba(232,240,248,.8)`, gradiente D18-B, três sombras — copiar de `git show origin/main:infra-monitor-frontend/src/app/features/mapa/mapa.component.scss`).
-  - `.ping-d23` = CSS final da Task 4.
-  - `.ping-d23w` = `.ping-d23` + `will-change: transform`.
+  - `.ping-d24` = CSS final da Task 4.
+  - `.ping-d24w` = `.ping-d24` + `will-change: transform`.
   - `.u-glow` = glow do marcador da Task 4 aplicado aos marcadores do banco.
   - Cada ping recebe `--cor-ping` da paleta nova, ciclando pelos 6 status.
   - Camada `conexoes-halo` nova (mesmos parâmetros da Task 2) antes da camada de linha do banco, visível só nos cenários `H` e `BD3` (`setLayoutProperty(..., 'visibility', ...)`).
@@ -384,8 +384,8 @@ git commit -m "feat(mapa): ping em orbe luminoso sem contorno branco e glow no m
 - [ ] **Step 3: Cenários novos** (em `window.cenario` e em `CENARIOS`):
   - `D2r` — 20 pings `.ping-d18`, vai-e-volta (a produção ANTES).
   - `BD2r` — B + D2r (a tela inteira ANTES).
-  - `D3` — 30 pings `.ping-d23`, `faseDeFluxo` + `opacidadeNaPonta` por quadro.
-  - `D3w` — D3 com `.ping-d23w`.
+  - `D3` — 30 pings `.ping-d24`, `faseDeFluxo` + `opacidadeNaPonta` por quadro.
+  - `D3w` — D3 com `.ping-d24w`.
   - `H` — mapa parado com halo visível.
   - `BD3` — B com `.u-glow` + D3 + halo (a tela inteira DEPOIS).
   - `BD3x5` — 5× BD3 (150 pings, 55 marcadores) — margem.
@@ -407,7 +407,7 @@ FRONT_URL=http://127.0.0.1:4201 API_PORT=8083 E2E_EMAIL=d23.perf@inframonitor.lo
 - [ ] **Step 7: Commit**
 
 ```bash
-git commit -m "test(mapa): bancada com CSS real do ping e cenarios de D23" -- infra-monitor-frontend/e2e/perf-mapa/
+git commit -m "test(mapa): bancada com CSS real do ping e cenarios de D24" -- infra-monitor-frontend/e2e/perf-mapa/
 ```
 
   (mais `mapa.component.scss` se `will-change` entrou.)
@@ -418,52 +418,52 @@ git commit -m "test(mapa): bancada com CSS real do ping e cenarios de D23" -- in
 
 **Files:**
 - Modify: `infra-monitor-frontend/e2e/n07-pulso-ping-dica.cjs`
-- Create: `infra-monitor-frontend/e2e/d23-arco-capturas.cjs`
-- Output: `infra-monitor-frontend/e2e/d23-evidence/` (só capturas do banco de dev; as da carga vão para `<scratchpad>/d23-carga/`, fora do repo — memória `banco-carga-real-separado`)
-- Modify: `infra-monitor-frontend/package.json` (`"e2e:d23": "node e2e/d23-arco-capturas.cjs"`)
+- Create: `infra-monitor-frontend/e2e/d24-arco-capturas.cjs`
+- Output: `infra-monitor-frontend/e2e/d24-evidence/` (só capturas do banco de dev; as da carga vão para `<scratchpad>/d23-carga/`, fora do repo — memória `banco-carga-real-separado`)
+- Modify: `infra-monitor-frontend/package.json` (`"e2e:d24": "node e2e/d24-arco-capturas.cjs"`)
 
 **Interfaces:**
 - Consumes: classes `.map__ping`, `.map__unidade`, `[data-unidade-id]`, `--cor-ping`, `--cor-unidade`; tema por `localStorage['infra-monitor.tema'] = 'escuro'|'claro'` (conferir os valores aceitos em `src/app/core/services/theme.service.ts` antes) e `document.documentElement.dataset.theme`.
 
 - [ ] **Step 1: n07.**
   - `STATUS_TODOS`: hex da paleta nova.
-  - Caso 7: `pings.length === conexoesEsperadas * 3`, mensagem "três pings por linha de conexão desenhável, a ⅓ (D23)".
-  - Caso 7, novo: todo ping com `getComputedStyle(n).width === '5px'`, `borderTopWidth === '0px'` e `boxShadow` sem `232, 240, 248` e sem `255, 255, 255` ("sem contorno branco, D23").
+  - Caso 7: `pings.length === conexoesEsperadas * 3`, mensagem "três pings por linha de conexão desenhável, a ⅓ (D24)".
+  - Caso 7, novo: todo ping com `getComputedStyle(n).width === '5px'`, `borderTopWidth === '0px'` e `boxShadow` sem `232, 240, 248` e sem `255, 255, 255` ("sem contorno branco, D24").
   - Caso 8 ("nenhum ping fica parado"): o fade zera a opacidade perto das pontas, mas a posição continua mudando — o critério de distância segue válido. Mudar o rótulo da janela: 1050 ms são ¼ de uma travessia (4200 ms); manter.
   - Caso 8, novo: nas 3 amostras, nenhum ping com opacidade `> 0.05` a menos de 2px do centro do marcador hub ou do filho — se ficar complexo, trocar por: em alguma das amostras existe ping com `style.opacity < 1` (fade ativo) e todos `style.opacity` ∈ [0,1].
   - Atualizar comentários de cabeçalho que dizem "dois pings"/"fases opostas".
 - [ ] **Step 2: Rodar n07 contra o clone dev:** `FRONT_URL=http://127.0.0.1:4201 API_PORT=8082 E2E_EMAIL=d23.perf@inframonitor.local N07_SENHA=$ADMIN npm run e2e:n07` → todos os casos verdes. Depois `e2e:n06` e `e2e:n08` (`N06_SENHA`, `N08_SENHA`) → verdes. Corrigir o roteiro se a falha for de expectativa antiga de D16/D18; corrigir o código se for regressão.
-- [ ] **Step 3: `d23-arco-capturas.cjs`.** Login + navegação por clique (copiar de n07), `apontarApi`. Gera:
+- [ ] **Step 3: `d24-arco-capturas.cjs`.** Login + navegação por clique (copiar de n07), `apontarApi`. Gera:
   1. `seis-status-{antes,depois}.png` — `.map-card` com 6 linhas horizontais sintéticas: para cada status, injetar um `<div>` com o CSS do ping (antes: CSS de `origin/main` inline; depois: `.map__ping` real com `--cor-ping`) dentro de `.map-card` (para valer o `:host ::ng-deep`), sobre fundo `#16283a`, ao lado de um marcador (`.map__unidade` sintético) e de um traço de linha simulado (div de 1,6px com a cor a 0,85 sobre halo de 6px blur 4 a 0,28). Escala 4× (`deviceScaleFactor: 4`, clip pequeno). Rótulo de texto com o nome do status.
   2. `ping-7px-vs-5px.png` — antes e depois lado a lado a 4×, um status por linha.
-  3. Mapa real: `{escuro,claro}-{estado,municipio}.png` — estado = tela como abre; município = clique no município de Aracaju (centroide) ou do hub; esperar 900 ms. Rótulo `PERF_ROTULO`/`CAP_ROTULO` no nome (`dev`/`carga`) e saída em `CAP_SAIDA` (default `e2e/d23-evidence`).
+  3. Mapa real: `{escuro,claro}-{estado,municipio}.png` — estado = tela como abre; município = clique no município de Aracaju (centroide) ou do hub; esperar 900 ms. Rótulo `PERF_ROTULO`/`CAP_ROTULO` no nome (`dev`/`carga`) e saída em `CAP_SAIDA` (default `e2e/d24-evidence`).
   4. `reduced-motion-{escuro}.png` com `reducedMotion: 'reduce'` + checagem: 0 `.map__ping`, `::after` com `animation-name: none`.
   Imprime JSON de checagens (`ok`/`falha`) e sai com código 1 se alguma falhar.
-- [ ] **Step 4: "Antes" do mapa real.** Worktree temporário de `origin/main` em `<scratchpad>/wt-main` (com junção de `node_modules`), `ng serve --port 4202`; rodar `d23-arco-capturas.cjs` com `FRONT_URL=http://127.0.0.1:4202 CAP_ROTULO=antes-dev` (API 8082) e `antes-carga` (API 8083, `CAP_SAIDA=<scratchpad>/d23-carga`). Parar o `ng serve` 4202 por PID, `rmdir` a junção, `git worktree remove`.
+- [ ] **Step 4: "Antes" do mapa real.** Worktree temporário de `origin/main` em `<scratchpad>/wt-main` (com junção de `node_modules`), `ng serve --port 4202`; rodar `d24-arco-capturas.cjs` com `FRONT_URL=http://127.0.0.1:4202 CAP_ROTULO=antes-dev` (API 8082) e `antes-carga` (API 8083, `CAP_SAIDA=<scratchpad>/d23-carga`). Parar o `ng serve` 4202 por PID, `rmdir` a junção, `git worktree remove`.
 - [ ] **Step 5: "Depois"**: mesmo roteiro com `FRONT_URL=http://127.0.0.1:4201`, `CAP_ROTULO=depois-dev`/`depois-carga`.
-- [ ] **Step 6: Conferir as imagens (Read de cada PNG).** Critérios: 3 pings por arco; nenhum contorno branco; 6 status distinguíveis lado a lado (em especial sem-dados × sem-equipamentos × em-manutenção); glow visível e não "borrão" no tema claro sobre o fundo `#f2f6fa`; halo da linha visível sem apagar o município; marcador selecionado legível. Anotar o que se vê em `e2e/d23-evidence/LEIA.md` (uma linha por imagem).
+- [ ] **Step 6: Conferir as imagens (Read de cada PNG).** Critérios: 3 pings por arco; nenhum contorno branco; 6 status distinguíveis lado a lado (em especial sem-dados × sem-equipamentos × em-manutenção); glow visível e não "borrão" no tema claro sobre o fundo `#f2f6fa`; halo da linha visível sem apagar o município; marcador selecionado legível. Anotar o que se vê em `e2e/d24-evidence/LEIA.md` (uma linha por imagem).
 - [ ] **Step 7: Commit**
 
 ```bash
-git commit -m "test(mapa): e2e de tres pings sem contorno e capturas comparativas de D23" -- infra-monitor-frontend/e2e/n07-pulso-ping-dica.cjs infra-monitor-frontend/e2e/d23-arco-capturas.cjs infra-monitor-frontend/e2e/d23-evidence/ infra-monitor-frontend/package.json
+git commit -m "test(mapa): e2e de tres pings sem contorno e capturas comparativas de D24" -- infra-monitor-frontend/e2e/n07-pulso-ping-dica.cjs infra-monitor-frontend/e2e/d24-arco-capturas.cjs infra-monitor-frontend/e2e/d24-evidence/ infra-monitor-frontend/package.json
 ```
 
-  Antes: conferir que nenhum JSON/PNG do repo contém dado da carga (`grep -rl "Itabaiana\|carga" e2e/d23-evidence` só pode achar nome de unidade que também existe no dev — provar pelo número de marcadores, 11).
+  Antes: conferir que nenhum JSON/PNG do repo contém dado da carga (`grep -rl "Itabaiana\|carga" e2e/d24-evidence` só pode achar nome de unidade que também existe no dev — provar pelo número de marcadores, 11).
 
 ---
 
-### Task 7: Documentação D23, encerramento e PR
+### Task 7: Documentação D24, encerramento e PR
 
 **Files:**
-- Modify: `Docs/mapa-architecture/mapa-decisoes.md` (nova `## D23` ao fim), `Docs/mapa-architecture/mapa-contexto-atual.md` (nova seção §17 D23 com números; §9.2 ganha nota apontando para §17), `Docs/mapa-architecture/mapa-dividas.md` (DV16 → **Fechada (D23)** com o porquê, sem apagar o histórico), `Docs/mapa-architecture/mapa-architecture.md` (linha D23 na tabela "Estado do ciclo"; `D01–D22` → `D01–D23`)
+- Modify: `Docs/mapa-architecture/mapa-decisoes.md` (nova `## D24` ao fim), `Docs/mapa-architecture/mapa-contexto-atual.md` (nova seção §17 D24 com números; §9.2 ganha nota apontando para §17), `Docs/mapa-architecture/mapa-dividas.md` (DV16 → **Fechada (D24)** com o porquê, sem apagar o histórico), `Docs/mapa-architecture/mapa-architecture.md` (linha D24 na tabela "Estado do ciclo"; `D01–D22` → `D01–D24`)
 
-- [ ] **Step 1: D23 em `mapa-decisoes.md`**, no formato das anteriores: pedido; o que entrou (paleta com tabela de contraste e ΔE; halo WebGL e por que não `filter`; três pings em fluxo; orbe 5px; glow do marcador com miolo opaco); **reversões** explícitas: D16 (ida e volta → fluxo, com a prova de que espaçamento regular é incompatível com a onda triangular) e D18-B (esfera → orbe); origem do contorno branco (as duas camadas, código antes); o que não mudou (técnica `Marker` DOM, `pontoNoArco` O(1), DV13, geometria de D19, reduced-motion); verificado (números da bancada A/D2r/BD2r/D3/D3w/H/BD3/BD3x5, app real antes/depois dev e carga, `ng test` N/N, `e2e:n06/n07/n08` X/X, capturas); descartado (`filter`/`drop-shadow` no DOM, `circle-blur` em camada WebGL = cenário E, miolo translúcido, `will-change` se não entrou).
+- [ ] **Step 1: D24 em `mapa-decisoes.md`**, no formato das anteriores: pedido; o que entrou (paleta com tabela de contraste e ΔE; halo WebGL e por que não `filter`; três pings em fluxo; orbe 5px; glow do marcador com miolo opaco); **reversões** explícitas: D16 (ida e volta → fluxo, com a prova de que espaçamento regular é incompatível com a onda triangular) e D18-B (esfera → orbe); origem do contorno branco (as duas camadas, código antes); o que não mudou (técnica `Marker` DOM, `pontoNoArco` O(1), DV13, geometria de D19, reduced-motion); verificado (números da bancada A/D2r/BD2r/D3/D3w/H/BD3/BD3x5, app real antes/depois dev e carga, `ng test` N/N, `e2e:n06/n07/n08` X/X, capturas); descartado (`filter`/`drop-shadow` no DOM, `circle-blur` em camada WebGL = cenário E, miolo translúcido, `will-change` se não entrou).
 - [ ] **Step 2: Contexto §17** com as tabelas de números reais copiadas de `bench.json` e `app-*.json`; **DV16 fechada**: stop escuro não existe; pior núcleo sem-equipamentos 3,95:1; captura `seis-status-depois.png`.
 - [ ] **Step 3: `ng test --watch=false` e `ng build` finais**, contagem anotada.
 - [ ] **Step 4: Commit**
 
 ```bash
-git commit -m "docs(mapa): D23 — tres pings em fluxo, orbe, halo e paleta vibrante; DV16 fechada" -- Docs/mapa-architecture/
+git commit -m "docs(mapa): D24 — tres pings em fluxo, orbe, halo e paleta vibrante; DV16 fechada" -- Docs/mapa-architecture/
 ```
 
 - [ ] **Step 5: Encerramento do ambiente.** `Get-CimInstance Win32_Process` filtrando `d23-backend` e `ng.js serve --port 4201`/`4202`; `Stop-Process` por PID; `netstat` provando 8082/8083/4201/4202 livres; `docker rm -f d23-dev d23-carga`; apagar `<scratchpad>/d23-env.sh` e o dump, se houver. Conferir que 8080, 4200, 5434, 5436 continuam como estavam.

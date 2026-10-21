@@ -94,7 +94,7 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * escuro à vontade: quem separava o marcador do município era o aro, a 13,05:1. Com o aro removido
  * (D19 item 1) o miolo virou o único portador de contraste, e os valores de N06 não sustentam o
  * papel: `sem-dados` #435464 dava 1,92:1 contra #16283a e `sem-equipamentos` #263744 dava 1,22:1 —
- * a 13px, marcador invisível. #8797a6 dava 5,01:1 e #667b8b dava 3,41:1 (D19; D23 os subiu, ver
+ * a 13px, marcador invisível. #8797a6 dava 5,01:1 e #667b8b dava 3,41:1 (D19; D24 os subiu, ver
  * abaixo), ambos acima dos 3:1 de WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os
  * dois tons mais dessaturados da tabela, que é o que os faz ler como ausência de dado e não como
  * estado; o que mudou foi a luminância, não o matiz.
@@ -103,10 +103,10 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * dois status era, em parte, que `sem-dados` (1,92:1) e `sem-equipamentos` (1,22:1) gerariam anel de
  * pulso ilegível. Com 5,01:1 e 3,41:1 (D19) o argumento caiu: os seis pulsam com anel legível.
  *
- * D23 tornou a paleta vibrante, porque a linha agora tem halo e precisa de cor que brilhe sobre o
+ * D24 tornou a paleta vibrante, porque a linha agora tem halo e precisa de cor que brilhe sobre o
  * fundo escuro. Valores calculados por script em HSL: coloridos com `S×1,18+0,04` e `L+0,05` (teto
  * 0,72, sem nunca baixar); neutros com `S×1,1` e `L+0,08` (sem-dados) / `+0,04` (sem-equipamentos).
- * Contraste contra #16283a: 8,70 / 4,44 / 8,23 / 6,67 / 6,41 / 3,95 (na ordem da tabela de D23:
+ * Contraste contra #16283a: 8,70 / 4,44 / 8,23 / 6,67 / 6,41 / 3,95 (na ordem da tabela de D24:
  * disponível, indisponível, degradada, em-manutenção, sem-dados, sem-equipamentos; eram 5,01/3,41 em D19 nos dois
  * neutros). ΔE OKLab mínimo entre quaisquer dois status: 10,5 (em-manutenção × sem-dados); sem-dados ×
  * sem-equipamentos passou de 9,7 para 12,8. `em-manutencao` já tinha saturação 100% e não mudou.
@@ -140,7 +140,7 @@ function corDoStatus(status: string): string {
  * passa a ter um portador só, o marcador de unidade.
  *
  * O valor fica entre o `none` antigo (#0c1722, escuro demais — o polígono sumia no gradiente do
- * cartão) e o `sem-equipamentos` (#6e8698 desde D23, #667b8b em D19 — encostado na faixa de
+ * cartão) e o `sem-equipamentos` (#6e8698 desde D24, #667b8b em D19 — encostado na faixa de
  * status): claro o bastante para o contorno recortar a forma, escuro o bastante para o marcador
  * colorido vencer por contraste.
  */
@@ -157,7 +157,7 @@ const COR_MUNICIPIO = '#16283a';
  * #456a8e dá 2,65:1. Não chega aos 3:1 de WCAG 1.4.11 de propósito: a 75 municípios num zoom de
  * estado, traço com contraste de controle de interface vira grade, e a divisa é contexto — o
  * conteúdo essencial (o estado operacional) está no marcador. Desde D19 o marcador não tem mais
- * aro: o miolo sozinho carrega o contraste — desde D23 entre 3,95:1 (`sem-equipamentos` #6e8698, o
+ * aro: o miolo sozinho carrega o contraste — desde D24 entre 3,95:1 (`sem-equipamentos` #6e8698, o
  * pior caso) e 8,70:1 (`disponivel`) contra #16283a; em D19 era 3,41:1 a 6,96:1 — ver o comentário
  * de `COR_DO_STATUS`. 2,65:1 é onde a forma se lê sem a malha competir com os marcadores; medido
  * por captura, não estimado.
@@ -165,7 +165,7 @@ const COR_MUNICIPIO = '#16283a';
 const COR_CONTORNO_MUNICIPIO = '#456a8e';
 
 /**
- * Duração de uma travessia completa do ping — desde D23, UMA travessia hub → unidade (D16/D17
+ * Duração de uma travessia completa do ping — desde D24, UMA travessia hub → unidade (D16/D17
  * falavam em hub → unidade → hub).
  *
  * 4200 ms, e não os 2600 de N07. O valor antigo foi escolhido contra uma linha reta e curta; com
@@ -173,14 +173,14 @@ const COR_CONTORNO_MUNICIPIO = '#456a8e';
  * batimento de sonda. O período é a ÚNICA variável do movimento (a fase de fluxo e o passo
  * são funções puras dele), então desacelerar é trocar este número — nada mais muda.
  *
- * Desde D23 é UMA travessia hub → unidade, não ida e volta: a velocidade caiu à metade, o que
+ * Desde D24 é UMA travessia hub → unidade, não ida e volta: a velocidade caiu à metade, o que
  * compensa a densidade 3× (chega um ping na unidade a cada 1400 ms); mesmo argumento de D17 contra
  * "tráfego agitado".
  */
 const PERIODO_PING_MS = 4200;
 
 /**
- * Pings simultâneos por linha. Três, a ⅓ um do outro, em fluxo hub → unidade (D23 substituiu o par
+ * Pings simultâneos por linha. Três, a ⅓ um do outro, em fluxo hub → unidade (D24 substituiu o par
  * em fase oposta de D16, que fazia o "ida e volta").
  */
 const PINGS_POR_LINHA = 3;
@@ -188,7 +188,7 @@ const PINGS_POR_LINHA = 3;
 /**
  * Posição no fluxo, dado o tempo em ciclos. `0 → 1` e recomeça no hub. Pura.
  *
- * D23 trocou o vai-e-volta de D16 por fluxo num sentido só, a pedido: três pings com espaçamento
+ * D24 trocou o vai-e-volta de D16 por fluxo num sentido só, a pedido: três pings com espaçamento
  * REGULAR ao longo do arco. Na onda triangular de D16 isso é impossível — com duas fases opostas os
  * pings se cruzam no meio, e com fases 0/⅓/⅔ dois deles coincidem. Em dente de serra, defasar de
  * k/3 mantém a distância de ⅓ em qualquer instante. O custo continua O(1) por quadro: muda a
@@ -353,10 +353,10 @@ const DURACAO_CAMERA_MS = 600;
 /** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
 const PADDING_MUNICIPIO = { top: 110, right: 70, bottom: 50, left: 60 };
 
-/** Largura do núcleo da linha de conexão (D23: 1,4 → 1,6, para a cor vibrante ler sobre o halo). */
+/** Largura do núcleo da linha de conexão (D24: 1,4 → 1,6, para a cor vibrante ler sobre o halo). */
 const LARGURA_CONEXAO = 1.6;
 /**
- * Núcleo da linha, quase opaco (D23): a translucidez passou para o halo por baixo, que carrega o
+ * Núcleo da linha, quase opaco (D24): a translucidez passou para o halo por baixo, que carrega o
  * brilho; o núcleo fino pode ficar firme sem recortar o bloco. Antes (D18) era a linha única, 0,65.
  *
  * O papel que a translucidez de D18 cumpria continua, agora no halo: a conexão cruza o estado
@@ -366,7 +366,7 @@ const LARGURA_CONEXAO = 1.6;
  */
 const OPACIDADE_CONEXAO = 0.85;
 /**
- * Brilho no WebGL (D23): o canvas do MapLibre não aplica `filter` nem `box-shadow`. Uma segunda
+ * Brilho no WebGL (D24): o canvas do MapLibre não aplica `filter` nem `box-shadow`. Uma segunda
  * `line` larga e borrada por baixo do núcleo é o equivalente nativo — estática, custo por quadro
  * ~0 (medido na Task 5).
  */
@@ -903,8 +903,8 @@ export class MapaComponent implements OnDestroy {
 
   /**
    * Pings percorrendo as linhas de conexão — ICMP echo como desenho. Três por linha, a ⅓ um do
-   * outro, em fluxo contínuo hub → unidade (D23), com fade nas duas pontas. `style.opacity` por
-   * quadro NÃO fica de graça: na bancada (D23) a tela inteira custou 1,77 ms/quadro sobre o mapa parado (mediana de 3 corridas)
+   * outro, em fluxo contínuo hub → unidade (D24), com fade nas duas pontas. `style.opacity` por
+   * quadro NÃO fica de graça: na bancada (D24) a tela inteira custou 1,77 ms/quadro sobre o mapa parado (mediana de 3 corridas)
    * (BD3), dos quais ~0,6 ms são recálculo de estilo — o `opacity` inline invalida estilo a cada
    * quadro em cada ping. Cabe (11,5% do orçamento; 23,8% com 5×), então fica.
    *
@@ -916,7 +916,7 @@ export class MapaComponent implements OnDestroy {
    * - `line-dasharray` animado por `setPaintProperty`: 1,65 ms por quadro mesmo rodando a 20 Hz e
    *   não a 60, porque cada troca reconstrói a textura de tracejado. Além do custo, o movimento é
    *   em degraus e o tracejado não é bidirecional: o "ida e volta" de D16 exigiria duas camadas
-   *   sobrepostas em fase invertida (D23 abandonou a ida e volta, mas o custo segue valendo).
+   *   sobrepostas em fase invertida (D24 abandonou a ida e volta, mas o custo segue valendo).
    *
    * E é o padrão que N02 e N06 já fixaram: a lib reposiciona o elemento em pan, zoom, pitch e
    * rotate sem sincronização manual.

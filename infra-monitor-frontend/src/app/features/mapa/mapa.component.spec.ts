@@ -139,7 +139,7 @@ describe('movimento do ping na linha de conexao',()=>{
     expect(faseDeFluxo(2.5)).toBe(0.5);
   });
 
-  /* D23: tres pings por linha, a 1/3 um do outro EM QUALQUER instante — inclusive depois que um
+  /* D24: tres pings por linha, a 1/3 um do outro EM QUALQUER instante — inclusive depois que um
    * deles recomecou no hub. Distancia circular, porque 0,9 e 0,23 estao a 1/3 pela virada. */
   it('mantem os tres pings da mesma linha a 1/3 um do outro',()=>{
     const circular=(a:number,b:number)=>{const d=Math.abs(a-b)%1;return Math.min(d,1-d);};
@@ -223,7 +223,7 @@ describe('arco da conexao',()=>{
   });
 });
 
-describe('camadas de conexao (D18, halo de D23)',()=>{
+describe('camadas de conexao (D18, halo de D24)',()=>{
   const CORES_ESPERADAS = ['match', ['get','status'],
     'DISPONIVEL', '#35e087',
     'INDISPONIVEL', '#f84e54',

@@ -40,10 +40,10 @@ const CENARIOS = [
   ['B5  55 marcadores pulsando (5x a carga real) — margem', 'B5'],
   ['D5  100 pings DOM (5x) — margem', 'D5'],
   ['E5  100 pings por setData (5x) — margem', 'E5'],
-  // D23 — CSS real (ping 5px, marcador com glow, halo) contra o ANTES (origin/main)
+  // D24 — CSS real (ping 5px, marcador com glow, halo) contra o ANTES (origin/main)
   ['D2r 20 pings .ping-d18 (CSS de origin/main), vai-e-volta — producao ANTES', 'D2r'],
   ['BD2r B + D2r — a tela inteira ANTES', 'BD2r'],
-  ['D3  30 pings .ping-d23, fluxo hub->unidade + fade nas pontas', 'D3'],
+  ['D3  30 pings .ping-d24, fluxo hub->unidade + fade nas pontas', 'D3'],
   ['D3w D3 com will-change: transform', 'D3w'],
   ['H   mapa parado com halo visivel', 'H'],
   ['BD3 B com glow + D3 + halo — a tela inteira DEPOIS', 'BD3'],

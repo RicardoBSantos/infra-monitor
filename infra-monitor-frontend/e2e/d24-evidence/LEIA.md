@@ -1,7 +1,7 @@
-# Capturas comparativas de D23 (banco de dev)
+# Capturas comparativas de D24 (banco de dev)
 
-Geradas por `e2e/d23-arco-capturas.cjs` em 2026-10-21, clone do banco de dev (backend 8082; 11
-marcadores, 9 linhas). "Antes" = `ng serve` do merge-base do branch (`8f8b78d`, pré-D23) — não
+Geradas por `e2e/d24-arco-capturas.cjs` em 2026-10-21, clone do banco de dev (backend 8082; 11
+marcadores, 9 linhas). "Antes" = `ng serve` do merge-base do branch (`8f8b78d`, pré-D24) — não
 `origin/main`, que já recebeu o PR #14 e mudou o `mapa.component.scss` por outra razão; "depois" =
 `feat/mapa-arco-brilho`. As capturas do banco da carga ficaram fora do repositório (scratchpad).
 Checagens de cada execução em `antes-dev-checagens.json` e `depois-dev-checagens.json` (15/15 nas duas).

@@ -35,8 +35,8 @@
       color-mix(in srgb,var(--cor-ping,#8797a6) 70%,#000) 100%);
     box-shadow:0 0 5px 1px rgba(232,240,248,.3),inset -1.5px -1.5px 2.5px rgba(0,0,0,.38),0 1px 2px rgba(0,0,0,.45);
     pointer-events:none;z-index:1}
-  /* D3 — .map__ping final de D23: 5px, sem aro, orbe com glow estatico de 4px */
-  .ping-d23,.ping-d23w{width:5px;height:5px;border:0;border-radius:50%;
+  /* D3 — .map__ping final de D24: 5px, sem aro, orbe com glow estatico de 4px */
+  .ping-d24,.ping-d24w{width:5px;height:5px;border:0;border-radius:50%;
     background:var(--cor-ping,#9dabb9);
     background:radial-gradient(circle,
       color-mix(in srgb,#fff 55%,var(--cor-ping,#9dabb9)) 0%,
@@ -44,8 +44,8 @@
       color-mix(in srgb,var(--cor-ping,#9dabb9) 0%,transparent) 100%);
     box-shadow:0 0 4px 1px color-mix(in srgb,var(--cor-ping,#9dabb9) 70%,transparent);
     pointer-events:none;z-index:1}
-  .ping-d23w{will-change:transform}
-  /* marcador de D23: miolo opaco + glow estatico (sem aro) */
+  .ping-d24w{will-change:transform}
+  /* marcador de D24: miolo opaco + glow estatico (sem aro) */
   .u.u-glow{border:0;background:var(--c,#9dabb9);
     box-shadow:0 0 6px 1px color-mix(in srgb,var(--c,#9dabb9) 55%,transparent),0 1px 3px rgba(0,0,0,.6)}
 </style></head><body><div id="card"><div id="map"></div></div>
@@ -54,7 +54,7 @@ import { LngLatBounds, Map as M, Marker, setWorkerUrl } from '/node_modules/mapl
 setWorkerUrl('/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs');
 
 const COR = ['#34c77b','#e5484d','#e8a33d','#7fadff','#435464','#263744'];
-/* paleta D23: disponivel, indisponivel, degradada, em-manutencao, sem-dados, sem-equipamentos */
+/* paleta D24: disponivel, indisponivel, degradada, em-manutencao, sem-dados, sem-equipamentos */
 const CORN = ['#35e087','#f84e54','#fcb142','#7fadff','#9dabb9','#6e8698'];
 /* copiadas literalmente de mapa.component.ts */
 const PERIODO_PING_MS = 4200, FADE_NA_PONTA = 0.08;
@@ -179,7 +179,7 @@ function halo(){
   map.setPaintProperty('conexoes-linha','line-color',['get','corn']);
   map.setPaintProperty('conexoes-linha','line-opacity',.85);
 }
-function marcadoresD23(){
+function marcadoresD24(){
   todosMarcadores().forEach(e=>{ e.classList.add('u-glow'); e.style.setProperty('--c',CORN[e.dataset.i%6]); });
 }
 
@@ -206,13 +206,13 @@ window.cenario = (m)=>{
   if(m==='E5') pingsSetData(100);
   if(m==='D2r'||m==='BD2r') pingsDom(20,'ping-d18');
   if(m==='BD2r') document.body.className='B';
-  if(m==='D3') pingsFluxo(30,'ping-d23');
-  if(m==='D3w') pingsFluxo(30,'ping-d23w');
+  if(m==='D3') pingsFluxo(30,'ping-d24');
+  if(m==='D3w') pingsFluxo(30,'ping-d24w');
   if(m==='H') halo();
   if(m==='BD3'||m==='BD3x5'){
     document.body.className='B';
     if(m==='BD3x5') marcadoresExtra.forEach(mk=>mk.addTo(map));
-    marcadoresD23(); halo(); pingsFluxo(m==='BD3'?30:150,'ping-d23');
+    marcadoresD24(); halo(); pingsFluxo(m==='BD3'?30:150,'ping-d24');
   }
   if(m==='F'){
     map.setPaintProperty('conexoes-dash','line-opacity',.9);

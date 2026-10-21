@@ -218,7 +218,7 @@
       }
     },
     {
-      "rotulo": "D3  30 pings .ping-d23, fluxo hub->unidade + fade nas pontas",
+      "rotulo": "D3  30 pings .ping-d24, fluxo hub->unidade + fade nas pontas",
       "frames": 338,
       "p50": 17.6,
       "p95": 18.4,

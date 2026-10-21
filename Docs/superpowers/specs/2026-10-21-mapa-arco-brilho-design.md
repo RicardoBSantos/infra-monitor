@@ -1,4 +1,4 @@
-# Mapa — arco de conexão: três pings em fluxo, orbe luminoso, paleta vibrante (D23)
+# Mapa — arco de conexão: três pings em fluxo, orbe luminoso, paleta vibrante (D24)
 
 Data: 2026-10-21 · Branch: `feat/mapa-arco-brilho` (worktree `../infra-monitor-wt-arco`, base `origin/main` 8f8b78d)
 
@@ -60,10 +60,10 @@ dois usa filtro — ambos recebem o hex já vibrante.
 
 | Registro | Conflito | Tratamento |
 |---|---|---|
-| D16 — dois pings em fase oposta, ida e volta | revertido por decisão do usuário | D23 registra a reversão; D16 fica |
+| D16 — dois pings em fase oposta, ida e volta | revertido por decisão do usuário | D24 registra a reversão; D16 fica |
 | D16/D17 — técnica `Marker` DOM + `pontoNoArco` O(1) | **não** contrariado: continua `Marker` DOM e `setLngLat`, só muda a fase | — |
 | D17 — `PERIODO_PING_MS` 4200 contra "tráfego agitado" | 3 pings aumentam densidade | período mantém 4200 ms, agora por travessia de ida: velocidade cai à metade, chegada a cada 1400 ms |
-| D18-B — esfera com highlight e sombra interna | substituída pelo orbe, a pedido | D23 registra; D18 fica |
+| D18-B — esfera com highlight e sombra interna | substituída pelo orbe, a pedido | D24 registra; D18 fica |
 | D19 — marcador sem aro, contraste no miolo | não contrariado: miolo segue opaco; glow é acréscimo | geometria de seleção/foco/pulso inalterada |
 | D16 — canvas sem tema, `--cor-foco-mapa` literal | não contrariado | paleta vibrante é literal, como `COR_DO_STATUS` |
 | §9.2 — `box-shadow` animado 45% mais caro | não contrariado: glow é estático, nunca animado | — |
@@ -160,7 +160,7 @@ sem-equipamentos 3,95:1. DV16 fecha com a captura dos 6 status.
    `box-shadow`.
 5. **Capturas** (Playwright): 6 status lado a lado (antes/depois, 4×, 7px × 5px); dark + light ×
    dev + carga × zoom de estado + zoom de município; reduced-motion. Conferidas visualmente.
-6. Docs: D23 em `mapa-decisoes.md`; `mapa-contexto-atual.md` com números novos (§9.2 + seção D23);
+6. Docs: D24 em `mapa-decisoes.md`; `mapa-contexto-atual.md` com números novos (§9.2 + seção D24);
    DV16 fechada em `mapa-dividas.md`; índice `mapa-architecture.md`. No mesmo commit da mudança.
 
 ## Fora de escopo
