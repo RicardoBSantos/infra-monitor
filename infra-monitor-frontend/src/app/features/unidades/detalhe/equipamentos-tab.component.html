@@ -52,7 +52,7 @@
           <tr>
             <th>NOME</th><th>TIPO</th><th>HOSTNAME</th><th>ENDEREÇO IP</th><th>STATUS</th>
             <th class="numerico">LATÊNCIA</th><th class="numerico">DISPONIBILIDADE</th>
-            <th class="numerico">ÚLTIMA VERIFICAÇÃO</th><th class="numerico">AÇÕES</th>
+            <th class="numerico">ÚLTIMA VERIFICAÇÃO</th><th class="acoes">AÇÕES</th>
           </tr>
         </thead>
         <tbody>
@@ -68,7 +68,7 @@
               <td class="numerico mono" [class.down]="equipamento.status === 'INDISPONIVEL'">{{ latencia(equipamento) }}</td>
               <td class="numerico mono">{{ disponibilidade(equipamento.id) }}</td>
               <td class="numerico mono apagado">{{ ultimaVerificacao(equipamento) }}</td>
-              <td class="numerico">
+              <td class="acoes">
                 <!-- Ação única por decisão: um botão "Ver" solto lê melhor que um menu com
                      um item só. O componente que faltava agora existe
                      (shared/action-menu, usado na tela de Equipamentos): ao surgir a

@@ -92,7 +92,7 @@
               <th>INTERVALO / TIMEOUT</th>
               <th>THRESHOLDS</th>
               <th>STATUS ADMINISTRATIVO</th>
-              @if (authState.canManageMonitors()) { <th class="numerico">AÇÕES</th> }
+              @if (authState.canManageMonitors()) { <th class="acoes">AÇÕES</th> }
             </tr>
           </thead>
           <tbody>
@@ -109,7 +109,7 @@
                   </span>
                 </td>
                 @if (authState.canManageMonitors()) {
-                  <td class="numerico">
+                  <td class="acoes">
                     <div class="monitor-page__acoes">
                       <button class="botao botao--discreto" type="button" (click)="openEdit(item)" [disabled]="actingId() !== null">Editar</button>
                       <button class="botao botao--discreto" type="button" (click)="toggle(item)" [disabled]="actingId() !== null">

@@ -126,7 +126,7 @@
               <th>STATUS</th>
               <th class="numerico">LATÊNCIA</th>
               <th>MONITORAMENTO</th>
-              <th class="numerico">AÇÕES</th>
+              <th class="acoes">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -154,7 +154,7 @@
                     {{ linha.ativo ? 'Ativado' : 'Desativado' }}
                   </span>
                 </td>
-                <td class="numerico">
+                <td class="acoes">
                   <app-action-menu
                     [itens]="itensDoMenu(linha)"
                     [rotuloContexto]="linha.nome"

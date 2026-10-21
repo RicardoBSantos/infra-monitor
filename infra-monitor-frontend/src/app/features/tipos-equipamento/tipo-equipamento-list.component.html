@@ -89,7 +89,7 @@
               <th class="numerico">DEGRADADOS</th>
               <th class="numerico">OFFLINE</th>
               <th>STATUS</th>
-              <th class="numerico">AÇÕES</th>
+              <th class="acoes">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -121,7 +121,7 @@
                     {{ tipo.ativo ? 'Ativo' : 'Inativo' }}
                   </span>
                 </td>
-                <td class="numerico">
+                <td class="acoes">
                   <app-action-menu
                     [itens]="itensDoMenu(tipo)"
                     [rotuloContexto]="tipo.nome"
