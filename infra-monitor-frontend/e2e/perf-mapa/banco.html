@@ -59,7 +59,7 @@ const CORN = ['#35e087','#f84e54','#fcb142','#7fadff','#9dabb9','#6e8698'];
 /* copiadas literalmente de mapa.component.ts */
 const PERIODO_PING_MS = 4200, FADE_NA_PONTA = 0.08;
 const faseDeFluxo = (ciclos) => ((ciclos % 1) + 1) % 1;
-const opacidadeNaPonta = (u) => Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA));
+const opacidadeNaPonta = (u) => Math.round(Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA)) * 100) / 100;
 const UNI = [
   ['SED',-37.0497,-10.9116],['ESC',-37.0658,-10.9317],['CIS',-37.0602,-10.9418],['HOT',-37.048,-10.988],
   ['LAG',-37.67,-10.9172],['EST',-37.4383,-11.2679],['SOC',-37.1264,-10.8556],['SCR',-37.2064,-11.0147],
@@ -126,7 +126,9 @@ function parar(){
   if(dashTimer) clearInterval(dashTimer); dashTimer=null;
   document.body.className='';
   ativos.forEach(m=>m.remove()); ativos=[];
-  pingPool.forEach(m=>{ const e=m.getElement(); e.className='ping'; e.style.opacity=''; e.style.removeProperty('--cor-ping'); });
+  /* setOpacity(1): D3 deixa o _opacity do Marker no ultimo valor do fade; os cenarios antigos reusam
+     o pool e, sem isto, o _updateOpacity da lib pintaria esses pings meio apagados */
+  pingPool.forEach(m=>{ m.setOpacity('1'); const e=m.getElement(); e.className='ping'; e.style.opacity=''; e.style.removeProperty('--cor-ping'); });
   todosMarcadores().forEach(e=>{ e.classList.remove('u-glow'); e.style.setProperty('--c',COR[e.dataset.i%6]); });
   map.setLayoutProperty('conexoes-halo','visibility','none');
   map.setPaintProperty('conexoes-linha','line-color',['get','cor']);
@@ -161,7 +163,8 @@ function pingsDom(total,cls='ping'){
 function pingsFluxo(total,cls){
   const usados=pingPool.slice(0,total);
   const nPorLinha=total/linhas.length, t0=performance.now();
-  usados.forEach((m,k)=>{ const e=m.getElement(); e.className=cls; e.style.opacity='0';
+  /* opacidade pelo Marker, como no componente: escrita por fora brigava com o _updateOpacity da lib */
+  usados.forEach((m,k)=>{ const e=m.getElement(); e.className=cls; m.setOpacity('0');
     e.style.setProperty('--cor-ping',CORN[Math.floor(k/nPorLinha)%6]); m.addTo(map); });
   ativos=usados;
   const passo=()=>{ const ciclos=(performance.now()-t0)/PERIODO_PING_MS;
@@ -169,7 +172,7 @@ function pingsFluxo(total,cls){
       const li=linhas[Math.floor(k/nPorLinha)%linhas.length];
       const u=faseDeFluxo(ciclos+(k%nPorLinha)/nPorLinha);
       pm.setLngLat(lerp(li.geometry.coordinates[0],li.geometry.coordinates[1],u));
-      pm.getElement().style.opacity=String(opacidadeNaPonta(u)); });
+      pm.setOpacity(String(opacidadeNaPonta(u))); });
     raf=requestAnimationFrame(passo); };
   raf=requestAnimationFrame(passo);
 }

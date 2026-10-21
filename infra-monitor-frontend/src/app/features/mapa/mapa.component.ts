@@ -208,9 +208,14 @@ const FADE_NA_PONTA = 0.08;
  * Zero nas duas pontas exatas: é o que esconde a virada do dente de serra, quando o ping salta de
  * u≈1 para u=0. Linear em 8% de cada lado — o ping nasce no hub e se apaga ao chegar na unidade,
  * em vez de surgir do nada sobre o marcador.
+ *
+ * Duas casas porque quem escreve é `Marker.setOpacity`, que só toca o estilo quando `style.opacity`
+ * difere do valor pedido — e o navegador normaliza o que devolve (0.43750000000000006 volta
+ * "0.4375"). Sem arredondar a comparação nunca bate no fade e a lib reescreve o mesmo valor a cada
+ * `_update`; com duas casas o fade de ~20 quadros (8% de 4200 ms) continua contínuo.
  */
 export function opacidadeNaPonta(u: number): number {
-  return Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA));
+  return Math.round(Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA)) * 100) / 100;
 }
 
 /** Ponto a `u` do caminho entre dois pares [lng, lat]. Pura. */
@@ -951,21 +956,30 @@ export class MapaComponent implements OnDestroy {
          */
         elemento.setAttribute('aria-hidden', 'true');
         elemento.style.setProperty('--cor-ping', corDoStatus(status));
-        elemento.style.opacity = '0';   // sem flash no primeiro quadro
-        const marcador = new Marker({ element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
-          .setLngLat(origem).addTo(map);
+        /*
+         * Opacidade é da lib, como o `transform` (DV13). `Marker._update` — em todo `setLngLat` e em
+         * todo `move` da câmera — agenda `_updateOpacity`, que reescreve `style.opacity` com o valor
+         * guardado no Marker ('1' por padrão) sempre que o inline difere. Escrito por fora, eram duas
+         * escritas por quadro e, com a câmera andando, a da lib chegava depois da nossa: ping em fade
+         * pintado opaco e a virada u≈1→0 aparecendo. Daí `opacity: '0'` na criação (sem flash no
+         * primeiro quadro) e `setOpacity` no passo — um dono só.
+         */
+        const marcador = new Marker({
+          element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport', opacity: '0',
+        }).setLngLat(origem).addTo(map);
         this.pings.push(marcador);
-        return { marcador, elemento, origem, destino, defasagem: indice / PINGS_POR_LINHA };
+        return { marcador, origem, destino, defasagem: indice / PINGS_POR_LINHA };
       });
     });
 
     const inicio = performance.now();
     const passo = (): void => {
       const ciclos = (performance.now() - inicio) / PERIODO_PING_MS;
-      for (const { marcador, elemento, origem, destino, defasagem } of trajetos) {
+      for (const { marcador, origem, destino, defasagem } of trajetos) {
         const u = faseDeFluxo(ciclos + defasagem);
-        marcador.setLngLat(pontoNoArco(origem, destino, u));
-        elemento.style.opacity = String(opacidadeNaPonta(u));
+        // `setOpacity` escreve o inline (n07 lê `style.opacity`) e pula valor igual: no meio do arco
+        // é '1' constante, e só os pings nas pontas tocam estilo.
+        marcador.setLngLat(pontoNoArco(origem, destino, u)).setOpacity(String(opacidadeNaPonta(u)));
       }
       this.quadroPing = requestAnimationFrame(passo);
     };

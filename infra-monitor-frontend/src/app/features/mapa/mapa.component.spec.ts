@@ -166,6 +166,15 @@ describe('movimento do ping na linha de conexao',()=>{
     expect(opacidadeNaPonta(0.5)).toBe(1);
   });
 
+  /* Marker.setOpacity so pula a escrita quando o texto pedido iguala o style.opacity normalizado
+   * pelo navegador; com casas demais (0.43750000000000006) nunca iguala e a lib reescreve todo quadro. */
+  it('devolve opacidade com no maximo duas casas, que o navegador le de volta igual',()=>{
+    expect(opacidadeNaPonta(0.035)).toBe(0.44);
+    for(let i=0;i<=1000;i++){
+      expect(String(opacidadeNaPonta(i/1000))).toMatch(/^(0|1|0\.\d{1,2})$/);
+    }
+  });
+
   it('interpola o par [lng, lat] nas duas pontas e no meio',()=>{
     const hub:[number,number]=[-37,-10], filha:[number,number]=[-38,-11];
     expect(interpolar(hub,filha,0)).toEqual(hub);
