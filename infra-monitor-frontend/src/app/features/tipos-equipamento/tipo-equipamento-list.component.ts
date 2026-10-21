@@ -13,6 +13,7 @@ import { DashboardApiService } from '../../core/services/dashboard-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu/action-menu.component';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { ModalComponent } from '../../shared/modal/modal.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
@@ -51,7 +52,7 @@ const ZERO: Contagem = { dispositivos: 0, online: 0, degradados: 0, offline: 0 }
  */
 @Component({
   selector: 'app-tipo-equipamento-list',
-  imports: [ReactiveFormsModule, ConfirmDialogComponent, PaginacaoComponent, ActionMenuComponent],
+  imports: [ReactiveFormsModule, ConfirmDialogComponent, ModalComponent, PaginacaoComponent, ActionMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tipo-equipamento-list.component.html',
   styleUrl: './tipo-equipamento-list.component.scss',

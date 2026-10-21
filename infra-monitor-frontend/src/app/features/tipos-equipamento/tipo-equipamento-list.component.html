@@ -1,8 +1,8 @@
-<section class="tipos" aria-labelledby="tipos-titulo">
-  <header class="tipos__topo">
+<section class="tipos pagina" aria-labelledby="tipos-titulo">
+  <header class="pagina__cabecalho">
     <div>
       <h1 id="tipos-titulo">Tipos de equipamento</h1>
-      <p>Classificação administrativa do inventário. Todo equipamento pertence a exatamente um tipo.</p>
+      <p class="pagina__descricao">Classificação administrativa do inventário. Todo equipamento pertence a exatamente um tipo.</p>
     </div>
     @if (authState.canManageInventory()) {
       <button class="botao botao--primario" type="button" (click)="abrirCriacao()">+ Novo tipo</button>
@@ -117,7 +117,7 @@
                   } @else { <span class="apagado">—</span> }
                 </td>
                 <td>
-                  <span class="chip-status" [class.chip-status--off]="!tipo.ativo">
+                  <span class="chip-ativo" [class.chip-ativo--off]="!tipo.ativo">
                     {{ tipo.ativo ? 'Ativo' : 'Inativo' }}
                   </span>
                 </td>
@@ -145,56 +145,39 @@
     }
   </div>
 
-  @if (formAberto()) {
-    <div class="dialog-backdrop" (click)="fecharFormulario()">
-      <section
-        class="tipo-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tipo-form-titulo"
-        (click)="$event.stopPropagation()"
-        (keydown.escape)="fecharFormulario()"
-      >
-        <header class="tipo-modal__topo">
-          <div>
-            <h2 id="tipo-form-titulo">{{ emEdicao() ? 'Editar tipo' : 'Novo tipo' }}</h2>
-            <p>
-              {{ emEdicao()
-                ? 'O nome é usado na classificação de todo o inventário.'
-                : 'O tipo fica disponível para novos equipamentos assim que for criado.' }}
-            </p>
-          </div>
-          <button class="tipo-modal__fechar" type="button" aria-label="Fechar" (click)="fecharFormulario()">✕</button>
-        </header>
+  <app-modal
+    [aberto]="formAberto()"
+    [titulo]="emEdicao() ? 'Editar tipo' : 'Novo tipo'"
+    [subtitulo]="emEdicao()
+      ? 'O nome é usado na classificação de todo o inventário.'
+      : 'O tipo fica disponível para novos equipamentos assim que for criado.'"
+    [bloqueado]="salvando()"
+    (fechar)="fecharFormulario()"
+  >
+    <form class="modal-form" [formGroup]="form" (ngSubmit)="salvar()">
+      <label>NOME *
+        <input formControlName="nome" maxlength="150" autocomplete="off">
+      </label>
 
-        <form [formGroup]="form" (ngSubmit)="salvar()">
-          <label>NOME *
-            <input formControlName="nome" maxlength="150" autocomplete="off">
-          </label>
+      <label>DESCRIÇÃO
+        <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
+      </label>
 
-          <label>DESCRIÇÃO
-            <textarea formControlName="descricao" maxlength="1000" rows="3"></textarea>
-          </label>
+      @for (campo of ['nome','descricao']; track campo) {
+        @if (form.get(campo)?.touched && form.get(campo)?.errors) {
+          <small class="field-error">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
+        }
+      }
 
-          @for (campo of ['nome','descricao']; track campo) {
-            @if (form.get(campo)?.touched && form.get(campo)?.errors) {
-              <small class="campo-erro">{{ form.get(campo)?.errors?.['backend'] || 'Revise este campo.' }}</small>
-            }
-          }
-
-          <footer class="tipo-modal__rodape">
-            <p>Nomes de tipo não se repetem.</p>
-            <div>
-              <button class="botao" type="button" (click)="fecharFormulario()" [disabled]="salvando()">Cancelar</button>
-              <button class="botao botao--primario" type="submit" [disabled]="salvando()">
-                {{ salvando() ? 'Salvando…' : emEdicao() ? 'Salvar alterações' : 'Criar tipo' }}
-              </button>
-            </div>
-          </footer>
-        </form>
-      </section>
-    </div>
-  }
+      <div class="modal-form__rodape">
+        <p>Nomes de tipo não se repetem.</p>
+        <button class="botao" type="button" (click)="fecharFormulario()" [disabled]="salvando()">Cancelar</button>
+        <button class="botao botao--primario" type="submit" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando…' : emEdicao() ? 'Salvar alterações' : 'Criar tipo' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
 
   <app-confirm-dialog
     [open]="acao() !== null"

@@ -218,11 +218,11 @@ describe('TipoEquipamentoListComponent', () => {
     fixture.componentInstance['executarAcao'](tipo({ id: 1, nome: 'Switch', descricao: 'Comutador de rede' }), 'editar');
     fixture.detectChanges();
 
-    const modal = (fixture.nativeElement as HTMLElement).querySelector('.tipo-modal')!;
+    const modal = (fixture.nativeElement as HTMLElement).querySelector('app-modal form.modal-form')!;
     expect(modal.querySelector<HTMLInputElement>('input')!.value).toBe('Switch');
     expect(modal.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Comutador de rede');
 
-    modal.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit'));
+    modal.dispatchEvent(new Event('submit'));
     const put = http.expectOne((requisicao) => requisicao.method === 'PUT' && requisicao.url.endsWith('/tipos-equipamento/1'));
     expect(put.request.body).toEqual({ nome: 'Switch', descricao: 'Comutador de rede' });
     put.flush(tipo({ id: 1, nome: 'Switch', descricao: 'Comutador de rede' }));
@@ -244,5 +244,44 @@ describe('TipoEquipamentoListComponent', () => {
     comBusca.detectChanges();
 
     expect(texto(comBusca)).toContain('Nenhum tipo corresponde à busca');
+  });
+
+  it('fecha o modal com Escape no document logo após abrir e devolve o foco ao botão', async () => {
+    const fixture = montar([tipo({ id: 1 })]);
+    const raiz = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(raiz);
+    const botao = raiz.querySelector<HTMLButtonElement>('.pagina__cabecalho button')!;
+    botao.focus();
+    botao.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(raiz.querySelector('app-modal form.modal-form')).not.toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(raiz.querySelector('app-modal form.modal-form')).toBeNull();
+    expect(document.activeElement).toBe(botao);
+    raiz.remove();
+  });
+
+  it('usa a casca .pagina, .field-error no erro do campo e .chip-ativo--off no tipo inativo', () => {
+    const fixture = montar([tipo({ id: 1, ativo: false })]);
+    const raiz = fixture.nativeElement as HTMLElement;
+
+    expect(raiz.querySelector('section.tipos.pagina')).not.toBeNull();
+    expect(raiz.querySelector('.pagina__cabecalho h1')).not.toBeNull();
+    expect(raiz.querySelector('p.pagina__descricao')).not.toBeNull();
+    expect(raiz.querySelector('.chip-ativo.chip-ativo--off')).not.toBeNull();
+    expect(raiz.querySelector('.chip-status')).toBeNull();
+
+    raiz.querySelector<HTMLButtonElement>('.pagina__cabecalho button')!.click();
+    fixture.detectChanges();
+    raiz.querySelector<HTMLFormElement>('app-modal form')!.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    expect(raiz.querySelector('app-modal .field-error')).not.toBeNull();
+    expect(raiz.querySelector('.campo-erro')).toBeNull();
   });
 });
