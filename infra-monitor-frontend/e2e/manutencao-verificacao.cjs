@@ -138,12 +138,12 @@ const redeCompleta = [];
     // ----------------------------------------------------------------- 6: histórico de notificações
     await page.click('a[href="/notificacoes"]');
     await page.waitForURL(/\/notificacoes/, { timeout: 20000 });
-    await page.waitForSelector('.table-wrap, .feedback, .skeleton', { timeout: 20000 });
+    await page.waitForSelector('.notificacoes__rolagem, .feedback, .esqueleto', { timeout: 20000 });
     await page.waitForTimeout(1000);
-    const temTabela = await page.locator('.table-wrap table').count();
+    const temTabela = await page.locator('.notificacoes__rolagem table').count();
     checar('notificacoes-tabela-presente', 'histórico de notificações carregou tabela', temTabela > 0, `tabela=${temTabela}`);
     if (temTabela > 0) {
-      const textoTabela = await page.locator('.table-wrap table').innerText();
+      const textoTabela = await page.locator('.notificacoes__rolagem table').innerText();
       const temCancelada = /CANCELADA/i.test(textoTabela);
       checar('notificacoes-cancelada-visivel', 'texto "CANCELADA" aparece na tabela', temCancelada, temCancelada ? 'encontrado' : 'não encontrado na página atual — pode estar em outra página da paginação');
       await page.screenshot({ path: path.join(OUT, '06-notificacoes-historico.png') });
