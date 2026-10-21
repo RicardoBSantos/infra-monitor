@@ -35,7 +35,7 @@ interface PontoLatencia { x: number; y: number | null; }
     </div>
 
     @if (estado() === 'loading') {
-      <div class="esqueleto esqueleto--grafico" aria-label="Carregando medições"><span></span></div>
+      <div class="esqueleto esqueleto--grafico" role="status" aria-label="Carregando medições"><span></span></div>
     } @else if (estado() === 'error') {
       <div class="vazio">
         <strong>Não foi possível carregar as medições.</strong>

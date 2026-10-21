@@ -2,7 +2,7 @@
   <section class="cartao" aria-labelledby="titulo-cadastro">
     <h2 class="cartao__titulo" id="titulo-cadastro">CADASTRO DA UNIDADE</h2>
     @if (campos().length === 0) {
-      <div class="esqueleto" aria-label="Carregando cadastro">@for (linha of [1,2,3,4]; track linha) { <span></span> }</div>
+      <div class="esqueleto" role="status" aria-label="Carregando cadastro">@for (linha of [1,2,3,4]; track linha) { <span></span> }</div>
     } @else {
       <dl class="cadastro">
         @for (campo of campos(); track campo.rotulo) {

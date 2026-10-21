@@ -27,7 +27,7 @@
   </div>
 
   @if (store.equipamentosEstado() === 'loading') {
-    <div class="esqueleto" aria-label="Carregando equipamentos">@for (linha of [1,2,3,4,5]; track linha) { <span></span> }</div>
+    <div class="esqueleto" role="status" aria-label="Carregando equipamentos">@for (linha of [1,2,3,4,5]; track linha) { <span></span> }</div>
   } @else if (store.equipamentosEstado() === 'error') {
     <div class="vazio" role="alert">
       <strong>Não foi possível carregar os equipamentos.</strong>

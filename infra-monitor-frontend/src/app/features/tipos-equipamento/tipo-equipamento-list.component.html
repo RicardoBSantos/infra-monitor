@@ -54,7 +54,7 @@
 
   <div class="cartao">
     @if (estado() === 'loading') {
-      <div class="esqueleto" aria-label="Carregando tipos de equipamento">
+      <div class="esqueleto" role="status" aria-label="Carregando tipos de equipamento">
         @for (linha of [1,2,3,4,5]; track linha) { <span></span> }
       </div>
     } @else if (estado() === 'error') {

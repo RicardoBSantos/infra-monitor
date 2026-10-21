@@ -73,7 +73,7 @@
 
   <div class="cartao">
     @if (state() === 'loading') {
-      <div class="esqueleto" aria-label="Carregando monitores">
+      <div class="esqueleto" role="status" aria-label="Carregando monitores">
         @for (item of [1,2,3,4]; track item) { <span></span> }
       </div>
     } @else if (state() === 'empty') {

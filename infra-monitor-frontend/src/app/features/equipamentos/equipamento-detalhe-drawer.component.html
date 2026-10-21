@@ -93,7 +93,7 @@
       </div>
 
       @if (medicoesEstado() === 'loading') {
-        <div class="esqueleto esqueleto--grafico" aria-label="Carregando medições"><span></span></div>
+        <div class="esqueleto esqueleto--grafico" role="status" aria-label="Carregando medições"><span></span></div>
       } @else if (medicoesEstado() === 'error') {
         <div class="vazio" role="alert">
           <strong>Não foi possível carregar as medições.</strong>
@@ -135,7 +135,7 @@
       <section class="cartao" aria-labelledby="titulo-inventario">
         <h3 class="cartao__titulo" id="titulo-inventario">Inventário</h3>
         @if (cadastroEstado() === 'loading') {
-          <div class="esqueleto" aria-label="Carregando cadastro">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+          <div class="esqueleto" role="status" aria-label="Carregando cadastro">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
         } @else if (cadastroEstado() === 'error') {
           <div class="vazio" role="alert">
             <strong>Não foi possível carregar o cadastro.</strong>
@@ -159,7 +159,7 @@
       <section class="cartao" aria-labelledby="titulo-monitoramento">
         <h3 class="cartao__titulo" id="titulo-monitoramento">Monitoramento</h3>
         @if (monitoresEstado() === 'loading') {
-          <div class="esqueleto" aria-label="Carregando monitores">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+          <div class="esqueleto" role="status" aria-label="Carregando monitores">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
         } @else if (monitoresEstado() === 'error') {
           <div class="vazio" role="alert">
             <strong>Não foi possível carregar os monitores.</strong>
@@ -218,7 +218,7 @@
     <section class="cartao" aria-labelledby="titulo-incidentes-equipamento">
       <h3 class="cartao__titulo" id="titulo-incidentes-equipamento">Incidentes recentes</h3>
       @if (incidentesEstado() === 'loading') {
-        <div class="esqueleto" aria-label="Carregando incidentes">@for (linha of [1,2]; track linha) { <span></span> }</div>
+        <div class="esqueleto" role="status" aria-label="Carregando incidentes">@for (linha of [1,2]; track linha) { <span></span> }</div>
       } @else if (incidentesEstado() === 'error') {
         <div class="vazio" role="alert">
           <strong>Não foi possível carregar os incidentes.</strong>

@@ -5,7 +5,7 @@
   <section class="cartao" aria-labelledby="titulo-latencia">
     <h2 class="cartao__titulo" id="titulo-latencia">DISPOSITIVOS COM MAIOR LATÊNCIA</h2>
     @if (store.equipamentosEstado() === 'loading') {
-      <div class="esqueleto" aria-label="Carregando dispositivos">@for (linha of [1,2,3,4]; track linha) { <span></span> }</div>
+      <div class="esqueleto" role="status" aria-label="Carregando dispositivos">@for (linha of [1,2,3,4]; track linha) { <span></span> }</div>
     } @else if (store.equipamentosEstado() === 'error') {
       <div class="vazio" role="alert">
         <strong>Não foi possível carregar os dispositivos.</strong>
@@ -37,7 +37,7 @@
     <section class="cartao" aria-labelledby="titulo-tipos">
       <h2 class="cartao__titulo" id="titulo-tipos">EQUIPAMENTOS POR TIPO</h2>
       @if (store.equipamentosEstado() === 'loading') {
-        <div class="esqueleto" aria-label="Carregando tipos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
+        <div class="esqueleto" role="status" aria-label="Carregando tipos">@for (linha of [1,2,3]; track linha) { <span></span> }</div>
       } @else if (porTipo().length === 0) {
         <div class="vazio"><strong>Nenhum equipamento cadastrado nesta unidade.</strong></div>
       } @else {
@@ -56,7 +56,7 @@
     <section class="cartao" aria-labelledby="titulo-incidentes">
       <h2 class="cartao__titulo" id="titulo-incidentes">INCIDENTES RECENTES</h2>
       @if (incidentesEstado() === 'loading') {
-        <div class="esqueleto" aria-label="Carregando incidentes">@for (linha of [1,2]; track linha) { <span></span> }</div>
+        <div class="esqueleto" role="status" aria-label="Carregando incidentes">@for (linha of [1,2]; track linha) { <span></span> }</div>
       } @else if (incidentesEstado() === 'error') {
         <div class="vazio" role="alert">
           <strong>Não foi possível carregar os incidentes.</strong>
