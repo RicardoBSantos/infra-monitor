@@ -25,18 +25,47 @@
 
   .ping{width:7px;height:7px;border-radius:50%;background:#cfe6ff;
         box-shadow:0 0 6px 2px rgba(160,205,255,.75);pointer-events:none}
+
+  /* D2r — .map__ping de origin/main (D18-B): 7px, aro claro, esfera com 3 sombras */
+  .ping-d18{width:7px;height:7px;border:1px solid rgba(232,240,248,.8);border-radius:50%;
+    background:var(--cor-ping,#8797a6);
+    background:radial-gradient(circle at 32% 28%,
+      color-mix(in srgb,#fff 62%,var(--cor-ping,#8797a6)) 0%,
+      var(--cor-ping,#8797a6) 52%,
+      color-mix(in srgb,var(--cor-ping,#8797a6) 70%,#000) 100%);
+    box-shadow:0 0 5px 1px rgba(232,240,248,.3),inset -1.5px -1.5px 2.5px rgba(0,0,0,.38),0 1px 2px rgba(0,0,0,.45);
+    pointer-events:none;z-index:1}
+  /* D3 — .map__ping final de D23: 5px, sem aro, orbe com glow estatico de 4px */
+  .ping-d23,.ping-d23w{width:5px;height:5px;border:0;border-radius:50%;
+    background:var(--cor-ping,#9dabb9);
+    background:radial-gradient(circle,
+      color-mix(in srgb,#fff 55%,var(--cor-ping,#9dabb9)) 0%,
+      var(--cor-ping,#9dabb9) 45%,
+      color-mix(in srgb,var(--cor-ping,#9dabb9) 0%,transparent) 100%);
+    box-shadow:0 0 4px 1px color-mix(in srgb,var(--cor-ping,#9dabb9) 70%,transparent);
+    pointer-events:none;z-index:1}
+  .ping-d23w{will-change:transform}
+  /* marcador de D23: miolo opaco + glow estatico (sem aro) */
+  .u.u-glow{border:0;background:var(--c,#9dabb9);
+    box-shadow:0 0 6px 1px color-mix(in srgb,var(--c,#9dabb9) 55%,transparent),0 1px 3px rgba(0,0,0,.6)}
 </style></head><body><div id="card"><div id="map"></div></div>
 <script type="module">
 import { LngLatBounds, Map as M, Marker, setWorkerUrl } from '/node_modules/maplibre-gl/dist/maplibre-gl.mjs';
 setWorkerUrl('/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs');
 
 const COR = ['#34c77b','#e5484d','#e8a33d','#7fadff','#435464','#263744'];
+/* paleta D23: disponivel, indisponivel, degradada, em-manutencao, sem-dados, sem-equipamentos */
+const CORN = ['#35e087','#f84e54','#fcb142','#7fadff','#9dabb9','#6e8698'];
+/* copiadas literalmente de mapa.component.ts */
+const PERIODO_PING_MS = 4200, FADE_NA_PONTA = 0.08;
+const faseDeFluxo = (ciclos) => ((ciclos % 1) + 1) % 1;
+const opacidadeNaPonta = (u) => Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA));
 const UNI = [
   ['SED',-37.0497,-10.9116],['ESC',-37.0658,-10.9317],['CIS',-37.0602,-10.9418],['HOT',-37.048,-10.988],
   ['LAG',-37.67,-10.9172],['EST',-37.4383,-11.2679],['SOC',-37.1264,-10.8556],['SCR',-37.2064,-11.0147],
   ['PRO',-36.8403,-10.2117],['ITA',-37.4256,-10.6853],['SIM',-37.8106,-10.7386]];
 const HUB = [UNI[0][1], UNI[0][2]];
-const linhas = UNI.slice(1).map(([,x,y],i)=>({type:'Feature',properties:{i,cor:COR[i%6]},
+const linhas = UNI.slice(1).map(([,x,y],i)=>({type:'Feature',properties:{i,cor:COR[i%6],corn:CORN[i%6]},
   geometry:{type:'LineString',coordinates:[HUB,[x,y]]}}));
 
 const geo = await (await fetch('/public/assets/maps/se-municipalities.geo.json')).json();
@@ -50,6 +79,8 @@ const map = new M({container:'map', attributionControl:false, minZoom:6, maxZoom
     {id:'fundo',type:'background',paint:{'background-color':'rgba(0,0,0,0)'}},
     {id:'municipios-fill',type:'fill',source:'municipios',paint:{'fill-color':'#16283a','fill-opacity':.92}},
     {id:'municipios-contorno',type:'line',source:'municipios',paint:{'line-color':'#294056','line-width':1}},
+    {id:'conexoes-halo',type:'line',source:'conexoes',layout:{'line-cap':'round','visibility':'none'},
+      paint:{'line-color':['get','corn'],'line-width':6,'line-blur':4,'line-opacity':.28}},
     {id:'conexoes-linha',type:'line',source:'conexoes',layout:{'line-cap':'round'},
       paint:{'line-color':['get','cor'],'line-width':1.6,'line-opacity':.75}},
     {id:'conexoes-dash',type:'line',source:'conexoes',layout:{'line-cap':'butt'},
@@ -69,7 +100,7 @@ map.easeTo({zoom:map.getZoom()+0.68, offset:[-24,60], duration:0});
 /* marcadores de unidade — 11 reais + 44 de estresse (mesmas coords, jitter de alguns metros) */
 function criarMarcador(x,y,i,extra){
   const el=document.createElement('button'); el.type='button'; el.className='u';
-  el.style.setProperty('--c',COR[i%6]); el.setAttribute('aria-label','u'+i);
+  el.style.setProperty('--c',COR[i%6]); el.dataset.i=i; el.setAttribute('aria-label','u'+i);
   const m=new Marker({element:el,pitchAlignment:'viewport',rotationAlignment:'viewport'}).setLngLat([x,y]);
   if(!extra) m.addTo(map);
   return m;
@@ -78,13 +109,13 @@ UNI.forEach(([,x,y],i)=>criarMarcador(x,y,i,false));
 const marcadoresExtra=[];
 UNI.forEach(([,x,y],i)=>{ for(let k=1;k<=4;k++) marcadoresExtra.push(criarMarcador(x+k*0.012,y+k*0.008,i,true)); });
 
-/* pings — 20 reais (2 por linha, fases opostas = ida e volta) + pool ate 100 */
+/* pings — 20 reais (2 por linha, fases opostas = ida e volta) + pool ate 150 */
 const lerp=(a,bb,t)=>[a[0]+(bb[0]-a[0])*t, a[1]+(bb[1]-a[1])*t];
 function criarPing(){
   const el=document.createElement('div'); el.className='ping'; el.setAttribute('aria-hidden','true');
   return new Marker({element:el,pitchAlignment:'viewport',rotationAlignment:'viewport'}).setLngLat(HUB);
 }
-const pingPool = Array.from({length:100}, criarPing);
+const pingPool = Array.from({length:150}, criarPing);
 
 let raf=null, dashTimer=null, ativos=[];
 const DASH=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],
@@ -95,6 +126,11 @@ function parar(){
   if(dashTimer) clearInterval(dashTimer); dashTimer=null;
   document.body.className='';
   ativos.forEach(m=>m.remove()); ativos=[];
+  pingPool.forEach(m=>{ const e=m.getElement(); e.className='ping'; e.style.opacity=''; e.style.removeProperty('--cor-ping'); });
+  todosMarcadores().forEach(e=>{ e.classList.remove('u-glow'); e.style.setProperty('--c',COR[e.dataset.i%6]); });
+  map.setLayoutProperty('conexoes-halo','visibility','none');
+  map.setPaintProperty('conexoes-linha','line-color',['get','cor']);
+  map.setPaintProperty('conexoes-linha','line-opacity',.75);
   marcadoresExtra.forEach(m=>m.remove());
   map.setPaintProperty('pings-circulo','circle-opacity',0);
   map.setPaintProperty('pings-circulo','circle-stroke-opacity',0);
@@ -110,14 +146,41 @@ function posicao(k,t,nPorLinha){
   return lerp(li.geometry.coordinates[0], li.geometry.coordinates[1], u);
 }
 
-function pingsDom(total){
+const todosMarcadores=()=>[...document.querySelectorAll('.u')];
+function pingsDom(total,cls='ping'){
   const usados=pingPool.slice(0,total);
-  usados.forEach(m=>m.addTo(map)); ativos=usados;
+  usados.forEach((m,k)=>{ m.getElement().className=cls; if(cls!=='ping') m.getElement().style.setProperty('--cor-ping',CORN[k%6]); m.addTo(map); }); ativos=usados;
   const nPorLinha=total/linhas.length, t0=performance.now();
   const passo=()=>{ const t=(performance.now()-t0)/2600;
     usados.forEach((pm,k)=>pm.setLngLat(posicao(k,t,nPorLinha)));
     raf=requestAnimationFrame(passo); };
   raf=requestAnimationFrame(passo);
+}
+
+/* D3: fluxo hub->unidade em dente de serra, n pings por linha defasados k/n, fade nas pontas */
+function pingsFluxo(total,cls){
+  const usados=pingPool.slice(0,total);
+  const nPorLinha=total/linhas.length, t0=performance.now();
+  usados.forEach((m,k)=>{ const e=m.getElement(); e.className=cls; e.style.opacity='0';
+    e.style.setProperty('--cor-ping',CORN[Math.floor(k/nPorLinha)%6]); m.addTo(map); });
+  ativos=usados;
+  const passo=()=>{ const ciclos=(performance.now()-t0)/PERIODO_PING_MS;
+    usados.forEach((pm,k)=>{
+      const li=linhas[Math.floor(k/nPorLinha)%linhas.length];
+      const u=faseDeFluxo(ciclos+(k%nPorLinha)/nPorLinha);
+      pm.setLngLat(lerp(li.geometry.coordinates[0],li.geometry.coordinates[1],u));
+      pm.getElement().style.opacity=String(opacidadeNaPonta(u)); });
+    raf=requestAnimationFrame(passo); };
+  raf=requestAnimationFrame(passo);
+}
+
+function halo(){
+  map.setLayoutProperty('conexoes-halo','visibility','visible');
+  map.setPaintProperty('conexoes-linha','line-color',['get','corn']);
+  map.setPaintProperty('conexoes-linha','line-opacity',.85);
+}
+function marcadoresD23(){
+  todosMarcadores().forEach(e=>{ e.classList.add('u-glow'); e.style.setProperty('--c',CORN[e.dataset.i%6]); });
 }
 
 function pingsSetData(total){
@@ -141,6 +204,16 @@ window.cenario = (m)=>{
   if(m==='D5') pingsDom(100);
   if(m==='E') pingsSetData(20);
   if(m==='E5') pingsSetData(100);
+  if(m==='D2r'||m==='BD2r') pingsDom(20,'ping-d18');
+  if(m==='BD2r') document.body.className='B';
+  if(m==='D3') pingsFluxo(30,'ping-d23');
+  if(m==='D3w') pingsFluxo(30,'ping-d23w');
+  if(m==='H') halo();
+  if(m==='BD3'||m==='BD3x5'){
+    document.body.className='B';
+    if(m==='BD3x5') marcadoresExtra.forEach(mk=>mk.addTo(map));
+    marcadoresD23(); halo(); pingsFluxo(m==='BD3'?30:150,'ping-d23');
+  }
   if(m==='F'){
     map.setPaintProperty('conexoes-dash','line-opacity',.9);
     let i=0; dashTimer=setInterval(()=>{ map.setPaintProperty('conexoes-dash','line-dasharray',DASH[i++%DASH.length]); },50);

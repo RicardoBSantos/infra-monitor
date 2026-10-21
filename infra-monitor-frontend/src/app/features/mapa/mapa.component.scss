@@ -163,7 +163,7 @@
    * O contorno branco eram DUAS camadas, e as duas saíram: `border: 1px solid rgba(232,240,248,.8)`
    * e a primeira sombra `0 0 5px 1px rgba(232,240,248,.3)`. O aro existia pela razão que valia para o
    * marcador antes de D19 (o `sem-equipamentos` escuro sumia no município); com a paleta de D23 o
-   * pior caso é #6e8698 a 3,95:1 sozinho, e o glow da cor faz o resto.
+   * pior caso é #6e8698 a 3,95:1 sozinho, e o glow ajuda a separar do município.
    *
    * 7px → 5px: com três pings por arco (D23), 7px enchia a linha de bolas; 5px + glow de 4px lê
    * como ponto de luz. Sem parada escura no gradiente — fecha DV16: o `70% + #000` de D18, que
@@ -172,8 +172,9 @@
    *
    * Glow ESTÁTICO, nunca animado: `box-shadow` animado custou 0,618 ms/quadro contra 0,475 de
    * `transform` + `opacity` (§9.2, ver o pulso acima). O que muda por quadro
-   * é `transform` (da lib, via `setLngLat`) e `opacity` (fade nas pontas) — ambos tendem a ficar no
-   * compositor; medido na bancada (D23). `--cor-ping` continua sendo o contrato lido pelo e2e (custom
+   * é `transform` (da lib, via `setLngLat`) e `opacity` (fade nas pontas) — `opacity` inline custa recálculo de
+   * estilo por quadro (~0,6 ms para 30 pings, bancada D23), não repintura do glow. `will-change: transform`
+   * foi medido e NÃO entrou: D3w 1,749 contra D3 1,863 ms/quadro (−6%, abaixo do corte de 10%). `--cor-ping` continua sendo o contrato lido pelo e2e (custom
    * property inline, não `background-color`). */
   .map__ping {
     width: 5px; height: 5px; border: 0; border-radius: 50%;

@@ -1,0 +1,22 @@
+{
+  "rotulo": "depois-dev",
+  "unidades": 11,
+  "linhas": null,
+  "pings": 27,
+  "cenarios": [
+    {
+      "nome": "animado",
+      "cpuMsPorQuadro": 3.957,
+      "fps": 59.9,
+      "p50": 16.7,
+      "lentosPct": 0
+    },
+    {
+      "nome": "parado",
+      "cpuMsPorQuadro": 0.95,
+      "fps": 59.9,
+      "p50": 16.7,
+      "lentosPct": 0
+    }
+  ]
+}

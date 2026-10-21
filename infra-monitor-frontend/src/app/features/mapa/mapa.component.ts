@@ -101,7 +101,7 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  *
  * Esse clareamento é também o que sustenta o pulso geral de D19: o argumento de N07 para pulsar só
  * dois status era, em parte, que `sem-dados` (1,92:1) e `sem-equipamentos` (1,22:1) gerariam anel de
- * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu: os seis pulsam com anel legível.
+ * pulso ilegível. Com 5,01:1 e 3,41:1 (D19) o argumento caiu: os seis pulsam com anel legível.
  *
  * D23 tornou a paleta vibrante, porque a linha agora tem halo e precisa de cor que brilhe sobre o
  * fundo escuro. Valores calculados por script em HSL: coloridos com `S×1,18+0,04` e `L+0,05` (teto
@@ -904,7 +904,9 @@ export class MapaComponent implements OnDestroy {
   /**
    * Pings percorrendo as linhas de conexão — ICMP echo como desenho. Três por linha, a ⅓ um do
    * outro, em fluxo contínuo hub → unidade (D23), com fade nas duas pontas. `style.opacity` por
-   * quadro tende a ficar no compositor, sem repintar o glow; medido na bancada (D23).
+   * quadro NÃO fica de graça: na bancada (D23) a tela inteira custou 1,97 ms/quadro sobre o mapa parado
+   * (BD3), dos quais ~0,6 ms são recálculo de estilo — o `opacity` inline invalida estilo a cada
+   * quadro em cada ping. Cabe (12,8% do orçamento, 0% de quadros lentos; 26,9% com 5×), então fica.
    *
    * Um `Marker` DOM por ping, reposicionado por `setLngLat` a cada quadro. Escolhido contra as duas
    * alternativas conhecidas, com medição (ver `mapa-contexto-atual.md` §9.2, cenários D/E/F):
