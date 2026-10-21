@@ -206,28 +206,33 @@ describe('arco da conexao',()=>{
   });
 });
 
-describe('camada de conexao (D18)',()=>{
-  it('e uma unica camada, sem filtro por status',()=>{
+describe('camadas de conexao (D18, halo de D23)',()=>{
+  const CORES_ESPERADAS = ['match', ['get','status'],
+    'DISPONIVEL', '#35e087',
+    'INDISPONIVEL', '#f84e54',
+    'DEGRADADA', '#fcb142',
+    'SEM_DADOS', '#9dabb9',
+    'SEM_EQUIPAMENTOS', '#6e8698',
+    'EM_MANUTENCAO', '#7fadff',
+    '#9dabb9'];
+  const paintDe=(i:number)=>(camadasDeConexao()[i] as unknown as {paint:Record<string,unknown>}).paint;
+
+  it('desenha o halo antes do nucleo, sem filtro por status',()=>{
     const camadas=camadasDeConexao();
-    expect(camadas.length).toBe(1);
-    expect(camadas[0].id).toBe('conexoes-linha');
-    expect((camadas[0] as {filter?:unknown}).filter).toBeUndefined();
+    expect(camadas.map(c=>c.id)).toEqual(['conexoes-halo','conexoes-linha']);
+    for(const c of camadas) expect((c as {filter?:unknown}).filter).toBeUndefined();
   });
 
-  it('pinta a linha inteira com a cor do status da feature',()=>{
-    const paint=(camadasDeConexao()[0] as unknown as {paint:Record<string,unknown>}).paint;
-    expect(paint['line-gradient']).toBeUndefined();
-    const cor=paint['line-color'] as unknown[];
-    // Corpo inteiro do match, na ordem exata: um toContain/toBe isolado passaria com o par
-    // status/cor invertido, e o estilo so quebraria em runtime.
-    expect(cor).toEqual(['match', ['get','status'],
-      'DISPONIVEL', '#34c77b',
-      'INDISPONIVEL', '#e5484d',
-      'DEGRADADA', '#e8a33d',
-      'SEM_DADOS', '#8797a6',
-      'SEM_EQUIPAMENTOS', '#667b8b',
-      'EM_MANUTENCAO', '#7fadff',
-      '#8797a6']);
+  it('pinta nucleo e halo com a mesma cor vibrante do status',()=>{
+    // Corpo inteiro do match, na ordem exata: um toContain isolado passaria com o par invertido.
+    expect(paintDe(0)['line-color']).toEqual(CORES_ESPERADAS);
+    expect(paintDe(1)['line-color']).toEqual(CORES_ESPERADAS);
+    expect(paintDe(1)['line-gradient']).toBeUndefined();
+  });
+
+  it('halo largo, borrado e translucido; nucleo fino e quase opaco',()=>{
+    expect(paintDe(0)).toEqual(expect.objectContaining({'line-width':6,'line-blur':4,'line-opacity':0.28}));
+    expect(paintDe(1)).toEqual(expect.objectContaining({'line-width':1.6,'line-opacity':0.85}));
   });
 });
 

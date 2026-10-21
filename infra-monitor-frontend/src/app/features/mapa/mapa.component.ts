@@ -94,18 +94,26 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * escuro à vontade: quem separava o marcador do município era o aro, a 13,05:1. Com o aro removido
  * (D19 item 1) o miolo virou o único portador de contraste, e os valores de N06 não sustentam o
  * papel: `sem-dados` #435464 dava 1,92:1 contra #16283a e `sem-equipamentos` #263744 dava 1,22:1 —
- * a 13px, marcador invisível. #8797a6 dá 5,01:1 e #667b8b dá 3,41:1, ambos acima dos 3:1 de
+ * a 13px, marcador invisível. #8797a6 dava 5,01:1 e #667b8b dava 3,41:1 (D19; D23 os subiu, ver abaixo), ambos acima dos 3:1 de
  * WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os dois tons mais dessaturados da
  * tabela, que é o que os faz ler como ausência de dado e não como estado; o que mudou foi a
  * luminância, não o matiz.
  *
  * Esse clareamento é também o que sustenta o pulso geral de D19: o argumento de N07 para pulsar só
  * dois status era, em parte, que `sem-dados` (1,92:1) e `sem-equipamentos` (1,22:1) gerariam anel de
- * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu — os seis pulsam com anel legível.
+ * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu os seis pulsam com anel legível.
+ *
+ * D23 tornou a paleta vibrante, porque a linha agora tem halo e precisa de cor que brilhe sobre o
+ * fundo escuro. Valores calculados por script em HSL: coloridos com `S×1,18+0,04` e `L+0,05` (teto
+ * 0,72, sem nunca baixar); neutros com `S×1,1` e `L+0,08` (sem-dados) / `+0,04` (sem-equipamentos).
+ * Contraste contra #16283a: 8,70 / 4,44 / 8,23 / 6,67 / 6,41 / 3,95 (na ordem da tabela de D23:
+ * disponível, indisponível, degradada, em-manutenção, sem-dados, sem-equipamentos; eram 5,01/3,41 em D19 nos dois
+ * neutros). ΔE OKLab mínimo entre quaisquer dois status: 10,5 (em-manutenção × sem-dados); sem-dados ×
+ * sem-equipamentos passou de 9,7 para 12,8. `em-manutencao` já tinha saturação 100% e não mudou.
  */
 const COR_DO_STATUS: Record<string, string> = {
-  'disponivel': '#34c77b', 'indisponivel': '#e5484d', 'degradada': '#e8a33d', 'em-manutencao': '#7fadff',
-  'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b',
+  'disponivel': '#35e087', 'indisponivel': '#f84e54', 'degradada': '#fcb142', 'em-manutencao': '#7fadff',
+  'sem-dados': '#9dabb9', 'sem-equipamentos': '#6e8698',
 };
 
 /**
@@ -322,14 +330,25 @@ const DURACAO_CAMERA_MS = 600;
 /** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
 const PADDING_MUNICIPIO = { top: 110, right: 70, bottom: 50, left: 60 };
 
-const LARGURA_CONEXAO = 1.4;
+const LARGURA_CONEXAO = 1.6;
 /**
+ * Núcleo da linha, quase opaco (D23): a translucidez passou para o halo por baixo, que carrega o
+ * brilho; o núcleo fino pode ficar firme sem recortar o bloco. Antes (D18) era a linha única, 0,65.
+ *
  * Linha translucida. Ela cruza o estado inteiro e passa por cima de municipios cuja cor de status e
  * o dado que importa; opaca, ela recortava o bloco em dois. Com D18 a linha inteira carrega a cor
  * do status, e a translucidez continua cumprindo o mesmo papel: deixar o município por baixo
  * legível mesmo com a linha colorida de ponta a ponta por cima dele.
  */
-const OPACIDADE_CONEXAO = 0.65;
+const OPACIDADE_CONEXAO = 0.85;
+/**
+ * Brilho no WebGL (D23): o canvas do MapLibre não aplica `filter` nem `box-shadow`. Uma segunda
+ * `line` larga e borrada por baixo do núcleo é o equivalente nativo — estática, custo por quadro
+ * ~0 (medido na Task 5).
+ */
+const LARGURA_HALO_CONEXAO = 6;
+const BORRAO_HALO_CONEXAO = 4;
+const OPACIDADE_HALO_CONEXAO = 0.28;
 
 /**
  * Curvatura do arco, como fração do comprimento da corda hub→unidade.
@@ -398,19 +417,18 @@ export function arcoEntre(origem: [number, number], destino: [number, number]): 
  * acrescentar — a mesma queda para `sem-dados` que `corDoStatus` faz.
  */
 export function camadasDeConexao(): LayerSpecification[] {
+  // Mesma expressão no halo e no núcleo: o status desconhecido cai em `sem-dados` nos dois.
+  const corDaConexao = ['match', ['get', 'status'],
+    ...Object.values(UnitOperationalStatus).flatMap(status => [status, corDoStatus(status)]),
+    COR_DO_STATUS['sem-dados']];
+  // Halo ANTES do núcleo: a ordem do array é a ordem de desenho, e por cima ele apagaria a linha.
   return [{
-    id: 'conexoes-linha',
-    type: 'line',
-    source: 'conexoes',
-    layout: { 'line-cap': 'round' },
-    paint: {
-      'line-width': LARGURA_CONEXAO,
-      'line-opacity': OPACIDADE_CONEXAO,
-      'line-color': ['match', ['get', 'status'],
-        ...Object.values(UnitOperationalStatus).flatMap(status => [status, corDoStatus(status)]),
-        COR_DO_STATUS['sem-dados']],
-    },
-  } as unknown as LayerSpecification];
+    id: 'conexoes-halo', type: 'line', source: 'conexoes', layout: { 'line-cap': 'round' },
+    paint: { 'line-width': LARGURA_HALO_CONEXAO, 'line-blur': BORRAO_HALO_CONEXAO, 'line-opacity': OPACIDADE_HALO_CONEXAO, 'line-color': corDaConexao },
+  }, {
+    id: 'conexoes-linha', type: 'line', source: 'conexoes', layout: { 'line-cap': 'round' },
+    paint: { 'line-width': LARGURA_CONEXAO, 'line-opacity': OPACIDADE_CONEXAO, 'line-color': corDaConexao },
+  }] as unknown as LayerSpecification[];
 }
 
 /** Coordenada da unidade, quando as duas metades existem. Nunca por veracidade: 0 e valido. */

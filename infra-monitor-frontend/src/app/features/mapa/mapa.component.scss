@@ -71,7 +71,7 @@
    * clareados em D19 até passarem 3:1 sozinhos contra #16283a. Ver o comentário de `COR_DO_STATUS`
    * em `mapa.component.ts`. A `box-shadow` escura de contato fica — ela não é contraste, é
    * profundidade, e separa o marcador da linha de conexão quando os dois se cruzam. */
-  .map__unidade { width: 13px; height: 13px; padding: 0; border: 0; border-radius: 50%; background: var(--cor-unidade, #8797a6); box-shadow: 0 1px 3px rgba(0, 0, 0, .6); cursor: pointer; transition: width .12s ease, height .12s ease, box-shadow .12s ease; }
+  .map__unidade { width: 13px; height: 13px; padding: 0; border: 0; border-radius: 50%; background: var(--cor-unidade, #9dabb9); box-shadow: 0 1px 3px rgba(0, 0, 0, .6); cursor: pointer; transition: width .12s ease, height .12s ease, box-shadow .12s ease; }
 
   /* Crescer por largura/altura, e NUNCA por `transform` — ver DV13. O MapLibre reescreve
    * `style.transform` do elemento do Marker a cada reposicionamento, e estilo inline vence regra de
@@ -117,7 +117,7 @@
    *   foco         12,5 → 14,5px (outline 2px, offset 3px) — tangente, nunca sobreposto
    *   pulso nasce  15,5px        (::after com inset -6px) — fora do foco
    * Mudar o tamanho da caixa OU o offset do foco OU a espessura do anel exige refazer esta conta. */
-  .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #8797a6) 78%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
+  .map__unidade[aria-pressed='true'] { width: 19px; height: 19px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-unidade, #9dabb9) 78%, transparent), 0 1px 3px rgba(0, 0, 0, .6); }
 
   /* --- Pulso (N07, generalizado em D19) -----------------------------------------------------
    *
@@ -134,7 +134,7 @@
    *
    * `inset: -6px` faz o anel NASCER a 14,5px do centro, fora do anel de foco (que vai até 13,5px).
    * O pulso nunca atravessa o foco: cresce a partir de fora dele. */
-  .map__unidade--pulsa::after { content: ''; position: absolute; inset: -6px; border: 2px solid var(--cor-unidade, #8797a6); border-radius: 50%; animation: map-pulsar 1.9s ease-out infinite; pointer-events: none; }
+  .map__unidade--pulsa::after { content: ''; position: absolute; inset: -6px; border: 2px solid var(--cor-unidade, #9dabb9); border-radius: 50%; animation: map-pulsar 1.9s ease-out infinite; pointer-events: none; }
   @keyframes map-pulsar { 0% { transform: scale(1); opacity: .9; } 70% { transform: scale(2); opacity: 0; } 100% { transform: scale(2); opacity: 0; } }
   /* Estático, não ausente: o anel continua marcando quais unidades pedem ação — some o movimento,
    * não a informação. Mesmo tratamento das três gavetas e de `.sidebar__pulse`. */
@@ -170,11 +170,11 @@
        derrubaria o `background` inteiro para `transparent` (ping oco, não cinza) — e é a primeira
        ocorrência de `color-mix` no codebase, sem navegador de rede conhecida que não faça o parse,
        mas a plana sobrevive de graça se algum dia não fizer. */
-    background: var(--cor-ping, #8797a6);
+    background: var(--cor-ping, #9dabb9);
     background: radial-gradient(circle at 32% 28%,
-      color-mix(in srgb, #fff 62%, var(--cor-ping, #8797a6)) 0%,
-      var(--cor-ping, #8797a6) 52%,
-      color-mix(in srgb, var(--cor-ping, #8797a6) 70%, #000) 100%);
+      color-mix(in srgb, #fff 62%, var(--cor-ping, #9dabb9)) 0%,
+      var(--cor-ping, #9dabb9) 52%,
+      color-mix(in srgb, var(--cor-ping, #9dabb9) 70%, #000) 100%);
     box-shadow: 0 0 5px 1px rgba(232, 240, 248, .3),
       inset -1.5px -1.5px 2.5px rgba(0, 0, 0, .38),
       0 1px 2px rgba(0, 0, 0, .45);
@@ -243,7 +243,7 @@
 /* Sem `justify-content:space-between` (D14): com o rodapé fora e a legenda no cartão (D21), ele abriria vãos
  * entre os blocos. A sobra de altura fica no fim da coluna. Rolagem própria: a lista de afetados
  * pode crescer sem empurrar o mapa para fora da viewport (D11). */
-.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:var(--im-success); }.legend__dot--danger { background:var(--im-danger); }.legend__dot--warning { background:var(--im-warning); }.legend__dot--neutral { background:#8797a6; }/* Hex literal e não token: espelha `COR_DO_STATUS['sem-dados']` em mapa.component.ts (D19) — muda junto. */.legend__dot--info { background:var(--im-info-soft); }.legend__dot--muted { background:#667b8b; }/* Idem, espelha `COR_DO_STATUS['sem-equipamentos']`. */.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px var(--im-mono); }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px var(--im-mono); letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
+.map-panel { display:flex; height:100%; flex-direction:column; justify-content:flex-start; gap:var(--im-space-4); padding:15px; overflow-y:auto; }.legend { display:grid; gap:8px; margin:0; padding:0; list-style:none; color:var(--im-text-secondary); font-size:12px; }.legend li { display:flex; align-items:center; gap:8px; }.legend__dot { width:8px; height:8px; border-radius:50%; }.legend__dot--success { background:#35e087; }.legend__dot--danger { background:#f84e54; }.legend__dot--warning { background:#fcb142; }.legend__dot--neutral { background:#9dabb9; }/* Hex literal e não token: espelha `COR_DO_STATUS` em mapa.component.ts (D19 para os neutros, D23 para os seis) — muda junto. */.legend__dot--info { background:#7fadff; }.legend__dot--muted { background:#6e8698; }.map-feedback { padding:12px; border:1px solid var(--im-border); border-left:3px solid var(--im-warning); border-radius:var(--im-radius); background:var(--im-surface-raised); color:var(--im-text-secondary); font-size:12px; }.map-feedback--error { border-left-color:var(--im-danger); }.map-feedback--warning { border-left-color:var(--im-warning); }.map-feedback strong { color:var(--im-text-strong); }.map-feedback p { margin:4px 0 0; line-height:1.5; }.map-feedback .botao { margin-top:10px; }.unit-list { display:grid; gap:8px; margin:10px 0 0; padding:0; list-style:none; }.unit-list li { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }.unit-list li > strong { color:var(--im-text-strong); }.unit-list li > span { color:var(--im-text-muted); font:10px var(--im-mono); }.map-loading { display:grid; height:100%; place-items:center; color:var(--im-text-muted); font:11px var(--im-mono); letter-spacing:.04em; } @media (max-width:900px) { .map-page { height:auto; min-height:0; }.map-layout { grid-template-columns:1fr; grid-template-rows:auto; }/* Empilhado, o painel deixa de disputar altura com o cartão e volta a crescer com a página. *//* `100svh` e não `100dvh` no cartão: a barra de endereço do celular recolhe e o `dvh` dispararia `resize`, reenquadrando o mapa (D20). */.map-card { height:calc(100svh - var(--im-topbar-height) - 24px); min-height:360px; }.map-panel { display:grid; height:auto; grid-template-columns:1fr 1fr; overflow:visible; }.map-panel__topo { grid-column:1/-1; }.map-feedback { align-self:start; } } @media (max-width:600px) { .map-panel { grid-template-columns:1fr; } }
 
 /* --- Painel lateral (M03) ------------------------------------------------------------ */
 .geo-status,.unit-panel { padding:12px; border:1px solid var(--im-border); border-radius:var(--im-radius); background:var(--im-surface-raised); }
