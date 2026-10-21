@@ -48,4 +48,14 @@ describe('NotificacaoListComponent', () => { let fixture: ComponentFixture<Notif
     expect(request.request.params.get('tipoEvento')).toBe('LATENCIA_ALTA');
     request.flush(page([latencyItem()]));
   });
+
+  it('não tem h1 nem cabeçalho próprio: vive dentro da casca do Telegram, que já tem o h1', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes')).flush(page([]));
+    fixture.detectChanges();
+    const raiz = fixture.nativeElement as HTMLElement;
+    expect(raiz.querySelector('h1')).toBeNull();
+    expect(raiz.querySelector('section.operational-page > header')).toBeNull();
+    expect(raiz.querySelector('section.operational-page')!.getAttribute('aria-label')).toBe('Histórico de notificações');
+  });
 });

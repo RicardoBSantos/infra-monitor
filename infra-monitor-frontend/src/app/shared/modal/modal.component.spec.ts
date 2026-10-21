@@ -164,4 +164,27 @@ describe('ModalComponent', () => {
     abrir(fixture);
     expect(document.activeElement).toBe(el(fixture).querySelector('section.modal'));
   });
+
+  it('Tab no último focável volta ao primeiro (trap real; aria-modal="true" é verdade)', () => {
+    const fixture = montar();
+    abrir(fixture);
+    const painel = el(fixture).querySelector<HTMLElement>('.modal')!;
+    const fechar = painel.querySelector<HTMLButtonElement>('.modal__fechar')!;
+    const campo = painel.querySelector<HTMLInputElement>('#campo')!;
+    campo.focus(); // último em ordem de DOM (o × vem antes, no topo)
+    const e = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    campo.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(fechar);
+  });
+
+  it('Shift+Tab no primeiro focável vai ao último', () => {
+    const fixture = montar();
+    abrir(fixture);
+    const painel = el(fixture).querySelector<HTMLElement>('.modal')!;
+    const fechar = painel.querySelector<HTMLButtonElement>('.modal__fechar')!;
+    fechar.focus();
+    fechar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(painel.querySelector('#campo'));
+  });
 });

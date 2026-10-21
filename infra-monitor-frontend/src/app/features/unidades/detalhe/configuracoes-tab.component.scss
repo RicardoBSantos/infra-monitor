@@ -10,7 +10,7 @@
 .cadastro dt { color: var(--im-text-secondary); font-size: 12px; }
 .cadastro dd { margin: 0; color: var(--im-text); overflow-wrap: anywhere; }
 
-.zona-risco { border-color: rgba(229, 83, 75, .28); }
+.zona-risco { border-color: var(--im-danger-border); }
 .zona-risco__corpo { display: grid; gap: 12px; justify-items: start; padding: 0 14px 14px; }
 .zona-risco__corpo p { margin: 0; color: var(--im-text-secondary); font-size: 12px; line-height: 1.5; }
 .zona-risco__divisor { width: 100%; height: 0; margin: 2px 0; border: 0; border-top: 1px solid var(--im-border); }

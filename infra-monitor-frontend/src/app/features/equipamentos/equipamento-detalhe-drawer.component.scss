@@ -8,7 +8,7 @@
    unidade-form-drawer — as duas gavetas do sistema abrem do mesmo jeito. Sob
    prefers-reduced-motion resta só o fade do fundo, sem deslocamento. */
 .gaveta__fundo {
-  position: fixed; inset: 0; z-index: var(--im-z-gaveta-fundo); background: rgba(0, 0, 0, .38);
+  position: fixed; inset: 0; z-index: var(--im-z-gaveta-fundo); background: var(--im-overlay);
   animation: gaveta-fundo 220ms ease-out;
 }
 
@@ -62,8 +62,8 @@
 }
 
 .gaveta__erro {
-  margin: 0 14px 12px; padding: 9px 11px; border: 1px solid rgba(229, 83, 75, .32);
-  border-radius: var(--im-radius-lg); background: rgba(229, 83, 75, .08);
+  margin: 0 14px 12px; padding: 9px 11px; border: 1px solid var(--im-danger-border);
+  border-radius: var(--im-radius-lg); background: var(--im-danger-bg);
   color: var(--im-danger-text); font-size: 12px;
 }
 
