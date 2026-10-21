@@ -57,7 +57,8 @@
   --im-selection: rgba(76, 141, 255, .35);
   --im-radius: 4px;
   --im-radius-lg: 8px;
-  --im-mono: ui-monospace, 'JetBrains Mono', 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
+  /* Plex primeiro: é a fonte do projeto e a única carregada (@fontsource). JetBrains saiu — nunca foi carregada e, instalada na máquina, trocava a fonte do mesmo dado conforme a tela. */
+  --im-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --im-radius-pill: 999px;
   --im-space-3: 12px;
   --im-space-4: 16px;
