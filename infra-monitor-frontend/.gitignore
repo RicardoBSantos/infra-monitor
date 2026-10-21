@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Artefato de execução da bancada do Mapa (captura do BD3 ao fim da corrida; ver e2e/perf-mapa/README.md)
+/e2e/perf-mapa/bench-final.png
