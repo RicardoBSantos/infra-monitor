@@ -200,7 +200,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
   });
 
   describe('manutenção', () => {
-    const LINHA = { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Available, ativo: true, emManutencao: false };
+    const LINHA = { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Available, ativo: true, emManutencao: false, manutencaoManual: false };
 
     function rodape(fixture: ComponentFixture<EquipamentoDetalheDrawerComponent>): string[] {
       return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.gaveta__acoes .botao'))
@@ -209,7 +209,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
 
     it('em manutenção, mostra Encerrar e o clique emite alternarManutencao sem chamar a API', () => {
       const fixture = montar();
-      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Maintenance });
       responder(fixture);
       let pedidos = 0;
       fixture.componentInstance.alternarManutencao.subscribe(() => (pedidos += 1));
@@ -229,10 +229,23 @@ describe('EquipamentoDetalheDrawerComponent', () => {
         .find((b) => /manutenção/.test(b.textContent ?? ''))!;
       const antes = botao();
       expect(antes.textContent).toContain('Iniciar manutenção');
-      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Maintenance });
       fixture.detectChanges();
       expect(botao().textContent).toContain('Encerrar manutenção');
       expect(botao()).toBe(antes);
+    });
+
+    it('só em janela, o rodapé oferece Iniciar e o estado atual mostra a origem com link para /manutencoes', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41, janelaAtivaFim: '2026-10-23T15:30:00Z', status: EquipmentOperationalStatus.Maintenance });
+      responder(fixture);
+      expect(rodape(fixture)).toContain('Iniciar manutenção');
+      expect(rodape(fixture)).not.toContain('Encerrar manutenção');
+      const dt = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('dt')).find((d) => d.textContent?.trim() === 'Origem da manutenção');
+      expect(dt).toBeDefined();
+      const dd = dt!.nextElementSibling as HTMLElement;
+      expect(dd.textContent).toMatch(/Janela #41 até [0-9]{2}.[0-9]{2} [0-9]{2}:[0-9]{2}/);
+      expect(dd.querySelector('a')?.getAttribute('href')).toBe('/manutencoes');
     });
 
     it('ativo fora de manutenção mostra Iniciar', () => {

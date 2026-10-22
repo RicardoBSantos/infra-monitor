@@ -1,3 +1,4 @@
+import { formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -23,6 +24,7 @@ import { ModalComponent } from '../../shared/modal/modal.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.component';
+import { origemDaManutencao } from './origem-manutencao';
 import { classificarIp, motivoRecusaIp, validadorIpv4Monitoravel } from './ip-helper';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
@@ -31,9 +33,17 @@ type Ordenacao = 'nome,asc' | 'nome,desc' | 'status' | 'latencia';
 
 const POR_PAGINA = 20;
 
-/** Manutenção de equipamento inativo não tem efeito, mas sair dela tem de ser sempre possível. */
-function acaoDeManutencao(linha: Pick<DashboardEquipamentoLista, 'ativo' | 'emManutencao'>): 'iniciarManutencao' | 'encerrarManutencao' | null {
-  if (linha.emManutencao) return 'encerrarManutencao';
+function fimDaJanela(iso: string | null): string {
+  return iso ? formatDate(iso, 'dd/MM HH:mm', 'en-US') : '';
+}
+
+/**
+ * Decide pelo BOTÃO (`manutencaoManual`), não pelo estado efetivo: com janela ativa e botão desligado,
+ * "Encerrar" não faria nada (o CAS do manual devolve 0). Manutenção de equipamento inativo não tem
+ * efeito, mas sair da manual tem de ser sempre possível.
+ */
+function acaoDeManutencao(linha: Pick<DashboardEquipamentoLista, 'ativo' | 'manutencaoManual'>): 'iniciarManutencao' | 'encerrarManutencao' | null {
+  if (linha.manutencaoManual) return 'encerrarManutencao';
   return linha.ativo ? 'iniciarManutencao' : null;
 }
 
@@ -87,6 +97,7 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
 })
 export class EquipamentoListComponent {
   protected readonly plural = plural;
+  protected readonly origemDaManutencao = origemDaManutencao;
   private readonly api = inject(EquipamentoApiService);
   private readonly dashboard = inject(DashboardApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -260,7 +271,10 @@ export class EquipamentoListComponent {
           + `O período não conta no relatório de disponibilidade.`;
       case 'encerrarManutencao':
         return `${alvo.nome} volta a ser verificado por ICMP na próxima varredura. `
-          + `Se continuar fora do ar, um incidente é aberto depois das falhas consecutivas configuradas no monitor.`;
+          + `Se continuar fora do ar, um incidente é aberto depois das falhas consecutivas configuradas no monitor.`
+          + (alvo.janelaAtivaId !== null
+            ? ` ${alvo.nome} continua em manutenção pela janela #${alvo.janelaAtivaId}${alvo.janelaAtivaFim ? ` até ${fimDaJanela(alvo.janelaAtivaFim)}` : ''}.`
+            : '');
       default:
         return '';
     }
@@ -446,7 +460,7 @@ export class EquipamentoListComponent {
         this.acao.set(null);
         this.alvo.set(null);
         this.devolverFocoAGaveta();
-        this.aviso.set(avisoDeSucesso(acao, alvo.nome));
+        this.aviso.set(avisoDeSucesso(acao, alvo));
         this.carregar();
       },
       error: (erro: unknown) => {
@@ -625,13 +639,17 @@ export class EquipamentoListComponent {
   protected rotuloStatus(status: EquipmentOperationalStatus): string { return ROTULOS_STATUS[status]; }
 }
 
-function avisoDeSucesso(acao: Acao, nome: string): string {
+function avisoDeSucesso(acao: Acao, alvo: DashboardEquipamentoLista): string {
+  const nome = alvo.nome;
   switch (acao) {
     case 'excluir': return `${nome} foi excluído.`;
     case 'desativar': return `Monitoramento de ${nome} desativado.`;
     case 'ativar': return `Monitoramento de ${nome} ativado.`;
     case 'iniciarManutencao': return `${nome} em manutenção.`;
-    case 'encerrarManutencao': return `Manutenção de ${nome} encerrada.`;
+    case 'encerrarManutencao':
+      return alvo.janelaAtivaId !== null
+        ? `Manutenção manual de ${nome} encerrada. Continua em manutenção pela janela #${alvo.janelaAtivaId}.`
+        : `Manutenção de ${nome} encerrada.`;
   }
 }
 

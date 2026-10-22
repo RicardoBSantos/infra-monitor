@@ -139,7 +139,10 @@
                 </td>
                 <td class="mono">{{ linha.hostname || '—' }}</td>
                 <td class="mono">{{ linha.ip || '—' }}</td>
-                <td><app-status-badge [status]="linha.status" /></td>
+                <td>
+                  <app-status-badge [status]="linha.status" />
+                  @if (origemDaManutencao(linha); as origem) { <small class="equipamentos__origem">{{ origem }}</small> }
+                </td>
                 <td class="numerico mono">
                   @if (linha.latenciaMs !== null) {
                     {{ linha.latenciaMs }}<span class="apagado"> ms</span>

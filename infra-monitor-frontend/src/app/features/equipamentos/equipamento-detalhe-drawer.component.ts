@@ -16,6 +16,7 @@ import { EquipamentoApiService } from '../../core/services/equipamento-api.servi
 import { IncidenteApiService } from '../../core/services/incidente-api.service';
 import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
+import { origemDaManutencao } from './origem-manutencao';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { rotuloMotivoEncerramento } from '../incidentes/ocorrencia';
 import { MonitorManagementComponent } from '../monitores/monitor-management.component';
@@ -52,6 +53,10 @@ export interface EquipamentoResumo {
   status: EquipmentOperationalStatus;
   ativo: boolean;
   emManutencao: boolean;
+  /** Opcionais: o Mapa monta o resumo de `DashboardEquipamento`, que não os traz (e não tem ações de gestão). */
+  manutencaoManual?: boolean;
+  janelaAtivaId?: number | null;
+  janelaAtivaFim?: string | null;
 }
 
 /**
@@ -86,6 +91,12 @@ export class EquipamentoDetalheDrawerComponent {
   readonly equipamentoId = input.required<number>();
   /** Linha já carregada pelo pai: nome e status aparecem antes de qualquer resposta. */
   readonly linha = input<EquipamentoResumo | null>(null);
+
+  /** Legenda da origem da manutenção; null fora de manutenção. */
+  protected readonly origemManutencao = computed(() => {
+    const l = this.linha();
+    return l ? origemDaManutencao({ emManutencao: l.emManutencao, manutencaoManual: l.manutencaoManual ?? false, janelaAtivaId: l.janelaAtivaId ?? null }) : null;
+  });
   /**
    * Editar e alternar monitoramento só aparecem onde o host implementa esses fluxos. A lista tem
    * formulário e diálogo de confirmação; o Mapa não tem nenhum dos dois, e oferecer lá um botão

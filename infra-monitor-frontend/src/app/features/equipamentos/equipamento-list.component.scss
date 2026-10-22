@@ -113,3 +113,10 @@
 @media (max-width: 440px) {
   .equipamentos__filtros { grid-template-columns: 1fr; }
 }
+
+.equipamentos__origem {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--im-text-secondary);
+}

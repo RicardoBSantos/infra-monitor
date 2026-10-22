@@ -512,7 +512,7 @@ describe('EquipamentoListComponent', () => {
 
     it('oferece Encerrar mesmo com o equipamento inativo (status DESABILITADO mascara a manutenção)', () => {
       comPermissao(true);
-      const l = linha({ id: 1, ativo: false, emManutencao: true, status: EquipmentOperationalStatus.Disabled });
+      const l = linha({ id: 1, ativo: false, emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Disabled });
       const fixture = montar([l]);
       const item = itens(fixture, l).find((i) => i.id === 'encerrarManutencao');
       expect(item?.rotulo).toBe('Encerrar manutenção');
@@ -553,9 +553,53 @@ describe('EquipamentoListComponent', () => {
       expect(texto(fixture)).toContain('SW-CORE em manutenção.');
     });
 
+    it('só em janela, o botão oferece Iniciar (decide pelo flag manual, não pelo estado efetivo)', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41, status: EquipmentOperationalStatus.Maintenance });
+      const fixture = montar([l]);
+      const ids = itens(fixture, l).map((i) => i.id);
+      expect(ids).toContain('iniciarManutencao');
+      expect(ids).not.toContain('encerrarManutencao');
+    });
+
+    it('inativo só em janela não oferece manutenção', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, ativo: false, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41 });
+      const fixture = montar([l]);
+      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao'))).toBe(false);
+    });
+
+    it('mostra a origem da manutenção na coluna de status', () => {
+      const origem = (f: ComponentFixture<EquipamentoListComponent>) =>
+        (f.nativeElement as HTMLElement).querySelector('.equipamentos__origem')?.textContent?.trim();
+      const janela = montar([linha({ id: 1, emManutencao: true, janelaAtivaId: 41, status: EquipmentOperationalStatus.Maintenance })]);
+      expect(texto(janela)).toContain('Em manutenção');
+      expect(origem(janela)).toBe('Janela #41');
+      janela.destroy();
+      const manual = montar([linha({ id: 2, emManutencao: true, manutencaoManual: true })]);
+      expect(origem(manual)).toBe('Manual');
+      manual.destroy();
+      const ambos = montar([linha({ id: 3, emManutencao: true, manutencaoManual: true, janelaAtivaId: 41 })]);
+      expect(origem(ambos)).toBe('Manual + janela #41');
+    });
+
+    it('encerrar manual com janela ativa avisa que continua em manutenção pela janela', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, manutencaoManual: true, janelaAtivaId: 41, janelaAtivaFim: '2026-10-23T15:30:00Z', status: EquipmentOperationalStatus.Maintenance });
+      const fixture = montar([l]);
+      fixture.componentInstance['executarAcao'](l, 'encerrarManutencao');
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('continua em manutenção pela janela #41 até');
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('app-confirm-dialog .botao--primario')!.click();
+      http.expectOne((r) => r.method === 'PATCH' && r.url.endsWith('/equipamentos/1/manutencao/encerrar')).flush({});
+      http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1, nome: 'SW-CORE', emManutencao: true, janelaAtivaId: 41, status: EquipmentOperationalStatus.Maintenance })]);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('Manutenção manual de SW-CORE encerrada. Continua em manutenção pela janela #41.');
+    });
+
     it('confirma o encerramento e chama a API certa', () => {
       comPermissao(true);
-      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Maintenance });
       const fixture = montar([l]);
       fixture.componentInstance['executarAcao'](l, 'encerrarManutencao');
       fixture.detectChanges();
