@@ -26,10 +26,10 @@
 
 ## Review Focus
 
-1. **Encerrar o manual com janela ATIVA** — o equipamento continua em manutenção, nenhum efeito de saída roda, a resposta diz `emManutencao: true`. Teste em Task 3.
+1. **Encerrar o manual com janela ATIVA** — o equipamento continua em manutenção, nenhum efeito de saída roda, a resposta diz `emManutencao: true`. Teste em Task 2.
 2. **Edição de equipamento enquanto o job vira o flag** — `PUT /equipamentos/{id}` com entidade carregada antes não pode regravar `em_manutencao`. Teste determinístico em Task 1 e corrida em Task 6.
-3. **Janela criada com início no passado recente (tolerância de 5 min) ou "agora"** — ativa na hora, sem esperar o tick. Teste em Task 4.
-4. **Primeira passada do reconciliador lançando exceção** — o motor não pode ficar bloqueado para sempre; `ReconciliacaoInicial` é marcada no `finally`. Teste em Task 5.
+3. **Janela criada com início no passado recente (tolerância de 5 min) ou "agora"** — ativa na hora, sem esperar o tick. Teste em Task 3.
+4. **Primeira passada do reconciliador lançando exceção** — o motor não pode ficar bloqueado para sempre; `ReconciliacaoInicial` é marcada no `finally`. Teste em Task 4.
 5. **Datas digitadas no `datetime-local`** — o front envia ISO UTC do horário local do navegador; fim ≤ início e duração acima do máximo são barrados antes do envio. Spec em Task 9.
 
 ---
@@ -75,8 +75,8 @@
 
 ## Ordem e paralelismo
 
-- Trilha backend sequencial: T1 → T2 → T3 → T4 → T5 → T6 (corridas) e T7 (read-model) depois de T3.
-- Trilha frontend: T8 e T9 podem começar em paralelo à trilha backend (contrato HTTP fixado no spec §2.3 e abaixo); T8 antes de T9.
+- Trilha backend sequencial: T1 → T2 → T3 → T4 → T5 (read-model) → T6 (corridas).
+- Trilha frontend: T7 → T8 → T9, em paralelo à trilha backend (contrato HTTP fixado no spec §2.3 e na Task 7).
 - T10 (validação integrada, e2e, carga, docs) depois de todas.
 
 ---
@@ -186,8 +186,7 @@ CREATE INDEX ix_manutencao_agendada_equipamento_equip ON manutencao_agendada_equ
     jdbc.update("update equipamento set em_manutencao = true where id = ?", e);
     assertThat(jdbc.queryForObject("select em_manutencao from equipamento where id = ?", Boolean.class, e)).isTrue();
 }
-@Test void backfillCopiaManutencaoExistente() // insere com em_manutencao = true via SQL ANTES? Nao: Flyway ja rodou.
-// Em vez disso: provar o DEFAULT -> novo equipamento nasce manual = false.
+@Test void equipamentoNovoNasceSemManual()  // DEFAULT: manutencao_manual = false (o backfill da V21 roda antes de qualquer teste)
 @Test void ativaSemCarimboERecusada()       // status ATIVA, ativada_em NULL -> ck_manutencao_agendada_coerente
 @Test void canceladaSemAutorERecusada()     // CANCELADA com cancelada_em e sem cancelada_por_id -> coerente
 @Test void periodoInvertidoERecusado()      // fim <= inicio -> ck_manutencao_agendada_periodo
@@ -976,8 +975,7 @@ Fixture e helpers `correr`, `largar`, `emOutraThread` copiados de `FechamentoMan
 @RepeatedTest(30) void ativacaoEMotorAbrindoIncidente()
 
 /** 6. Duas janelas UNIDADE (mesma unidade, 3 equipamentos com incidente aberto cada) ativando juntas:
- *  thread A reconciliar(agora), thread B encerrar?? -> NAO: B = segunda passada do reconciliador
- *  (reconciliar(agora) em paralelo, simulando dois nos ou tick sobreposto). Legitimo: sem deadlock (threads
+ *  threads A e B rodam reconciliar(agora) em paralelo (tick sobreposto ou dois nos). Legitimo: sem deadlock (threads
  *  terminam no LIMITE), cada incidente fechado UMA vez, notificacoes de encerramento uma por incidente,
  *  todos em_manutencao = true. */
 @RepeatedTest(30) void duasPassadasDoReconciliadorComJanelasDeUnidadeSobrepostas()
@@ -1067,7 +1065,6 @@ manutencaoManual: boolean; janelaAtivaId: number | null; janelaAtivaFim: string 
 - Produces: função exportada `origemDaManutencao(linha): string | null` em `features/equipamentos/origem-manutencao.ts`:
 
 ```ts
-import { DatePipe } from '@angular/common';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
 
 type LinhaComOrigem = Pick<DashboardEquipamentoLista, 'emManutencao' | 'manutencaoManual' | 'janelaAtivaId'>;
@@ -1078,7 +1075,7 @@ export function origemDaManutencao(linha: LinhaComOrigem): string | null {
   const janela = linha.janelaAtivaId !== null ? `janela #${linha.janelaAtivaId}` : null;
   if (linha.manutencaoManual && janela) return `Manual + ${janela}`;
   if (linha.manutencaoManual) return 'Manual';
-  return janela ? `J${janela.slice(1)}` : null;
+  return linha.janelaAtivaId !== null ? `Janela #${linha.janelaAtivaId}` : null;
 }
 ```
 
