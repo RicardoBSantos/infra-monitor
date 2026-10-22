@@ -52,7 +52,7 @@
       "caso": 2,
       "nome": "animação no ::after, nunca no elemento (DV13)",
       "ok": true,
-      "detalhe": "_ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none _ngcontent-ng-c1465033389_map-pulsar/none"
+      "detalhe": "_ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none _ngcontent-ng-c2092604648_map-pulsar/none"
     },
     {
       "caso": 2,
@@ -70,13 +70,13 @@
       "caso": 3,
       "nome": "há marcador isolado o bastante para hover determinístico",
       "ok": true,
-      "detalhe": "unidade 4, vizinho mais próximo a 190px"
+      "detalhe": "unidade 4, vizinho mais próximo a 203px"
     },
     {
       "caso": 3,
       "nome": "transform de autor não entra: a matriz nunca ganha escala",
       "ok": true,
-      "detalhe": "matrix(1, 0, 0, 1, 593.5, 295.5) -> matrix(1, 0, 0, 1, 591.5, 293.5)"
+      "detalhe": "matrix(1, 0, 0, 1, 604.476, 289.207) -> matrix(1, 0, 0, 1, 600.5, 281.5)"
     },
     {
       "caso": 3,
@@ -158,9 +158,15 @@
     },
     {
       "caso": 7,
-      "nome": "dois pings por linha de conexão desenhável, em fases opostas",
+      "nome": "três pings por linha de conexão desenhável, a ⅓ (D24)",
       "ok": true,
-      "detalhe": "18 ping(s) para 9 linha(s)"
+      "detalhe": "27 ping(s) para 9 linha(s)"
+    },
+    {
+      "caso": 7,
+      "nome": "todo ping é orbe de 5px sem contorno branco (D24)",
+      "ok": true,
+      "detalhe": "27 a 5px, borda 0, sombra color(srgb 0.207843 0.878431 0.529412 / 0.7) 0px 0px 4px 1px"
     },
     {
       "caso": 7,
@@ -196,7 +202,7 @@
       "caso": 8,
       "nome": "ping herda a cor de status da unidade conectada",
       "ok": true,
-      "detalhe": "pings: #34c77b #e8a33d · esperado: #34c77b #e8a33d"
+      "detalhe": "pings: #35e087 #fcb142 · esperado: #35e087 #fcb142"
     },
     {
       "caso": 8,
@@ -208,7 +214,13 @@
       "caso": 8,
       "nome": "todo ping percorre a linha — nenhum fica parado",
       "ok": true,
-      "detalhe": "18/18 em movimento · percurso mínimo 5.5px em 2,1s"
+      "detalhe": "27/27 em movimento · percurso mínimo 4.5px em 2,1s"
+    },
+    {
+      "caso": 8,
+      "nome": "fade nas pontas ativo e opacidade sempre em [0, 1] (D24)",
+      "ok": true,
+      "detalhe": "0 sem opacidade inline · 9/81 leitura(s) abaixo de 1, mín 0.110"
     },
     {
       "caso": 9,
@@ -238,13 +250,13 @@
       "caso": 9,
       "nome": "anel de seleção não é mais lilás",
       "ok": true,
-      "detalhe": "color(srgb 0.909804 0.639216 0.239216 / 0.78) 0px 0px 0px 3px, rgba(0, 0, 0, 0.6) 0px 1px 3px 0px"
+      "detalhe": "color(srgb 0.988235 0.694118 0.258824 / 0.78) 0px 0px 0px 3px, color(srgb 0.988235 0.694118 0.258824 / 0.45) 0px 0px 9px 2px, rgba(0, 0, 0, 0.6) 0px 1px 3px 0px"
     },
     {
       "caso": 9,
       "nome": "anel de seleção herda o matiz de --cor-unidade",
       "ok": true,
-      "detalhe": "#e8a33d -> color(srgb 0.909804 0.639216 0.239216 / 0.78) 0px 0px 0px 3px, rgba(0, 0, 0, 0.6) 0px 1px 3px 0px"
+      "detalhe": "#fcb142 -> color(srgb 0.988235 0.694118 0.258824 / 0.78) 0px 0px 0px 3px, color(srgb 0.988235 0.694118 0.258824 / 0.45) 0px 0px 9px 2px, rgba(0, 0, 0, 0.6) 0px 1px 3px 0px"
     },
     {
       "caso": 9,

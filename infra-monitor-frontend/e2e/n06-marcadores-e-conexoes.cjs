@@ -27,7 +27,7 @@ const { chromium } = require('playwright');
 const { apontarApi } = require('./api-porta.cjs');
 const fs = require('fs'); const path = require('path');
 
-const BASE = 'http://127.0.0.1:4200';
+const BASE = process.env.FRONT_URL || 'http://127.0.0.1:4200';
 const API = `http://localhost:${process.env.API_PORT || 8080}/api/v1`;
 const EMAIL = process.env.E2E_EMAIL || 'admin@inframonitor.local';
 const SENHA = process.env.N06_SENHA;

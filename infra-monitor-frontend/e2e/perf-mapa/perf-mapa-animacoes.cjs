@@ -40,6 +40,14 @@ const CENARIOS = [
   ['B5  55 marcadores pulsando (5x a carga real) — margem', 'B5'],
   ['D5  100 pings DOM (5x) — margem', 'D5'],
   ['E5  100 pings por setData (5x) — margem', 'E5'],
+  // D24 — CSS real (ping 5px, marcador com glow, halo) contra o ANTES (origin/main)
+  ['D2r 20 pings .ping-d18 (CSS de origin/main), vai-e-volta — producao ANTES', 'D2r'],
+  ['BD2r B + D2r — a tela inteira ANTES', 'BD2r'],
+  ['D3  30 pings .ping-d24, fluxo hub->unidade + fade nas pontas', 'D3'],
+  ['D3w D3 com will-change: transform', 'D3w'],
+  ['H   mapa parado com halo visivel', 'H'],
+  ['BD3 B com glow + D3 + halo — a tela inteira DEPOIS', 'BD3'],
+  ['BD3x5 5x BD3 (150 pings, 55 marcadores) — margem', 'BD3x5'],
 ];
 
 (async () => {
@@ -97,7 +105,7 @@ const CENARIOS = [
 
   fs.writeFileSync(path.join(SAIDA, 'bench.json'), JSON.stringify({ gpu, resultados, erros }, null, 2));
   console.log('\nerros de pagina: ' + (erros.length ? erros.join(' | ') : 'nenhum'));
-  await page.evaluate(() => window.cenario('BD'));
+  await page.evaluate(() => window.cenario('BD3'));
   await page.waitForTimeout(900);
   await page.locator('#card').screenshot({ path: path.join(SAIDA, 'bench-final.png') });
   await browser.close();

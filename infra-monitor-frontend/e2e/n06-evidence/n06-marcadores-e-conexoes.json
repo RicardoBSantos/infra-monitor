@@ -52,17 +52,17 @@
       {
         "viewport": "1366x768",
         "cartao": "697x688",
-        "esq": 48,
-        "dir": 49,
-        "topo": 123,
-        "base": 122,
-        "pEsq": 6.9,
-        "pDir": 7,
-        "pTopo": 17.9,
-        "pBase": 17.7,
-        "sobraV": 35.6,
-        "sobraH": 13.9,
-        "desequilibrioV": 0.1,
+        "esq": 24,
+        "dir": 25,
+        "topo": 107,
+        "base": 107,
+        "pEsq": 3.4,
+        "pDir": 3.6,
+        "pTopo": 15.6,
+        "pBase": 15.6,
+        "sobraV": 31.1,
+        "sobraH": 7,
+        "desequilibrioV": 0,
         "desequilibrioH": 0.1
       },
       {
@@ -84,18 +84,18 @@
       {
         "viewport": "1280x720",
         "cartao": "636x640",
-        "esq": 52,
-        "dir": 53,
-        "topo": 123,
-        "base": 122,
-        "pEsq": 8.2,
-        "pDir": 8.3,
-        "pTopo": 19.2,
-        "pBase": 19.1,
-        "sobraV": 38.3,
-        "sobraH": 16.5,
-        "desequilibrioV": 0.2,
-        "desequilibrioH": 0.2
+        "esq": 24,
+        "dir": 24,
+        "topo": 104,
+        "base": 104,
+        "pEsq": 3.8,
+        "pDir": 3.8,
+        "pTopo": 16.3,
+        "pBase": 16.3,
+        "sobraV": 32.5,
+        "sobraH": 7.5,
+        "desequilibrioV": 0,
+        "desequilibrioH": 0
       },
       {
         "viewport": "1024x768",
@@ -116,17 +116,17 @@
       {
         "viewport": "1600x900",
         "cartao": "920x820",
-        "esq": 66,
-        "dir": 66,
-        "topo": 123,
-        "base": 122,
-        "pEsq": 7.2,
-        "pDir": 7.2,
-        "pTopo": 15,
-        "pBase": 14.9,
-        "sobraV": 29.9,
-        "sobraH": 14.3,
-        "desequilibrioV": 0.1,
+        "esq": 24,
+        "dir": 24,
+        "topo": 96,
+        "base": 96,
+        "pEsq": 2.6,
+        "pDir": 2.6,
+        "pTopo": 11.7,
+        "pBase": 11.7,
+        "sobraV": 23.4,
+        "sobraH": 5.2,
+        "desequilibrioV": 0,
         "desequilibrioH": 0
       },
       {
@@ -290,19 +290,19 @@
       "caso": 4,
       "nome": "1366x768: sem corte (margem >= 8px nos quatro lados)",
       "ok": true,
-      "detalhe": "esq 48px (6.9%) · dir 49px (7.0%) · topo 123px (17.9%) · base 122px (17.7%)"
+      "detalhe": "esq 24px (3.4%) · dir 25px (3.6%) · topo 107px (15.6%) · base 107px (15.6%)"
     },
     {
       "caso": 4,
       "nome": "1366x768: sobra do eixo limitante <= 25%",
       "ok": true,
-      "detalhe": "sobraV 35.6% · sobraH 13.9% · limitante 13.9%"
+      "detalhe": "sobraV 31.1% · sobraH 7.0% · limitante 7.0%"
     },
     {
       "caso": 4,
       "nome": "1366x768: equilíbrio topo/base e esq/dir <= 6 p.p.",
       "ok": true,
-      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.1 p.p."
+      "detalhe": "topo-base 0.0 p.p. · esq-dir 0.1 p.p."
     },
     {
       "caso": 4,
@@ -326,19 +326,19 @@
       "caso": 4,
       "nome": "1280x720: sem corte (margem >= 8px nos quatro lados)",
       "ok": true,
-      "detalhe": "esq 52px (8.2%) · dir 53px (8.3%) · topo 123px (19.2%) · base 122px (19.1%)"
+      "detalhe": "esq 24px (3.8%) · dir 24px (3.8%) · topo 104px (16.3%) · base 104px (16.3%)"
     },
     {
       "caso": 4,
       "nome": "1280x720: sobra do eixo limitante <= 25%",
       "ok": true,
-      "detalhe": "sobraV 38.3% · sobraH 16.5% · limitante 16.5%"
+      "detalhe": "sobraV 32.5% · sobraH 7.5% · limitante 7.5%"
     },
     {
       "caso": 4,
       "nome": "1280x720: equilíbrio topo/base e esq/dir <= 6 p.p.",
       "ok": true,
-      "detalhe": "topo-base 0.2 p.p. · esq-dir 0.2 p.p."
+      "detalhe": "topo-base 0.0 p.p. · esq-dir 0.0 p.p."
     },
     {
       "caso": 4,
@@ -362,19 +362,19 @@
       "caso": 4,
       "nome": "1600x900: sem corte (margem >= 8px nos quatro lados)",
       "ok": true,
-      "detalhe": "esq 66px (7.2%) · dir 66px (7.2%) · topo 123px (15.0%) · base 122px (14.9%)"
+      "detalhe": "esq 24px (2.6%) · dir 24px (2.6%) · topo 96px (11.7%) · base 96px (11.7%)"
     },
     {
       "caso": 4,
       "nome": "1600x900: sobra do eixo limitante <= 25%",
       "ok": true,
-      "detalhe": "sobraV 29.9% · sobraH 14.3% · limitante 14.3%"
+      "detalhe": "sobraV 23.4% · sobraH 5.2% · limitante 5.2%"
     },
     {
       "caso": 4,
       "nome": "1600x900: equilíbrio topo/base e esq/dir <= 6 p.p.",
       "ok": true,
-      "detalhe": "topo-base 0.1 p.p. · esq-dir 0.0 p.p."
+      "detalhe": "topo-base 0.0 p.p. · esq-dir 0.0 p.p."
     },
     {
       "caso": 4,

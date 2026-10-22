@@ -1,0 +1,22 @@
+{
+  "rotulo": "antes-dev",
+  "unidades": 11,
+  "linhas": null,
+  "pings": 18,
+  "cenarios": [
+    {
+      "nome": "animado",
+      "cpuMsPorQuadro": 4.453,
+      "fps": 59.9,
+      "p50": 16.7,
+      "lentosPct": 0
+    },
+    {
+      "nome": "parado",
+      "cpuMsPorQuadro": 1.62,
+      "fps": 59.9,
+      "p50": 16.7,
+      "lentosPct": 0
+    }
+  ]
+}

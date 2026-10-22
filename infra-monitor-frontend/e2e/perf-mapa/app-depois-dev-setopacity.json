@@ -1,0 +1,22 @@
+{
+  "rotulo": "depois-dev-setopacity",
+  "unidades": 11,
+  "linhas": null,
+  "pings": 27,
+  "cenarios": [
+    {
+      "nome": "animado",
+      "cpuMsPorQuadro": 3.775,
+      "fps": 56.8,
+      "p50": 17.6,
+      "lentosPct": 0
+    },
+    {
+      "nome": "parado",
+      "cpuMsPorQuadro": 0.964,
+      "fps": 56.8,
+      "p50": 17.6,
+      "lentosPct": 0.9
+    }
+  ]
+}

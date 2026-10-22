@@ -11,7 +11,7 @@ arquivo-índice de mesmo nome da pasta.
 
 | Arquivo | O que é |
 |---|---|
-| [mapa-decisoes.md](mapa-decisoes.md) | Log cronológico de decisões (D01–D22): o que foi decidido, o que foi descartado, por quê |
+| [mapa-decisoes.md](mapa-decisoes.md) | Log cronológico de decisões (D01–D24): o que foi decidido, o que foi descartado, por quê |
 | [mapa-contexto-atual.md](mapa-contexto-atual.md) | Estado da rodada em curso, com números medidos |
 | [mapa-dividas.md](mapa-dividas.md) | O que ficou em aberto de propósito, e quando cobrar |
 
@@ -50,6 +50,8 @@ outra não apaga a entrada antiga: acrescenta uma nova que diz o que mudou e por
 | **Fechamento D20 — e2e no `main` com #7+#8 e no banco da carga; DV17 resolvida; DV19 nova** | **implementado** (contexto §14) |
 | **D21 — legenda sobre o mapa, painel de 420px, folga de 12px** | **implementado** (contexto §15), `e2e:legenda-painel` 75/75 |
 | **D22 — encaixe calculado da câmera, n06 em pixels, recuo da legenda, IBGE em todas** | **implementado** (contexto §16) |
+| D23 — placa do título sem sobretítulo (rodada 2 de consistência visual) | mergeado (PR #14) |
+| **D24 — três pings em fluxo, orbe, halo WebGL, paleta vibrante, glow no marcador; DV16 fechada** | **implementado** (contexto §17), `e2e:n07` 50/50, `e2e:d24` 15/15 |
 | Zoom BRASIL/REGIÃO com dado fora de Sergipe | bloqueado por dado (ver DV01) |
 
 ## Onde o código vive
@@ -71,6 +73,8 @@ cd infra-monitor-frontend
 npm run e2e:n04 && npm run e2e:n05 && npm run e2e:n06 && npm run e2e:n07 && npm run e2e:n08   # backend, ng serve, N0X_SENHA
 npm run e2e:m06
 npm run perf:mapa    # custo das animações; não precisa de backend nem de login
+npm run perf:mapa-app   # custo na tela real (backend, ng serve, PERF_SENHA); ver e2e/perf-mapa/README.md
+npm run e2e:d24      # capturas antes/depois do arco (CAP_ROTULO, CAP_SENHA)
 ```
 
 **Antes de mexer em qualquer animação do Mapa**, rode `npm run perf:mapa` e compare com a tabela de
