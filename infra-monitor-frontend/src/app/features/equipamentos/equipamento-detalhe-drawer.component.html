@@ -261,12 +261,12 @@
       <button class="botao" type="button" (click)="alternarEquipamento.emit()">
         {{ linha()?.ativo === false ? 'Ativar monitoramento' : 'Desativar monitoramento' }}
       </button>
-      @if (linha(); as l) {
-        @if (l.emManutencao) {
-          <button class="botao" type="button" (click)="alternarManutencao.emit()">Encerrar manutenção</button>
-        } @else if (l.ativo) {
-          <button class="botao" type="button" (click)="alternarManutencao.emit()">Iniciar manutenção</button>
-        }
+      <!-- Um só <button> com rótulo interpolado, como o de ativar/desativar: dois botões em
+           @if/@else trocariam de elemento no reload da lista e o foco devolvido cairia no body. -->
+      @if (linha()?.emManutencao || linha()?.ativo) {
+        <button class="botao" type="button" (click)="alternarManutencao.emit()">
+          {{ linha()?.emManutencao ? 'Encerrar manutenção' : 'Iniciar manutenção' }}
+        </button>
       }
     }
   </footer>

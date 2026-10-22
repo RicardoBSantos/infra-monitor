@@ -221,6 +221,20 @@ describe('EquipamentoDetalheDrawerComponent', () => {
       http.expectNone((request) => request.method === 'PATCH');
     });
 
+    it('preserva o mesmo elemento ao alternar o rótulo (o foco depende disso)', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      responder(fixture);
+      const botao = () => Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes .botao'))
+        .find((b) => /manutenção/.test(b.textContent ?? ''))!;
+      const antes = botao();
+      expect(antes.textContent).toContain('Iniciar manutenção');
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      fixture.detectChanges();
+      expect(botao().textContent).toContain('Encerrar manutenção');
+      expect(botao()).toBe(antes);
+    });
+
     it('ativo fora de manutenção mostra Iniciar', () => {
       const fixture = montar();
       fixture.componentRef.setInput('linha', LINHA);
