@@ -146,7 +146,7 @@
 .login-page {
   --lg-bg: #090C12; --lg-card: #0F151D; --lg-card-line: #1E2733; --lg-input: #0A0F17;
   --lg-input-line: #1B2430; --lg-text: #E8EDF5; --lg-muted: #7A8699; --lg-accent: #3B6EFF;
-  --lg-btn: #1C2743; --lg-btn-line: #2A3A66; --lg-ok: #3FB950; --lg-warn: #D29922; --lg-down: #E5534B;
+  --lg-btn: #1C2743; --lg-btn-line: #2A3A66; --lg-down: #E5534B;
   --lg-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
   --lg-heading: #fff; --lg-icon: #B9C4D4; --lg-btn-text: var(--lg-text); --lg-btn-hover: #222E4E;
   --lg-placeholder: #747d8b; --lg-focus: rgba(42, 58, 102, .45);
@@ -155,9 +155,6 @@
   --lg-line: rgba(108, 134, 204, .30); --lg-pulse: rgba(146, 176, 255, .55);
   --lg-ring: rgba(96, 126, 214, .22); --lg-ring-ping: rgba(96, 126, 214, .30);
   --lg-node-glow: rgba(120, 150, 220, .28); --lg-core-glow: rgba(59, 110, 255, .55);
-  --lg-chip-ok-line: rgba(63, 185, 80, .28); --lg-chip-ok-bg: rgba(63, 185, 80, .07);
-  --lg-chip-warn-line: rgba(210, 153, 34, .28); --lg-chip-warn-bg: rgba(210, 153, 34, .07);
-  --lg-chip-down-line: rgba(229, 83, 75, .28); --lg-chip-down-bg: rgba(229, 83, 75, .07);
   --lg-error-line: rgba(229, 83, 75, .35); --lg-error-bg: rgba(229, 83, 75, .10);
   --lg-node-opacity: 1;
 }
@@ -165,7 +162,7 @@
 :root[data-theme='light'] .login-page {
   --lg-bg: #f4f6f9; --lg-card: #ffffff; --lg-card-line: #e0e5ec; --lg-input: #f8fafc;
   --lg-input-line: #d0d5dd; --lg-text: #101828; --lg-muted: #667085; --lg-accent: #1a56db;
-  --lg-btn: #1a56db; --lg-btn-line: #1a56db; --lg-ok: #067647; --lg-warn: #b54708; --lg-down: #b42318;
+  --lg-btn: #1a56db; --lg-btn-line: #1a56db; --lg-down: #b42318;
   --lg-heading: #101828; --lg-icon: #475467; --lg-btn-text: #ffffff; --lg-btn-hover: #1748b8;
   --lg-placeholder: #6b727e; --lg-focus: rgba(26, 86, 219, .22);
   --lg-panel-a: #eaf0f8; --lg-panel-b: #dfe7f1; --lg-grid: rgba(16, 24, 40, .045);
@@ -173,9 +170,6 @@
   --lg-line: rgba(52, 82, 140, .28); --lg-pulse: rgba(26, 86, 219, .55);
   --lg-ring: rgba(52, 82, 140, .22); --lg-ring-ping: rgba(52, 82, 140, .30);
   --lg-node-glow: rgba(52, 82, 140, .20); --lg-core-glow: rgba(26, 86, 219, .35);
-  --lg-chip-ok-line: rgba(6, 118, 71, .30); --lg-chip-ok-bg: rgba(6, 118, 71, .08);
-  --lg-chip-warn-line: rgba(181, 71, 8, .30); --lg-chip-warn-bg: rgba(181, 71, 8, .08);
-  --lg-chip-down-line: rgba(180, 35, 24, .30); --lg-chip-down-bg: rgba(180, 35, 24, .08);
   --lg-error-line: rgba(180, 35, 24, .30); --lg-error-bg: rgba(180, 35, 24, .07);
   --lg-node-opacity: .9;
 }
