@@ -23,6 +23,7 @@ function linha(overrides: Partial<DashboardEquipamentoLista> & { id: number }): 
     ativo: true,
     localizacao: `Rack ${overrides.id}`,
     numeroSerie: `SN-000${overrides.id}`,
+    emManutencao: false,
     ...overrides,
   };
 }
@@ -486,6 +487,102 @@ describe('EquipamentoListComponent', () => {
       expect(post.request.body.ip).toBe('10.0.0.1');
       post.flush({ ...CADASTRO_COMPLETO, nome: 'SW-1' });
       http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush([]);
+    });
+  });
+
+  describe('manutenção', () => {
+    function itens(fixture: ComponentFixture<EquipamentoListComponent>, l: DashboardEquipamentoLista) {
+      return fixture.componentInstance['itensDoMenu'](l) as { id: string; rotulo: string; desabilitado?: boolean }[];
+    }
+    function comPermissao(pode: boolean) {
+      vi.spyOn(TestBed.inject(AuthStateService), 'canManageInventory').mockReturnValue(pode);
+    }
+
+    it('oferece Iniciar para ativo fora de manutenção, logo depois de ativar/desativar', () => {
+      comPermissao(true);
+      const fixture = montar([linha({ id: 1 })]);
+      const ids = itens(fixture, linha({ id: 1 })).map((i) => i.id);
+      expect(ids).toEqual(['ver', 'editar', 'desativar', 'iniciarManutencao', 'excluir']);
+      expect(itens(fixture, linha({ id: 1 }))[3].rotulo).toBe('Iniciar manutenção');
+    });
+
+    it('oferece Encerrar mesmo com o equipamento inativo (status DESABILITADO mascara a manutenção)', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, ativo: false, emManutencao: true, status: EquipmentOperationalStatus.Disabled });
+      const fixture = montar([l]);
+      const item = itens(fixture, l).find((i) => i.id === 'encerrarManutencao');
+      expect(item?.rotulo).toBe('Encerrar manutenção');
+      expect(itens(fixture, l).some((i) => i.id === 'iniciarManutencao')).toBe(false);
+    });
+
+    it('não oferece manutenção a equipamento inativo fora de manutenção', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, ativo: false });
+      const fixture = montar([l]);
+      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao'))).toBe(false);
+    });
+
+    it('desabilita o item sem permissão de gestão', () => {
+      comPermissao(false);
+      const fixture = montar([linha({ id: 1 })]);
+      expect(itens(fixture, linha({ id: 1 })).find((i) => i.id === 'iniciarManutencao')?.desabilitado).toBe(true);
+    });
+
+    it('confirma o início com texto dos efeitos e botão primário, e chama a API certa', () => {
+      comPermissao(true);
+      const fixture = montar([linha({ id: 1, nome: 'SW-CORE' })]);
+      fixture.componentInstance['executarAcao'](linha({ id: 1, nome: 'SW-CORE' }), 'iniciarManutencao');
+      fixture.detectChanges();
+
+      expect(texto(fixture)).toContain('Iniciar manutenção de SW-CORE?');
+      expect(texto(fixture)).toContain('deixa de ser verificado por ICMP');
+      expect(texto(fixture)).toContain('encerrados com motivo Manutenção');
+      expect(texto(fixture)).toContain('aviso de encerramento');
+      expect(texto(fixture)).toContain('não conta no relatório de disponibilidade');
+      const confirmar = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('app-confirm-dialog .botao--primario')!;
+      expect(confirmar.textContent).toContain('Iniciar manutenção');
+      confirmar.click();
+
+      http.expectOne((r) => r.method === 'PATCH' && r.url.endsWith('/equipamentos/1/manutencao/iniciar')).flush({});
+      http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1, nome: 'SW-CORE', emManutencao: true, status: EquipmentOperationalStatus.Maintenance })]);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('SW-CORE em manutenção.');
+    });
+
+    it('confirma o encerramento e chama a API certa', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      const fixture = montar([l]);
+      fixture.componentInstance['executarAcao'](l, 'encerrarManutencao');
+      fixture.detectChanges();
+
+      expect(texto(fixture)).toContain('Encerrar manutenção de SW-CORE?');
+      expect(texto(fixture)).toContain('volta a ser verificado por ICMP na próxima varredura');
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('app-confirm-dialog .botao--primario')!.click();
+      http.expectOne((r) => r.method === 'PATCH' && r.url.endsWith('/equipamentos/1/manutencao/encerrar')).flush({});
+      http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1, nome: 'SW-CORE' })]);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('Manutenção de SW-CORE encerrada.');
+    });
+
+    it('mostra no diálogo a recusa da API', () => {
+      comPermissao(true);
+      const fixture = montar([linha({ id: 1 })]);
+      fixture.componentInstance['executarAcao'](linha({ id: 1 }), 'iniciarManutencao');
+      fixture.detectChanges();
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('app-confirm-dialog .botao--primario')!.click();
+      http.expectOne((r) => r.url.endsWith('/manutencao/iniciar')).flush(
+        { code: 'BUSINESS_CONFLICT', message: 'Recusado pela API', status: 409, error: 'Conflict', path: '', timestamp: '' },
+        { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('Recusado pela API');
+    });
+
+    it('excluir continua com botão de perigo', () => {
+      const fixture = montar([linha({ id: 1 })]);
+      fixture.componentInstance['executarAcao'](linha({ id: 1 }), 'excluir');
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).querySelector('app-confirm-dialog .botao--perigo')).not.toBeNull();
     });
   });
 });

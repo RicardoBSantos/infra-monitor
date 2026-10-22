@@ -42,4 +42,5 @@ export interface DashboardEquipamentoLista {
   ativo: boolean;
   localizacao: string | null;
   numeroSerie: string | null;
+  emManutencao: boolean;
 }

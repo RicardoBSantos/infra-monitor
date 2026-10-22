@@ -51,6 +51,7 @@ export interface EquipamentoResumo {
   unidadeNome: string;
   status: EquipmentOperationalStatus;
   ativo: boolean;
+  emManutencao: boolean;
 }
 
 /**
@@ -96,6 +97,7 @@ export class EquipamentoDetalheDrawerComponent {
   readonly fechar = output<void>();
   readonly editar = output<void>();
   readonly alternarEquipamento = output<void>();
+  readonly alternarManutencao = output<void>();
 
   protected readonly janelaDias = JANELA_DIAS;
   protected readonly janelaGraficoMinutos = JANELA_GRAFICO_MINUTOS;

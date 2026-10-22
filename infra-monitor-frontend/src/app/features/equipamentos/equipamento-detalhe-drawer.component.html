@@ -250,7 +250,7 @@
   </div>
 
   <!-- Duas condições distintas, não redundantes: `acoesDeGestao` diz se o HOST atende a ação,
-       `canManageInventory` diz se o USUÁRIO pode executá-la. O Mapa desliga a primeira. -->
+       `canManageInventory` diz se o USUÁRIO pode executá-la (editar, ativar/desativar e manutenção). O Mapa desliga a primeira. -->
   <footer class="gaveta__acoes">
     @if (acoesDeGestao() && authState.canManageInventory()) {
       <button class="botao" type="button" (click)="editar.emit()">Editar equipamento</button>
@@ -261,6 +261,13 @@
       <button class="botao" type="button" (click)="alternarEquipamento.emit()">
         {{ linha()?.ativo === false ? 'Ativar monitoramento' : 'Desativar monitoramento' }}
       </button>
+      @if (linha(); as l) {
+        @if (l.emManutencao) {
+          <button class="botao" type="button" (click)="alternarManutencao.emit()">Encerrar manutenção</button>
+        } @else if (l.ativo) {
+          <button class="botao" type="button" (click)="alternarManutencao.emit()">Iniciar manutenção</button>
+        }
+      }
     }
   </footer>
 </aside>

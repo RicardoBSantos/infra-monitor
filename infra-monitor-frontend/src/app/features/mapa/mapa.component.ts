@@ -690,6 +690,7 @@ export class MapaComponent implements OnDestroy {
       unidadeNome: this.unidadeSelecionada()?.nome ?? '—',
       status: equipamento.status,
       ativo: equipamento.ativo,
+      emManutencao: equipamento.emManutencao,
     };
   });
 
