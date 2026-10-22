@@ -24,7 +24,7 @@ let proximoId = 0;
         @if (erro()) { <p class="confirm-dialog__erro" role="alert">{{ erro() }}</p> }
         <div>
           <button #cancelar class="botao" type="button" (click)="pedirCancelar()" [disabled]="busy()">Cancelar</button>
-          <button class="botao botao--perigo" type="button" (click)="confirm.emit()" [disabled]="busy()">{{ busy() ? busyLabel() : confirmLabel() }}</button>
+          <button class="botao" [class.botao--perigo]="confirmTone() === 'perigo'" [class.botao--primario]="confirmTone() === 'primario'" type="button" (click)="confirm.emit()" [disabled]="busy()">{{ busy() ? busyLabel() : confirmLabel() }}</button>
         </div>
       </section>
     </div>
@@ -36,6 +36,8 @@ export class ConfirmDialogComponent {
   readonly title = input.required<string>();
   readonly message = input.required<string>();
   readonly confirmLabel = input('Excluir');
+  // perigo é o padrão: excluir/desativar; primario para mudança de estado reversível sem perda, como manutenção.
+  readonly confirmTone = input<'perigo' | 'primario'>('perigo');
   readonly busyLabel = input('Processando…');
   readonly busy = input(false);
   readonly erro = input<string | null>(null);
