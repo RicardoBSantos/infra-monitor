@@ -4,6 +4,7 @@ import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.dto.ReferenciaResponse;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
+import br.com.inframonitor.equipamento.service.EstadoManutencaoEquipamento;
 import br.com.inframonitor.manutencao.dto.CriarManutencaoRequest;
 import br.com.inframonitor.manutencao.dto.ManutencaoResponse;
 import br.com.inframonitor.manutencao.entity.EscopoManutencao;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.Timestamp;
@@ -31,6 +33,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 
 /**
  * Servico de janelas agendadas contra PostgreSQL real: validacoes de criacao, ativacao
@@ -70,6 +73,8 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
     @Autowired private EquipamentoService equipamentoService;
     @Autowired private UnidadeService unidadeService;
     @Autowired private CoberturaManutencao cobertura;
+    // Spy so para injetar falha num equipamento; nos demais testes delega ao bean real.
+    @MockitoSpyBean private EstadoManutencaoEquipamento estado;
 
     private long operadorId;
     private long tipo;
@@ -331,6 +336,47 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
     }
 
     @Test
+    void encerrarSegueQuandoUmEquipamentoSumiuAntesDoLock() {
+        ManutencaoResponse r = service.criar(agora(EscopoManutencao.UNIDADE, null), operadorId);
+        // A corrida real (exclusao entre cobertosPor e o FOR UPDATE) nao se reproduz por SQL:
+        // equipamento apagado antes some do cobertosPor. O spy lanca o que travarEstadoManutencao
+        // lancaria nesse instante.
+        doThrow(new RecursoNaoEncontradoException("Equipamento nao encontrado")).when(estado).reavaliar(e1);
+
+        ManutencaoResponse encerrada = service.encerrar(r.id(), operadorId);
+
+        assertThat(encerrada.situacao()).isEqualTo(SituacaoManutencao.CONCLUIDA);
+        assertThat(emManutencao(e2)).isFalse();
+        assertThat(emManutencao(eInativo)).isFalse();
+    }
+
+    @Test
+    void encerrarReavaliaTodosEDepoisSobeAPrimeiraFalha() {
+        ManutencaoResponse r = service.criar(agora(EscopoManutencao.UNIDADE, null), operadorId);
+        IllegalStateException falha = new IllegalStateException("simulada");
+        doThrow(falha).when(estado).reavaliar(e1);
+
+        assertThatThrownBy(() -> service.encerrar(r.id(), operadorId)).isSameAs(falha);
+
+        assertThat(situacao(r.id())).isEqualTo("CONCLUIDA");
+        assertThat(emManutencao(e1)).isTrue();    // o que falhou fica para a divergencia do reconciliador
+        assertThat(emManutencao(e2)).isFalse();
+        assertThat(emManutencao(eInativo)).isFalse();
+    }
+
+    @Test
+    void criarAtivaReavaliaTodosMesmoComFalhaNoPrimeiro() {
+        IllegalStateException falha = new IllegalStateException("simulada");
+        doThrow(falha).when(estado).reavaliar(e1);
+
+        assertThatThrownBy(() -> service.criar(agora(EscopoManutencao.UNIDADE, null), operadorId)).isSameAs(falha);
+
+        assertThat(jdbc.queryForObject("select status from manutencao_agendada", String.class)).isEqualTo("ATIVA");
+        assertThat(emManutencao(e1)).isFalse();
+        assertThat(emManutencao(e2)).isTrue();
+    }
+
+    @Test
     void encerrarAgendadaDevolve409() {
         ManutencaoResponse r = service.criar(futura(EscopoManutencao.UNIDADE, null), operadorId);
 
@@ -383,6 +429,26 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
         assertThat(service.listar("VIGENTES", "centro", PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(nobreak);
         assertThat(service.listar("VIGENTES", "nada", PAGINA).getTotalElements()).isZero();
+    }
+
+    @Test
+    void buscaTrataCuringaDigitadoComoTexto() {
+        Instant base = Instant.now().plus(Duration.ofDays(1));
+        long mil = janela("AGENDADA", u, base, "Link 1000 Mbps");
+        long cem = janela("AGENDADA", u, base.plus(Duration.ofHours(1)), "Uso em 100% do link");
+        long sublinhado = janela("AGENDADA", u, base.plus(Duration.ofHours(2)), "porta_ge1");
+        long barra = janela("AGENDADA", u, base.plus(Duration.ofHours(3)), "rota a\\b");
+
+        assertThat(service.listar("VIGENTES", "100%", PAGINA).getContent())
+                .extracting(ManutencaoResponse::id).containsExactly(cem);
+        assertThat(service.listar("VIGENTES", "1_00", PAGINA).getTotalElements()).isZero();   // curinga casaria "1000"
+        assertThat(service.listar("VIGENTES", "porta_", PAGINA).getContent())
+                .extracting(ManutencaoResponse::id).containsExactly(sublinhado);
+        assertThat(service.listar("VIGENTES", "a\\b", PAGINA).getContent())
+                .extracting(ManutencaoResponse::id).containsExactly(barra);
+        assertThat(service.listar("VIGENTES", "1000", PAGINA).getContent())
+                .extracting(ManutencaoResponse::id).containsExactly(mil);
+        assertThat(service.listar("HISTORICO", "100%", PAGINA).getTotalElements()).isZero();
     }
 
     @Test

@@ -14,27 +14,33 @@ import java.util.List;
 
 public interface ManutencaoAgendadaRepository extends JpaRepository<ManutencaoAgendada, Long> {
 
+    /**
+     * Filtro comum das listagens. ESCAPE '\': o servico escapa \, % e _ digitados, que assim
+     * casam como texto e nao como curinga.
+     */
+    String FILTRO = " where m.situacao in :situacoes and (lower(u.nome) like :busca escape '\\'"
+            + " or lower(m.motivo) like :busca escape '\\')";
+    String CONTAGEM = "select count(m) from ManutencaoAgendada m join m.unidade u" + FILTRO;
+
     /** ATIVA primeiro, depois por inicio. A ordem vive aqui: o Pageable chega sem Sort. */
     @Query(value = """
             select m from ManutencaoAgendada m join fetch m.unidade u join fetch m.criadoPor
-              left join fetch m.encerradaPor left join fetch m.canceladaPor
-             where m.situacao in :situacoes and (lower(u.nome) like :busca or lower(m.motivo) like :busca)
+              left join fetch m.encerradaPor left join fetch m.canceladaPor""" + FILTRO + """
+
              order by case when m.situacao = br.com.inframonitor.manutencao.entity.SituacaoManutencao.ATIVA
                            then 0 else 1 end,
                       m.inicioPrevisto asc, m.id asc""",
-            countQuery = "select count(m) from ManutencaoAgendada m join m.unidade u where m.situacao in :situacoes "
-                    + "and (lower(u.nome) like :busca or lower(m.motivo) like :busca)")
+            countQuery = CONTAGEM)
     Page<ManutencaoAgendada> vigentes(@Param("situacoes") Collection<SituacaoManutencao> situacoes,
                                       @Param("busca") String busca, Pageable pageable);
 
     /** Mais recente primeiro. */
     @Query(value = """
             select m from ManutencaoAgendada m join fetch m.unidade u join fetch m.criadoPor
-              left join fetch m.encerradaPor left join fetch m.canceladaPor
-             where m.situacao in :situacoes and (lower(u.nome) like :busca or lower(m.motivo) like :busca)
+              left join fetch m.encerradaPor left join fetch m.canceladaPor""" + FILTRO + """
+
              order by m.inicioPrevisto desc, m.id desc""",
-            countQuery = "select count(m) from ManutencaoAgendada m join m.unidade u where m.situacao in :situacoes "
-                    + "and (lower(u.nome) like :busca or lower(m.motivo) like :busca)")
+            countQuery = CONTAGEM)
     Page<ManutencaoAgendada> historico(@Param("situacoes") Collection<SituacaoManutencao> situacoes,
                                        @Param("busca") String busca, Pageable pageable);
 

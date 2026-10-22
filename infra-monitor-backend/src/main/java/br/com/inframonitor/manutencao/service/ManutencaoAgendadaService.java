@@ -20,6 +20,8 @@ import br.com.inframonitor.unidade.entity.Unidade;
 import br.com.inframonitor.unidade.repository.UnidadeRepository;
 import br.com.inframonitor.usuario.entity.Usuario;
 import br.com.inframonitor.usuario.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +56,7 @@ public class ManutencaoAgendadaService {
     /** Folga para o relogio do navegador e o tempo de preencher o formulario com inicio "agora". */
     static final Duration TOLERANCIA_PASSADO = Duration.ofMinutes(5);
 
+    private static final Logger log = LoggerFactory.getLogger(ManutencaoAgendadaService.class);
     private static final Set<SituacaoManutencao> VIGENTES = EnumSet.of(SituacaoManutencao.AGENDADA,
             SituacaoManutencao.ATIVA);
     private static final Set<SituacaoManutencao> HISTORICO = EnumSet.complementOf(EnumSet.copyOf(VIGENTES));
@@ -93,9 +96,10 @@ public class ManutencaoAgendadaService {
         Long id = transacao.execute(s -> repositorio.saveAndFlush(validarEMontar(req, usuarioId, agora)).getId());
         // Fora da transacao de criacao: a ativacao e a reavaliacao sao transacoes proprias,
         // como no reconciliador. Uma falha aqui deixa a janela AGENDADA, e o tick a ativa.
-        if (!req.inicioPrevisto().isAfter(agora)
-                && Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, agora)))) {
-            cobertura.cobertosPor(id).forEach(estado::reavaliar);
+        // Relogio lido de novo: o agora da validacao ficou para tras durante o insert, e o CAS
+        // (inicio_previsto <= agora) ja e a guarda de "devida".
+        if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
+            reavaliarCobertos(id);
         }
         return detalhar(id);
     }
@@ -113,9 +117,36 @@ public class ManutencaoAgendadaService {
         if (!Boolean.TRUE.equals(transacao.execute(s -> cobertura.encerrar(id, usuarioId, Instant.now())))) {
             throw new ConflitoException(recusa("encerrar", situacaoAtual(id)));
         }
-        // Um equipamento por transacao, em ordem de id (mesma ordem de lock do reconciliador).
-        cobertura.cobertosPor(id).forEach(estado::reavaliar);
+        reavaliarCobertos(id);
         return detalhar(id);
+    }
+
+    /**
+     * Um equipamento por transacao, em ordem de id (mesma ordem de lock do reconciliador). A
+     * situacao da janela ja esta commitada: parar no primeiro erro deixaria os demais
+     * equipamentos com o flag velho, e com o agendador desligado ninguem os repararia. Por isso
+     * segue ate o fim; equipamento excluido no meio do caminho nao e erro (nao ha o que
+     * reavaliar), qualquer outra falha sobe depois que todos foram tentados.
+     */
+    private void reavaliarCobertos(long manutencaoId) {
+        RuntimeException primeiraFalha = null;
+        for (Long equipamentoId : cobertura.cobertosPor(manutencaoId)) {
+            try {
+                estado.reavaliar(equipamentoId);
+            } catch (RecursoNaoEncontradoException e) {
+                log.info("Janela {}: equipamento {} excluido antes da reavaliacao; ignorado",
+                        manutencaoId, equipamentoId);
+            } catch (RuntimeException e) {
+                log.error("Janela {}: falha ao reavaliar o equipamento {}; seguindo com os demais",
+                        manutencaoId, equipamentoId, e);
+                if (primeiraFalha == null) {
+                    primeiraFalha = e;
+                }
+            }
+        }
+        if (primeiraFalha != null) {
+            throw primeiraFalha;
+        }
     }
 
     public Page<ManutencaoResponse> listar(String situacao, String busca, Pageable pageable) {
@@ -123,7 +154,9 @@ public class ManutencaoAgendadaService {
         if (!filtro.equals("VIGENTES") && !filtro.equals("HISTORICO")) {
             throw new IllegalArgumentException("Situacao de listagem invalida: use VIGENTES ou HISTORICO");
         }
-        String termo = "%" + (busca == null ? "" : busca.strip().toLowerCase(Locale.ROOT)) + "%";
+        // % e _ digitados sao texto, nao curinga: escapados para o ESCAPE '\' das queries.
+        String texto = busca == null ? "" : busca.strip().toLowerCase(Locale.ROOT);
+        String termo = "%" + texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
         // Sem Sort: a ordem esta na query.
         Pageable pagina = PageRequest.of(pageable.getPageNumber(),
                 Math.min(pageable.getPageSize(), Paginacao.TAMANHO_MAXIMO));

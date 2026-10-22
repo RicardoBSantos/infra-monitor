@@ -14,5 +14,17 @@ public class ManutencaoAgendadaProperties {
     public long getIntervaloMs() { return intervaloMs; }
     public void setIntervaloMs(long intervaloMs) { this.intervaloMs = intervaloMs; }
     public Duration getDuracaoMaxima() { return duracaoMaxima; }
-    public void setDuracaoMaxima(Duration duracaoMaxima) { this.duracaoMaxima = duracaoMaxima; }
+
+    /**
+     * Horas inteiras e positivas: a mensagem de recusa e /parametros falam em horas, e 90m
+     * viraria "1 hora" na tela com o servidor aceitando 1h30. Falha no boot, nao na criacao.
+     */
+    public void setDuracaoMaxima(Duration duracaoMaxima) {
+        if (duracaoMaxima == null || duracaoMaxima.isZero() || duracaoMaxima.isNegative()
+                || !duracaoMaxima.equals(Duration.ofHours(duracaoMaxima.toHours()))) {
+            throw new IllegalArgumentException("MANUTENCAO_AGENDADA_DURACAO_MAXIMA (manutencao.agendada.duracao-maxima) "
+                    + "deve ser um numero inteiro e positivo de horas, como 72h ou 5d; recebido: " + duracaoMaxima);
+        }
+        this.duracaoMaxima = duracaoMaxima;
+    }
 }
