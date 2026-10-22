@@ -31,6 +31,7 @@ const businessRoutes: Routes = [
   { path: 'tipos-equipamento', loadComponent: () => import('./features/tipos-equipamento/tipo-equipamento-list.component').then(m => m.TipoEquipamentoListComponent), data: { breadcrumb: 'Tipos de equipamento', title: 'Tipos de equipamento', section: 'Gerenciamento' } },
   { path: 'monitores', loadComponent: () => import('./features/monitores/monitor-list.component').then(m => m.MonitorListComponent), data: { breadcrumb: 'Monitoramento', title: 'Monitoramento', section: 'Gerenciamento' } },
   { path: 'medicoes', loadComponent: () => import('./features/medicoes/medicao-list.component').then(m => m.MedicaoListComponent), data: { breadcrumb: 'Medições', title: 'Medições', section: 'Gerenciamento' } },
+  { path: 'manutencoes', loadComponent: () => import('./features/manutencoes/manutencao-list.component').then(m => m.ManutencaoListComponent), data: { breadcrumb: 'Manutenções', title: 'Janelas de manutenção', section: 'Gerenciamento' } },
   /*
    * Lista e detalhe são o MESMO componente, e uma única entrada de rota: a gaveta de
    * detalhe é montada pela lista. Os filhos são rotas sem componente — existem só para

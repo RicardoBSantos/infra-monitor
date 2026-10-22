@@ -1,0 +1,96 @@
+<section class="pagina" aria-labelledby="manutencoes-title">
+  <header class="pagina__cabecalho">
+    <div>
+      <h1 id="manutencoes-title">Janelas de manutenção</h1>
+      <p class="pagina__descricao">Intervenções planejadas. Equipamentos em janela ativa não são verificados e o período não conta no relatório de disponibilidade.</p>
+    </div>
+    @if (podeGerenciar()) {
+      <button class="botao botao--primario" type="button" (click)="abrirAgendamento()" [disabled]="!podeAgendar()">+ Agendar manutenção</button>
+    }
+  </header>
+
+  @if (agendadorDesligado()) {
+    <div class="banner-agendador" role="status">
+      <span class="marca marca--warning" aria-hidden="true"><app-icon name="power" /></span>
+      <p><strong>O agendamento está desligado neste servidor: janelas não são ativadas.</strong> Peça para ligar <code>MANUTENCAO_AGENDADA_ENABLED</code> no backend. Enquanto isso, use Iniciar manutenção no equipamento.</p>
+    </div>
+  }
+  @if (erroParametros()) {
+    <div class="feedback" role="status"><span>Não foi possível consultar o agendador. Recarregue a página para agendar.</span></div>
+  }
+
+  <div class="barra-filtros">
+    <div class="segmento" role="group" aria-label="Situação">
+      <button class="botao" type="button" [attr.aria-pressed]="filtro() === 'VIGENTES'" (click)="mudarFiltro('VIGENTES')">Vigentes</button>
+      <button class="botao" type="button" [attr.aria-pressed]="filtro() === 'HISTORICO'" (click)="mudarFiltro('HISTORICO')">Histórico</button>
+    </div>
+    <input class="campo-busca" type="search" placeholder="Buscar por unidade ou motivo" aria-label="Buscar janelas por unidade ou motivo" (input)="digitarBusca($any($event.target).value)">
+  </div>
+
+  @if (aviso()) { <div class="notice" role="status">{{ aviso() }}</div> }
+
+  @switch (estado()) {
+    @case ('carregando') {
+      <div class="cartao"><div class="esqueleto" role="status" aria-label="Carregando janelas de manutenção">@for (x of [1, 2, 3]; track x) { <span></span> }</div></div>
+    }
+    @case ('erro') {
+      <div class="feedback feedback--error" role="alert"><strong>Não foi possível carregar as janelas.</strong><span>{{ erro() }}</span><button class="botao" type="button" (click)="carregar()">Tentar novamente</button></div>
+    }
+    @case ('vazio') {
+      <div class="feedback">
+        @if (filtro() === 'VIGENTES') { <strong>Nenhuma janela vigente.</strong><span>{{ busca() ? 'Nada corresponde à busca.' : 'Janelas agendadas e ativas aparecem aqui.' }}</span> }
+        @else { <strong>Nenhuma janela no histórico.</strong><span>{{ busca() ? 'Nada corresponde à busca.' : 'Janelas concluídas, canceladas e expiradas aparecem aqui.' }}</span> }
+      </div>
+    }
+    @case ('sucesso') {
+      <div class="cartao">
+        <div class="manutencoes__rolagem">
+          <table class="tabela">
+            <thead><tr><th>#</th><th>UNIDADE</th><th>ESCOPO</th><th>INÍCIO</th><th>FIM</th><th>MOTIVO</th><th>CRIADO POR</th><th>SITUAÇÃO</th><th class="acoes">AÇÕES</th></tr></thead>
+            <tbody>
+              @for (janela of itens(); track janela.id) {
+                <tr>
+                  <td class="mono">#{{ janela.id }}</td>
+                  <td><strong>{{ janela.unidade.nome }}</strong></td>
+                  <td>
+                    @if (janela.equipamentos.length) { <span class="escopo-lista" [attr.title]="nomesDe(janela)">{{ escopoDe(janela) }}</span> }
+                    @else { {{ escopoDe(janela) }} }
+                  </td>
+                  <td class="data">
+                    {{ dataHora(janela.inicioPrevisto) }}
+                    @if (linhaAtivacao(janela); as linha) { <small class="desvio">{{ linha }}</small> }
+                  </td>
+                  <td class="data">
+                    {{ dataHora(janela.fimPrevisto) }}
+                    @if (linhaEncerramento(janela); as linha) { <small class="desvio" [class.desvio--neutro]="linha.endsWith('antes do previsto')">{{ linha }}</small> }
+                  </td>
+                  <td class="motivo">{{ janela.motivo }}</td>
+                  <td>{{ janela.criadoPor.nome }}</td>
+                  <td><app-status-badge [status]="janela.situacao" /></td>
+                  <td class="acoes">
+                    @if (acoesDe(janela); as acoes) {
+                      @if (acoes.length) { <app-action-menu [itens]="acoes" [rotuloContexto]="'janela #' + janela.id" (selecionar)="executar(janela, $event)" /> }
+                      @else { <span class="apagado">—</span> }
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (totalPaginas() > 1) {
+          <app-paginacao [paginaAtual]="pagina()" [totalPaginas]="totalPaginas()" [contagem]="contagem()" rotulo="Paginação das janelas" (mudarPagina)="mudarPagina($event)" />
+        }
+      </div>
+    }
+  }
+
+  <p class="nota-sla">Cancelar ou encerrar uma janela não recupera SLA: o tempo em que os equipamentos ficaram em manutenção não foi medido.</p>
+
+  @if (podeGerenciar()) {
+    <app-agendar-manutencao [aberto]="agendando()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="agendando.set(false)" (agendada)="aoAgendar($event)" />
+  }
+
+  <app-confirm-dialog [open]="!!confirmando()" [title]="textoDialogo()?.titulo ?? ''" [message]="textoDialogo()?.mensagem ?? ''" [confirmLabel]="textoDialogo()?.botao ?? ''"
+    confirmTone="primario" [busy]="ocupado()" [erro]="erroDialogo()" (cancel)="fecharDialogo()" (confirm)="confirmar()" />
+</section>

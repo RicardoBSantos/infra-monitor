@@ -1,0 +1,39 @@
+/* Escopo: rádios e lista de checagem. As regras globais de `.modal-form label/input` miram
+   campos de texto (rótulo em versalete, input 100%), então aqui são desfeitas para os controles de marcar. */
+.escopo { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.escopo legend { margin-bottom: 5px; padding: 0; color: var(--im-text-dim); font-size: 9.5px; font-weight: 600; letter-spacing: .1em; }
+.escopo__opcoes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.modal-form .opcao,
+.modal-form .checagem__item {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--im-text-soft); font-size: 12.5px; font-weight: 400; letter-spacing: 0; cursor: pointer;
+}
+.modal-form .opcao input,
+.modal-form .checagem__item input { width: auto; margin: 0; padding: 0; accent-color: var(--im-primary); }
+
+/* Rádio como pílula: a opção marcada ganha a borda primária, como o filtro da página. */
+.modal-form .opcao {
+  height: 30px; padding: 0 12px 0 10px;
+  border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-lg); background: var(--im-surface);
+}
+.modal-form .opcao:has(input:checked) { border-color: var(--im-primary-border); background: var(--im-primary-soft); color: var(--im-text); }
+.modal-form .opcao:has(input:focus-visible) { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+
+.escopo__dica, .escopo__contagem, .periodo-dica { margin: 0; color: var(--im-text-dim); font-size: 11.5px; }
+.escopo__contagem { font-family: var(--im-mono); font-size: 11px; }
+
+.checagem {
+  display: grid; max-height: 208px; overflow-y: auto;
+  border: 1px solid var(--im-border-strong); border-radius: var(--im-radius); background: var(--im-surface);
+}
+.modal-form .checagem__item { padding: 7px 10px; border-top: 1px solid var(--im-border); font-family: var(--im-mono); font-size: 12px; }
+.modal-form .checagem__item:first-child { border-top: 0; }
+.modal-form .checagem__item:hover { background: var(--im-surface-hover); }
+.modal-form .checagem__item:has(input:checked) { color: var(--im-text-strong); background: var(--im-primary-soft); }
+
+.periodo-erro, .periodo-dica { margin-top: -4px; }
+
+.modal-form textarea { resize: vertical; min-height: 64px; }
+
+.modal-form__rodape .rodape-erro { color: var(--im-danger-text); }

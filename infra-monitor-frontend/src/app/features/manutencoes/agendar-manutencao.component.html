@@ -1,0 +1,53 @@
+<app-modal [aberto]="aberto()" titulo="Agendar manutenção" subtitulo="Os equipamentos cobertos deixam de ser verificados durante a janela, e o período não conta no relatório de disponibilidade." largura="560px" [bloqueado]="salvando()" (fechar)="pedirFechar()">
+  <form class="modal-form" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    <label>UNIDADE *
+      <span class="campo-select"><select formControlName="unidadeId">
+        <option value="">Selecione a unidade</option>
+        @for (unidade of unidades(); track unidade.id) { <option [value]="unidade.id">{{ unidade.nome }}</option> }
+      </select></span>
+      @if (tentou() && !form.controls.unidadeId.value) { <small class="field-error">Selecione a unidade.</small> }
+    </label>
+
+    <fieldset class="escopo">
+      <legend>ESCOPO</legend>
+      <div class="escopo__opcoes">
+        <label class="opcao"><input type="radio" formControlName="escopo" value="UNIDADE"> Unidade inteira</label>
+        <label class="opcao"><input type="radio" formControlName="escopo" value="EQUIPAMENTOS"> Equipamentos selecionados</label>
+      </div>
+      @if (escopo() === escopos.Unit) {
+        <p class="escopo__dica">Inclui os equipamentos que entrarem na unidade durante a janela.</p>
+      } @else if (unidadeId() === null) {
+        <p class="escopo__dica">Escolha a unidade para ver os equipamentos.</p>
+      } @else if (!equipamentosDaUnidade().length) {
+        <p class="escopo__dica">Esta unidade não tem equipamentos ativos.</p>
+      } @else {
+        <div class="checagem" role="group" aria-label="Equipamentos da janela">
+          @for (equipamento of equipamentosDaUnidade(); track equipamento.id) {
+            <label class="checagem__item"><input type="checkbox" [checked]="selecionados().has(equipamento.id)" (change)="alternar(equipamento.id, $any($event.target).checked)">{{ equipamento.nome }}</label>
+          }
+        </div>
+        <p class="escopo__contagem">{{ selecionados().size }} de {{ equipamentosDaUnidade().length }} selecionados</p>
+      }
+      @if (tentou() && faltaEquipamento()) { <small class="field-error">Selecione ao menos um equipamento.</small> }
+    </fieldset>
+
+    <div class="modal-form__linha">
+      <label>INÍCIO *<input type="datetime-local" formControlName="inicio"></label>
+      <label>FIM *<input type="datetime-local" formControlName="fim"></label>
+    </div>
+    @if (erroPeriodo()) { <small class="field-error periodo-erro">{{ erroPeriodo() }}</small> }
+    @else { <small class="periodo-dica">Horário deste navegador. Duração máxima de {{ duracaoMaximaHoras() }} horas.</small> }
+
+    <label>MOTIVO *<textarea formControlName="motivo" rows="3" maxlength="300"></textarea>
+      @if (tentou() && !form.controls.motivo.value.trim()) { <small class="field-error">Informe o motivo.</small> }
+    </label>
+
+    @if (erroCarga()) { <p class="field-error">{{ erroCarga() }}</p> }
+
+    <div class="modal-form__rodape">
+      @if (erroApi()) { <p class="rodape-erro" role="alert">{{ erroApi() }}</p> }
+      <button class="botao" type="button" (click)="pedirFechar()" [disabled]="salvando()">Cancelar</button>
+      <button class="botao botao--primario" type="submit" [disabled]="salvando()">{{ salvando() ? 'Agendando…' : 'Agendar janela' }}</button>
+    </div>
+  </form>
+</app-modal>
