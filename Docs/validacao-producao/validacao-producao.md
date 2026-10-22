@@ -2,7 +2,7 @@
 
 Documentação persistente do ciclo de validação que antecede a sondagem de equipamentos reais:
 uma rodada de correções levantadas ao testar o motor de monitoramento ICMP contra a rede real desta
-máquina, mais uma proposta de desenho (ainda não implementada) para o comportamento de manutenção.
+máquina, e o comportamento de manutenção — proposto, implementado (verificação ponta a ponta) e exposto na interface ([manutencao-interface-e-m7.md](manutencao-interface-e-m7.md)).
 
 Segue o padrão de `mapa-architecture/`: uma pasta por ciclo, com um arquivo-índice de mesmo nome da
 pasta.
@@ -12,7 +12,7 @@ pasta.
 | Arquivo | O que é |
 |---|---|
 | [icmp-falsos-positivos.md](icmp-falsos-positivos.md) | Os falsos positivos do `ping.exe` no Windows, a decisão pela API nativa `IcmpSendEcho` via JNA, a evidência medida e o teste contra a rede real |
-| [manutencao-proposta.md](manutencao-proposta.md) | Proposta de desenho (sem código) para suprimir notificação e incidente durante a manutenção de um equipamento |
+| [manutencao-proposta.md](manutencao-proposta.md) | Desenho da manutenção (implementado; verificação em [manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md)) para suprimir notificação e incidente durante a manutenção de um equipamento |
 | [manutencao-auditoria-enums.md](manutencao-auditoria-enums.md) | Auditoria dos três enums novos de manutenção — StatusNotificacao.CANCELADA, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO, LATENCIA_ENCERRADA_MANUTENCAO — e cada ponto de leitura/escrita no backend e frontend |
 | [manutencao-backfill-diagnostico.md](manutencao-backfill-diagnostico.md) | Diagnóstico do backfill de motivo_encerramento da V19 — contagens reais por faixa de 76 incidentes fechados no banco de dev |
 | [manutencao-verificacao-ponta-a-ponta.md](manutencao-verificacao-ponta-a-ponta.md) | Verificação ponta a ponta do módulo de manutenção com backend ICMP real, dispatcher de notificação, Postgres descartável e mock do Telegram |
@@ -28,6 +28,8 @@ pasta.
 | [monitoramento-parado-investigacao.md](monitoramento-parado-investigacao.md) | Investigação (sem código) de como detectar monitoramento parado: estado atual, opções com custo e cobertura (inclui hibernação e reinício), recomendação |
 | [env-testes-docker-environment-prod.md](env-testes-docker-environment-prod.md) | `.env` desarmado (token nunca commitado; variáveis injetadas pelo serviço, Telegram desligado por padrão e travado em teste), 27 classes Postgres puladas com aviso sem Docker, `environment.prod.ts` com `apiUrl` relativa e as opções para servir o frontend |
 | [dv17-500-sob-concorrencia.md](dv17-500-sob-concorrencia.md) | DV17: o 500 sob concorrência não era o pool — hash paralelo da última medição estourava o `/dev/shm` de 64 MB do PostgreSQL em Docker; consulta por índice (606 → 0,35 ms) e prova de reversão com a mesma rajada |
+| [manutencao-interface-e-m7.md](manutencao-interface-e-m7.md) | Manutenção pela interface de Equipamentos, M7 (incidente manual fora de observação recusado, com prova de reversão), exercício na carga e dívidas registradas |
+| [design — manutenção pela interface e M7](../superpowers/specs/2026-10-22-manutencao-interface-e-m7-design.md) | O design aprovado desta rodada: botão de manutenção, campo `emManutencao` no read-model, guarda do M7 em `IncidenteService.criar` |
 | [evidencias/](evidencias/) | Capturas brutas (log de subida, respostas de `/api/v1/status`) que sustentam as seções resumidas dos relatórios acima |
 | [design — icmp-nativo-windows](../superpowers/specs/2026-09-21-icmp-nativo-windows-design.md) | O design que este ciclo implementou: contrato `IcmpResult`/`StatusIcmp`, mapeamento de códigos Win32, componentes criados |
 

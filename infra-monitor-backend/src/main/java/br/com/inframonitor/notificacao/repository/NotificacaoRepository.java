@@ -91,7 +91,11 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
      * - cancelamento primeiro: reserveForDispatch encontra CANCELADA, atualiza 0, o
      *   dispatcher desiste;
      * - reserva primeiro: a linha ja e ENVIANDO, o cancelamento atualiza 0 e a
-     *   mensagem sai. Aceito e deliberado.
+     *   mensagem sai. O CAS em si esta correto; o que NAO esta garantido e o aviso
+     *   de encerramento que deveria acompanhar a abertura que saiu: a decisao de
+     *   cria-lo vem de uma leitura anterior a este UPDATE (divida A4 em
+     *   auditoria-concorrencia-ciclo-de-vida.md - o grupo pode receber a abertura e
+     *   nunca o encerramento).
      *
      * <p>Escopo por incidente e nao por tipo de evento: na pratica so existe um
      * INCIDENTE_ABERTO pendente, mas amarrar a regra a uma enumeracao que a V15 ja

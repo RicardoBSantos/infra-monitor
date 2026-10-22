@@ -650,10 +650,14 @@ exportação também **não** traz `fechado_por`, lacuna anterior a esta propost
 (`NotificacaoRepository.java:78-81`) e as duas guardas propostas na B.4, passa a ser a única escrita
 de ciclo de vida sem proteção no banco. Fora de escopo aqui; anotado.
 
+*Resolvido depois deste documento: `fecharAutomaticamente` usa CAS (`fecharAutomaticamenteSeEmAberto`) — ver `riscos-execucao-correcoes.md`, seção 1a.*
+
 **`excluir` não fecha janela.** `MonitorService.java:115-125` e `EquipamentoService.java:134-141`
 apagam sem tocar em `janela_monitoramento`. Na prática a exclusão só passa quando não há medição,
 incidente nem monitor, então a janela órfã seria de um monitor sem dado — inócua, mas viola o
 invariante da B.5. Fora de escopo.
+
+*Resolvido depois deste documento: excluir monitor apaga as janelas dele na mesma transação (`CicloJanelaMonitoramentoService.apagarDoMonitor`), e excluir equipamento só é possível com zero monitores, logo sem janela — ver `riscos-execucao-correcoes.md`, seção 1c, e `ExclusaoEJanelaPostgresIntegrationTest`. Apaga, não fecha: a FK é `RESTRICT`.*
 
 **Manutenção em equipamento inativo.** Linhas 4, 6 e 8 da matriz da B.5 são alcançáveis porque
 `entrarEmManutencao` não valida `ativo`. Nada quebra, e a saída da manutenção reavalia o predicado
