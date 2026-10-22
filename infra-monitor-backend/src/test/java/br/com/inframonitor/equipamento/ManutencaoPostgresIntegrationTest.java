@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * <p>Existe porque os testes de unidade e de corrida sequencial (mesma thread, duas
  * chamadas em fila) nao provam nada sobre concorrencia real: eles passam mesmo sem o
- * CAS de {@code marcarEmManutencaoSeNaoEstiver}, porque o filtro de status das
+ * lock de {@code travarEstadoManutencao}, porque o filtro de status das
  * leituras ja resolve o caso sequencial. O que so o banco real prova sao as CHECKs
  * novas recusando o que deveriam recusar, e a corrida genuina entre a entrada em
  * manutencao e a abertura automatica de incidente, cada uma em sua propria transacao
@@ -201,7 +201,10 @@ class ManutencaoPostgresIntegrationTest {
         assertThat(sobManutencao).isZero();
         assertThat(jdbc.queryForObject("select count(*) from incidente", Integer.class)).isZero();
 
-        emTransacao(() -> equipamentoRepository.desmarcarManutencaoSeEstiver(equipamentoId, T0.plusSeconds(60)));
+        emTransacao(() -> {
+            equipamentoRepository.desmarcarManual(equipamentoId, T0.plusSeconds(60));
+            equipamentoRepository.trocarEmManutencao(equipamentoId, true, false, T0.plusSeconds(60));
+        });
 
         int foraDaManutencao = emTransacao(() -> incidenteRepository.inserirSeElegivel(monitorId,
                 T0.plusSeconds(120), "Indisponibilidade", T0.plusSeconds(120)));
@@ -490,8 +493,9 @@ class ManutencaoPostgresIntegrationTest {
         long tipo = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");
         long unidade = insert("insert into unidade (nome, sigla, ativo) values ('Centro', 'CTR', true) returning id");
         return insert("insert into equipamento (unidade_id, tipo_equipamento_id, nome, ip_address, ativo, "
-                        + "em_manutencao) values (?, ?, 'SW-CORE', '10.0.0.10', true, ?) returning id",
-                unidade, tipo, emManutencao);
+                        + "em_manutencao, manutencao_manual) values (?, ?, 'SW-CORE', '10.0.0.10', true, ?, ?) "
+                        + "returning id",
+                unidade, tipo, emManutencao, emManutencao);   // legado: toda manutencao pre-V21 e manual
     }
 
     private long montarMonitor(long equipamentoId) {

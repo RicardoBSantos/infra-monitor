@@ -103,7 +103,7 @@ class InvarianteJanelaTest {
         equipamento.setAtivo(equipamentoAtivo);
         equipamentoRepository.saveAndFlush(equipamento);
         // em_manutencao e updatable = false: so SQL escreve.
-        jdbc.update("update equipamento set em_manutencao = ? where id = ?", emManutencao, equipamento.getId());
+        jdbc.update("update equipamento set em_manutencao = ?, manutencao_manual = ? where id = ?", emManutencao, emManutencao, equipamento.getId());
         monitor.setAtivo(monitorAtivo);
         monitorRepository.saveAndFlush(monitor);
 
@@ -123,7 +123,7 @@ class InvarianteJanelaTest {
         equipamento.setAtivo(false);
         equipamentoRepository.saveAndFlush(equipamento);
         // em_manutencao e updatable = false: so SQL escreve.
-        jdbc.update("update equipamento set em_manutencao = ? where id = ?", true, equipamento.getId());
+        jdbc.update("update equipamento set em_manutencao = ?, manutencao_manual = ? where id = ?", true, true, equipamento.getId());
 
         equipamentoService.ativar(equipamento.getId());
 
@@ -134,7 +134,7 @@ class InvarianteJanelaTest {
     void ativarMonitorDeEquipamentoEmManutencaoNaoAbreJanela() {
         equipamentoRepository.saveAndFlush(equipamento);
         // em_manutencao e updatable = false: so SQL escreve.
-        jdbc.update("update equipamento set em_manutencao = ? where id = ?", true, equipamento.getId());
+        jdbc.update("update equipamento set em_manutencao = ?, manutencao_manual = ? where id = ?", true, true, equipamento.getId());
         monitor.setAtivo(false);
         monitorRepository.saveAndFlush(monitor);
 

@@ -199,8 +199,8 @@ class InventarioDashboardPostgresIntegrationTest {
     @Test
     void emManutencaoVemSeparadoDoStatusEmEquipamentoInativo() {
         List<Long> ids = equipamentoRepository.findAll().stream().map(Equipamento::getId).limit(2).toList();
-        jdbc.update("update equipamento set ativo = true, em_manutencao = true where id = ?", ids.get(0));
-        jdbc.update("update equipamento set ativo = false, em_manutencao = true where id = ?", ids.get(1));
+        jdbc.update("update equipamento set ativo = true, em_manutencao = true, manutencao_manual = true where id = ?", ids.get(0));
+        jdbc.update("update equipamento set ativo = false, em_manutencao = true, manutencao_manual = true where id = ?", ids.get(1));
 
         List<DashboardEquipamentoListaResponse> inventario = dashboard.equipamentos();
         DashboardEquipamentoListaResponse ativo = inventario.stream()

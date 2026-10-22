@@ -14,6 +14,7 @@ public record EquipamentoResponse(
         String modelo,
         boolean ativo,
         boolean emManutencao,
+        boolean manutencaoManual,
         ReferenciaResponse unidade,
         ReferenciaResponse tipoEquipamento,
         Instant createdAt,

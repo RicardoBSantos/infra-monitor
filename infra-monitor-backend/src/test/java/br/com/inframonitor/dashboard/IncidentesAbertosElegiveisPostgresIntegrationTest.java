@@ -90,7 +90,7 @@ class IncidentesAbertosElegiveisPostgresIntegrationTest {
 
         jdbc.update("update monitor set ativo = false where id = ?", monitorDoOff.getId());
         jdbc.update("update equipamento set ativo = false where id = ?", equipOff);
-        jdbc.update("update equipamento set em_manutencao = true where id = ?", manut);
+        jdbc.update("update equipamento set em_manutencao = true, manutencao_manual = true where id = ?", manut);
 
         // Incidentes depois dos ajustes, direto no repositorio: a guarda de elegibilidade de proposito nao participa.
         for (Monitor m : new Monitor[]{monitorNormal, monitorDoOff, monitorDoEquipOff, monitorDaManut}) {

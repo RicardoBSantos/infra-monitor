@@ -63,7 +63,7 @@ public class NotificacaoService {
      * inexistente -> nada
      */
     /**
-     * `agora` vem de {@code EquipamentoService.entrarEmManutencao}, nao de um novo
+     * `agora` vem de {@code EfeitosManutencao.aplicarEntrada}, nao de um novo
      * {@code Instant.now()} aqui: a transacao inteira se define como "um instante so", e
      * `incidente.encerrado_em`/`episodio.encerrado_em` ja foram gravados com esse mesmo
      * `agora` pelos bulk updates que rodam antes desta chamada. Um relogio proprio deixaria
