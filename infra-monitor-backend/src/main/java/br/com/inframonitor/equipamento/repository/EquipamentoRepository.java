@@ -36,15 +36,46 @@ public interface EquipamentoRepository extends JpaRepository<Equipamento, Long>,
     @EntityGraph(attributePaths = {"unidade", "tipoEquipamento"})
     List<Equipamento> findAll();
 
-    // CAS: dois operadores clicando juntos nao rodam os efeitos colaterais duas
-    // vezes. Retorno 0 = ja estava em manutencao.
+    interface EstadoManutencaoTravado {
+        boolean getEmManutencao();
+        boolean getManutencaoManual();
+    }
+
+    // Ponto de serializacao unico de tudo que mexe em manutencao: o mesmo lock de linha que
+    // IncidenteRepository.inserirSeElegivel e travarElegibilidadeParaAbertura (M7) tomam.
+    // SO a linha: a cobertura por janela e lida em instrucao SEPARADA, depois do lock
+    // (ver EstadoManutencaoEquipamento).
+    @Query(value = "SELECT em_manutencao AS emManutencao, manutencao_manual AS manutencaoManual "
+            + "FROM equipamento WHERE id = :id FOR UPDATE", nativeQuery = true)
+    Optional<EstadoManutencaoTravado> travarEstadoManutencao(@Param("id") Long id);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update Equipamento e set e.emManutencao = true, e.updatedAt = :agora "
-            + "where e.id = :id and e.emManutencao = false")
+    @Query(value = "UPDATE equipamento SET manutencao_manual = true, em_manutencao = true, updated_at = :agora "
+            + "WHERE id = :id AND NOT manutencao_manual", nativeQuery = true)
+    int marcarManual(@Param("id") Long id, @Param("agora") Instant agora);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE equipamento SET manutencao_manual = false, updated_at = :agora "
+            + "WHERE id = :id AND manutencao_manual", nativeQuery = true)
+    int desmarcarManual(@Param("id") Long id, @Param("agora") Instant agora);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE equipamento SET em_manutencao = :novo, updated_at = :agora "
+            + "WHERE id = :id AND em_manutencao = :anterior", nativeQuery = true)
+    int trocarEmManutencao(@Param("id") Long id, @Param("anterior") boolean anterior,
+                           @Param("novo") boolean novo, @Param("agora") Instant agora);
+
+    // TEMPORARIOS (apagar na Task 2, quando EquipamentoService migrar para marcarManual/
+    // desmarcarManual/trocarEmManutencao). Mesma semantica de antes (CAS sobre em_manutencao),
+    // agora em SQL nativo: o JPQL de update nao escreve coluna updatable = false, e o CHECK
+    // da V21 exige manutencao_manual coerente com em_manutencao.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE equipamento SET manutencao_manual = true, em_manutencao = true, updated_at = :agora "
+            + "WHERE id = :id AND em_manutencao = false", nativeQuery = true)
     int marcarEmManutencaoSeNaoEstiver(@Param("id") Long id, @Param("agora") Instant agora);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update Equipamento e set e.emManutencao = false, e.updatedAt = :agora "
-            + "where e.id = :id and e.emManutencao = true")
+    @Query(value = "UPDATE equipamento SET manutencao_manual = false, em_manutencao = false, updated_at = :agora "
+            + "WHERE id = :id AND em_manutencao = true", nativeQuery = true)
     int desmarcarManutencaoSeEstiver(@Param("id") Long id, @Param("agora") Instant agora);
 }

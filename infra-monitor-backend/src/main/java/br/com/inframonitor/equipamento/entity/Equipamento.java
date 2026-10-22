@@ -61,8 +61,15 @@ public class Equipamento {
     @Column(nullable = false)
     private boolean ativo;
 
-    @Column(name = "em_manutencao", nullable = false)
+    // Escritos SOMENTE por SQL nativo com CAS (EquipamentoRepository) sob FOR UPDATE.
+    // updatable = false: atualizar/ativar/desativar fazem dirty-check da linha inteira e,
+    // sem isto, regravariam o valor que estava na sessao por cima de uma virada feita
+    // pelo reconciliador no meio (lost update provado em FlagManutencaoNaoSobrescrito...).
+    @Column(name = "em_manutencao", nullable = false, updatable = false)
     private boolean emManutencao;
+
+    @Column(name = "manutencao_manual", nullable = false, updatable = false)
+    private boolean manutencaoManual;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -123,7 +130,9 @@ public class Equipamento {
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public boolean isEmManutencao() { return emManutencao; }
+    /** So para testes em memoria; nao persiste (updatable = false). */
     public void setEmManutencao(boolean emManutencao) { this.emManutencao = emManutencao; }
+    public boolean isManutencaoManual() { return manutencaoManual; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
