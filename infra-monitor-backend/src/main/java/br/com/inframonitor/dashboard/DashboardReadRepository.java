@@ -132,7 +132,7 @@ public class DashboardReadRepository {
                     order by me.equipamento_id, me.executado_em desc, me.medicao_id desc
                 )
                 select e.id, e.nome, t.nome, u.id, u.nome, e.hostname, e.ip_address,
-                    ee.status, el.latencia_ms, e.ativo, e.localizacao, e.numero_serie
+                    ee.status, el.latencia_ms, e.ativo, e.localizacao, e.numero_serie, e.em_manutencao
                 from equipamento e
                 join equipamento_estado ee on ee.id = e.id
                 join unidade u on u.id = e.unidade_id
@@ -147,7 +147,7 @@ public class DashboardReadRepository {
         return new EquipamentoRow(longValue(r[0]), (String) r[1], (String) r[2], longValue(r[3]), (String) r[4],
                 (String) r[5], (String) r[6], StatusOperacionalEquipamento.valueOf((String) r[7]),
                 r[8] == null ? null : ((Number) r[8]).intValue(), (Boolean) r[9],
-                (String) r[10], (String) r[11]);
+                (String) r[10], (String) r[11], (Boolean) r[12]);
     }
 
     private long longValue(Object value) { return ((Number) value).longValue(); }
@@ -163,7 +163,8 @@ public class DashboardReadRepository {
 
     public record EquipamentoRow(Long id, String nome, String tipoNome, Long unidadeId, String unidadeNome,
                                  String hostname, String ip, StatusOperacionalEquipamento status,
-                                 Integer latenciaMs, boolean ativo, String localizacao, String numeroSerie) { }
+                                 Integer latenciaMs, boolean ativo, String localizacao, String numeroSerie,
+                                 boolean emManutencao) { }
 
     public record DashboardCounts(long unidadesTotal, long equipamentosTotal, long equipamentosAtivos,
                                   long equipamentosDisponiveis, long equipamentosDegradados, long equipamentosIndisponiveis,

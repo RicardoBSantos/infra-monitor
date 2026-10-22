@@ -60,9 +60,9 @@ class DashboardControllerTest {
     @Test void expoeInventarioCompletoSemPaginacao() throws Exception {
         when(dashboardService.equipamentos()).thenReturn(List.of(
                 new DashboardEquipamentoListaResponse(10L, "SW-CORE", "Switch", 1L, "Matriz", "sw-core.rede.local",
-                        "10.0.0.1", StatusOperacionalEquipamento.DISPONIVEL, 13, true, "Rack 03", "SN-0001"),
+                        "10.0.0.1", StatusOperacionalEquipamento.DISPONIVEL, 13, true, "Rack 03", "SN-0001", false),
                 new DashboardEquipamentoListaResponse(11L, "SW-BORDA", "Switch", 2L, "Filial", null, null,
-                        StatusOperacionalEquipamento.INDISPONIVEL, null, false, null, null)));
+                        StatusOperacionalEquipamento.INDISPONIVEL, null, false, null, null, true)));
 
         mockMvc.perform(get("/api/v1/dashboard/equipamentos")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -83,6 +83,8 @@ class DashboardControllerTest {
                 // filtra por eles em memoria.
                 .andExpect(jsonPath("$[0].localizacao").value("Rack 03"))
                 .andExpect(jsonPath("$[0].numeroSerie").value("SN-0001"))
+                .andExpect(jsonPath("$[0].emManutencao").value(false))
+                .andExpect(jsonPath("$[1].emManutencao").value(true))
                 // Descricao continua fora: texto longo que so o formulario de edicao usa.
                 .andExpect(jsonPath("$[0].descricao").doesNotExist());
     }
