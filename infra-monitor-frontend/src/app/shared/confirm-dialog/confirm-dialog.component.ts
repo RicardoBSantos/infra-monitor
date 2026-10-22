@@ -17,7 +17,7 @@ let proximoId = 0;
   host: { '(document:keydown.escape)': 'pedirCancelar()' },
   template: `@if (open()) {
     <div class="dialog-backdrop" (mousedown)="aoPressionarFundo($event)" (click)="aoClicarNoFundo($event)">
-      <section #painel class="confirm-dialog" role="alertdialog" aria-modal="true" tabindex="-1"
+      <section #painel class="confirm-dialog" [class.confirm-dialog--primario]="confirmTone() === 'primario'" role="alertdialog" aria-modal="true" tabindex="-1"
         [attr.aria-labelledby]="idTitulo" [attr.aria-describedby]="idMensagem" (keydown)="aoTeclar($event)">
         <h2 [id]="idTitulo">{{ title() }}</h2>
         <p [id]="idMensagem">{{ message() }}</p>

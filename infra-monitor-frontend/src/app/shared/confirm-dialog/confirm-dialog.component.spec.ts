@@ -169,6 +169,8 @@ describe('ConfirmDialogComponent — tom do botão de confirmar', () => {
     const botao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((b) => b.textContent?.includes('Iniciar manutenção'))!;
     expect(botao.classList).toContain('botao--primario');
     expect(botao.classList).not.toContain('botao--perigo');
+    const painel = (fixture.nativeElement as HTMLElement).querySelector('.confirm-dialog')!;
+    expect(painel.classList).toContain('confirm-dialog--primario');
   });
 
   it('continua --perigo por padrão para os chamadores existentes', () => {
@@ -177,5 +179,7 @@ describe('ConfirmDialogComponent — tom do botão de confirmar', () => {
     fixture.detectChanges();
     const botao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((b) => b.textContent?.includes('Excluir'))!;
     expect(botao.classList).toContain('botao--perigo');
+    const painel = (fixture.nativeElement as HTMLElement).querySelector('.confirm-dialog')!;
+    expect(painel.classList).not.toContain('confirm-dialog--primario');
   });
 });
