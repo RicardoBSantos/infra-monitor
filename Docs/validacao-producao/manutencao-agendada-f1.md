@@ -108,13 +108,25 @@ $ grep -o '\[corrida-[a-z-]*\] desfecho=[A-Z_]*' target/corridas.log | sort | un
 
 | # | Corrida (`[corrida-…]`) | Desfechos legítimos | Distribuição (30) | Atraso pós-barreira |
 |---|---|---|---|---|
-| 1 | job ativa × operador cancela (`ativar-cancelar`) | CANC: CANCELADA, equipamento fora · ATIV: ATIVA, cancelar → 409, em manutenção | 21 CANC / 9 ATIV | reconciliador 0–8 ms |
+| 1 | job ativa × operador cancela (`ativar-cancelar`) | CANC: CANCELADA, equipamento fora, 1 SLA aberta · ATIV: ATIVA, cancelar → 409, em manutenção, 0 SLA aberta | 21 CANC / 9 ATIV | reconciliador 0–8 ms |
 | 2 | encerrar agora × conclusão automática (`encerrar-concluir`) | OPER: `encerrada_por` = operador, tick não relata · AUTO: `encerrada_por` nulo, operador → 409, tick relata. Nos dois: CONCLUIDA, fora, 1 janela de SLA aberta | 12 OPER / 18 AUTO | encerrar 0–2 ms |
 | 3 | botão encerrar manual × janela ativando (`manual-ativacao`) | estado único: ATIVA, manual = false, em_manutencao = true, 0 SLA aberta; pela ordem: SAIU_E_VOLTOU / FICOU | 25 SAIU_E_VOLTOU / 5 FICOU | reconciliador 0–8 ms |
 | 4 | duas janelas sobrepostas terminando juntas (`duas-janelas`) | as duas CONCLUIDA, fora, exatamente 1 SLA aberta | 30 UMA_SAIDA | 2º encerrar 0–4 ms |
-| 5 | janela ativando × motor abrindo incidente (`ativacao-motor`) | MANUT_PRIMEIRO: nenhum incidente · INC_PRIMEIRO: FECHADO/MANUTENCAO, sem abertura PENDENTE órfã | 11 MANUT / 19 INC | motor 0–8 ms |
+| 5 | janela ativando × motor abrindo incidente (`ativacao-motor`) | MANUT_PRIMEIRO: nenhum incidente · INC_PRIMEIRO: FECHADO/MANUTENCAO; nos dois, sem abertura PENDENTE órfã | 11 MANUT / 19 INC | motor 0–8 ms |
 | 6 | duas passadas do reconciliador, 2 janelas UNIDADE, 3 equipamentos com incidente (`duas-passadas`) | sem deadlock/erro, 3 em manutenção, cada incidente fechado 1× com 1 aviso; rótulo = quem ganhou o CAS de ativação | 25 A / 5 B | 2ª passada 0–4 ms |
 | 7 | PUT do equipamento × job virando o flag (`put-flag`) | nome novo E em_manutencao = true | 30 PUT_LEU_FORA | PUT 0–8 ms |
+
+Revisão (rodada 1): a corrida 1 passou a exigir 1 janela de SLA aberta no CANC e 0 no ATIV, e a 5
+passou a exigir zero abertura PENDENTE órfã também no MANUT_PRIMEIRO. Só essas duas foram re-rodadas:
+
+```
+$ ./mvnw test -Dtest='ManutencaoAgendadaConcorrenciaPostgresIntegrationTest#ativacaoECancelamentoConcorrentes+ativacaoEMotorAbrindoIncidente'
+     21 [corrida-ativacao-motor] desfecho=INC_PRIMEIRO
+      9 [corrida-ativacao-motor] desfecho=MANUT_PRIMEIRO
+      9 [corrida-ativar-cancelar] desfecho=ATIV
+     21 [corrida-ativar-cancelar] desfecho=CANC
+[INFO] Tests run: 60, Failures: 0, Errors: 0, Skipped: 0
+```
 
 Calibração (medida): na 1 e na 3, atrasar o lado do operador deu 30/30 de um desfecho só (ATIV;
 FICOU), porque o CAS de ativação é a primeira instrução do reconciliador; o atraso passou para o
@@ -140,6 +152,12 @@ Linhas `[corrida-…]` agrupadas com `sort | uniq -c` (cortadas em 260 colunas) 
 Sem o CAS, o cancelamento alcança a janela já ATIVA e só para na segunda camada,
 `ck_manutencao_agendada_coerente` (CANCELADA não pode ter `ativada_em`): o operador receberia 500 em
 vez de 409. Vermelho em 12/30 — as repetições em que o tick ativou primeiro.
+
+Nota de procedência (corrida 2): as duas reversões abaixo rodaram enquanto o teste ainda lia o atraso
+do encerrar de uma propriedade de sistema temporária, `atrasar(Long.getLong("a2", …))`, passada como
+`./mvnw test -Dtest='…#encerrarAgoraEConclusaoAutomatica' -Da2=2`. O valor (0–2 ms no encerrar) é o
+mesmo da constante final `ATRASO_ENCERRAR_VS_CONCLUSAO_MS = 2`; a propriedade foi retirada do teste
+antes do commit e a distribuição final (seção Corridas) foi medida sem ela.
 
 **2 — `encerrar` sem `AND status = 'ATIVA'`** (só o `encerrar`)
 
@@ -188,13 +206,23 @@ uma vez (`slaAbertas=1`) porque `reavaliar` é idempotente sob o lock — a guar
 [ERROR] Tests run: 30, Failures: 16, Errors: 0, Skipped: 0
 ```
 
-Combinação necessária: nenhuma — a reversão do reconciliador sozinha já fica vermelha (17/30). A
-leitura no snapshot do lock, sozinha, fica verde, e não por falta de exercício: ela desloca a
-distribuição de 25/5 para 29/1 SAIU_E_VOLTOU (o botão lê a cobertura velha e tira o equipamento),
-mas o reconciliador, que reavalia os `cobertosPor` sob o lock depois do próprio CAS commitado,
-recoloca o equipamento. Nesta corrida a guarda decisiva é a reavaliação por lock no reconciliador; a
-leitura em instrução separada é defesa em profundidade. O par também foi registrado, como pedia a
-decisão já tomada.
+Combinação necessária: nenhuma — a reversão do reconciliador sozinha já fica vermelha (17/30); a
+guarda que esta corrida prova é a reavaliação dos `cobertosPor` sob o lock, depois do CAS commitado.
+O par também foi registrado, como pedia a decisão já tomada.
+
+A leitura da cobertura em instrução separada do `FOR UPDATE` **não tem prova em nível de corrida**, e
+a corrida 3 não pode exercitá-la por construção. Lida dentro da instrução que trava, a cobertura só
+fica velha se essa instrução começou ANTES do commit do CAS da janela e esperou por um lock tomado
+ANTES desse commit (o snapshot da instrução é de antes da espera). Nesta corrida ninguém toma um lock
+assim: o reconciliador commita o CAS na transação dele e só depois reavalia, então qualquer lock de
+equipamento que ele tome é posterior ao commit, e a instrução de quem espera por ele já começa
+depois do commit ou espera um lock que nasceu depois dele. A distribuição deslocada (25/5 → 29/1
+SAIU_E_VOLTOU) vem de o botão ler a cobertura antes do CAS commitar — o que acontece com ou sem a
+guarda — e não de um snapshot velho pós-espera. A guarda só seria decisiva num caminho que commitasse
+a mudança de situação da janela e reavaliasse o equipamento na MESMA transação, segurando o lock do
+equipamento através do commit; nenhum caminho de produção faz isso hoje (verificado nas revisões das
+Tasks 3/4): `ManutencaoAgendadaService` e `ReconciliadorManutencao` commitam o CAS no seu próprio
+`TransactionTemplate` e só depois chamam `reavaliar` por equipamento, um por transação.
 
 **4 — `travarEstadoManutencao` sem `FOR UPDATE`** (`EquipamentoRepository`)
 
@@ -247,8 +275,9 @@ outra, que só vê divergência, trava 1→2→3:
 No log: `ERROR: deadlock detected` / `Process 62 waits for ShareLock on transaction 796; blocked by
 process 61. Process 61 waits for ShareLock on transaction 797; blocked by process 62.` O Postgres
 aborta uma das passadas (60 linhas `Reconciliador: falha ao reavaliar` em 30 repetições), que termina
-em `UnexpectedRollbackException`; o estado final só fica certo porque a outra sobrevive. As guardas
-provadas são o par "uma transação por equipamento" + "ordem por id em todo lugar".
+em `UnexpectedRollbackException`; o estado final só fica certo porque a outra sobrevive. A ordem por
+id é a guarda decisiva; a transação por equipamento é redundante, dado que o literal (uma transação
+só, mas ordem igual nas duas passadas) ficou verde.
 
 **7 — `updatable = false` removido de `em_manutencao`** (`Equipamento`)
 

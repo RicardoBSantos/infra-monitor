@@ -70,25 +70,27 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
     private static final Duration LIMITE = Duration.ofSeconds(10);
 
     // Atrasos aleatorios (0..N ms) depois da barreira. Sem eles um lado vence sempre e so um
-    // desfecho legitimo aparece. Calibracao medida em 30 repeticoes (Docker local, 2026-10-22).
-    // 1: atrasar o CANCELAR (0..8 ms) deu 30/30 ATIV: o CAS de ativacao e a primeira instrucao do
-    //    reconciliador e chega antes. Atrasando o RECONCILIADOR em 0..8 ms: 20 CANC / 10 ATIV.
+    // desfecho legitimo aparece. Os numeros abaixo sao MEDICAO DE CALIBRACAO (30 repeticoes cada,
+    // Docker local, 2026-10-22), nao a distribuicao final: essa fica no doc de validacao.
+    // 1: medicao de calibracao — atrasar o CANCELAR (0..8 ms) deu 30/30 ATIV: o CAS de ativacao e a
+    //    primeira instrucao do reconciliador e chega antes. Atrasando o RECONCILIADOR em 0..8 ms: 20 CANC / 10 ATIV.
     private static final long ATRASO_RECONCILIADOR_VS_CANCELAR_MS = 8;
-    // 2: concluirVencidas e o TERCEIRO CAS do reconciliador. Atrasar o reconciliador (0..8) deu
+    // 2: medicao de calibracao — concluirVencidas e o TERCEIRO CAS do reconciliador. Atrasar o reconciliador (0..8) deu
     //    30/30 OPER; atrasar o ENCERRAR 0..8 deu 30/30 AUTO, 0..4 deu 22 AUTO / 8 OPER, 0..2 deu 15/15.
     private static final long ATRASO_ENCERRAR_VS_CONCLUSAO_MS = 2;
-    // 3: atrasar o botao (0..8) deu 30/30 FICOU (a ativacao commita antes da leitura da cobertura).
+    // 3: medicao de calibracao — atrasar o botao (0..8) deu 30/30 FICOU (a ativacao commita antes da leitura da cobertura).
     //    Atrasando o RECONCILIADOR em 0..8 ms: 19 SAIU_E_VOLTOU / 11 FICOU.
     private static final long ATRASO_RECONCILIADOR_VS_MANUAL_MS = 8;
-    // 4: dois encerrar simetricos; atraso pequeno so para variar quem chega primeiro. Com ele a
-    //    reversao do FOR UPDATE da 20/30 vermelho.
+    // 4: dois encerrar simetricos; atraso pequeno so para variar quem chega primeiro. Medicao de
+    //    calibracao: com ele a reversao do FOR UPDATE da 20/30 vermelho.
     private static final long ATRASO_SEGUNDO_ENCERRAR_MS = 4;
     // 5: o motor e um INSERT so; o reconciliador precisa ativar e chegar ao lock do equipamento.
-    //    0..8 ms no motor: 19 INC_PRIMEIRO / 11 MANUT_PRIMEIRO.
+    //    Medicao de calibracao, 0..8 ms no motor: 19 INC_PRIMEIRO / 11 MANUT_PRIMEIRO.
     private static final long ATRASO_MOTOR_MS = 8;
-    // 6: duas passadas simetricas; 0..4 ms alterna quem ganha o CAS de ativacao (24 A / 6 B).
+    // 6: duas passadas simetricas; 0..4 ms alterna quem ganha o CAS de ativacao (medicao de
+    //    calibracao: 24 A / 6 B).
     private static final long ATRASO_SEGUNDA_PASSADA_MS = 4;
-    // 7: 0..8 ms no PUT: ele sempre le em_manutencao = false, e em ~metade das repeticoes grava
+    // 7: medicao de calibracao — 0..8 ms no PUT: ele sempre le em_manutencao = false, e em ~metade das repeticoes grava
     //    depois da virada (a reversao de updatable = false da 16/30 vermelho).
     private static final long ATRASO_PUT_MS = 8;
 
@@ -155,11 +157,13 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
 
         String s = situacao(j);
         boolean em = emManutencao(equipamento);
-        boolean canc = falhas.isEmpty() && "CANCELADA".equals(s) && !em && recusa.get() == null;
-        boolean ativ = falhas.isEmpty() && "ATIVA".equals(s) && em && recusa.get() != null;
+        int slaAbertas = janelasSlaAbertas(monitor);
+        // Efeitos coerentes com o flag: fora mede (1 SLA aberta), em manutencao nao mede (0).
+        boolean canc = falhas.isEmpty() && "CANCELADA".equals(s) && !em && slaAbertas == 1 && recusa.get() == null;
+        boolean ativ = falhas.isEmpty() && "ATIVA".equals(s) && em && slaAbertas == 0 && recusa.get() != null;
         System.out.println("[corrida-ativar-cancelar] desfecho=" + (canc ? "CANC" : ativ ? "ATIV" : "ILEGITIMO")
-                + " situacao=" + s + " emManutencao=" + em + " recusado=" + (recusa.get() != null)
-                + " falhas=" + resumo(falhas));
+                + " situacao=" + s + " emManutencao=" + em + " slaAbertas=" + slaAbertas + " recusado="
+                + (recusa.get() != null) + " falhas=" + resumo(falhas));
 
         assertThat(resumo(falhas)).isEmpty();
         assertThat(canc || ativ).as("cancelada e fora, ou ativa, recusada e em manutencao").isTrue();
@@ -315,7 +319,7 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
                 "select status, motivo_encerramento from incidente where monitor_id = ?", monitor);
         int orfas = jdbc.queryForObject("select count(*) from notificacao where tipo_evento = 'INCIDENTE_ABERTO' "
                 + "and status = 'PENDENTE'", Integer.class);
-        boolean manutPrimeiro = falhas.isEmpty() && em && incidentes.isEmpty();
+        boolean manutPrimeiro = falhas.isEmpty() && em && orfas == 0 && incidentes.isEmpty();
         boolean incPrimeiro = falhas.isEmpty() && em && orfas == 0 && incidentes.size() == 1
                 && "FECHADO".equals(incidentes.get(0).get("status"))
                 && "MANUTENCAO".equals(incidentes.get(0).get("motivo_encerramento"));
