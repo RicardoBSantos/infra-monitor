@@ -8,6 +8,7 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.validation.RegraIpv4;
+import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
@@ -45,6 +46,7 @@ class EquipamentoServiceTest {
     @Mock private TipoEquipamentoRepository tipoEquipamentoRepository;
     @Mock private MonitorRepository monitorRepository;
     @Mock private EstadoManutencaoEquipamento estado;
+    @Mock private ManutencaoAgendadaRepository manutencaoRepository;
     @InjectMocks private EquipamentoService equipamentoService;
 
     @Test

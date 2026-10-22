@@ -58,6 +58,13 @@ Ligar é sempre um ato explícito de quem sobe o processo:
 `ConfiguracaoPadraoDesligadaTest` trava esses defaults e proíbe `spring.config.import`
 nos YAML.
 
+Manutenção agendada (janelas em `/api/v1/manutencoes`):
+
+| Variável | Padrão | Efeito |
+|---|---|---|
+| `MANUTENCAO_AGENDADA_ENABLED` | `false` | Liga o reconciliador que ativa, conclui e expira as janelas. **Desligado, a criação de janela é recusada com 409** (nenhuma janela seria ativada) e a tela mostra o aviso; o botão manual "Iniciar manutenção" do equipamento continua funcionando. Cancelar e encerrar janelas existentes funcionam com ele desligado. |
+| `MANUTENCAO_AGENDADA_INTERVALO_MS` | `30000` | Intervalo entre duas passadas do reconciliador. A janela entra e sai com atraso de até um intervalo. |
+| `MANUTENCAO_AGENDADA_DURACAO_MAXIMA` | `72h` | Duração máxima de uma janela, em formato `java.time.Duration` do Spring (`72h`, `5d`, `90m`). Mudar exige reiniciar. |
 ### Produção: o gerenciador do serviço injeta as variáveis
 
 Guarde as variáveis num arquivo **fora do repositório e fora do diretório da

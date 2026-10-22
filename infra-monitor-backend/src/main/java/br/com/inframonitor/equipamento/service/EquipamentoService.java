@@ -9,6 +9,7 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.validation.RegraIpv4;
+import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
@@ -34,17 +35,20 @@ public class EquipamentoService {
     private final MonitorRepository monitorRepository;
     private final CicloJanelaMonitoramentoService cicloJanela;
     private final EstadoManutencaoEquipamento estado;
+    private final ManutencaoAgendadaRepository manutencaoRepository;
 
     @Autowired
     public EquipamentoService(EquipamentoRepository equipamentoRepository, UnidadeRepository unidadeRepository,
                               TipoEquipamentoRepository tipoEquipamentoRepository, MonitorRepository monitorRepository,
-                              CicloJanelaMonitoramentoService cicloJanela, EstadoManutencaoEquipamento estado) {
+                              CicloJanelaMonitoramentoService cicloJanela, EstadoManutencaoEquipamento estado,
+                              ManutencaoAgendadaRepository manutencaoRepository) {
         this.equipamentoRepository = equipamentoRepository;
         this.unidadeRepository = unidadeRepository;
         this.tipoEquipamentoRepository = tipoEquipamentoRepository;
         this.monitorRepository = monitorRepository;
         this.cicloJanela = cicloJanela;
         this.estado = estado;
+        this.manutencaoRepository = manutencaoRepository;
     }
 
     @Transactional
@@ -160,6 +164,11 @@ public class EquipamentoService {
         Equipamento equipamento = obterEquipamento(id);
         if (monitorRepository.existsByEquipamentoId(id)) {
             throw new ConflitoException("Nao e possivel excluir o equipamento porque existem monitores associados");
+        }
+        // A FK (ON DELETE RESTRICT) barraria como erro de integridade; janela encerrada tambem
+        // conta: e historico de quem esteve em manutencao.
+        if (manutencaoRepository.equipamentoConstaEmJanela(id)) {
+            throw new ConflitoException("Nao e possivel excluir o equipamento porque ele consta em janelas de manutencao");
         }
         equipamentoRepository.delete(equipamento);
     }

@@ -3,6 +3,7 @@ package br.com.inframonitor.unidade.service;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UpdateUnidadeRequest;
@@ -34,6 +35,9 @@ class UnidadeServiceTest {
 
     @Mock
     private EquipamentoRepository equipamentoRepository;
+
+    @Mock
+    private ManutencaoAgendadaRepository manutencaoRepository;
 
     @InjectMocks
     private UnidadeService unidadeService;
