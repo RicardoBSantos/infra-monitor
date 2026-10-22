@@ -53,7 +53,7 @@ public class IncidenteService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Monitor nao encontrado"));
         // Mesmo predicado do motor (inserirSeElegivel): incidente para algo que nao esta sendo
         // observado nunca seria fechado automaticamente. O FOR UPDATE OF e serializa com
-        // entrarEmManutencao — sem ele o INSERT nao commitado escapa de fecharPorManutencao (M7).
+        // EstadoManutencaoEquipamento — sem ele o INSERT nao commitado escapa de fecharPorManutencao (M7).
         IncidenteRepository.Elegibilidade elegibilidade = incidenteRepository
                 .travarElegibilidadeParaAbertura(monitor.getId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Monitor nao encontrado"));

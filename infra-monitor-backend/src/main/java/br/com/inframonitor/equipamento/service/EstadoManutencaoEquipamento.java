@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Unico escritor de equipamento.em_manutencao e equipamento.manutencao_manual (MA01).
@@ -51,7 +52,12 @@ public class EstadoManutencaoEquipamento {
     public boolean reavaliar(Long equipamentoId) {
         var travado = equipamentos.travarEstadoManutencao(equipamentoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipamento nao encontrado"));
-        boolean desejado = travado.getManutencaoManual() || cobertura.coberto(equipamentoId);
+        // Cobertura e autor saem da MESMA instrucao: lidos em duas (coberto, depois autor), uma
+        // janela commitada como CONCLUIDA/CANCELADA entre elas deixava "coberto" sem autor, e o
+        // orElseThrow da entrada derrubava a acao do usuario. Com manual ligado nem se consulta.
+        Optional<Long> autorDaJanela = travado.getManutencaoManual()
+                ? Optional.empty() : cobertura.autorDaCobertura(equipamentoId);
+        boolean desejado = travado.getManutencaoManual() || autorDaJanela.isPresent();
         boolean atual = travado.getEmManutencao();
         if (desejado == atual) {
             return atual;
@@ -63,8 +69,8 @@ public class EstadoManutencaoEquipamento {
         }
         if (desejado) {
             // Entrar sem manual so acontece por cobertura: o autor e quem criou a janela.
-            Long autorId = cobertura.autorDaCobertura(equipamentoId).orElseThrow();
-            efeitos.aplicarEntrada(equipamentoId, usuarioObrigatorio(autorId), agora);
+            // Presente por construcao (desejado veio dele), nunca por corrida.
+            efeitos.aplicarEntrada(equipamentoId, usuarioObrigatorio(autorDaJanela.orElseThrow()), agora);
         } else {
             efeitos.aplicarSaida(equipamentoId);
         }
@@ -94,7 +100,10 @@ public class EstadoManutencaoEquipamento {
         if (!travado.getManutencaoManual()) {
             return;
         }
-        equipamentos.desmarcarManual(equipamentoId, Instant.now());
+        if (equipamentos.desmarcarManual(equipamentoId, Instant.now()) == 0) {
+            // Impossivel com o lock, como em reavaliar: falhar alto e melhor que reavaliar sem a virada.
+            throw new IllegalStateException("manutencao_manual mudou sob lock do equipamento " + equipamentoId);
+        }
         reavaliar(equipamentoId);   // mesma transacao; o lock ja e nosso
     }
 
