@@ -37,3 +37,41 @@ O teste falha sem a anotação e passa com ela: o fim do lost update é causado 
 ### Regressão (Docker real, nenhuma classe pulada)
 
 Suíte completa: `Tests run: 697, Failures: 0, Errors: 0, Skipped: 0`, BUILD SUCCESS.
+
+## Reconciliador — sistema parado
+
+"Sistema parado" simulado com janelas cujos horários já passaram e nenhum tick até `agora`;
+o teste chama `reconciliar(agora)` direto (`intervalo-ms=3600000`).
+
+### RED — classe ainda não existe
+
+```
+$ ./mvnw -q test -Dtest='ReconciliadorManutencaoPostgresIntegrationTest,ReconciliadorManutencaoTest,MonitoringSchedulerGateTest'
+[ERROR] ReconciliadorManutencaoPostgresIntegrationTest.java:[9,46] cannot find symbol
+[ERROR] ReconciliadorManutencaoTest.java:[43,13] cannot find symbol
+[ERROR] MonitoringSchedulerGateTest.java:[24,9] constructor MonitoringScheduler ... cannot be applied to given types;
+```
+
+### GREEN (Docker real)
+
+```
+$ ./mvnw test -Dtest='ReconciliadorManutencaoPostgresIntegrationTest,ReconciliadorManutencaoTest,MonitoringSchedulerGateTest'
+ERROR Reconciliador: falha ao reavaliar o equipamento 1; seguindo com os demais
+INFO  Reconciliador: equipamento 2 excluido antes da reavaliacao; ignorado
+WARN  Janela de manutencao 1 expirou sem ativar: o sistema esteve fora durante a janela inteira
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0 -- ReconciliadorManutencaoPostgresIntegrationTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 -- ReconciliadorManutencaoTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0 -- MonitoringSchedulerGateTest
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+```
+
+Casos cobertos: início perdido com fim no futuro ativa com `ativada_em = agora` (real) e efeitos;
+janela inteira perdida vira `EXPIRADA` sem efeito (fotografia de incidentes, janelas de SLA,
+notificações e flags idêntica); fim perdido conclui com `encerrada_em = agora`, sem autor, e a
+janela de SLA reabre agora; divergência corrigida sem transição; equipamento novo na unidade
+entra no tick; falha num equipamento não segura os outros; a primeira passada marca
+`ReconciliacaoInicial` pronta, inclusive quando falha (unitário).
+
+### Regressão (Docker real, nenhuma classe pulada)
+
+Suíte completa: `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`, BUILD SUCCESS, sem aviso `!!`.
