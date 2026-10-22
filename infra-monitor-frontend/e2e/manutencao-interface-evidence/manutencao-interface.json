@@ -1,0 +1,165 @@
+{
+  "quando": "2026-10-22T13:02:07.181Z",
+  "base": "http://127.0.0.1:4201",
+  "apiPort": "8082",
+  "equipamento": "SWI-07-U1",
+  "instantes": {
+    "inicioClique": "2026-10-22T13:02:04.615Z",
+    "inicioResposta": "2026-10-22T13:02:04.690Z",
+    "fimClique": "2026-10-22T13:02:05.557Z",
+    "fimResposta": "2026-10-22T13:02:05.614Z"
+  },
+  "falhas": 0,
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4201/dashboard (API_PORT=8082)"
+    },
+    {
+      "caso": "linha",
+      "nome": "equipamento encontrado na lista",
+      "ok": true,
+      "detalhe": "linhas=1"
+    },
+    {
+      "caso": "menu-iniciar",
+      "nome": "menu da linha oferece \"Iniciar manutenção\" e não \"Encerrar\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "dialogo-iniciar-titulo",
+      "nome": "título do diálogo",
+      "ok": true,
+      "detalhe": "Iniciar manutenção de SWI-07-U1?"
+    },
+    {
+      "caso": "dialogo-iniciar-texto",
+      "nome": "mensagem diz os efeitos (ICMP, motivo Manutenção, aviso, relatório)",
+      "ok": true,
+      "detalhe": "SWI-07-U1 deixa de ser verificado por ICMP e não gera incidentes nem alertas até a manutenção ser encerrada. Incidentes e episódios de latência abertos são encerrados com motivo Manutenção; se a abertura já foi avisada no Telegram, sai um aviso de encerramento, e avisos ainda não enviados são cancelados. O período não conta no relatório de disponibilidade."
+    },
+    {
+      "caso": "dialogo-iniciar-tom",
+      "nome": "botão de confirmar é primário, não perigo",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "patch-iniciar",
+      "nome": "PATCH /manutencao/iniciar 200",
+      "ok": true,
+      "detalhe": "200"
+    },
+    {
+      "caso": "aviso-iniciar",
+      "nome": "aviso de sucesso",
+      "ok": true,
+      "detalhe": "SWI-07-U1 em manutenção."
+    },
+    {
+      "caso": "badge-lista",
+      "nome": "linha mostra o badge \"Em manutenção\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "menu-encerrar",
+      "nome": "menu agora oferece \"Encerrar manutenção\" e não \"Iniciar\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "drawer-badge",
+      "nome": "drawer mostra o badge \"Em manutenção\" no cabeçalho",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "drawer-encerrar",
+      "nome": "rodapé do drawer oferece \"Encerrar manutenção\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "dialogo-encerrar-titulo",
+      "nome": "título do diálogo de encerramento",
+      "ok": true,
+      "detalhe": "Encerrar manutenção de SWI-07-U1?"
+    },
+    {
+      "caso": "dialogo-encerrar-texto",
+      "nome": "mensagem diz que volta ao ICMP",
+      "ok": true,
+      "detalhe": "SWI-07-U1 volta a ser verificado por ICMP na próxima varredura. Se continuar fora do ar, um incidente é aberto depois das falhas consecutivas configuradas no monitor."
+    },
+    {
+      "caso": "patch-encerrar",
+      "nome": "PATCH /manutencao/encerrar 200",
+      "ok": true,
+      "detalhe": "200"
+    },
+    {
+      "caso": "drawer-pos-encerrar",
+      "nome": "drawer volta a oferecer \"Iniciar manutenção\" e perde o badge",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "foco-na-gaveta",
+      "nome": "depois de encerrar pelo drawer o foco continua dentro da gaveta",
+      "ok": true,
+      "detalhe": "BUTTON \"Iniciar manutenção\""
+    },
+    {
+      "caso": "aviso-encerrar",
+      "nome": "aviso de encerramento",
+      "ok": true,
+      "detalhe": "Manutenção de SWI-07-U1 encerrada."
+    },
+    {
+      "caso": "badge-final",
+      "nome": "Escape fecha a gaveta e a linha não está mais em manutenção",
+      "ok": true,
+      "detalhe": "Degradado"
+    },
+    {
+      "caso": "sem-erros",
+      "nome": "nenhum erro de página/console",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    "2026-10-22T13:02:03.950Z POST 200 /auth/login",
+    "2026-10-22T13:02:04.013Z GET 200 /unidades?ativo=true",
+    "2026-10-22T13:02:04.018Z GET 200 /relatorios/latencia/unidades?inicio=2026-09-22T13:02:03.970Z&fim=2026-10-22T13:02:03.970Z&size=500",
+    "2026-10-22T13:02:04.018Z GET 200 /tipos-equipamento",
+    "2026-10-22T13:02:04.032Z GET 200 /equipamentos?size=500&sort=nome,asc",
+    "2026-10-22T13:02:04.100Z GET 200 /unidades?ativo=true",
+    "2026-10-22T13:02:04.100Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-22T13:02:04.133Z GET 200 /dashboard/resumo",
+    "2026-10-22T13:02:04.137Z GET 200 /dashboard/unidades",
+    "2026-10-22T13:02:04.166Z GET 200 /relatorios/disponibilidade/unidades?inicio=2026-09-22T13:02:03.969Z&fim=2026-10-22T13:02:03.969Z&size=200",
+    "2026-10-22T13:02:04.209Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T13:02:04.690Z PATCH 200 /equipamentos/2/manutencao/iniciar",
+    "2026-10-22T13:02:04.802Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T13:02:05.159Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-22T13:02:05.159Z GET 200 /unidades?ativo=true",
+    "2026-10-22T13:02:05.174Z GET 200 /equipamentos/2",
+    "2026-10-22T13:02:05.175Z GET 200 /incidentes?equipamentoId=2&size=3&sort=iniciadoEm,desc",
+    "2026-10-22T13:02:05.175Z GET 200 /monitores?equipamentoId=2&size=100&sort=id,asc",
+    "2026-10-22T13:02:05.180Z GET 200 /relatorios/medicoes?inicio=2026-10-22T12:36:05.147Z&fim=2026-10-22T13:02:05.147Z&size=60&sort=executadoEm,asc&equipamentoId=2",
+    "2026-10-22T13:02:05.180Z GET 200 /relatorios/latencia?inicio=2026-09-22T13:02:05.146Z&fim=2026-10-22T13:02:05.146Z&size=1&equipamentoId=2",
+    "2026-10-22T13:02:05.188Z GET 200 /relatorios/disponibilidade/equipamentos?inicio=2026-09-22T13:02:05.146Z&fim=2026-10-22T13:02:05.146Z&size=1&equipamentoId=2",
+    "2026-10-22T13:02:05.257Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T13:02:05.614Z PATCH 200 /equipamentos/2/manutencao/encerrar",
+    "2026-10-22T13:02:05.727Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T13:02:06.924Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-22T13:02:06.924Z GET 200 /unidades?ativo=true",
+    "2026-10-22T13:02:07.024Z GET 200 /dashboard/equipamentos"
+  ],
+  "erros": []
+}

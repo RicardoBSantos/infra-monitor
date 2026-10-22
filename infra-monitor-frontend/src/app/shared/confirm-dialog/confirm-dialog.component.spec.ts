@@ -148,3 +148,38 @@ describe('ConfirmDialogComponent', () => {
     fora.remove();
   });
 });
+
+@Component({
+  imports: [ConfirmDialogComponent],
+  template: `<app-confirm-dialog [open]="true" title="Iniciar manutenção de X?" message="m" confirmLabel="Iniciar manutenção" [confirmTone]="tom()" />`,
+})
+class HospedeiroTom { readonly tom = signal<'perigo' | 'primario'>('primario'); }
+
+@Component({
+  imports: [ConfirmDialogComponent],
+  template: `<app-confirm-dialog [open]="true" title="Excluir?" message="m" />`,
+})
+class HospedeiroSemTom {}
+
+describe('ConfirmDialogComponent — tom do botão de confirmar', () => {
+  it('usa --primario quando pedido, sem --perigo', () => {
+    TestBed.configureTestingModule({ imports: [HospedeiroTom] });
+    const fixture = TestBed.createComponent(HospedeiroTom);
+    fixture.detectChanges();
+    const botao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((b) => b.textContent?.includes('Iniciar manutenção'))!;
+    expect(botao.classList).toContain('botao--primario');
+    expect(botao.classList).not.toContain('botao--perigo');
+    const painel = (fixture.nativeElement as HTMLElement).querySelector('.confirm-dialog')!;
+    expect(painel.classList).toContain('confirm-dialog--primario');
+  });
+
+  it('continua --perigo por padrão para os chamadores existentes', () => {
+    TestBed.configureTestingModule({ imports: [HospedeiroSemTom] });
+    const fixture = TestBed.createComponent(HospedeiroSemTom);
+    fixture.detectChanges();
+    const botao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((b) => b.textContent?.includes('Excluir'))!;
+    expect(botao.classList).toContain('botao--perigo');
+    const painel = (fixture.nativeElement as HTMLElement).querySelector('.confirm-dialog')!;
+    expect(painel.classList).not.toContain('confirm-dialog--primario');
+  });
+});

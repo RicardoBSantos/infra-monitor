@@ -57,7 +57,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     const fixture = TestBed.createComponent(EquipamentoDetalheDrawerComponent);
     fixture.componentRef.setInput('equipamentoId', 1);
     // A lista sempre passa a linha junto; é dela que vem o status operacional.
-    fixture.componentRef.setInput('linha', { id: 1, nome: 'SW-CORE', tipoNome: 'Switch', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde', hostname: 'sw-core-cis-01', ip: '10.79.10.1', status: EquipmentOperationalStatus.Unavailable, latenciaMs: null, ativo: true, localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587' });
+    fixture.componentRef.setInput('linha', { id: 1, nome: 'SW-CORE', tipoNome: 'Switch', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde', hostname: 'sw-core-cis-01', ip: '10.79.10.1', status: EquipmentOperationalStatus.Unavailable, latenciaMs: null, ativo: true, localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', emManutencao: false });
     fixture.detectChanges();
     return fixture;
   }
@@ -197,6 +197,71 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     expect(pedidos).toBe(1);
     // Quem confirma e chama a API é a lista, com o ConfirmDialog: o drawer não dispara nada.
     http.expectNone((request) => request.method === 'PATCH');
+  });
+
+  describe('manutenção', () => {
+    const LINHA = { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Available, ativo: true, emManutencao: false };
+
+    function rodape(fixture: ComponentFixture<EquipamentoDetalheDrawerComponent>): string[] {
+      return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.gaveta__acoes .botao'))
+        .map((e) => (e.textContent ?? '').trim());
+    }
+
+    it('em manutenção, mostra Encerrar e o clique emite alternarManutencao sem chamar a API', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      responder(fixture);
+      let pedidos = 0;
+      fixture.componentInstance.alternarManutencao.subscribe(() => (pedidos += 1));
+      expect(rodape(fixture)).toContain('Encerrar manutenção');
+      expect(rodape(fixture)).not.toContain('Iniciar manutenção');
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes .botao'))
+        .find((b) => /Encerrar manutenção/.test(b.textContent ?? ''))!.click();
+      expect(pedidos).toBe(1);
+      http.expectNone((request) => request.method === 'PATCH');
+    });
+
+    it('preserva o mesmo elemento ao alternar o rótulo (o foco depende disso)', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      responder(fixture);
+      const botao = () => Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes .botao'))
+        .find((b) => /manutenção/.test(b.textContent ?? ''))!;
+      const antes = botao();
+      expect(antes.textContent).toContain('Iniciar manutenção');
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      fixture.detectChanges();
+      expect(botao().textContent).toContain('Encerrar manutenção');
+      expect(botao()).toBe(antes);
+    });
+
+    it('ativo fora de manutenção mostra Iniciar', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      responder(fixture);
+      expect(rodape(fixture)).toContain('Iniciar manutenção');
+    });
+
+    it('inativo fora de manutenção não mostra nenhum dos dois', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', { ...LINHA, ativo: false });
+      responder(fixture);
+      expect(rodape(fixture).some((t) => /manutenção/.test(t))).toBe(false);
+    });
+
+    it('sem linha (deep-link carregando) não mostra nenhum dos dois', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', null);
+      responder(fixture);
+      expect(rodape(fixture).some((t) => /manutenção/.test(t))).toBe(false);
+    });
+
+    it('sem acoesDeGestao (Mapa) não mostra', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('acoesDeGestao', false);
+      responder(fixture);
+      expect(rodape(fixture).some((t) => /manutenção/.test(t))).toBe(false);
+    });
   });
 
   /*

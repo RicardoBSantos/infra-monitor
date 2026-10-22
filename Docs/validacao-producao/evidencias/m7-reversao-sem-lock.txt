@@ -1,0 +1,8 @@
+# M7 reversao SEM lock (so 'FOR UPDATE OF e' removido da query; predicado mantido)
+# ./mvnw test -Dtest=AberturaManualElegibilidadePostgresIntegrationTest
+# Saida bruta do Maven abaixo, sem edicao; numeros de linha sao os do arquivo de teste naquela rodada.
+[ERROR]   AberturaManualElegibilidadePostgresIntegrationTest.travarElegibilidadeBloqueiaEntrarEmManutencaoAteOCommit:193 [manutencao deveria estar bloqueada pelo lock da elegibilidade] 
+[ERROR] Tests run: 25, Failures: 21, Errors: 0, Skipped: 0
+[ERROR] Tests run: 25, Failures: 21, Errors: 0, Skipped: 0, Time elapsed: 14.73 s <<< FAILURE! -- in br.com.inframonitor.incidente.AberturaManualElegibilidadePostgresIntegrationTest
+[M7 corrida] desfechos: []
+# Falhas restantes: as repeticoes da corrida (teste entrarEmManutencaoEAbrirManualmenteConcorrentesNuncaDeixamIncidenteEmAberto) tambem falham sem o lock.

@@ -26,10 +26,16 @@ import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.
 import { classificarIp, motivoRecusaIp, validadorIpv4Monitoravel } from './ip-helper';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
-type Acao = 'excluir' | 'desativar' | 'ativar';
+type Acao = 'excluir' | 'desativar' | 'ativar' | 'iniciarManutencao' | 'encerrarManutencao';
 type Ordenacao = 'nome,asc' | 'nome,desc' | 'status' | 'latencia';
 
 const POR_PAGINA = 20;
+
+/** Manutenção de equipamento inativo não tem efeito, mas sair dela tem de ser sempre possível. */
+function acaoDeManutencao(linha: Pick<DashboardEquipamentoLista, 'ativo' | 'emManutencao'>): 'iniciarManutencao' | 'encerrarManutencao' | null {
+  if (linha.emManutencao) return 'encerrarManutencao';
+  return linha.ativo ? 'iniciarManutencao' : null;
+}
 
 const ROTULOS_STATUS: Record<EquipmentOperationalStatus, string> = {
   DISPONIVEL: 'Online',
@@ -215,6 +221,8 @@ export class EquipamentoListComponent {
       case 'excluir': return `Excluir ${nome}?`;
       case 'desativar': return `Desativar o monitoramento de ${nome}?`;
       case 'ativar': return `Ativar o monitoramento de ${nome}?`;
+      case 'iniciarManutencao': return `Iniciar manutenção de ${nome}?`;
+      case 'encerrarManutencao': return `Encerrar manutenção de ${nome}?`;
       default: return '';
     }
   });
@@ -223,6 +231,8 @@ export class EquipamentoListComponent {
     switch (this.acao()) {
       case 'excluir': return 'Excluir';
       case 'desativar': return 'Desativar';
+      case 'iniciarManutencao': return 'Iniciar manutenção';
+      case 'encerrarManutencao': return 'Encerrar manutenção';
       default: return 'Ativar';
     }
   });
@@ -243,10 +253,22 @@ export class EquipamentoListComponent {
       case 'ativar':
         return `${alvo.nome} volta a ser verificado por ICMP na próxima varredura. `
           + `A ativação é recusada se a unidade ou o tipo de equipamento estiver inativo.`;
+      case 'iniciarManutencao':
+        return `${alvo.nome} deixa de ser verificado por ICMP e não gera incidentes nem alertas até a manutenção ser encerrada. `
+          + `Incidentes e episódios de latência abertos são encerrados com motivo Manutenção; se a abertura já foi avisada no Telegram, `
+          + `sai um aviso de encerramento, e avisos ainda não enviados são cancelados. `
+          + `O período não conta no relatório de disponibilidade.`;
+      case 'encerrarManutencao':
+        return `${alvo.nome} volta a ser verificado por ICMP na próxima varredura. `
+          + `Se continuar fora do ar, um incidente é aberto depois das falhas consecutivas configuradas no monitor.`;
       default:
         return '';
     }
   });
+
+  /** Só a exclusão é destrutiva; entrar e sair de manutenção são operações reversíveis. */
+  protected readonly tomConfirmacao = computed<'perigo' | 'primario'>(() =>
+    this.acao() === 'iniciarManutencao' || this.acao() === 'encerrarManutencao' ? 'primario' : 'perigo');
 
   constructor() {
     this.carregarOpcoesDoFormulario();
@@ -317,6 +339,7 @@ export class EquipamentoListComponent {
 
   protected itensDoMenu(linha: DashboardEquipamentoLista): ActionMenuItem[] {
     const podeGerenciar = this.authState.canManageInventory();
+    const manutencao = acaoDeManutencao(linha);
     return [
       { id: 'ver', rotulo: 'Ver' },
       { id: 'editar', rotulo: 'Editar', desabilitado: !podeGerenciar },
@@ -325,6 +348,7 @@ export class EquipamentoListComponent {
         rotulo: linha.ativo ? 'Desativar monitoramento' : 'Ativar monitoramento',
         desabilitado: !podeGerenciar,
       },
+      ...(manutencao ? [{ id: manutencao, rotulo: manutencao === 'iniciarManutencao' ? 'Iniciar manutenção' : 'Encerrar manutenção', desabilitado: !podeGerenciar }] : []),
       { id: 'excluir', rotulo: 'Excluir', divisorAntes: true, destrutivo: true, desabilitado: !podeGerenciar },
     ];
   }
@@ -335,6 +359,8 @@ export class EquipamentoListComponent {
       case 'editar': this.abrirEdicao(linha); break;
       case 'ativar':
       case 'desativar':
+      case 'iniciarManutencao':
+      case 'encerrarManutencao':
       case 'excluir':
         this.aviso.set(null);
         this.erroAcao.set(null);
@@ -376,6 +402,15 @@ export class EquipamentoListComponent {
     this.executarAcao(linha, linha.ativo ? 'desativar' : 'ativar');
   }
 
+  protected alternarManutencaoDoDetalhe(): void {
+    const linha = this.detalheLinha();
+    if (!linha) return;
+    const acao = acaoDeManutencao(linha);
+    if (!acao) return;
+    this.guardarGatilhoDaGaveta();
+    this.executarAcao(linha, acao);
+  }
+
   /** O read-model já traz `unidadeId`; nenhuma chamada extra para tornar a coluna navegável. */
   protected abrirUnidade(linha: DashboardEquipamentoLista): void {
     this.router.navigate(['/unidades', linha.unidadeId]);
@@ -396,9 +431,14 @@ export class EquipamentoListComponent {
     this.processando.set(true);
     this.erroAcao.set(null);
 
-    const requisicao: Observable<unknown> = acao === 'excluir' ? this.api.delete(alvo.id)
-      : acao === 'desativar' ? this.api.deactivate(alvo.id)
-        : this.api.activate(alvo.id);
+    let requisicao: Observable<unknown>;
+    switch (acao) {
+      case 'excluir': requisicao = this.api.delete(alvo.id); break;
+      case 'desativar': requisicao = this.api.deactivate(alvo.id); break;
+      case 'ativar': requisicao = this.api.activate(alvo.id); break;
+      case 'iniciarManutencao': requisicao = this.api.startMaintenance(alvo.id); break;
+      case 'encerrarManutencao': requisicao = this.api.endMaintenance(alvo.id); break;
+    }
 
     requisicao.pipe(take(1)).subscribe({
       next: () => {
@@ -406,9 +446,7 @@ export class EquipamentoListComponent {
         this.acao.set(null);
         this.alvo.set(null);
         this.devolverFocoAGaveta();
-        this.aviso.set(acao === 'excluir' ? `${alvo.nome} foi excluído.`
-          : acao === 'desativar' ? `Monitoramento de ${alvo.nome} desativado.`
-            : `Monitoramento de ${alvo.nome} ativado.`);
+        this.aviso.set(avisoDeSucesso(acao, alvo.nome));
         this.carregar();
       },
       error: (erro: unknown) => {
@@ -585,6 +623,16 @@ export class EquipamentoListComponent {
   }
 
   protected rotuloStatus(status: EquipmentOperationalStatus): string { return ROTULOS_STATUS[status]; }
+}
+
+function avisoDeSucesso(acao: Acao, nome: string): string {
+  switch (acao) {
+    case 'excluir': return `${nome} foi excluído.`;
+    case 'desativar': return `Monitoramento de ${nome} desativado.`;
+    case 'ativar': return `Monitoramento de ${nome} ativado.`;
+    case 'iniciarManutencao': return `${nome} em manutenção.`;
+    case 'encerrarManutencao': return `Manutenção de ${nome} encerrada.`;
+  }
 }
 
 function nuloSeVazio(valor: string): string | null {

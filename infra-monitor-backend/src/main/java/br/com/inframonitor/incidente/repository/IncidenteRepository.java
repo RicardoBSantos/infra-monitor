@@ -136,6 +136,31 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,
                           @Param("motivo") String motivo, @Param("agora") Instant agora);
 
+    /** Projecao de elegibilidade para abertura manual de incidente. */
+    interface Elegibilidade {
+        boolean getMonitorAtivo();
+
+        boolean getEquipamentoAtivo();
+
+        boolean getEmManutencao();
+    }
+
+    /**
+     * Leitura de elegibilidade para a abertura MANUAL de incidente, com lock na linha do
+     * equipamento. Mesmo predicado e mesmo lock de {@link #inserirSeElegivel}: o
+     * {@code FOR UPDATE OF e} serializa com {@code EquipamentoService.entrarEmManutencao},
+     * que trava a mesma linha antes de tocar em incidente (equipamento antes de incidente,
+     * sem ciclo de lock). Sem ele, o INSERT ainda nao commitado do incidente escapa do
+     * fechamento por manutencao e sobrevive ABERTO com o equipamento fora de observacao.
+     */
+    @Query(value = """
+            SELECT m.ativo AS monitorAtivo, e.ativo AS equipamentoAtivo, e.em_manutencao AS emManutencao
+              FROM monitor m JOIN equipamento e ON e.id = m.equipamento_id
+             WHERE m.id = :monitorId
+             FOR UPDATE OF e
+            """, nativeQuery = true)
+    Optional<Elegibilidade> travarElegibilidadeParaAbertura(@Param("monitorId") Long monitorId);
+
     // Espelha reconhecerSeAberto. Fecha todos os monitores do equipamento numa
     // instrucao e devolve quantos fechou.
     //

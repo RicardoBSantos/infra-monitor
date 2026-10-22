@@ -302,3 +302,7 @@ commit** das mudanças. **Sem merge.**
 monitor e equipamento não fecha janela; a CHECK não consegue exigir `motivo_encerramento NOT NULL`
 em `FECHADO` enquanto o legado for `NULL`; manutenção é sempre do equipamento, nunca de um monitor
 isolado.
+
+*Resolvido depois deste documento: `fecharAutomaticamente` usa CAS (`fecharAutomaticamenteSeEmAberto`) — ver `riscos-execucao-correcoes.md`, seção 1a.*
+
+*Resolvido depois deste documento: excluir monitor apaga as janelas dele na mesma transação (`CicloJanelaMonitoramentoService.apagarDoMonitor`), e excluir equipamento só é possível com zero monitores, logo sem janela — ver `riscos-execucao-correcoes.md`, seção 1c, e `ExclusaoEJanelaPostgresIntegrationTest`. Apaga, não fecha: a FK é `RESTRICT`.*

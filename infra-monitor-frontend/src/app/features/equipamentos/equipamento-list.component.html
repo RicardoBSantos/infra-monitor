@@ -277,6 +277,7 @@
       (fechar)="fecharDetalhe()"
       (editar)="editarDoDetalhe()"
       (alternarEquipamento)="alternarDoDetalhe()"
+      (alternarManutencao)="alternarManutencaoDoDetalhe()"
     />
   }
 
@@ -285,6 +286,7 @@
     [title]="tituloConfirmacao()"
     [message]="mensagemConfirmacao()"
     [confirmLabel]="rotuloConfirmacao()"
+    [confirmTone]="tomConfirmacao()"
     [busy]="processando()"
     [erro]="erroAcao()"
     (cancel)="cancelarAcao()"

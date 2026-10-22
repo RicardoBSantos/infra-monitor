@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 /**
  * lock_timeout das transacoes do motor que disputam linhas com a manutencao: o
  * FOR UPDATE OF e em inserirSeElegivel (incidente e episodio de latencia), o CAS de
- * fechamento do incidente (fecharAutomaticamenteSeEmAberto) e o saveAndFlush que
- * normaliza o episodio de latencia (ainda sem CAS).
+ * fechamento do incidente (fecharAutomaticamenteSeEmAberto) e o CAS de
+ * normalizacao do episodio de latencia (encerrarPorNormalizacaoSeAberto).
  *
  * <p>set_config(..., true) e SET LOCAL: vale so para a transacao corrente e morre no
  * commit/rollback, nao vaza para a conexao devolvida ao pool. Por isso precisa ser a

@@ -78,7 +78,7 @@ public class DashboardService {
         return readRepository.equipamentos(limiarLatenciaDegradadaMs).stream()
                 .map(r -> new DashboardEquipamentoListaResponse(r.id(), r.nome(), r.tipoNome(), r.unidadeId(),
                         r.unidadeNome(), r.hostname(), r.ip(), r.status(), r.latenciaMs(), r.ativo(),
-                        r.localizacao(), r.numeroSerie()))
+                        r.localizacao(), r.numeroSerie(), r.emManutencao()))
                 .toList();
     }
 

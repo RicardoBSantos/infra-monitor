@@ -1,0 +1,6 @@
+# M7 reversao COM guarda e lock restaurados (suite focada)
+# ./mvnw test -Dtest='IncidenteServiceTest,AberturaManualElegibilidadePostgresIntegrationTest'
+[M7 corrida] desfechos: [manutencao-primeiro, criar-primeiro]
+[INFO] Tests run: 25, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 16.26 s -- in br.com.inframonitor.incidente.AberturaManualElegibilidadePostgresIntegrationTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.459 s -- in br.com.inframonitor.incidente.service.IncidenteServiceTest
+[INFO] Tests run: 40, Failures: 0, Errors: 0, Skipped: 0

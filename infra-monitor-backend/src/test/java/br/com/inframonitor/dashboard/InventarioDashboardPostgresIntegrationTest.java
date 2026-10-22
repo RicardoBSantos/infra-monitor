@@ -192,6 +192,28 @@ class InventarioDashboardPostgresIntegrationTest {
                         StatusOperacionalEquipamento.DESABILITADO);
     }
 
+    /**
+     * DESABILITADO tem precedencia sobre EM_MANUTENCAO no resolver, entao o status sozinho nao diz se
+     * o equipamento esta em manutencao: a tela precisa do flag para oferecer "Encerrar manutencao".
+     */
+    @Test
+    void emManutencaoVemSeparadoDoStatusEmEquipamentoInativo() {
+        List<Long> ids = equipamentoRepository.findAll().stream().map(Equipamento::getId).limit(2).toList();
+        jdbc.update("update equipamento set ativo = true, em_manutencao = true where id = ?", ids.get(0));
+        jdbc.update("update equipamento set ativo = false, em_manutencao = true where id = ?", ids.get(1));
+
+        List<DashboardEquipamentoListaResponse> inventario = dashboard.equipamentos();
+        DashboardEquipamentoListaResponse ativo = inventario.stream()
+                .filter(l -> l.id().equals(ids.get(0))).findFirst().orElseThrow();
+        DashboardEquipamentoListaResponse inativo = inventario.stream()
+                .filter(l -> l.id().equals(ids.get(1))).findFirst().orElseThrow();
+
+        assertThat(ativo.status()).isEqualTo(StatusOperacionalEquipamento.EM_MANUTENCAO);
+        assertThat(ativo.emManutencao()).isTrue();
+        assertThat(inativo.status()).isEqualTo(StatusOperacionalEquipamento.DESABILITADO);
+        assertThat(inativo.emManutencao()).isTrue();
+    }
+
     @Test
     void equipamentoIndisponivelVemSemLatencia() {
         assertThat(dashboard.equipamentos())
