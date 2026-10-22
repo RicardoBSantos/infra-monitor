@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Observable, of, switchMap, take } from 'rxjs';
 
@@ -118,10 +118,16 @@ export class UnidadeFormDrawerComponent {
   constructor() {
     effect(() => {
       if (!this.aberto()) return;
-      this.carregarMunicipios();
-      this.carregarUnidades();
-      this.gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      this.preencher(this.unidade());
+      const unidade = this.unidade();
+      // Só abrir a gaveta ou trocar a unidade recarrega o formulário. preencher() lê
+      // signals do próprio formulário (ufDerivada → codigoIbgeSelecionado); rastreados,
+      // cada troca de município disparava o reset e descartava a escolha.
+      untracked(() => {
+        this.carregarMunicipios();
+        this.carregarUnidades();
+        this.gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        this.preencher(unidade);
+      });
     });
 
     // O foco só pode ir para o campo depois que o @if do template o renderiza.

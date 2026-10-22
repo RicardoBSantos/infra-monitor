@@ -129,6 +129,31 @@ describe('UnidadeFormDrawerComponent', () => {
     expect(selects[1].value).toBe('BA');
   });
 
+  // Trocar o município não pode recarregar o formulário: o effect de abertura chegou a
+  // rastrear o signal do município (via ufDerivada) e o reset descartava a escolha e o
+  // que mais tivesse sido digitado, enviando codigoIbge null.
+  it('mantém o município escolhido e as demais edições ao salvar', () => {
+    const fixture = abrir({ ...UNIDADE, codigoIbge: null, uf: 'BA' });
+
+    const nome = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    nome.value = 'Centro Integrado';
+    nome.dispatchEvent(new Event('input'));
+    const municipio = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    municipio.value = '2800100';
+    municipio.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(municipio.value).toBe('2800100');
+    expect((fixture.nativeElement.querySelector('input[readonly]') as HTMLInputElement).value).toBe('SE');
+
+    submeter(fixture);
+    const requisicao = http.expectOne('http://localhost:8080/api/v1/unidades/7');
+    expect(requisicao.request.body.codigoIbge).toBe('2800100');
+    expect(requisicao.request.body.uf).toBe('SE');
+    expect(requisicao.request.body.nome).toBe('Centro Integrado');
+    requisicao.flush(UNIDADE);
+  });
+
   it('bloqueia meia coordenada antes de chamar a API', () => {
     const fixture = abrir({ ...UNIDADE, longitude: null });
 
