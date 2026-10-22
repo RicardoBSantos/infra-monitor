@@ -13,7 +13,7 @@ import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.
 const CADASTRO: EquipamentoResponse = {
   id: 1, nome: 'SW-CORE', ip: '10.79.10.1', hostname: 'sw-core-cis-01', descricao: 'Switch de núcleo',
   localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', fabricante: 'Cisco', modelo: 'Catalyst 9200-24T',
-  ativo: true, emManutencao: false, unidade: { id: 3, nome: 'Centro Integrado de Saúde' },
+  ativo: true, emManutencao: false, manutencaoManual: false, unidade: { id: 3, nome: 'Centro Integrado de Saúde' },
   tipoEquipamento: { id: 2, nome: 'Switch' }, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
 };
 
@@ -57,7 +57,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     const fixture = TestBed.createComponent(EquipamentoDetalheDrawerComponent);
     fixture.componentRef.setInput('equipamentoId', 1);
     // A lista sempre passa a linha junto; é dela que vem o status operacional.
-    fixture.componentRef.setInput('linha', { id: 1, nome: 'SW-CORE', tipoNome: 'Switch', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde', hostname: 'sw-core-cis-01', ip: '10.79.10.1', status: EquipmentOperationalStatus.Unavailable, latenciaMs: null, ativo: true, localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', emManutencao: false });
+    fixture.componentRef.setInput('linha', { id: 1, nome: 'SW-CORE', tipoNome: 'Switch', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde', hostname: 'sw-core-cis-01', ip: '10.79.10.1', status: EquipmentOperationalStatus.Unavailable, latenciaMs: null, ativo: true, localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', emManutencao: false, manutencaoManual: false, janelaAtivaId: null, janelaAtivaFim: null });
     fixture.detectChanges();
     return fixture;
   }

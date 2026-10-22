@@ -24,6 +24,9 @@ function linha(overrides: Partial<DashboardEquipamentoLista> & { id: number }): 
     localizacao: `Rack ${overrides.id}`,
     numeroSerie: `SN-000${overrides.id}`,
     emManutencao: false,
+    manutencaoManual: false,
+    janelaAtivaId: null,
+    janelaAtivaFim: null,
     ...overrides,
   };
 }
@@ -40,6 +43,7 @@ const CADASTRO_COMPLETO: EquipamentoResponse = {
   modelo: 'Catalyst 9200-24T',
   ativo: true,
   emManutencao: false,
+  manutencaoManual: false,
   unidade: { id: 1, nome: 'Matriz' },
   tipoEquipamento: { id: 2, nome: 'Switch' },
   createdAt: '2026-01-01T00:00:00Z',

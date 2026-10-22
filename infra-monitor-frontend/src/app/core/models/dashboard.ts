@@ -43,4 +43,7 @@ export interface DashboardEquipamentoLista {
   localizacao: string | null;
   numeroSerie: string | null;
   emManutencao: boolean;
+  manutencaoManual: boolean;
+  janelaAtivaId: number | null;
+  janelaAtivaFim: string | null;
 }

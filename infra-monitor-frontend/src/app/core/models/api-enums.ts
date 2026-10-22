@@ -109,3 +109,18 @@ export enum MonitoringWindowQuality {
   Precise = 'PRECISA',
   Inferred = 'INFERIDA',
 }
+
+/** Situação de uma janela de manutenção agendada. */
+export enum MaintenanceWindowStatus {
+  Scheduled = 'AGENDADA',
+  Active = 'ATIVA',
+  Completed = 'CONCLUIDA',
+  Cancelled = 'CANCELADA',
+  Expired = 'EXPIRADA',
+}
+
+/** Escopo de uma janela: a unidade inteira ou equipamentos escolhidos. */
+export enum MaintenanceScope {
+  Unit = 'UNIDADE',
+  Equipment = 'EQUIPAMENTOS',
+}
