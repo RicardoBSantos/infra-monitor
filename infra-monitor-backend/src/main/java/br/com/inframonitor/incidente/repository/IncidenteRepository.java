@@ -136,14 +136,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     int inserirSeElegivel(@Param("monitorId") Long monitorId, @Param("iniciadoEm") Instant iniciadoEm,
                           @Param("motivo") String motivo, @Param("agora") Instant agora);
 
-    /**
-     * Leitura de elegibilidade para a abertura MANUAL de incidente, com lock na linha do
-     * equipamento. Mesmo predicado e mesmo lock de {@link #inserirSeElegivel}: o
-     * {@code FOR UPDATE OF e} serializa com {@code EquipamentoService.entrarEmManutencao},
-     * que trava a mesma linha antes de tocar em incidente (equipamento antes de incidente,
-     * sem ciclo de lock). Sem ele, o INSERT ainda nao commitado do incidente escapa do
-     * fechamento por manutencao e sobrevive ABERTO com o equipamento fora de observacao.
-     */
+    /** Projecao de elegibilidade para abertura manual de incidente. */
     interface Elegibilidade {
         boolean getMonitorAtivo();
 
@@ -152,6 +145,14 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
         boolean getEmManutencao();
     }
 
+    /**
+     * Leitura de elegibilidade para a abertura MANUAL de incidente, com lock na linha do
+     * equipamento. Mesmo predicado e mesmo lock de {@link #inserirSeElegivel}: o
+     * {@code FOR UPDATE OF e} serializa com {@code EquipamentoService.entrarEmManutencao},
+     * que trava a mesma linha antes de tocar em incidente (equipamento antes de incidente,
+     * sem ciclo de lock). Sem ele, o INSERT ainda nao commitado do incidente escapa do
+     * fechamento por manutencao e sobrevive ABERTO com o equipamento fora de observacao.
+     */
     @Query(value = """
             SELECT m.ativo AS monitorAtivo, e.ativo AS equipamentoAtivo, e.em_manutencao AS emManutencao
               FROM monitor m JOIN equipamento e ON e.id = m.equipamento_id

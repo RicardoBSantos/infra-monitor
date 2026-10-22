@@ -3,6 +3,7 @@ package br.com.inframonitor.incidente;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.incidente.dto.CreateIncidenteRequest;
+import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.AfterAll;
@@ -14,6 +15,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.Duration;
@@ -22,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,6 +61,10 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
     private static final Instant T0 = Instant.parse("2026-09-01T08:00:00Z");
     private static final Duration LIMITE = Duration.ofSeconds(10);
+    // Atraso aleatorio (0..N ms) da entrada em manutencao depois da barreira. Sem ele, com a JVM aquecida,
+    // a manutencao ganhava sempre (2 execucoes) e so um desfecho legitimo aparecia;
+    // N=15 foi calibrado para os dois desfechos ocorrerem nas 20 repeticoes.
+    private static final long ATRASO_MAX_MANUTENCAO_MS = 15;
     private static final Set<String> desfechos = ConcurrentHashMap.newKeySet();
 
     @DynamicPropertySource
@@ -70,6 +78,8 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EquipamentoService equipamentoService;
     @Autowired private IncidenteService incidenteService;
+    @Autowired private IncidenteRepository incidenteRepository;
+    @Autowired private PlatformTransactionManager transactionManager;
 
     private long operadorId;
 
@@ -136,6 +146,62 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
                 Integer.class)).isEqualTo(1);
     }
 
+    /**
+     * Prova deterministica do lock: uma transacao segura a linha do equipamento via
+     * travarElegibilidadeParaAbertura; entrarEmManutencao tem de ficar bloqueada ate o commit.
+     * Sem o FOR UPDATE OF e, a manutencao termina na hora e o teste falha.
+     */
+    @Test
+    void travarElegibilidadeBloqueiaEntrarEmManutencaoAteOCommit() throws Exception {
+        long equipamentoId = montarEquipamento(false);
+        long monitorId = montarMonitor(equipamentoId);
+        CountDownLatch travou = new CountDownLatch(1);
+        CountDownLatch liberar = new CountDownLatch(1);
+        List<Throwable> falhas = new CopyOnWriteArrayList<>();
+
+        Thread segurador = new Thread(() -> {
+            try {
+                new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                    incidenteRepository.travarElegibilidadeParaAbertura(monitorId).orElseThrow();
+                    travou.countDown();
+                    try {
+                        liberar.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                });
+            } catch (Throwable erro) {
+                falhas.add(erro);
+            }
+        }, "segurador");
+        Thread manutencao = new Thread(() -> {
+            try {
+                equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
+            } catch (Throwable erro) {
+                falhas.add(erro);
+            }
+        }, "manutencao");
+
+        segurador.start();
+        assertThat(travou.await(LIMITE.toSeconds(), TimeUnit.SECONDS)).isTrue();
+        manutencao.start();
+        Thread.sleep(500);
+
+        boolean bloqueada = manutencao.isAlive();
+        Integer locksEsperando = jdbc.queryForObject("select count(*) from pg_locks where not granted", Integer.class);
+        liberar.countDown();
+        segurador.join(LIMITE.toMillis());
+        manutencao.join(LIMITE.toMillis());
+
+        assertThat(falhas.stream().map(Throwable::toString).toList()).isEmpty();
+        assertThat(bloqueada).as("manutencao deveria estar bloqueada pelo lock da elegibilidade").isTrue();
+        assertThat(locksEsperando).as("pg_locks com lock nao concedido").isGreaterThan(0);
+        assertThat(manutencao.isAlive()).isFalse();
+        assertThat(segurador.isAlive()).isFalse();
+        assertThat(jdbc.queryForObject("select em_manutencao from equipamento where id = ?", Boolean.class,
+                equipamentoId)).isTrue();
+    }
+
     @RepeatedTest(20)
     void entrarEmManutencaoEAbrirManualmenteConcorrentesNuncaDeixamIncidenteEmAberto() throws Exception {
         long equipamentoId = montarEquipamento(false);
@@ -148,6 +214,7 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
         Thread manutencao = new Thread(() -> {
             try {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
+                Thread.sleep(java.util.concurrent.ThreadLocalRandom.current().nextLong(ATRASO_MAX_MANUTENCAO_MS + 1));
                 equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
             } catch (Throwable erro) {
                 falhas.add(erro);
@@ -159,7 +226,11 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
                 incidenteService.criar(new CreateIncidenteRequest(monitorId, T0, "Manual", null));
             } catch (ConflitoException recusa) {
-                recusado.set(true);
+                if ("Nao e possivel abrir incidente porque o equipamento esta em manutencao".equals(recusa.getMessage())) {
+                    recusado.set(true);
+                } else {
+                    falhas.add(recusa);
+                }
             } catch (Throwable erro) {
                 falhas.add(erro);
             }
@@ -169,6 +240,8 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
         abertura.start();
         manutencao.join(LIMITE.toMillis());
         abertura.join(LIMITE.toMillis());
+        assertThat(manutencao.isAlive()).isFalse();
+        assertThat(abertura.isAlive()).isFalse();
 
         assertThat(falhas.stream().map(Throwable::toString).toList()).isEmpty();
         // Desfecho ilegitimo do M7: incidente ABERTO/RECONHECIDO sobrevivendo com o equipamento em manutencao.
