@@ -1,0 +1,22 @@
+{
+  "rotulo": "depois-carga",
+  "unidades": 2,
+  "linhas": null,
+  "pings": 3,
+  "cenarios": [
+    {
+      "nome": "animado",
+      "cpuMsPorQuadro": 2.798,
+      "fps": 59.9,
+      "p50": 16.7,
+      "lentosPct": 0
+    },
+    {
+      "nome": "parado",
+      "cpuMsPorQuadro": 0.734,
+      "fps": 59.9,
+      "p50": 16.7,
+      "lentosPct": 0
+    }
+  ]
+}

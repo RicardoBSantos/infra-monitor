@@ -130,19 +130,19 @@
       "caso": 7,
       "nome": "clique lógico no marcador não muda a câmera (distância ±1px) nem mostra \"Ver estado inteiro\"",
       "ok": true,
-      "detalhe": "antes 394.5 depois 394.5"
+      "detalhe": "antes 433.7 depois 433.7"
     },
     {
       "caso": 7,
       "nome": "clique físico no marcador mais isolado: câmera parada, sem botão de volta, painel da unidade",
       "ok": true,
-      "detalhe": "isolado Unidade Propriá (vizinho a 232px) elementFromPoint=true distância 394.5 -> 394.5 painel=\"Unidade Propriá\""
+      "detalhe": "isolado Unidade Propriá (vizinho a 253px) elementFromPoint=true distância 433.7 -> 433.7 painel=\"Unidade Propriá\""
     },
     {
       "caso": 8,
       "nome": "clique no polígono de Aracaju (fora de marcador) aproxima: distância cresce e o enquadrado (envelope das unidades, ou o polígono com menos de 2) vai ao centro da área útil do cartão (padding assimétrico, ±10%)",
       "ok": true,
-      "detalhe": "por unidades; distância 394.5 -> 2230.4 (x5.65); desvio do centro 5.3%/6.1%; 5 tentativa(s), raio 20px"
+      "detalhe": "por unidades; distância 433.7 -> 2230.4 (x5.14); desvio do centro 5.3%/6.1%; 1 tentativa(s), raio 20px"
     },
     {
       "caso": 8,
@@ -190,7 +190,7 @@
       "caso": 10,
       "nome": "botão \"Ver estado inteiro\": distâncias voltam (±2px), botão some, foco no canvas",
       "ok": true,
-      "detalhe": "distância 394.7 vs inicial 394.5; foco CANVAS.maplibregl-canvas"
+      "detalhe": "distância 433.2 vs inicial 433.7; foco CANVAS.maplibregl-canvas"
     },
     {
       "caso": 10,
@@ -208,13 +208,13 @@
       "caso": 10,
       "nome": "Escape com foco no canvas desfaz o zoom em Feira Nova",
       "ok": true,
-      "detalhe": "inicial 394.5 · aproximado 8042.6 · após Escape 394.7"
+      "detalhe": "inicial 433.7 · aproximado 8042.6 · após Escape 433.2"
     },
     {
       "caso": 11,
       "nome": "\"Amparo de São Francisco: nenhuma unidade cadastrada\" aproxima e a região viva anuncia",
       "ok": true,
-      "detalhe": "distância 394.5 -> 17492.5; .map-sr=\"Amparo de São Francisco: nenhuma unidade cadastrada. Mapa aproximado.\""
+      "detalhe": "distância 433.7 -> 17492.5; .map-sr=\"Amparo de São Francisco: nenhuma unidade cadastrada. Mapa aproximado.\""
     },
     {
       "caso": 12,
@@ -226,7 +226,7 @@
       "caso": 12,
       "nome": "Enter no alvo aproxima o município",
       "ok": true,
-      "detalhe": "Amparo de São Francisco: nenhuma unidade cadastrada: 394.7 -> 17492.5"
+      "detalhe": "Amparo de São Francisco: nenhuma unidade cadastrada: 433.2 -> 17492.5"
     },
     {
       "caso": 12,
@@ -256,7 +256,7 @@
       "caso": 1,
       "nome": "1280x720: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
-      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1268/1280 · doc H 16 (registrado; pré-existente: topbar) · main H 0"
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1268/1280 · doc H 10 (registrado; pré-existente: topbar) · main H 0"
     },
     {
       "caso": 2,
@@ -268,13 +268,13 @@
       "caso": 1,
       "nome": "1024x768: sem rolagem em main.shell__main (V e H) nem vertical no documento; .map-page sem estouro horizontal",
       "ok": true,
-      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1012/1024 · doc H 48 (registrado; pré-existente: topbar) · main H 0"
+      "detalhe": "main V 0 · doc V 0 · .map-page H 0 · .map-layout direita 1012/1024 · doc H 42 (registrado; pré-existente: topbar) · main H 0"
     },
     {
       "caso": 1,
       "nome": "390x844: .map-page sem estouro horizontal (empilhado rola na vertical de propósito)",
       "ok": true,
-      "detalhe": ".map-page H 0 · .map-layout direita 378/390 · doc H 65 (registrado; pré-existente: topbar) · rolagem vertical empilhada: main 0, documento 745"
+      "detalhe": ".map-page H 0 · .map-layout direita 378/390 · doc H 65 (registrado; pré-existente: topbar) · rolagem vertical empilhada: main 0, documento 749"
     },
     {
       "caso": 16,
@@ -292,19 +292,19 @@
       "caso": 16,
       "nome": "(c) após zoom por município, redimensionar não reenquadra: botão continua e a escala se mantém (±10%)",
       "ok": true,
-      "detalhe": "estado 394.7 -> aproximado 2230.4 -> redimensionado 2114.8 (razão 0.95)"
+      "detalhe": "estado 433.2 -> aproximado 2230.4 -> redimensionado 2114.8 (razão 0.95)"
     },
     {
       "caso": 13,
       "nome": "reduced-motion: posições a 50ms = posições a 900ms (±2px) e o zoom de fato aconteceu",
       "ok": true,
-      "detalhe": "diferença máx. 50ms×900ms 0.0px; deslocamento total 13527px"
+      "detalhe": "diferença máx. 50ms×900ms 0.0px; deslocamento total 13506px"
     },
     {
       "caso": 15,
       "nome": "falha do payload: .map-feedback--error visível, sem cruzar o título, com \"Tentar novamente\"",
       "ok": true,
-      "detalhe": "feedback {\"l\":486,\"t\":416.3046875,\"r\":906,\"b\":539.6953125} · título {\"l\":249,\"t\":81,\"r\":579,\"b\":179.09375} · botão \"Tentar novamente\""
+      "detalhe": "feedback {\"l\":486,\"t\":416.3046875,\"r\":906,\"b\":539.6953125} · título {\"l\":249,\"t\":81,\"r\":579,\"b\":163.09375} · botão \"Tentar novamente\""
     },
     {
       "caso": 0,
@@ -322,15 +322,15 @@
     "parReferencia": {
       "aracaju": "2800308",
       "outro": "2805505",
-      "distanciaInicial": 394.5,
+      "distanciaInicial": 433.7,
       "alvosNoMapa": 75,
-      "distanciaInicialAposAtualizar": 394.5
+      "distanciaInicialAposAtualizar": 433.7
     },
     "zoomAracaju": {
-      "distanciaParAntes": 394.5,
+      "distanciaParAntes": 433.7,
       "distanciaParDepois": 2230.4,
-      "fator": 5.65,
-      "tentativasDeClique": 5,
+      "fator": 5.14,
+      "tentativasDeClique": 1,
       "cartao": {
         "l": 236,
         "t": 68,
@@ -389,7 +389,7 @@
       "1280x720": {
         "mainV": 0,
         "docV": 0,
-        "docH": 16,
+        "docH": 10,
         "mainH": 0,
         "mapPageH": 0,
         "layoutDireita": 1268,
@@ -398,7 +398,7 @@
       "1024x768": {
         "mainV": 0,
         "docV": 0,
-        "docH": 48,
+        "docH": 42,
         "mainH": 0,
         "mapPageH": 0,
         "layoutDireita": 1012,
@@ -406,7 +406,7 @@
       },
       "390x844": {
         "mainV": 0,
-        "docV": 745,
+        "docV": 749,
         "docH": 65,
         "mainH": 0,
         "mapPageH": 0,
@@ -416,7 +416,7 @@
     },
     "reducedMotion": {
       "maxDif": 0,
-      "maxMudanca": 13526.54995727539
+      "maxMudanca": 13506.191467285156
     }
   },
   "errosConsoleEsperados": [

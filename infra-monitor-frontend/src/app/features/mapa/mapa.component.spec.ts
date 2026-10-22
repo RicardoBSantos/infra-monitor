@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, ajusteDeEncaixe, arcoEntre, caixaDosPontos, convexoIntersectaRetangulo, envoltoriaConvexa, margensParaEvitar, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseVaiEVolta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { agruparUnidades, ajusteDeEncaixe, arcoEntre, caixaDosPontos, convexoIntersectaRetangulo, envoltoriaConvexa, margensParaEvitar, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseDeFluxo, opacidadeNaPonta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
@@ -130,23 +130,49 @@ describe('rotulo do marcador de unidade',()=>{
  * aparece em captura de tela.
  */
 describe('movimento do ping na linha de conexao',()=>{
-  it('vai e volta dentro de um ciclo, sem salto na virada',()=>{
-    expect(faseVaiEVolta(0)).toBe(0);
-    expect(faseVaiEVolta(0.25)).toBe(0.5);
-    expect(faseVaiEVolta(0.5)).toBe(1);     // chegou na unidade
-    expect(faseVaiEVolta(0.75)).toBe(0.5);
-    expect(faseVaiEVolta(1)).toBe(0);       // voltou ao hub, sem descontinuidade
+  it('avanca sempre no mesmo sentido, hub -> unidade, e recomeca no hub',()=>{
+    expect(faseDeFluxo(0)).toBe(0);
+    expect(faseDeFluxo(0.25)).toBe(0.25);
+    expect(faseDeFluxo(0.75)).toBe(0.75);
+    expect(faseDeFluxo(0.9999)).toBeCloseTo(0.9999, 10);
+    expect(faseDeFluxo(1)).toBe(0);
+    expect(faseDeFluxo(2.5)).toBe(0.5);
   });
 
-  /* Dois pings por linha, defasados de 0,5: quando um esta no hub o outro esta na ponta. */
-  it('mantem os dois pings da mesma linha em fases opostas',()=>{
-    expect(faseVaiEVolta(0) + faseVaiEVolta(0.5)).toBe(1);
-    expect(faseVaiEVolta(0.3) + faseVaiEVolta(0.8)).toBeCloseTo(1, 10);
+  /* D24: tres pings por linha, a 1/3 um do outro EM QUALQUER instante — inclusive depois que um
+   * deles recomecou no hub. Distancia circular, porque 0,9 e 0,23 estao a 1/3 pela virada. */
+  it('mantem os tres pings da mesma linha a 1/3 um do outro',()=>{
+    const circular=(a:number,b:number)=>{const d=Math.abs(a-b)%1;return Math.min(d,1-d);};
+    for(const ciclos of [0,0.1,0.5,0.73,1.2,-0.4]){
+      const fases=[0,1,2].map(k=>faseDeFluxo(ciclos+k/3));
+      expect(circular(fases[0],fases[1])).toBeCloseTo(1/3,10);
+      expect(circular(fases[1],fases[2])).toBeCloseTo(1/3,10);
+      expect(circular(fases[2],fases[0])).toBeCloseTo(1/3,10);
+    }
   });
 
-  /* O relogio nunca volta, mas o cast de `performance.now` e o modulo negativo ja morderam antes. */
   it('aceita ciclo negativo sem inverter o sentido',()=>{
-    expect(faseVaiEVolta(-0.25)).toBe(0.5);
+    expect(faseDeFluxo(-0.25)).toBeCloseTo(0.75,10);
+  });
+
+  /* A virada 1 -> 0 teleporta o ping pela corda inteira. Opacidade zero nas DUAS pontas exatas e o
+   * salto acontece invisivel; sem isto um risco atravessaria o arco a cada 1400 ms. */
+  it('some nas duas pontas e fica inteiro no meio do arco',()=>{
+    expect(opacidadeNaPonta(0)).toBe(0);
+    expect(opacidadeNaPonta(1)).toBe(0);
+    expect(opacidadeNaPonta(0.04)).toBeCloseTo(0.5,10);
+    expect(opacidadeNaPonta(0.96)).toBeCloseTo(0.5,10);
+    expect(opacidadeNaPonta(0.08)).toBeCloseTo(1,10);
+    expect(opacidadeNaPonta(0.5)).toBe(1);
+  });
+
+  /* Marker.setOpacity so pula a escrita quando o texto pedido iguala o style.opacity normalizado
+   * pelo navegador; com casas demais (0.43750000000000006) nunca iguala e a lib reescreve todo quadro. */
+  it('devolve opacidade com no maximo duas casas, que o navegador le de volta igual',()=>{
+    expect(opacidadeNaPonta(0.035)).toBe(0.44);
+    for(let i=0;i<=1000;i++){
+      expect(String(opacidadeNaPonta(i/1000))).toMatch(/^(0|1|0\.\d{1,2})$/);
+    }
   });
 
   it('interpola o par [lng, lat] nas duas pontas e no meio',()=>{
@@ -206,28 +232,33 @@ describe('arco da conexao',()=>{
   });
 });
 
-describe('camada de conexao (D18)',()=>{
-  it('e uma unica camada, sem filtro por status',()=>{
+describe('camadas de conexao (D18, halo de D24)',()=>{
+  const CORES_ESPERADAS = ['match', ['get','status'],
+    'DISPONIVEL', '#35e087',
+    'INDISPONIVEL', '#f84e54',
+    'DEGRADADA', '#fcb142',
+    'SEM_DADOS', '#9dabb9',
+    'SEM_EQUIPAMENTOS', '#6e8698',
+    'EM_MANUTENCAO', '#7fadff',
+    '#9dabb9'];
+  const paintDe=(i:number)=>(camadasDeConexao()[i] as unknown as {paint:Record<string,unknown>}).paint;
+
+  it('desenha o halo antes do nucleo, sem filtro por status',()=>{
     const camadas=camadasDeConexao();
-    expect(camadas.length).toBe(1);
-    expect(camadas[0].id).toBe('conexoes-linha');
-    expect((camadas[0] as {filter?:unknown}).filter).toBeUndefined();
+    expect(camadas.map(c=>c.id)).toEqual(['conexoes-halo','conexoes-linha']);
+    for(const c of camadas) expect((c as {filter?:unknown}).filter).toBeUndefined();
   });
 
-  it('pinta a linha inteira com a cor do status da feature',()=>{
-    const paint=(camadasDeConexao()[0] as unknown as {paint:Record<string,unknown>}).paint;
-    expect(paint['line-gradient']).toBeUndefined();
-    const cor=paint['line-color'] as unknown[];
-    // Corpo inteiro do match, na ordem exata: um toContain/toBe isolado passaria com o par
-    // status/cor invertido, e o estilo so quebraria em runtime.
-    expect(cor).toEqual(['match', ['get','status'],
-      'DISPONIVEL', '#34c77b',
-      'INDISPONIVEL', '#e5484d',
-      'DEGRADADA', '#e8a33d',
-      'SEM_DADOS', '#8797a6',
-      'SEM_EQUIPAMENTOS', '#667b8b',
-      'EM_MANUTENCAO', '#7fadff',
-      '#8797a6']);
+  it('pinta nucleo e halo com a mesma cor vibrante do status',()=>{
+    // Corpo inteiro do match, na ordem exata: um toContain isolado passaria com o par invertido.
+    expect(paintDe(0)['line-color']).toEqual(CORES_ESPERADAS);
+    expect(paintDe(1)['line-color']).toEqual(CORES_ESPERADAS);
+    expect(paintDe(1)['line-gradient']).toBeUndefined();
+  });
+
+  it('halo largo, borrado e translucido; nucleo fino e quase opaco',()=>{
+    expect(paintDe(0)).toEqual(expect.objectContaining({'line-width':6,'line-blur':4,'line-opacity':0.28}));
+    expect(paintDe(1)).toEqual(expect.objectContaining({'line-width':1.6,'line-opacity':0.85}));
   });
 });
 

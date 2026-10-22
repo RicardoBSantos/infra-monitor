@@ -1156,3 +1156,160 @@ sobretítulos do sistema. Decisão do usuário após captura com/sem: "Sergipe" 
 sem recalibração. Ficam os rótulos de seção do painel (`.panel-label`): são títulos de bloco, não de página.
 Na mesma rodada: "Ver unidade" deixa de ser `botao--primario` (botão de navegação, não ação principal) e
 as fontes mono do SCSS do mapa passam a `var(--im-mono)`; no `.afetados__meta` só o IP é mono.
+
+## D24 — Três pings em fluxo, orbe luminoso, halo WebGL e paleta vibrante; DV16 fechada
+
+`feat/mapa-arco-brilho`, 2026-10-21. Spec em
+`Docs/superpowers/specs/2026-10-21-mapa-arco-brilho-design.md`. Escrita como D23 e renumerada antes
+do merge: o `main` já registrava D23 (placa do título, PR #14) quando este branch foi rebaseado.
+**Reverte o "ida e volta" de D16 e a esfera de D18-B**, sem apagá-los.
+
+### Pedido
+
+Quatro ajustes visuais no arco hub → unidade, todos do usuário: três pings por arco em vez de dois,
+com espaçamento regular; pings menores; aspecto translúcido, brilhante e mais vibrante na linha, no
+ping e no marcador — "vibrante" é saturação e luminosidade, não matiz novo, e a semântica das seis
+cores não muda; e tirar o contorno branco do ping.
+
+### O que entrou
+
+**Paleta vibrante.** `COR_DO_STATUS` (só o Mapa a consome) passou aos valores abaixo, calculados por
+script em HSL: coloridos `S×1,18+0,04` e `L+0,05` com teto 0,72 sem baixar; neutros `S×1,1` e `L+0,08`
+(`sem-dados`) / `L+0,04` (`sem-equipamentos`). Contraste WCAG contra o município `#16283a`:
+
+| status | D19 | × município | D24 | × município |
+|---|---|---|---|---|
+| disponível | `#34c77b` | 6,86 | `#35e087` | 8,70 |
+| indisponível | `#e5484d` | 3,84 | `#f84e54` | 4,44 |
+| degradada | `#e8a33d` | 6,96 | `#fcb142` | 8,23 |
+| em manutenção | `#7fadff` | 6,67 | `#7fadff` | 6,67 (saturação já em 100%) |
+| sem dados | `#8797a6` | 5,01 | `#9dabb9` | 6,41 |
+| sem equipamentos | `#667b8b` | 3,41 | `#6e8698` | 3,95 |
+
+Todos subiram ou ficaram; nenhum abaixo de 3:1. Separação entre status por ΔE em OKLab (×100): o par
+mais próximo era `sem-dados` × `sem-equipamentos`, 9,7, e foi a 12,8; o novo mínimo é `em-manutencao`
+× `sem-dados`, 10,5 — acima do pior de antes. As seis amostras da legenda passaram a hex literal (antes
+quatro usavam token de tema): a mesma regra que D19 aplicou aos dois neutros, a amostra espelha o
+canvas, não o tema.
+
+**Halo na linha, em WebGL.** O canvas do MapLibre não aplica `filter` nem `box-shadow`. O brilho é uma
+segunda camada `line`, `conexoes-halo`, **antes** de `conexoes-linha` na ordem de camadas (por cima,
+apagaria o núcleo): `line-width` 6, `line-blur` 4, `line-opacity` 0,28, com o mesmo `match` de cor e o
+mesmo fallback `sem-dados` do núcleo — `camadasDeConexao()` devolve as duas, e o teste compara o corpo
+do `match` das duas. O núcleo foi a `LARGURA_CONEXAO` 1,6 (era 1,4) e `OPACIDADE_CONEXAO` 0,85 (era 0,65):
+a translucidez que D18 dava à linha passou para o halo. Estático: custo medido de quadro ≈ 0 (cenário H).
+
+**Três pings em fluxo.** `PINGS_POR_LINHA = 3`, defasados de `k/3`, sempre hub → unidade, renascendo no
+hub. Duas funções puras novas: `faseDeFluxo(ciclos) = ((ciclos % 1) + 1) % 1` (substitui
+`faseVaiEVolta`, que saiu sem chamador) e `opacidadeNaPonta(u) = min(1, u/0,08, (1−u)/0,08)`, aplicada
+por `style.opacity` a cada quadro. A opacidade é **0 nas duas pontas exatas**: sem ela o ping, ao virar
+de u≈1 para u=0, apareceria por um quadro no hub depois de sumir na unidade. `PERIODO_PING_MS` continua
+4200, mas agora é **uma travessia**, não ida e volta: a velocidade caiu à metade e chega um ping na
+unidade a cada 1400 ms.
+
+**Orbe de 5px.** `.map__ping` vira ponto de luz: declaração plana + `radial-gradient` de núcleo claro
+(`#fff` a 55% sobre a cor) → cor pura a 45% do raio → transparente, e `box-shadow: 0 0 4px 1px` da cor
+a 70%. Caixa 7px → 5px, `border: 0`. Com três pings por arco, 7px enchia a linha de bolas.
+
+**Glow no marcador, miolo opaco.** `.map__unidade` ganha `0 0 6px 1px` da cor a 55% antes da sombra de
+contato. O miolo **não** fica translúcido: desde D19 é ele quem carrega o contraste, e translucidez
+derrubaria `sem-equipamentos` abaixo de 3:1. No selecionado o anel de 3px de D19 continua sendo a
+**primeira** sombra (o `e2e:n07` caso 9 lê a cor da primeira), glow `0 0 9px 2px` a 45% depois.
+
+### Reversões
+
+**D16 — "ida e volta" vira fluxo num sentido.** Não é gosto: espaçamento regular é incompatível com a
+onda triangular. Com `faseVaiEVolta` e três fases 0, ⅓ e ⅔, dois pings coincidem (a onda passa pelo
+mesmo u subindo e descendo); com duas fases opostas, que era D16, eles se cruzam no meio do arco. Só
+`faseDeFluxo` dá separação de exatamente ⅓ em qualquer instante, inclusive depois da virada e com
+`ciclos` negativo — é o que o teste prova pela diferença circular entre as três fases. D16 fica no log.
+
+**D18-B — a esfera vira orbe.** A variação B (highlight deslocado a 32% 28%, sombra interna, parada
+escura `70% + #000`) era um objeto sólido iluminado; o pedido foi brilho. O orbe não tem face oposta à
+luz, então a sombra interna e a de contato saíram junto com a parada escura. D18 fica no log.
+
+### Origem do contorno branco
+
+Eram **duas** camadas em `.map__ping`, lidas no código antes de mexer: o `border: 1px solid
+rgba(232,240,248,.8)` e a primeira sombra, `0 0 5px 1px rgba(232,240,248,.3)`, que lia como halo
+esbranquiçado. Tirar só o `border` deixaria o halo branco. Com `box-sizing: border-box` global, o disco
+de 7px era 5px de cor dentro de 1px de aro. As duas saíram; o glow voltou na cor do status. O aro
+existia pela razão que valia para o marcador antes de D19 — o `sem-equipamentos` escuro sumia no
+município — e com a paleta de D24 esse status dá 3,95:1 sozinho.
+
+### O que não mudou
+
+Técnica do ping (`Marker` DOM, `setLngLat` por quadro, D16) e `pontoNoArco` O(1) — muda só a fase;
+`transform` no elemento do `Marker` continua da lib (DV13), e nem o ping nem o marcador escrevem
+`transform`; geometria de raios do selecionado (D19: miolo 9,5 / seleção 12,5 / foco 14,5 / pulso
+15,5px); pulso no `::after`; nenhum `box-shadow` animado (glow é estático); `prefers-reduced-motion`
+continua não criando os pings.
+
+### Verificado
+
+Bancada `perf:mapa` (Intel UHD 770; sintética, 10 linhas = 30 pings) em 3 corridas, decisões pela
+mediana (contexto §17): Δ de BD3 (tela inteira depois) sobre A = **1,774 ms**, limite 2,35 (Δ do
+cenário E, a alternativa já rejeitada por custo) — passa. BD3 contra BD2r (tela inteira antes, mesma
+corrida): 1,927 × 1,554 ms na mediana, com 50% mais pings, halo e glow. O que cresce é recálculo de
+estilo (D3 0,59 ms contra D 0,09 ms na corrida 3), e ele acompanha o número de pings com o CSS real do
+orbe, não o fade: D2r (20 pings, CSS de antes, sem fade) já gastava 0,42, e tirar ~84% das escritas de
+`opacity` (abaixo) só levou D3 de 0,59 a 0,56. Cabe — 11,5% do orçamento de 16,7 ms; BD3x5 (150 pings,
+55 marcadores) 3,97–4,36 ms em corridas únicas, cerca de ¼ do orçamento.
+
+Depois de `setOpacity` (abaixo), corrida única da bancada: A 0,146, BD3 1,655, **Δ 1,509 ms** (−15% sobre
+a mediana de 1,774; dentro da faixa das três corridas, corrida 3 deu 1,567) — gate segue passando. App
+dev (`app-depois-dev-setopacity.json`): animado 3,775, parado 0,964, Δ 2,811 ms (−6,5% sobre 3,007).
+Uma corrida não separa a correção do ruído; o que ela prova é que não piorou.
+
+### Opacidade do ping é da lib — achado da revisão final
+
+O fade escrevia `elemento.style.opacity` no elemento do `Marker`. Lendo o fonte do maplibre-gl 6.9.0
+(`src/ui/marker.ts`, igual no `dist/maplibre-gl.mjs`) na revisão final: `Marker._update` — chamado por
+todo `setLngLat` e por todo `move`/`moveend` da câmera — agenda por `frameAsync` um `_updateOpacity`,
+que sem terreno faz `if (style.opacity !== this._opacity) style.opacity = this._opacity`, e `_opacity`
+é `'1'` por padrão. Eram duas escritas por ping por quadro e, com a câmera andando (arrasto, zoom, o
+`easeTo` de 600 ms), o callback da lib podia rodar depois do `passo`: ping em fade pintado opaco e o
+salto u≈1→0 aparecendo. Mesmo caso do `transform` em DV13 — propriedade que a lib escreve no elemento
+é da lib. Correção: `Marker` criado com `opacity: '0'` e `setOpacity(String(opacidadeNaPonta(u)))` no
+passo; `setOpacity` grava `_opacity` e chama `_updateOpacity(true)`, que escreve o inline (o n07 continua
+lendo `style.opacity`) e pula valor igual. `opacidadeNaPonta` passou a arredondar a duas casas: o
+navegador normaliza o que devolve (0.43750000000000006 → "0.4375") e, sem isso, a comparação nunca
+batia no fade. No meio do arco o valor é `'1'` constante e nenhuma escrita acontece. A bancada espelha
+no caminho D3/BD3 e devolve `setOpacity('1')` ao pool, para os cenários antigos não herdarem o fade.
+
+Quadros > 20 ms: 0% em todos os 17 cenários na corrida 1; nas corridas 2 e 3, 0–0,9% em vários,
+**inclusive em A** (mapa parado), com picos isolados de 20–35 ms. O gate "0% de quadros lentos" passou
+a valer contra o piso de ruído de A na mesma corrida — nenhum cenário animado ficou acima dele.
+
+App real `perf:mapa-app` (CDP, 6 s, 1600x900), antes = `8f8b78d`, depois = este branch:
+
+| banco | antes (pings, Δ animado − parado) | depois (pings, Δ animado − parado) |
+|---|---|---|
+| dev (11 unidades, 9 linhas) | 18, 2,833 ms | 27, 3,007 ms |
+| carga (2 unidades, 1 linha) | 2, 1,848 ms | 3, 2,064 ms |
+
++0,17 ms no dev e +0,22 ms na carga com 50% mais pings, halo e glow; 59,9 fps e 0% de quadros lentos
+nos oito registros. O absoluto do `parado` do dev caiu de 1,62 para 0,95 ms entre as duas sessões —
+ruído de máquina, por isso a comparação é pelo Δ.
+
+`ng test` 581/581 (55 arquivos) e `ng build` sem erro depois do rebase em `origin/main` e de
+`setOpacity`; o aviso de budget do SCSS do mapa (97,34 kB) é DV04, pré-existente. `e2e:n06` 50/50,
+`e2e:n07` 50/50 (27 pings = 9 × 3; orbe 5px, borda 0, nenhuma sombra branca; fade com opacidade inline
+em toda leitura e sempre em [0, 1], 9/81 leituras abaixo de 1) e `e2e:n08` 52/52, no clone do banco de
+dev, refeitos depois do rebase e de `setOpacity`. `e2e:d24` 15/15 no dev e 13/13 na carga, idem. Capturas em `e2e/d24-evidence/` ("antes" saiu do `ng serve` de `8f8b78d`, o
+merge-base, e não de `origin/main`, que já tinha o r2 mexendo no mesmo SCSS por outra razão); as da
+carga ficaram fora do repositório.
+
+### Descartado
+
+- **`filter: drop-shadow` no ping ou no marcador.** O ping se move a cada quadro, e `filter` repinta
+  por quadro; o glow tem de ser estático no elemento.
+- **Ping em camada WebGL com `circle-blur`.** É o cenário E da bancada: `setData` por quadro, Δ 2,4–3,0
+  ms, o mais caro. O brilho em WebGL ficou só na linha, que é estática.
+- **Miolo do marcador translúcido.** Derruba o contraste que D19 transferiu para o miolo.
+- **`will-change: transform` no ping.** D3w ficou 7,9% abaixo de D3 na mediana (1,630 × 1,769 ms), com
+  as faixas das três corridas sobrepostas: inconclusivo dentro do ruído, abaixo do corte de 10%, e uma
+  camada promovida por ping não se justifica por isso.
+- **`box-shadow` animado** para o glow: o pulso por `box-shadow` (§9.2, cenário C) custou Δ 0,43 ms
+  sobre a base contra 0,29 do `::after` com `transform`+`opacity` — 45% a mais **no Δ**, não no
+  absoluto (0,618 × 0,475 ms, 30%).

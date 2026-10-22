@@ -94,18 +94,26 @@ export function equipamentosAfetados(equipamentos: DashboardEquipamento[]): Dash
  * escuro à vontade: quem separava o marcador do município era o aro, a 13,05:1. Com o aro removido
  * (D19 item 1) o miolo virou o único portador de contraste, e os valores de N06 não sustentam o
  * papel: `sem-dados` #435464 dava 1,92:1 contra #16283a e `sem-equipamentos` #263744 dava 1,22:1 —
- * a 13px, marcador invisível. #8797a6 dá 5,01:1 e #667b8b dá 3,41:1, ambos acima dos 3:1 de
- * WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os dois tons mais dessaturados da
- * tabela, que é o que os faz ler como ausência de dado e não como estado; o que mudou foi a
- * luminância, não o matiz.
+ * a 13px, marcador invisível. #8797a6 dava 5,01:1 e #667b8b dava 3,41:1 (D19; D24 os subiu, ver
+ * abaixo), ambos acima dos 3:1 de WCAG 1.4.11 para elemento gráfico essencial. Continuam sendo os
+ * dois tons mais dessaturados da tabela, que é o que os faz ler como ausência de dado e não como
+ * estado; o que mudou foi a luminância, não o matiz.
  *
  * Esse clareamento é também o que sustenta o pulso geral de D19: o argumento de N07 para pulsar só
  * dois status era, em parte, que `sem-dados` (1,92:1) e `sem-equipamentos` (1,22:1) gerariam anel de
- * pulso ilegível. Com 5,01:1 e 3,41:1 o argumento caiu — os seis pulsam com anel legível.
+ * pulso ilegível. Com 5,01:1 e 3,41:1 (D19) o argumento caiu: os seis pulsam com anel legível.
+ *
+ * D24 tornou a paleta vibrante, porque a linha agora tem halo e precisa de cor que brilhe sobre o
+ * fundo escuro. Valores calculados por script em HSL: coloridos com `S×1,18+0,04` e `L+0,05` (teto
+ * 0,72, sem nunca baixar); neutros com `S×1,1` e `L+0,08` (sem-dados) / `+0,04` (sem-equipamentos).
+ * Contraste contra #16283a: 8,70 / 4,44 / 8,23 / 6,67 / 6,41 / 3,95 (na ordem da tabela de D24:
+ * disponível, indisponível, degradada, em-manutenção, sem-dados, sem-equipamentos; eram 5,01/3,41 em D19 nos dois
+ * neutros). ΔE OKLab mínimo entre quaisquer dois status: 10,5 (em-manutenção × sem-dados); sem-dados ×
+ * sem-equipamentos passou de 9,7 para 12,8. `em-manutencao` já tinha saturação 100% e não mudou.
  */
 const COR_DO_STATUS: Record<string, string> = {
-  'disponivel': '#34c77b', 'indisponivel': '#e5484d', 'degradada': '#e8a33d', 'em-manutencao': '#7fadff',
-  'sem-dados': '#8797a6', 'sem-equipamentos': '#667b8b',
+  'disponivel': '#35e087', 'indisponivel': '#f84e54', 'degradada': '#fcb142', 'em-manutencao': '#7fadff',
+  'sem-dados': '#9dabb9', 'sem-equipamentos': '#6e8698',
 };
 
 /**
@@ -132,8 +140,9 @@ function corDoStatus(status: string): string {
  * passa a ter um portador só, o marcador de unidade.
  *
  * O valor fica entre o `none` antigo (#0c1722, escuro demais — o polígono sumia no gradiente do
- * cartão) e o `sem-equipamentos` (#667b8b, já encostado na faixa de status): claro o bastante para o
- * contorno recortar a forma, escuro o bastante para o marcador colorido vencer por contraste.
+ * cartão) e o `sem-equipamentos` (#6e8698 desde D24, #667b8b em D19 — encostado na faixa de
+ * status): claro o bastante para o contorno recortar a forma, escuro o bastante para o marcador
+ * colorido vencer por contraste.
  */
 const COR_MUNICIPIO = '#16283a';
 
@@ -148,38 +157,65 @@ const COR_MUNICIPIO = '#16283a';
  * #456a8e dá 2,65:1. Não chega aos 3:1 de WCAG 1.4.11 de propósito: a 75 municípios num zoom de
  * estado, traço com contraste de controle de interface vira grade, e a divisa é contexto — o
  * conteúdo essencial (o estado operacional) está no marcador. Desde D19 o marcador não tem mais
- * aro: o miolo sozinho carrega o contraste, entre 3,41:1 (`sem-equipamentos`, o pior caso) e
- * 6,96:1 (`degradada`) contra #16283a — ver o comentário de `COR_DO_STATUS`. 2,65:1 é onde a forma
- * se lê sem a malha competir com os marcadores; medido por captura, não estimado.
+ * aro: o miolo sozinho carrega o contraste — desde D24 entre 3,95:1 (`sem-equipamentos` #6e8698, o
+ * pior caso) e 8,70:1 (`disponivel`) contra #16283a; em D19 era 3,41:1 a 6,96:1 — ver o comentário
+ * de `COR_DO_STATUS`. 2,65:1 é onde a forma se lê sem a malha competir com os marcadores; medido
+ * por captura, não estimado.
  */
 const COR_CONTORNO_MUNICIPIO = '#456a8e';
 
 /**
- * Duração de uma travessia completa do ping — hub → unidade → hub.
+ * Duração de uma travessia completa do ping — desde D24, UMA travessia hub → unidade (D16/D17
+ * falavam em hub → unidade → hub).
  *
  * 4200 ms, e não os 2600 de N07. O valor antigo foi escolhido contra uma linha reta e curta; com
  * vinte pings simultâneos no estado inteiro o conjunto lia como tráfego agitado, não como um
- * batimento de sonda. O período é a ÚNICA variável do movimento (a fase de ida-e-volta e o passo
+ * batimento de sonda. O período é a ÚNICA variável do movimento (a fase de fluxo e o passo
  * são funções puras dele), então desacelerar é trocar este número — nada mais muda.
+ *
+ * Desde D24 é UMA travessia hub → unidade, não ida e volta: a velocidade caiu à metade, o que
+ * compensa a densidade 3× (chega um ping na unidade a cada 1400 ms); mesmo argumento de D17 contra
+ * "tráfego agitado".
  */
 const PERIODO_PING_MS = 4200;
 
 /**
- * Pings simultâneos por linha. Dois, em fase oposta: enquanto um vai, o outro volta — é isto que
- * entrega o "ida e volta" do ICMP echo sem nenhuma camada extra nem inversão periódica de animação.
+ * Pings simultâneos por linha. Três, a ⅓ um do outro, em fluxo hub → unidade (D24 substituiu o par
+ * em fase oposta de D16, que fazia o "ida e volta").
  */
-const PINGS_POR_LINHA = 2;
+const PINGS_POR_LINHA = 3;
 
 /**
- * Posição na ida-e-volta, dado o tempo em ciclos. `0 → 1 → 0` num ciclo. Pura.
+ * Posição no fluxo, dado o tempo em ciclos. `0 → 1` e recomeça no hub. Pura.
  *
- * É o que torna a técnica escolhida barata: as linhas de conexão têm EXATAMENTE dois vértices
- * (hub e unidade), então "quanto do caminho já andei" é um número só, e a volta é o mesmo número
- * espelhado. Não há comprimento de arco a percorrer nem vértice intermediário a procurar.
+ * D24 trocou o vai-e-volta de D16 por fluxo num sentido só, a pedido: três pings com espaçamento
+ * REGULAR ao longo do arco. Na onda triangular de D16 isso é impossível — com duas fases opostas os
+ * pings se cruzam no meio, e com fases 0/⅓/⅔ dois deles coincidem. Em dente de serra, defasar de
+ * k/3 mantém a distância de ⅓ em qualquer instante. O custo continua O(1) por quadro: muda a
+ * função de fase, não a técnica (`Marker` DOM + `pontoNoArco`). As linhas de conexão têm EXATAMENTE
+ * dois vértices (hub e unidade), então "quanto do caminho já andei" é um número só.
  */
-export function faseVaiEVolta(ciclos: number): number {
-  const fase = ((ciclos % 1) + 1) % 1;
-  return fase < 0.5 ? fase * 2 : (1 - fase) * 2;
+export function faseDeFluxo(ciclos: number): number {
+  return ((ciclos % 1) + 1) % 1;
+}
+
+/** Fração do arco, em cada ponta, em que o ping nasce e some. */
+const FADE_NA_PONTA = 0.08;
+
+/**
+ * Opacidade do ping na posição `u` do arco. Pura.
+ *
+ * Zero nas duas pontas exatas: é o que esconde a virada do dente de serra, quando o ping salta de
+ * u≈1 para u=0. Linear em 8% de cada lado — o ping nasce no hub e se apaga ao chegar na unidade,
+ * em vez de surgir do nada sobre o marcador.
+ *
+ * Duas casas porque quem escreve é `Marker.setOpacity`, que só toca o estilo quando `style.opacity`
+ * difere do valor pedido — e o navegador normaliza o que devolve (0.43750000000000006 volta
+ * "0.4375"). Sem arredondar a comparação nunca bate no fade e a lib reescreve o mesmo valor a cada
+ * `_update`; com duas casas o fade de ~20 quadros (8% de 4200 ms) continua contínuo.
+ */
+export function opacidadeNaPonta(u: number): number {
+  return Math.round(Math.max(0, Math.min(1, u / FADE_NA_PONTA, (1 - u) / FADE_NA_PONTA)) * 100) / 100;
 }
 
 /** Ponto a `u` do caminho entre dois pares [lng, lat]. Pura. */
@@ -322,14 +358,26 @@ const DURACAO_CAMERA_MS = 600;
 /** Folga do enquadramento do município; topo e esquerda maiores por causa da placa do título. */
 const PADDING_MUNICIPIO = { top: 110, right: 70, bottom: 50, left: 60 };
 
-const LARGURA_CONEXAO = 1.4;
+/** Largura do núcleo da linha de conexão (D24: 1,4 → 1,6, para a cor vibrante ler sobre o halo). */
+const LARGURA_CONEXAO = 1.6;
 /**
- * Linha translucida. Ela cruza o estado inteiro e passa por cima de municipios cuja cor de status e
- * o dado que importa; opaca, ela recortava o bloco em dois. Com D18 a linha inteira carrega a cor
- * do status, e a translucidez continua cumprindo o mesmo papel: deixar o município por baixo
- * legível mesmo com a linha colorida de ponta a ponta por cima dele.
+ * Núcleo da linha, quase opaco (D24): a translucidez passou para o halo por baixo, que carrega o
+ * brilho; o núcleo fino pode ficar firme sem recortar o bloco. Antes (D18) era a linha única, 0,65.
+ *
+ * O papel que a translucidez de D18 cumpria continua, agora no halo: a conexão cruza o estado
+ * inteiro e passa por cima de municípios; opaca e larga, recortava o bloco em dois. O halo é largo
+ * e translúcido (0,28), o núcleo é fino — o município por baixo segue legível mesmo com a linha
+ * colorida de ponta a ponta por cima dele.
  */
-const OPACIDADE_CONEXAO = 0.65;
+const OPACIDADE_CONEXAO = 0.85;
+/**
+ * Brilho no WebGL (D24): o canvas do MapLibre não aplica `filter` nem `box-shadow`. Uma segunda
+ * `line` larga e borrada por baixo do núcleo é o equivalente nativo — estática, custo por quadro
+ * ~0 (medido na Task 5).
+ */
+const LARGURA_HALO_CONEXAO = 6;
+const BORRAO_HALO_CONEXAO = 4;
+const OPACIDADE_HALO_CONEXAO = 0.28;
 
 /**
  * Curvatura do arco, como fração do comprimento da corda hub→unidade.
@@ -398,19 +446,18 @@ export function arcoEntre(origem: [number, number], destino: [number, number]): 
  * acrescentar — a mesma queda para `sem-dados` que `corDoStatus` faz.
  */
 export function camadasDeConexao(): LayerSpecification[] {
+  // Mesma expressão no halo e no núcleo: o status desconhecido cai em `sem-dados` nos dois.
+  const corDaConexao = ['match', ['get', 'status'],
+    ...Object.values(UnitOperationalStatus).flatMap(status => [status, corDoStatus(status)]),
+    COR_DO_STATUS['sem-dados']];
+  // Halo ANTES do núcleo: a ordem do array é a ordem de desenho, e por cima ele apagaria a linha.
   return [{
-    id: 'conexoes-linha',
-    type: 'line',
-    source: 'conexoes',
-    layout: { 'line-cap': 'round' },
-    paint: {
-      'line-width': LARGURA_CONEXAO,
-      'line-opacity': OPACIDADE_CONEXAO,
-      'line-color': ['match', ['get', 'status'],
-        ...Object.values(UnitOperationalStatus).flatMap(status => [status, corDoStatus(status)]),
-        COR_DO_STATUS['sem-dados']],
-    },
-  } as unknown as LayerSpecification];
+    id: 'conexoes-halo', type: 'line', source: 'conexoes', layout: { 'line-cap': 'round' },
+    paint: { 'line-width': LARGURA_HALO_CONEXAO, 'line-blur': BORRAO_HALO_CONEXAO, 'line-opacity': OPACIDADE_HALO_CONEXAO, 'line-color': corDaConexao },
+  }, {
+    id: 'conexoes-linha', type: 'line', source: 'conexoes', layout: { 'line-cap': 'round' },
+    paint: { 'line-width': LARGURA_CONEXAO, 'line-opacity': OPACIDADE_CONEXAO, 'line-color': corDaConexao },
+  }] as unknown as LayerSpecification[];
 }
 
 /** Coordenada da unidade, quando as duas metades existem. Nunca por veracidade: 0 e valido. */
@@ -861,7 +908,13 @@ export class MapaComponent implements OnDestroy {
   }
 
   /**
-   * Pings percorrendo as linhas de conexão — ICMP echo como desenho.
+   * Pings percorrendo as linhas de conexão — ICMP echo como desenho. Três por linha, a ⅓ um do
+   * outro, em fluxo contínuo hub → unidade (D24), com fade nas duas pontas. Não fica de graça: na
+   * bancada (D24) a tela inteira (BD3) custou 1,77 ms/quadro acima do mapa parado na mediana de 3
+   * corridas (1,51 numa corrida única depois de `setOpacity`), ~0,55 ms disso em recálculo de
+   * estilo — que acompanha o número de pings com o CSS real, não o fade (D2r, 20 pings sem fade, já
+   * gastava 0,42). Cabe: 11,5% do orçamento de 16,7 ms; a 5× (BD3x5), 3,97–4,36 ms em corridas
+   * únicas, cerca de ¼ do orçamento.
    *
    * Um `Marker` DOM por ping, reposicionado por `setLngLat` a cada quadro. Escolhido contra as duas
    * alternativas conhecidas, com medição (ver `mapa-contexto-atual.md` §9.2, cenários D/E/F):
@@ -870,8 +923,8 @@ export class MapaComponent implements OnDestroy {
    *   0,99 ms desta — 2,9x mais cara, quase toda em reparse do GeoJSON no worker.
    * - `line-dasharray` animado por `setPaintProperty`: 1,65 ms por quadro mesmo rodando a 20 Hz e
    *   não a 60, porque cada troca reconstrói a textura de tracejado. Além do custo, o movimento é
-   *   em degraus e o tracejado não é bidirecional: "ida e volta" exigiria duas camadas sobrepostas
-   *   em fase invertida.
+   *   em degraus e o tracejado não é bidirecional: o "ida e volta" de D16 exigiria duas camadas
+   *   sobrepostas em fase invertida (D24 abandonou a ida e volta, mas o custo segue valendo).
    *
    * E é o padrão que N02 e N06 já fixaram: a lib reposiciona o elemento em pan, zoom, pitch e
    * rotate sem sincronização manual.
@@ -906,8 +959,17 @@ export class MapaComponent implements OnDestroy {
          */
         elemento.setAttribute('aria-hidden', 'true');
         elemento.style.setProperty('--cor-ping', corDoStatus(status));
-        const marcador = new Marker({ element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
-          .setLngLat(origem).addTo(map);
+        /*
+         * Opacidade é da lib, como o `transform` (DV13). `Marker._update` — em todo `setLngLat` e em
+         * todo `move` da câmera — agenda `_updateOpacity`, que reescreve `style.opacity` com o valor
+         * guardado no Marker ('1' por padrão) sempre que o inline difere. Escrito por fora, eram duas
+         * escritas por quadro e, com a câmera andando, a da lib chegava depois da nossa: ping em fade
+         * pintado opaco e a virada u≈1→0 aparecendo. Daí `opacity: '0'` na criação (sem flash no
+         * primeiro quadro) e `setOpacity` no passo — um dono só.
+         */
+        const marcador = new Marker({
+          element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport', opacity: '0',
+        }).setLngLat(origem).addTo(map);
         this.pings.push(marcador);
         return { marcador, origem, destino, defasagem: indice / PINGS_POR_LINHA };
       });
@@ -917,7 +979,10 @@ export class MapaComponent implements OnDestroy {
     const passo = (): void => {
       const ciclos = (performance.now() - inicio) / PERIODO_PING_MS;
       for (const { marcador, origem, destino, defasagem } of trajetos) {
-        marcador.setLngLat(pontoNoArco(origem, destino, faseVaiEVolta(ciclos + defasagem)));
+        const u = faseDeFluxo(ciclos + defasagem);
+        // `setOpacity` escreve o inline (n07 lê `style.opacity`) e pula valor igual: no meio do arco
+        // é '1' constante, e só os pings nas pontas tocam estilo.
+        marcador.setLngLat(pontoNoArco(origem, destino, u)).setOpacity(String(opacidadeNaPonta(u)));
       }
       this.quadroPing = requestAnimationFrame(passo);
     };

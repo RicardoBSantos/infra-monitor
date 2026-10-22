@@ -282,8 +282,9 @@ Aracaju com mais unidades).
 
 ---
 
-## DV16 — Stop escuro do ping quase apaga o disco em `sem-equipamentos`
-**Origem:** D18 (volume por CSS no ping), achado na revisão final.
+## DV16 — Stop escuro do ping quase apaga o disco em `sem-equipamentos` — **FECHADA (D24)**
+**Origem:** D18 (volume por CSS no ping), achado na revisão final. **Fechada em D24**, com o
+fechamento ao fim desta entrada; o histórico abaixo fica.
 
 O stop escuro do `radial-gradient`, `color-mix(in srgb, var(--cor-ping) 70%, #000)`, se aplica aos
 seis status por igual. Para `sem-equipamentos` (#263744), a borda do disco cai para ≈#1a2730 contra
@@ -329,6 +330,21 @@ O número que esta dívida temia (≈1,05:1) não existe mais: com a cor-base de
 mostra de novo: **`indisponível` tem a segunda pior borda (2,15:1)**, e **`sem-dados` e
 `sem-equipamentos` quase não se distinguem entre si** no ping. Decisão do gradiente segue com o
 usuário.
+
+**Fechamento (D24, 2026-10-21).** O usuário decidiu o gradiente: a esfera de D18-B deu lugar ao orbe
+(núcleo claro → cor → transparente), e **a parada escura que esta dívida media não existe mais** — nada
+no ping escurece a borda. Também saiu o aro claro de 1px que segurava o disco. Na cor pura do orbe o pior
+caso contra o município é `sem-equipamentos` `#6e8698`, 3,95:1 (a cor-base subiu de `#667b8b` com a
+paleta de D24); o centro do orbe fica acima de 8,5:1 nos seis. Os dois problemas que a captura de
+2026-10-16 tinha mostrado também caíram: não há mais borda de `indisponível` a 2,15:1, e `sem-dados` ×
+`sem-equipamentos` foi de ΔE 9,7 a 12,8. Prova: os seis status forçados lado a lado, antes e depois,
+em `infra-monitor-frontend/e2e/d24-evidence/seis-status-depois.png` × `seis-status-antes.png`, e
+`ping-7px-vs-5px.png` a 4×.
+
+Fica uma observação, que não reabre a dívida: `sem-equipamentos` continua o mais discreto dos seis —
+ping e linha têm a mesma cor, a mais escura da paleta, e o ping se separa da linha só pelo núcleo claro.
+Lê como ponto claro, não como anel vazio. No zoom de estado, o orbe de 5px também é mais discreto que o
+disco de 7px com aro branco, nos seis status. Registrado em `mapa-contexto-atual.md` §17.
 
 ---
 
