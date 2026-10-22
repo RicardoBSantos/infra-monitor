@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -188,7 +189,7 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
         Thread.sleep(500);
 
         boolean bloqueada = manutencao.isAlive();
-        Integer locksEsperando = jdbc.queryForObject("select count(*) from pg_locks where not granted", Integer.class);
+        Integer locksEsperando = jdbc.queryForObject("select count(*) from pg_locks where not granted and pid <> pg_backend_pid()", Integer.class);
         liberar.countDown();
         segurador.join(LIMITE.toMillis());
         manutencao.join(LIMITE.toMillis());
@@ -214,7 +215,7 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
         Thread manutencao = new Thread(() -> {
             try {
                 partida.await(LIMITE.toSeconds(), TimeUnit.SECONDS);
-                Thread.sleep(java.util.concurrent.ThreadLocalRandom.current().nextLong(ATRASO_MAX_MANUTENCAO_MS + 1));
+                Thread.sleep(ThreadLocalRandom.current().nextLong(ATRASO_MAX_MANUTENCAO_MS + 1));
                 equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
             } catch (Throwable erro) {
                 falhas.add(erro);

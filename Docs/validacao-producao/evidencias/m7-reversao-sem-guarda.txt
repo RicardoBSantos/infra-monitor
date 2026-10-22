@@ -1,3 +1,4 @@
+# Rodada anterior ao teste deterministico do lock (24 testes; as demais evidencias tem 25).
 # M7 reversao SEM guarda (3 linhas if/throw comentadas em IncidenteService.criar; lock mantido)
 # ./mvnw test -Dtest=AberturaManualElegibilidadePostgresIntegrationTest
 [ERROR]   AberturaManualElegibilidadePostgresIntegrationTest.entrarEmManutencaoEAbrirManualmenteConcorrentesNuncaDeixamIncidenteEmAberto:176 

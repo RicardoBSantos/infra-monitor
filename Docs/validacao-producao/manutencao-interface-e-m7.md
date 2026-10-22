@@ -88,6 +88,11 @@ mapeamento do serviço e na interface do front.
    `/equipamentos/:id`, e a lista é recriada (dívida já anotada em `equipamento-list.component.ts`,
    "rotas IRMÃS"). Vale para ativar/desativar desde antes; o e2e confere o aviso antes de fechar.
    *Gatilho:* a correção das rotas de detalhe como filhas, como já feito em `/incidentes`.
+8. **O lock do M7 serializa só com a entrada em manutenção e com a desativação/atualização do equipamento**
+   (ambas escrevem a linha de `equipamento`). `MonitorService.desativar` × `criar` não é serializado
+   (`m.ativo` não é travado): um monitor desativado no meio do `criar` pode deixar incidente aberto, como
+   no `inserirSeElegivel` do motor. *Gatilho:* a desativação de monitor passar a ocorrer durante a
+   operação, e não só no cadastro.
 
 ## 3. Prova de reversão do M7
 
