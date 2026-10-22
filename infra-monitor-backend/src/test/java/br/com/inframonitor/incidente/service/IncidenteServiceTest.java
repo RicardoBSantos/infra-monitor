@@ -59,6 +59,7 @@ class IncidenteServiceTest {
     void abreIncidenteComSucesso() {
         Monitor monitor = monitor();
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor));
+        when(incidenteRepository.travarElegibilidadeParaAbertura(1L)).thenReturn(Optional.of(elegivel(true, true, false)));
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var resposta = incidenteService.criar(criacao());
@@ -77,13 +78,36 @@ class IncidenteServiceTest {
         assertThatThrownBy(() -> incidenteService.criar(criacao())).isInstanceOf(RecursoNaoEncontradoException.class);
 
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
+        when(incidenteRepository.travarElegibilidadeParaAbertura(1L)).thenReturn(Optional.of(elegivel(true, true, false)));
         when(incidenteRepository.existsByMonitorIdAndStatusIn(1L, StatusIncidente.EM_ABERTO)).thenReturn(true);
         assertThatThrownBy(() -> incidenteService.criar(criacao())).isInstanceOf(ConflitoException.class);
     }
 
     @Test
+    void recusaForaDeObservacaoSemSalvarNemNotificar() {
+        when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
+        when(incidenteRepository.travarElegibilidadeParaAbertura(1L)).thenReturn(Optional.of(elegivel(true, true, true)));
+
+        assertThatThrownBy(() -> incidenteService.criar(criacao()))
+                .isInstanceOf(ConflitoException.class)
+                .hasMessage("Nao e possivel abrir incidente porque o equipamento esta em manutencao");
+        verify(incidenteRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(notificacaoService);
+    }
+
+    private static IncidenteRepository.Elegibilidade elegivel(boolean monitorAtivo, boolean equipamentoAtivo,
+                                                               boolean emManutencao) {
+        return new IncidenteRepository.Elegibilidade() {
+            public boolean getMonitorAtivo() { return monitorAtivo; }
+            public boolean getEquipamentoAtivo() { return equipamentoAtivo; }
+            public boolean getEmManutencao() { return emManutencao; }
+        };
+    }
+
+    @Test
     void traduzConflitoDoIndiceParcialParaRegraDeNegocio() {
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
+        when(incidenteRepository.travarElegibilidadeParaAbertura(1L)).thenReturn(Optional.of(elegivel(true, true, false)));
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenThrow(new DataIntegrityViolationException("uq"));
 
         assertThatThrownBy(() -> incidenteService.criar(criacao()))
@@ -108,6 +132,7 @@ class IncidenteServiceTest {
         assertThat(resposta.fechadoPorNome()).isEqualTo(operador.getNome());
         verify(notificacaoService).criarParaIncidenteFechado(fechado);
         when(monitorRepository.findById(1L)).thenReturn(Optional.of(monitor()));
+        when(incidenteRepository.travarElegibilidadeParaAbertura(1L)).thenReturn(Optional.of(elegivel(true, true, false)));
         when(incidenteRepository.saveAndFlush(any(Incidente.class))).thenAnswer(invocation -> invocation.getArgument(0));
         assertThat(incidenteService.criar(criacao()).status()).isEqualTo(StatusIncidente.ABERTO);
         assertThatThrownBy(() -> incidenteService.buscarPorId(99L)).isInstanceOf(RecursoNaoEncontradoException.class);

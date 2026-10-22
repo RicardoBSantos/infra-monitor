@@ -1,0 +1,5 @@
+# M7 reversao COM guarda restaurada
+# ./mvnw test -Dtest=AberturaManualElegibilidadePostgresIntegrationTest
+[M7 corrida] desfechos: [manutencao-primeiro, criar-primeiro]
+[INFO] Tests run: 24, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.74 s -- in br.com.inframonitor.incidente.AberturaManualElegibilidadePostgresIntegrationTest
+[INFO] Tests run: 24, Failures: 0, Errors: 0, Skipped: 0

@@ -30,6 +30,9 @@ import java.util.Optional;
 public class IncidenteService {
 
     private static final String MENSAGEM_INCIDENTE_ABERTO = "Nao e possivel abrir outro incidente porque ja existe um incidente aberto para este monitor";
+    private static final String MENSAGEM_MONITOR_INATIVO = "Nao e possivel abrir incidente porque o monitor esta inativo";
+    private static final String MENSAGEM_EQUIPAMENTO_INATIVO = "Nao e possivel abrir incidente porque o equipamento esta inativo";
+    private static final String MENSAGEM_EQUIPAMENTO_EM_MANUTENCAO = "Nao e possivel abrir incidente porque o equipamento esta em manutencao";
 
     private final IncidenteRepository incidenteRepository;
     private final MonitorRepository monitorRepository;
@@ -48,6 +51,15 @@ public class IncidenteService {
     public IncidenteResponse criar(CreateIncidenteRequest requisicao) {
         Monitor monitor = monitorRepository.findById(requisicao.monitorId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Monitor nao encontrado"));
+        // Mesmo predicado do motor (inserirSeElegivel): incidente para algo que nao esta sendo
+        // observado nunca seria fechado automaticamente. O FOR UPDATE OF e serializa com
+        // entrarEmManutencao — sem ele o INSERT nao commitado escapa de fecharPorManutencao (M7).
+        IncidenteRepository.Elegibilidade elegibilidade = incidenteRepository
+                .travarElegibilidadeParaAbertura(monitor.getId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Monitor nao encontrado"));
+        if (!elegibilidade.getMonitorAtivo()) throw new ConflitoException(MENSAGEM_MONITOR_INATIVO);
+        if (!elegibilidade.getEquipamentoAtivo()) throw new ConflitoException(MENSAGEM_EQUIPAMENTO_INATIVO);
+        if (elegibilidade.getEmManutencao()) throw new ConflitoException(MENSAGEM_EQUIPAMENTO_EM_MANUTENCAO);
         if (incidenteRepository.existsByMonitorIdAndStatusIn(monitor.getId(), StatusIncidente.EM_ABERTO)) {
             throw new ConflitoException(MENSAGEM_INCIDENTE_ABERTO);
         }
