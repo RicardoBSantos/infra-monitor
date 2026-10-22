@@ -138,6 +138,35 @@ class MigracaoManutencaoAgendadaPostgresIntegrationTest {
     }
 
     @Test
+    void escopoDesconhecidoERecusado() {
+        assertThatThrownBy(() -> jdbc.update("insert into manutencao_agendada (unidade_id, escopo, inicio_previsto, "
+                + "fim_previsto, motivo, criado_por_id) values (?, 'TUDO', ?, ?, 'motivo', ?)",
+                unidadeId, Timestamp.from(INICIO), Timestamp.from(FIM), usuarioId))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_manutencao_agendada_escopo");
+    }
+
+    @Test
+    void statusDesconhecidoERecusado() {
+        assertThatThrownBy(() -> inserir("PAUSADA", INICIO, FIM, "motivo", null, null, null, null))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                // O PostgreSQL avalia os CHECK em ordem alfabetica: _coerente (que tambem so aceita os 5
+                // status) responde antes de _status. Basta ser recusado por um dos dois.
+                .hasMessageMatching("(?s).*ck_manutencao_agendada_(status|coerente).*");
+    }
+
+    @Test
+    void encerramentoAntesDaAtivacaoERecusado() {
+        assertThatThrownBy(() -> jdbc.update("insert into manutencao_agendada (unidade_id, escopo, inicio_previsto, "
+                + "fim_previsto, motivo, status, criado_por_id, ativada_em, encerrada_em) "
+                + "values (?, 'UNIDADE', ?, ?, 'motivo', 'CONCLUIDA', ?, ?, ?)",
+                unidadeId, Timestamp.from(INICIO), Timestamp.from(FIM), usuarioId,
+                Timestamp.from(INICIO.plusSeconds(600)), Timestamp.from(INICIO.plusSeconds(300))))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_manutencao_agendada_encerramento");
+    }
+
+    @Test
     void manutencaoCoerenteEmCadaStatusEAceita() {
         inserir("AGENDADA", INICIO, FIM, "motivo", null, null, null, null);
         inserir("ATIVA", INICIO, FIM, "motivo", INICIO, null, null, null);
