@@ -41,12 +41,6 @@
         </span>
       </div>
       <h1 class="login-title">Sesc Sergipe<br>Monitoramento</h1>
-      <p class="login-scale">{{ plural(resumo.unidades, 'unidade', 'unidades') }} · {{ plural(resumo.dispositivos, 'dispositivo', 'dispositivos') }}</p>
-      <ul class="login-chips">
-        <li class="login-chip login-chip--ok"><span class="login-chip__dot" aria-hidden="true"></span>{{ resumo.online }} online</li>
-        <li class="login-chip login-chip--warn"><span class="login-chip__dot" aria-hidden="true"></span>{{ plural(resumo.degradados, 'degradado', 'degradados') }}</li>
-        <li class="login-chip login-chip--down"><span class="login-chip__dot" aria-hidden="true"></span>{{ resumo.offline }} offline</li>
-      </ul>
     </div>
   </section>
 

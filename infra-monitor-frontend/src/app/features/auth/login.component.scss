@@ -11,13 +11,6 @@
 .login-wordmark__name{color:var(--lg-heading);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;line-height:1.1}
 .login-noc{color:var(--lg-muted);font-family:var(--lg-mono);font-size:9.5px;letter-spacing:.16em;line-height:1.1}
 .login-title{margin:34px 0 0;font-size:clamp(26px,2.1vw,30px);font-weight:700;line-height:1.22;letter-spacing:-.015em;color:var(--lg-text)}
-.login-scale{margin:16px 0 0;color:var(--lg-muted);font-size:12px}
-.login-chips{display:flex;flex-wrap:wrap;gap:8px;margin:30px 0 0;padding:0;list-style:none}
-.login-chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border:1px solid;border-radius:var(--im-radius-pill);font-family:var(--lg-mono);font-size:11px}
-.login-chip__dot{width:5px;height:5px;border-radius:50%;background:currentColor}
-.login-chip--ok{color:var(--lg-ok);border-color:var(--lg-chip-ok-line);background:var(--lg-chip-ok-bg)}
-.login-chip--warn{color:var(--lg-warn);border-color:var(--lg-chip-warn-line);background:var(--lg-chip-warn-bg)}
-.login-chip--down{color:var(--lg-down);border-color:var(--lg-chip-down-line);background:var(--lg-chip-down-bg)}
 
 .login-panel{display:grid;place-items:center;padding:24px}
 .login-theme{position:absolute;z-index:2;top:20px;right:20px;display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--lg-card-line);border-radius:6px;background:transparent;color:var(--lg-icon);cursor:pointer}
