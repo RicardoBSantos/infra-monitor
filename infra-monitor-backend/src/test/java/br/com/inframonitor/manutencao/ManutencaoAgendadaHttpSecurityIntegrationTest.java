@@ -65,7 +65,7 @@ class ManutencaoAgendadaHttpSecurityIntegrationTest {
 
     @BeforeEach
     void preparar() {
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, equipamento, "
+        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, equipamento, "
                 + "tipo_equipamento, unidade, usuarios restart identity cascade");
         usuario("admin@manut.test", Papel.ADMIN);
         long operador = usuario("operador@manut.test", Papel.OPERADOR);

@@ -71,12 +71,13 @@ public class CoberturaManutencao {
     // Transicoes de situacao. Todas sao CAS no WHERE: quem perde a corrida (tick x botao,
     // dois botoes) muda zero linhas e decide o que responder. Nenhuma toca equipamento: a
     // reavaliacao dos cobertos vem depois do commit, um equipamento por transacao.
+    // Todas incrementam versao (MA26): uma edicao preparada sobre a versao anterior muda zero linhas.
     // ---------------------------------------------------------------------------
 
     /** CAS AGENDADA -> ATIVA das devidas. Devolve as ativadas, com previsto e real (log de atraso). */
     public List<Transicao> ativarDevidas(Instant agora) {
         return jdbc.query("""
-                UPDATE manutencao_agendada SET status = 'ATIVA', ativada_em = :agora, updated_at = :agora
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'ATIVA', ativada_em = :agora, updated_at = :agora
                  WHERE status = 'AGENDADA' AND inicio_previsto <= :agora AND fim_previsto > :agora
                 RETURNING id, inicio_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
     }
@@ -84,7 +85,7 @@ public class CoberturaManutencao {
     /** Mesmo CAS, restrito a uma janela (ativacao imediata na criacao). */
     public boolean ativarSeDevida(long id, Instant agora) {
         return jdbc.update("""
-                UPDATE manutencao_agendada SET status = 'ATIVA', ativada_em = :agora, updated_at = :agora
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'ATIVA', ativada_em = :agora, updated_at = :agora
                  WHERE id = :id AND status = 'AGENDADA' AND inicio_previsto <= :agora AND fim_previsto > :agora""",
                 Map.of("id", id, "agora", ts(agora))) == 1;
     }
@@ -92,7 +93,7 @@ public class CoberturaManutencao {
     /** Janela inteira perdida: nunca ativou e o fim ja passou. Sem efeito nenhum (MA08). */
     public List<Transicao> expirarPerdidas(Instant agora) {
         return jdbc.query("""
-                UPDATE manutencao_agendada SET status = 'EXPIRADA', updated_at = :agora
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'EXPIRADA', updated_at = :agora
                  WHERE status = 'AGENDADA' AND fim_previsto <= :agora
                 RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
     }
@@ -100,7 +101,7 @@ public class CoberturaManutencao {
     /** CAS ATIVA -> CONCLUIDA no instante REAL, nunca no fim previsto (MA08). */
     public List<Transicao> concluirVencidas(Instant agora) {
         return jdbc.query("""
-                UPDATE manutencao_agendada SET status = 'CONCLUIDA', encerrada_em = :agora, updated_at = :agora
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'CONCLUIDA', encerrada_em = :agora, updated_at = :agora
                  WHERE status = 'ATIVA' AND fim_previsto <= :agora
                 RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
     }
@@ -108,7 +109,7 @@ public class CoberturaManutencao {
     /** CAS AGENDADA -> CANCELADA. Janela ATIVA nao se cancela: se encerra. */
     public boolean cancelar(long id, long usuarioId, Instant agora) {
         return jdbc.update("""
-                UPDATE manutencao_agendada SET status = 'CANCELADA', cancelada_em = :agora, cancelada_por_id = :u,
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'CANCELADA', cancelada_em = :agora, cancelada_por_id = :u,
                        updated_at = :agora
                  WHERE id = :id AND status = 'AGENDADA'""",
                 Map.of("id", id, "u", usuarioId, "agora", ts(agora))) == 1;
@@ -117,7 +118,7 @@ public class CoberturaManutencao {
     /** CAS ATIVA -> CONCLUIDA por pessoa (encerrada_por_id preenchido). */
     public boolean encerrar(long id, long usuarioId, Instant agora) {
         return jdbc.update("""
-                UPDATE manutencao_agendada SET status = 'CONCLUIDA', encerrada_em = :agora, encerrada_por_id = :u,
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'CONCLUIDA', encerrada_em = :agora, encerrada_por_id = :u,
                        updated_at = :agora
                  WHERE id = :id AND status = 'ATIVA'""",
                 Map.of("id", id, "u", usuarioId, "agora", ts(agora))) == 1;

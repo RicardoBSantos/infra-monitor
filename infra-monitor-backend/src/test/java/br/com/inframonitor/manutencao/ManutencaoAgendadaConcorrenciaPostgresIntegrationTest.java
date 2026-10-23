@@ -119,7 +119,7 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
+        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
                 + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
                 + "tipo_equipamento, unidade, usuarios restart identity cascade");
         agora = Instant.now().truncatedTo(ChronoUnit.MILLIS);

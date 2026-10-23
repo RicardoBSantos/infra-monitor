@@ -88,7 +88,7 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
+        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
                 + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
                 + "tipo_equipamento, unidade, usuarios restart identity cascade");
         operadorId = insert("insert into usuarios (nome, email, senha_hash, papel, ativo, troca_senha_obrigatoria) "
@@ -584,5 +584,17 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
 
     private long insert(String sql, Object... args) {
         return jdbc.queryForObject(sql, Long.class, args);
+    }
+
+    @Test
+    void transicoesIncrementamVersao() {
+        Instant inicio = Instant.now();
+        ManutencaoResponse r = service.criar(requisicao(EscopoManutencao.EQUIPAMENTOS, List.of(e1), inicio,
+                inicio.plus(Duration.ofHours(1)), "Versao"), operadorId);
+        assertThat(jdbc.queryForObject("select versao from manutencao_agendada where id = ?", Integer.class, r.id()))
+                .isEqualTo(1);
+        service.encerrar(r.id(), operadorId);
+        assertThat(jdbc.queryForObject("select versao from manutencao_agendada where id = ?", Integer.class, r.id()))
+                .isEqualTo(2);
     }
 }

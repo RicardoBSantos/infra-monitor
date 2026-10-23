@@ -58,7 +58,7 @@ class ManutencaoAgendadaDesligadaPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, equipamento, "
+        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, equipamento, "
                 + "tipo_equipamento, unidade, usuarios restart identity cascade");
         operadorId = jdbc.queryForObject("insert into usuarios (nome, email, senha_hash, papel, ativo, "
                 + "troca_senha_obrigatoria) values ('Operador', 'operador@desligada.test', 'hash-irrelevante', "

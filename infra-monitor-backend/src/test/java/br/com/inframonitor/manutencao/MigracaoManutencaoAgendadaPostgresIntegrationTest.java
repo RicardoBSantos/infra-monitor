@@ -51,7 +51,7 @@ class MigracaoManutencaoAgendadaPostgresIntegrationTest {
 
     @BeforeEach
     void limparBanco() {
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
+        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
                 + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
                 + "tipo_equipamento, unidade, usuarios restart identity cascade");
         usuarioId = jdbc.queryForObject("insert into usuarios (nome, email, senha_hash, papel, ativo, "
@@ -193,5 +193,21 @@ class MigracaoManutencaoAgendadaPostgresIntegrationTest {
         return jdbc.queryForObject("insert into equipamento (unidade_id, tipo_equipamento_id, nome, ip_address, ativo, "
                 + "em_manutencao) values (?, ?, 'SW-CORE', '10.0.0.10', true, ?) returning id",
                 Long.class, unidadeId, tipo, emManutencao);
+    }
+
+    @Test
+    void v22VersaoComecaEmZeroEAlteracaoRecusaTipoInvalido() {
+        long janela = jdbc.queryForObject("insert into manutencao_agendada (unidade_id, escopo, inicio_previsto, "
+                + "fim_previsto, motivo, criado_por_id) values (?, 'UNIDADE', now() + interval '1 hour', "
+                + "now() + interval '2 hour', 'x', ?) returning id", Long.class, unidadeId, usuarioId);
+
+        assertThat(jdbc.queryForObject("select versao from manutencao_agendada where id = ?", Integer.class, janela))
+                .isZero();
+        jdbc.update("insert into manutencao_agendada_alteracao (manutencao_id, tipo, alterado_por_id, alterado_em, "
+                + "antes, depois) values (?, 'EDICAO', ?, now(), '{}'::jsonb, '{}'::jsonb)", janela, usuarioId);
+        assertThatThrownBy(() -> jdbc.update("insert into manutencao_agendada_alteracao (manutencao_id, tipo, "
+                + "alterado_por_id, alterado_em, antes, depois) values (?, 'OUTRO', ?, now(), '{}'::jsonb, '{}'::jsonb)",
+                janela, usuarioId))
+                .hasMessageContaining("ck_manutencao_alteracao_tipo");
     }
 }

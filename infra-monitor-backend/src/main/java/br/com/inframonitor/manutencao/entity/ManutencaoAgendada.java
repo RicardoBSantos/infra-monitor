@@ -88,6 +88,10 @@ public class ManutencaoAgendada {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    // Escrita so por SQL (CAS em CoberturaManutencao e EdicaoManutencao); o banco preenche o 0.
+    @Column(name = "versao", nullable = false, insertable = false, updatable = false)
+    private int versao;
+
     protected ManutencaoAgendada() {
     }
 
@@ -125,4 +129,5 @@ public class ManutencaoAgendada {
     public Set<Equipamento> getEquipamentos() { return equipamentos; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public int getVersao() { return versao; }
 }
