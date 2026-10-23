@@ -171,10 +171,11 @@ public class ManutencaoAgendadaService {
     /**
      * Edita uma AGENDADA (MA21). Lock e CAS na transacao (MA26); a ativacao imediata vem depois do
      * commit e so com o agendador ligado (MA25): desligado, nada ativaria uma janela que nada encerra.
+     * Salvar sem mudanca devolve a janela como esta: sem UPDATE, sem versao nova e sem EDICAO.
      */
     public ManutencaoResponse editar(Long id, EditarManutencaoRequest req, Long usuarioId) {
         Instant agora = Instant.now();
-        transacao.executeWithoutResult(s -> {
+        Boolean mudou = transacao.execute(s -> {
             EdicaoManutencao.Retrato antes = edicao.travar(id, SituacaoManutencao.AGENDADA.name(), req.versao())
                     .orElseThrow(() -> recusaEdicao(id, req.versao(), SituacaoManutencao.AGENDADA));
             boolean mesmaUnidade = antes.unidadeId() == req.unidadeId();
@@ -184,12 +185,17 @@ public class ManutencaoAgendadaService {
             EdicaoManutencao.Retrato depois = new EdicaoManutencao.Retrato(v.unidade().getId(), req.escopo().name(),
                     v.equipamentos().stream().map(Equipamento::getId).sorted().toList(), req.inicioPrevisto(),
                     req.fimPrevisto(), v.motivo());
+            // Nada mudou (ids ordenados dos dois lados): sem UPDATE nem EDICAO, a versao da tela segue valendo.
+            if (depois.equals(antes)) {
+                return false;
+            }
             if (!edicao.gravarEdicao(id, req.versao(), depois, agora)) {
                 throw new IllegalStateException("Janela " + id + " mudou sob lock");
             }
             edicao.registrar(id, TipoAlteracao.EDICAO, usuarioId, agora, antes, depois);
+            return true;
         });
-        if (propriedades.isEnabled()) {
+        if (Boolean.TRUE.equals(mudou) && propriedades.isEnabled()) {
             try {
                 if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
                     reavaliarCobertos(id);

@@ -94,12 +94,18 @@ public class EdicaoManutencao {
         return true;
     }
 
-    /** Teto no WHERE (MA23): inicio_previsto >= novoFim - maxima equivale a novoFim - inicio <= maxima. */
+    /**
+     * Teto no WHERE (MA23): inicio_previsto >= novoFim - maxima equivale a novoFim - inicio <= maxima.
+     * {@code :fim > :agora} leva CAST explicito: sem tipo, os dois parametros chegariam como
+     * {@code unknown} e o Postgres os compararia como TEXTO. O servico ja checa o mesmo em Java;
+     * o WHERE e a segunda guarda.
+     */
     public boolean gravarFim(long id, int versao, Instant novoFim, Instant agora, Duration maxima) {
         return jdbc.update("""
                 UPDATE manutencao_agendada SET fim_previsto = :fim, versao = versao + 1, updated_at = :agora
                  WHERE id = :id AND status = 'ATIVA' AND versao = :versao
-                   AND :fim > :agora AND inicio_previsto >= :inicioMinimo""",
+                   AND CAST(:fim AS timestamptz) > CAST(:agora AS timestamptz)
+                   AND inicio_previsto >= :inicioMinimo""",
                 new MapSqlParameterSource().addValue("id", id).addValue("versao", versao)
                         .addValue("fim", ts(novoFim)).addValue("agora", ts(agora))
                         .addValue("inicioMinimo", ts(novoFim.minus(maxima)))) == 1;

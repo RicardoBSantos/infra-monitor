@@ -127,6 +127,22 @@ class ManutencaoAgendadaEdicaoPostgresIntegrationTest {
                 String.class, j.id())).isEqualTo("Original");
     }
 
+    /** Salvar sem mudar nada nao gasta versao nem escreve EDICAO: a tela segue com a versao que tem. */
+    @Test
+    void editarSemMudancaNaoIncrementaVersaoNemRegistra() {
+        ManutencaoResponse j = futura(List.of(e1, e2));
+        ManutencaoResponse r = service.editar(j.id(), edicao(j, u, EscopoManutencao.EQUIPAMENTOS, List.of(e2, e1),
+                j.inicioPrevisto(), j.fimPrevisto(), " Original "), operadorId);
+
+        assertThat(r.versao()).isZero();
+        assertThat(r.ultimaAlteracao()).isNull();
+        assertThat(jdbc.queryForObject("select count(*) from manutencao_agendada_alteracao where manutencao_id = ?",
+                Long.class, j.id())).isZero();
+        // A mesma versao continua valendo para a proxima edicao de verdade.
+        assertThat(service.editar(j.id(), edicao(j, u, EscopoManutencao.EQUIPAMENTOS, List.of(e1),
+                j.inicioPrevisto(), j.fimPrevisto(), "Outro"), operadorId).versao()).isEqualTo(1);
+    }
+
     @Test
     void editarComVersaoVelhaDa409() {
         ManutencaoResponse j = futura(List.of(e1));

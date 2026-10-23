@@ -112,6 +112,23 @@ class EdicaoManutencaoPostgresIntegrationTest {
         assertThat(tx.<Boolean>execute(s -> edicao.gravarFim(j, 0, agora.plus(Duration.ofHours(2)), agora, max))).isTrue();
     }
 
+    /**
+     * Sem CAST os dois parametros chegam sem tipo e o Postgres compara {@code :fim > :agora} como
+     * TEXTO: "10000-01-01 ..." fica antes de "9999-12-31 ..." e um fim futuro seria recusado.
+     * Os limites cobrem qualquer fuso da JVM (-12h a +14h) no texto enviado pelo driver.
+     */
+    @Test
+    void gravarFimComparaInstantesNaoTexto() {
+        Instant agora = Instant.parse("9999-12-31T09:00:00Z");
+        Instant novoFim = Instant.parse("+10000-01-01T13:00:00Z");
+        long j = jdbc.queryForObject("insert into manutencao_agendada (unidade_id, escopo, inicio_previsto, fim_previsto, "
+                + "motivo, status, criado_por_id, ativada_em) values (?, 'EQUIPAMENTOS', ?, ?, 'Longe', 'ATIVA', ?, ?) returning id",
+                Long.class, u, Timestamp.from(agora.minusSeconds(60)), Timestamp.from(agora.plusSeconds(3600)), operador,
+                Timestamp.from(agora.minusSeconds(60)));
+        TransactionTemplate tx = new TransactionTemplate(tm);
+        assertThat(tx.<Boolean>execute(s -> edicao.gravarFim(j, 0, novoFim, agora, Duration.ofHours(72)))).isTrue();
+    }
+
     @Test
     void registrarEUltimaPorJanela() {
         long j = janela("AGENDADA", e1);
