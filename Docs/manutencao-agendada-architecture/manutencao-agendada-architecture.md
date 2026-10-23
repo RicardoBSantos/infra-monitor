@@ -7,9 +7,11 @@ manutenção manual entregue no PR #17.
 Segue o padrão de `mapa-architecture/`: uma pasta por ciclo grande, com um arquivo-índice de mesmo
 nome da pasta.
 
-**Estado em 2026-10-22: desenho aprovado; F1 em implementação** no branch `feat/manutencao-agendada`
-(spec: `Docs/superpowers/specs/2026-10-22-manutencao-agendada-f1-design.md`). O SQL do desenho vira a
+**Estado em 2026-10-22: F1 implementada** no branch `feat/manutencao-agendada`
+(spec: `Docs/superpowers/specs/2026-10-22-manutencao-agendada-f1-design.md`). O SQL do desenho virou a
 `V21__create_manutencao_agendada.sql`. P-01, P-04, P-06 e P-09 decididas; P-02 adiada para a F3.
+Evidências (suítes, corridas e reversões, e2e por clique, exercício no banco da carga):
+[`Docs/validacao-producao/manutencao-agendada-f1.md`](../validacao-producao/manutencao-agendada-f1.md).
 
 ## Arquivos
 

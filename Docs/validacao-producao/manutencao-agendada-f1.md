@@ -289,3 +289,249 @@ só, mas ordem igual nas duas passadas) ficou verde.
 
 O dirty-check do PUT regrava o `em_manutencao = false` que carregou por cima da virada do job (o lost
 update da Task 1, agora numa corrida real em vez de intercalado à mão).
+
+## Task 10 — Validação integrada
+
+Branch `feat/manutencao-agendada` em `2842119`. Backend compilado e testado numa cópia por
+`git archive HEAD infra-monitor-backend`, fora do `target/` do repositório (o backend diário da 8080
+roda do `target/` do repositório e não foi tocado).
+
+### Suítes
+
+Backend, com Docker (Testcontainers, PostgreSQL 16 real):
+
+```
+$ ./mvnw test
+[INFO] Tests run: 991, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+[INFO] Total time:  04:41 min
+$ grep -c "classes puladas" mvn-test.log
+0
+```
+
+Nenhuma linha `!! N classes puladas`: as classes `@RequerDocker` rodaram todas.
+
+Frontend:
+
+```
+$ npx ng test --watch=false
+ Test Files  60 passed (60)
+      Tests  639 passed (639)
+$ npx ng build
+Initial total | 356.82 kB | 99.23 kB
+Application bundle generation complete.
+▲ [WARNING] src/app/features/mapa/mapa.component.scss exceeded maximum budget. Budget 6.00 kB was not met by 91.34 kB with a total of 97.34 kB.
+```
+
+O aviso de orçamento é do Mapa (CSS do MapLibre), anterior a este ciclo; o build sai com exit 0.
+
+### E2E (clone)
+
+Banco descartável: container `im-f1-e2e` (postgres:16-alpine, 127.0.0.1:5440) com `pg_dump` do dev
+(`inframonitor-postgres`, V20, 221 equipamentos); o jar da branch aplicou a V21 ao clone
+(`Successfully applied 1 migration ... now at version v21`). Backend na 8082 com admin próprio de
+bootstrap, `MANUTENCAO_AGENDADA_ENABLED=true`, `MANUTENCAO_AGENDADA_INTERVALO_MS=5000`, motor, Telegram e
+dispatcher desligados. Frontend da branch em `ng serve --port 4201`; `API_PORT=8082` redireciona as
+chamadas. Equipamento: `SWI-07-U1` (id 2, Sede Administrativa), ativo, numa unidade ativa, fora de
+manutenção, com 1 monitor.
+
+```
+$ MANUT_AG_UNIDADE="Sede Administrativa" MANUT_AG_EQUIPAMENTO="SWI-07-U1" BASE=http://127.0.0.1:4201 \
+  API_PORT=8082 npm run e2e:manutencao-agendada
+OK    [login] login concluído — http://127.0.0.1:4201/dashboard (API_PORT=8082)
+OK    [banner-ausente] agendador ligado: sem banner de desligado
+OK    [botao-habilitado] "+ Agendar manutenção" habilitado
+OK    [modal-titulo] modal "Agendar manutenção" aberto
+OK    [modal-foco-inicial] foco entra no primeiro campo (select Unidade) — SELECT unidadeId
+OK    [modal-escape-foco] Escape fecha o modal e o foco volta ao "+ Agendar manutenção" — BUTTON "+ Agendar manutenção"
+OK    [modal-contagem] um equipamento selecionado — 1 de 21 selecionados
+OK    [post] POST /manutencoes 201 — 201
+OK    [aviso-agendada] aviso "Janela #N agendada." — Janela #3 agendada.
+OK    [linha-agendada] linha da janela em AGENDADA — Agendada
+OK    [linha-escopo] escopo "1 equipamento" com o nome no title — 1 equipamento [title=SWI-07-U1]
+OK    [linha-ativa] o job ativou a janela (linha ATIVA) — Ativa após 19 recargas
+OK    [equipamento-badge] linha do equipamento em "Em manutenção" — Em manutenção
+OK    [equipamento-origem] legenda "Janela #3" — Janela #3
+OK    [dialogo-titulo] título do diálogo — Encerrar agora a janela #3?
+OK    [dialogo-sla] mensagem é o texto de SLA da spec §3.2 — Os equipamentos voltam a ser verificados na próxima varredura. O período desde o início da janela continua fora do relatório de disponibilidade: nele não houve medição, e encerrar não o devolve ao SLA. Equipamentos que também estão em manutenção manual continuam fora até ela ser encerrada.
+OK    [dialogo-botao] botão primário "Encerrar janela"
+OK    [encerrar] encerrar 200 — PATCH 200 /manutencoes/3/encerrar
+OK    [aviso-encerrada] aviso "Janela #N encerrada." — Janela #3 encerrada.
+OK    [linha-concluida] linha CONCLUÍDA no Histórico — Concluída
+OK    [sem-erros] nenhum erro de página/console
+
+21/21 OK
+```
+
+A janela é a #3 porque as duas primeiras execuções pararam numa verificação do próprio roteiro, não
+do produto: a 1ª esperava o nome do equipamento no texto do escopo (a tela mostra "1 equipamento" e
+os nomes no `title`, como no design); a 2ª leu a contagem do modal antes de ela re-renderizar ("0 de
+21"; a captura do mesmo instante mostra "1 de 21" e o POST levou o equipamento). As duas foram
+corrigidas no roteiro (ler o `title`; esperar o texto da contagem). O restante do fluxo passou nas
+três execuções.
+
+Capturas em `infra-monitor-frontend/e2e/manutencao-agendada-evidence/` (resultado e log de rede em
+`manutencao-agendada.json`):
+
+| # | Arquivo | O que mostra |
+|---|---|---|
+| 01 | `01-lista-vigentes.png` | `/manutencoes` vazia, sem banner, botão habilitado |
+| 02 | `02-modal-agendar.png` | modal recém-aberto, foco no select Unidade |
+| 03 | `03-modal-preenchido.png` | unidade, escopo Equipamentos selecionados, 1 de 21, início/fim, motivo |
+| 04 | `04-linha-agendada.png` | aviso "Janela #3 agendada." e linha AGENDADA |
+| 05 | `05-linha-ativa.png` | a mesma linha ATIVA depois do job |
+| 06 | `06-equipamento-janela.png` | Equipamentos: badge "Em manutenção" com a legenda "Janela #3" |
+| 07 | `07-menu-encerrar.png` | menu da linha com "Encerrar agora" |
+| 08 | `08-dialogo-encerrar.png` | diálogo "Encerrar agora a janela #3?" com o texto de SLA |
+| 09 | `09-historico-concluida.png` | Histórico com a linha CONCLUÍDA ("encerrada 19:25 · 30 min antes do previsto") |
+
+Banco do clone depois das três execuções (equipamento 2):
+
+```
+ id |  status   |    inicio_previsto     |          ativada_em           |      fim_previsto      |         encerrada_em          | encerrada_por_id
+----+-----------+------------------------+-------------------------------+------------------------+-------------------------------+------------------
+  3 | CONCLUIDA | 2026-10-22 22:25:00+00 | 2026-10-22 22:25:02.633413+00 | 2026-10-22 22:55:00+00 | 2026-10-22 22:25:04.385826+00 |                8
+  2 | CONCLUIDA | 2026-10-22 22:23:00+00 | 2026-10-22 22:23:02.278466+00 | 2026-10-22 22:53:00+00 | 2026-10-22 22:23:07.334226+00 |                8
+  1 | CONCLUIDA | 2026-10-22 22:21:00+00 | 2026-10-22 22:21:01.802846+00 | 2026-10-22 22:51:00+00 | 2026-10-22 22:21:04.09493+00  |                8
+
+ id | em_manutencao | manutencao_manual
+----+---------------+-------------------
+  2 | f             | f
+
+ id  | monitor_id |           inicio_em           |            fim_em
+-----+------------+-------------------------------+-------------------------------
+ 227 |          2 | 2026-10-22 22:25:04.396077+00 |
+ 226 |          2 | 2026-10-22 22:23:07.342891+00 | 2026-10-22 22:25:02.655455+00
+ 225 |          2 | 2026-10-22 22:21:04.110774+00 | 2026-10-22 22:23:02.304864+00
+  53 |          2 | 2026-07-27 16:31:56.842727+00 | 2026-10-22 22:21:01.844684+00
+```
+
+Cada ativação fecha a janela de SLA aberta no instante da ativação (+20–40 ms) e cada encerramento
+abre outra. A ativação veio 1,8–2,6 s depois do início previsto (tick de 5 s).
+
+### Carga
+
+Banco `inframonitor-carga` (127.0.0.1:5436), com aval do usuário. Jar da branch na 8081 com a
+credencial de `~/.inframonitor-carga/env.sh`, `MANUTENCAO_AGENDADA_ENABLED=true`, intervalo 5000, e motor,
+Telegram e dispatcher desligados na 8081 (a 8080 do usuário, com o código antigo da `main`, seguiu com
+o motor ligado). A senha de admin do `env.sh` não confere (401), então o bootstrap criou um usuário
+próprio, `f1.manutencao@inframonitor.local` (id 2), **desativado ao final** por SQL. A subida aplicou
+a V21 ao banco da carga (`now at version v21`): **o banco da carga fica em V21** daqui para frente.
+
+Antes (22:25:57 UTC): `select count(*) from equipamento where em_manutencao` = 0, ou seja, nenhuma
+manutenção manual que o código antigo da 8080 pudesse encerrar contra o CHECK novo. Havia só 1
+incidente (FECHADO), nenhum episódio de latência aberto e 2 notificações (ids 1–2, ENVIADA).
+Equipamento escolhido: `SEDE_TERREO_TI` (id 3, monitor 3, Sede Administrativa), ativo, fora de
+manutenção, sem incidente `ABERTO`/`RECONHECIDO`, sem episódio de latência aberto, com 60/60 medições
+SUCESSO na última hora e latência máxima de 0 ms.
+
+```
+$ MANUT_AG_UNIDADE="Sede Administrativa" MANUT_AG_EQUIPAMENTO="SEDE_TERREO_TI" BASE=http://127.0.0.1:4201 \
+  API_PORT=8081 MANUT_AG_OUT=<scratch>/carga/evidence npm run e2e:manutencao-agendada
+...
+OK    [modal-contagem] um equipamento selecionado — 1 de 3 selecionados
+OK    [aviso-agendada] aviso "Janela #N agendada." — Janela #1 agendada.
+OK    [linha-ativa] o job ativou a janela (linha ATIVA) — Ativa após 18 recargas
+OK    [equipamento-origem] legenda "Janela #1" — Janela #1
+OK    [dialogo-sla] mensagem é o texto de SLA da spec §3.2 — ...
+OK    [encerrar] encerrar 200 — PATCH 200 /manutencoes/1/encerrar
+OK    [linha-concluida] linha CONCLUÍDA no Histórico — Concluída
+OK    [sem-erros] nenhum erro de página/console
+
+21/21 OK
+```
+
+As capturas da carga ficaram fora do repositório (scratchpad da sessão, `t10/carga/evidence/`), com os
+mesmos nomes `01-lista-vigentes.png` … `09-historico-concluida.png` e `manutencao-agendada.json`.
+
+SQL do brief, saída bruta (`:eq` = 3), seguida da desativação do usuário:
+
+```
+select id, status, inicio_previsto, ativada_em, fim_previsto, encerrada_em, encerrada_por_id from manutencao_agendada order by id desc limit 3;
+ id |  status   |    inicio_previsto     |          ativada_em           |      fim_previsto      |         encerrada_em          | encerrada_por_id 
+----+-----------+------------------------+-------------------------------+------------------------+-------------------------------+------------------
+  1 | CONCLUIDA | 2026-10-22 22:28:00+00 | 2026-10-22 22:28:01.323606+00 | 2026-10-22 22:58:00+00 | 2026-10-22 22:28:02.861916+00 |                2
+(1 row)
+
+select id, em_manutencao, manutencao_manual from equipamento where id = 3;
+ id | em_manutencao | manutencao_manual 
+----+---------------+-------------------
+  3 | f             | f
+(1 row)
+
+select id, monitor_id, inicio_em, fim_em from janela_monitoramento where monitor_id in (select id from monitor where equipamento_id = 3) order by id desc limit 4;
+ id | monitor_id |           inicio_em           |            fim_em             
+----+------------+-------------------------------+-------------------------------
+  8 |          3 | 2026-10-22 22:28:02.879278+00 | 
+  3 |          3 | 2026-10-14 16:17:08.934438+00 | 2026-10-22 22:28:01.367045+00
+(2 rows)
+
+select id, status, motivo_encerramento, fechado_por from incidente where monitor_id in (select id from monitor where equipamento_id = 3) order by id desc limit 3;
+ id | status | motivo_encerramento | fechado_por 
+----+--------+---------------------+-------------
+(0 rows)
+
+select id, tipo_evento, status from notificacao order by id desc limit 5;
+ id |    tipo_evento    | status  
+----+-------------------+---------
+  2 | INCIDENTE_FECHADO | ENVIADA
+  1 | INCIDENTE_ABERTO  | ENVIADA
+(2 rows)
+
+select count(*) em_manut from equipamento where em_manutencao;
+ em_manut 
+----------
+        0
+(1 row)
+
+update usuarios set ativo=false where email='f1.manutencao@inframonitor.local';
+UPDATE 1
+select id, email, ativo from usuarios order by id;
+ id |              email               | ativo 
+----+----------------------------------+-------
+  1 | admin.carga@inframonitor.local   | t
+  2 | f1.manutencao@inframonitor.local | f
+(2 rows)
+```
+
+Conferência contra o esperado:
+
+- janela CONCLUIDA com carimbos reais: ativada 1,3 s depois do início previsto, encerrada pelo usuário 2;
+- flags de volta a false/false;
+- a janela de SLA 3 (aberta desde 14/10) fechou no instante da ativação (22:28:01.367) e a 8 abriu no
+  encerramento (22:28:02.879);
+- nenhum incidente e nenhuma notificação novos, então o dispatcher da 8080 não teve o que enviar ao
+  grupo do Telegram.
+
+Depois do encerramento, o motor da 8080 voltou a medir o monitor 3 (a última medição avançou além de
+22:27:49).
+
+**Convivência com a 8080.** A 8080 roda código da `main`, que não conhece `manutencao_manual`. Uma
+manutenção manual iniciada por ela grava `em_manutencao = true` com `manutencao_manual = false`.
+Quando a 8080 passar a rodar o código da F1, o reconciliador vai tratar essa linha como divergência e
+tirar o equipamento de manutenção. Antes de trocar o código da 8080, conferir
+`select id, nome from equipamento where em_manutencao and not manutencao_manual` e, para cada linha,
+marcar `manutencao_manual = true` ou reiniciar a manutenção pela tela.
+
+### Limpeza
+
+Os processos iniciados nesta validação foram parados por PID: os jars `im-f1-clone.jar` e
+`im-f1-carga.jar`, o `ng serve --port 4201` e o esbuild filho dele. O container `im-f1-e2e` foi
+removido e os arquivos de senha/env gerados, apagados. Prova:
+
+```
+processos com im-f1-*.jar ou "serve --port 4201": 0
+$ netstat -ano  (LISTENING em 8080/4200/8081/8082/4201)
+  TCP    0.0.0.0:8080           0.0.0.0:0              LISTENING       21192
+  TCP    127.0.0.1:4200         0.0.0.0:0              LISTENING       61288
+  TCP    [::]:8080              [::]:0                 LISTENING       21192
+$ docker ps --format '{{.Names}}'
+inframonitor-carga
+inframonitor-postgres
+```
+
+As portas 8081, 8082 e 4201 estão livres; a 8080 (PID 21192) e a 4200 (PID 61288) seguem intactas.
+
+### Decisões
+
+Nenhuma decisão nova nesta task: o log de decisões continua em MA17.
