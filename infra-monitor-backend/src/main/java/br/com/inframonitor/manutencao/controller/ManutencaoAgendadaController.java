@@ -1,7 +1,9 @@
 package br.com.inframonitor.manutencao.controller;
 
 import br.com.inframonitor.common.api.PaginaResposta;
+import br.com.inframonitor.manutencao.dto.AlterarFimRequest;
 import br.com.inframonitor.manutencao.dto.CriarManutencaoRequest;
+import br.com.inframonitor.manutencao.dto.EditarManutencaoRequest;
 import br.com.inframonitor.manutencao.dto.ManutencaoResponse;
 import br.com.inframonitor.manutencao.dto.ParametrosManutencaoResponse;
 import br.com.inframonitor.manutencao.service.ManutencaoAgendadaService;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,8 +43,26 @@ public class ManutencaoAgendadaController {
     @GetMapping
     public PaginaResposta<ManutencaoResponse> listar(@RequestParam(defaultValue = "VIGENTES") String situacao,
                                                      @RequestParam(defaultValue = "") String busca,
+                                                     @RequestParam(required = false) Long unidadeId,
                                                      @PageableDefault(size = 20) Pageable pageable) {
-        return PaginaResposta.de(service.listar(situacao, busca, pageable));
+        return PaginaResposta.de(service.listar(situacao, busca, unidadeId, pageable));
+    }
+
+    @GetMapping("/{id}")
+    public ManutencaoResponse obter(@PathVariable Long id) {
+        return service.obterPorId(id);
+    }
+
+    @PutMapping("/{id}")
+    public ManutencaoResponse editar(@PathVariable Long id, @Valid @RequestBody EditarManutencaoRequest requisicao,
+                                     @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return service.editar(id, requisicao, principal.id());
+    }
+
+    @PatchMapping("/{id}/fim")
+    public ManutencaoResponse alterarFim(@PathVariable Long id, @Valid @RequestBody AlterarFimRequest requisicao,
+                                         @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return service.alterarFim(id, requisicao, principal.id());
     }
 
     @GetMapping("/parametros")

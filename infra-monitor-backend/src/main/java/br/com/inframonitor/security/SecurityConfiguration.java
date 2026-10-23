@@ -12,7 +12,7 @@ public class SecurityConfiguration {
   .requestMatchers(HttpMethod.PUT,"/api/v1/usuarios/me/senha").authenticated().requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
   .requestMatchers(HttpMethod.GET,"/api/v1/**").hasAnyRole("ADMIN","OPERADOR","VISUALIZADOR")
   .requestMatchers(HttpMethod.POST,"/api/v1/unidades/**","/api/v1/tipos-equipamento/**","/api/v1/equipamentos/**","/api/v1/monitores/**","/api/v1/medicoes/**","/api/v1/manutencoes/**").hasAnyRole("ADMIN","OPERADOR")
-  .requestMatchers(HttpMethod.PUT,"/api/v1/unidades/**","/api/v1/tipos-equipamento/**","/api/v1/equipamentos/**","/api/v1/monitores/**").hasAnyRole("ADMIN","OPERADOR")
+  .requestMatchers(HttpMethod.PUT,"/api/v1/unidades/**","/api/v1/tipos-equipamento/**","/api/v1/equipamentos/**","/api/v1/monitores/**","/api/v1/manutencoes/**").hasAnyRole("ADMIN","OPERADOR")
   .requestMatchers(HttpMethod.PATCH,"/api/v1/unidades/**","/api/v1/tipos-equipamento/**","/api/v1/equipamentos/**","/api/v1/monitores/**","/api/v1/incidentes/*/fechar","/api/v1/incidentes/*/reconhecer","/api/v1/manutencoes/**").hasAnyRole("ADMIN","OPERADOR")
   .requestMatchers(HttpMethod.DELETE,"/api/v1/unidades/**","/api/v1/tipos-equipamento/**","/api/v1/equipamentos/**","/api/v1/monitores/**").hasAnyRole("ADMIN","OPERADOR")
   .requestMatchers("/api/**").hasRole("ADMIN").anyRequest().denyAll()).addFilterBefore(jwt,UsernamePasswordAuthenticationFilter.class).build();}

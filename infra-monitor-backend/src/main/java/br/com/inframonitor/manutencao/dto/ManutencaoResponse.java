@@ -23,5 +23,7 @@ public record ManutencaoResponse(
         ReferenciaResponse encerradaPor,
         Instant canceladaEm,
         ReferenciaResponse canceladaPor,
-        List<Long> sobreposicoes) {
+        List<Long> sobreposicoes,
+        int versao,
+        UltimaAlteracaoResponse ultimaAlteracao) {
 }

@@ -18,7 +18,8 @@ public interface ManutencaoAgendadaRepository extends JpaRepository<ManutencaoAg
      * Filtro comum das listagens. ESCAPE '\': o servico escapa \, % e _ digitados, que assim
      * casam como texto e nao como curinga.
      */
-    String FILTRO = " where m.situacao in :situacoes and (lower(u.nome) like :busca escape '\\'"
+    String FILTRO = " where m.situacao in :situacoes and (:unidadeId = 0 or u.id = :unidadeId)"
+            + " and (lower(u.nome) like :busca escape '\\'"
             + " or lower(m.motivo) like :busca escape '\\')";
     String CONTAGEM = "select count(m) from ManutencaoAgendada m join m.unidade u" + FILTRO;
 
@@ -32,7 +33,8 @@ public interface ManutencaoAgendadaRepository extends JpaRepository<ManutencaoAg
                       m.inicioPrevisto asc, m.id asc""",
             countQuery = CONTAGEM)
     Page<ManutencaoAgendada> vigentes(@Param("situacoes") Collection<SituacaoManutencao> situacoes,
-                                      @Param("busca") String busca, Pageable pageable);
+                                      @Param("busca") String busca, @Param("unidadeId") long unidadeId,
+                                      Pageable pageable);
 
     /** Mais recente primeiro. */
     @Query(value = """
@@ -42,7 +44,8 @@ public interface ManutencaoAgendadaRepository extends JpaRepository<ManutencaoAg
              order by m.inicioPrevisto desc, m.id desc""",
             countQuery = CONTAGEM)
     Page<ManutencaoAgendada> historico(@Param("situacoes") Collection<SituacaoManutencao> situacoes,
-                                       @Param("busca") String busca, Pageable pageable);
+                                       @Param("busca") String busca, @Param("unidadeId") long unidadeId,
+                                      Pageable pageable);
 
     boolean existsByUnidadeId(Long unidadeId);
 

@@ -137,6 +137,44 @@ class ManutencaoAgendadaHttpSecurityIntegrationTest {
         assertThat(chamar("POST", "", token, semMotivo).status()).isEqualTo(400);
     }
 
+    @Test
+    void visualizadorNaoEditaNemAlteraFimMasLePorIdEPorUnidade() {
+        String token = login("visualizador@manut.test");
+        assertThat(chamar("PUT", "/" + janelaId, token, corpoEdicao("Novo", 0)).status()).isEqualTo(403);
+        assertThat(chamar("PATCH", "/" + janelaId + "/fim", token, corpoFim(0)).status()).isEqualTo(403);
+        Resposta porId = chamar("GET", "/" + janelaId, token, null);
+        assertThat(porId.status()).isEqualTo(200);
+        assertThat(porId.body()).contains("\"versao\":0", "\"ultimaAlteracao\":null");
+        assertThat(chamar("GET", "?unidadeId=" + unidadeId, token, null).body()).contains("\"totalElements\":1");
+        assertThat(chamar("GET", "?unidadeId=" + (unidadeId + 1000), token, null).body()).contains("\"totalElements\":0");
+    }
+
+    /** MA25 por HTTP: PUT passa (agendador desligado) e registra; PATCH de fim e recusado com o 409 do MA16. */
+    @Test
+    void operadorEditaComAgendadorDesligadoMasNaoAlteraFim() {
+        String token = login("operador@manut.test");
+        Resposta put = chamar("PUT", "/" + janelaId, token, corpoEdicao("Troca de nobreak e UPS", 0));
+        assertThat(put.status()).isEqualTo(200);
+        assertThat(put.body()).contains("\"motivo\":\"Troca de nobreak e UPS\"", "\"versao\":1",
+                "\"ultimaAlteracao\":{\"tipo\":\"EDICAO\"", "\"situacao\":\"AGENDADA\"");
+        assertThat(chamar("PUT", "/" + janelaId, token, corpoEdicao("De novo", 0)).status()).isEqualTo(409);
+        Resposta fim = chamar("PATCH", "/" + janelaId + "/fim", token, corpoFim(1));
+        assertThat(fim.status()).isEqualTo(409);
+        assertThat(fim.body()).contains("MANUTENCAO_AGENDADA_ENABLED=true");
+        assertThat(chamar("GET", "/9999", token, null).status()).isEqualTo(404);
+    }
+
+    private String corpoEdicao(String motivo, int versao) {
+        Instant inicio = Instant.now().plus(Duration.ofDays(1));
+        return "{\"unidadeId\":" + unidadeId + ",\"escopo\":\"UNIDADE\",\"equipamentoIds\":[],"
+                + "\"inicioPrevisto\":\"" + inicio + "\",\"fimPrevisto\":\"" + inicio.plus(Duration.ofHours(1))
+                + "\",\"motivo\":\"" + motivo + "\",\"versao\":" + versao + "}";
+    }
+
+    private String corpoFim(int versao) {
+        return "{\"fimPrevisto\":\"" + Instant.now().plus(Duration.ofDays(2)) + "\",\"versao\":" + versao + "}";
+    }
+
     private String corpo() {
         Instant inicio = Instant.now().plus(Duration.ofHours(1));
         return "{\"unidadeId\":" + unidadeId + ",\"escopo\":\"UNIDADE\",\"equipamentoIds\":[],"

@@ -399,7 +399,7 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
         long ativa = janela("ATIVA", u, base.plus(Duration.ofHours(2)), "ativa");
         janela("CONCLUIDA", u, base, "fora");
 
-        List<ManutencaoResponse> vigentes = service.listar("VIGENTES", "", PAGINA).getContent();
+        List<ManutencaoResponse> vigentes = service.listar("VIGENTES", "", null, PAGINA).getContent();
 
         assertThat(vigentes).extracting(ManutencaoResponse::id).containsExactly(ativa, cedo, tarde);
     }
@@ -412,7 +412,7 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
         long expirada = janela("EXPIRADA", norte, base.plus(Duration.ofHours(2)), "c");
         janela("AGENDADA", u, Instant.now().plus(Duration.ofDays(1)), "fora");
 
-        List<ManutencaoResponse> historico = service.listar("HISTORICO", null, PAGINA).getContent();
+        List<ManutencaoResponse> historico = service.listar("HISTORICO", null, null, PAGINA).getContent();
 
         assertThat(historico).extracting(ManutencaoResponse::id).containsExactly(cancelada, expirada, concluida);
         assertThat(historico.get(0).canceladaPor()).isEqualTo(new ReferenciaResponse(operadorId, "Operador"));
@@ -424,13 +424,13 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
         long nobreak = janela("AGENDADA", u, base, "Troca de NOBREAK");
         long firmware = janela("AGENDADA", norte, base.plus(Duration.ofHours(1)), "Firmware");
 
-        assertThat(service.listar("VIGENTES", "nobreak", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "nobreak", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(nobreak);
-        assertThat(service.listar("VIGENTES", "  NORTE ", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "  NORTE ", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(firmware);
-        assertThat(service.listar("VIGENTES", "centro", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "centro", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(nobreak);
-        assertThat(service.listar("VIGENTES", "nada", PAGINA).getTotalElements()).isZero();
+        assertThat(service.listar("VIGENTES", "nada", null, PAGINA).getTotalElements()).isZero();
     }
 
     @Test
@@ -441,21 +441,21 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
         long sublinhado = janela("AGENDADA", u, base.plus(Duration.ofHours(2)), "porta_ge1");
         long barra = janela("AGENDADA", u, base.plus(Duration.ofHours(3)), "rota a\\b");
 
-        assertThat(service.listar("VIGENTES", "100%", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "100%", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(cem);
-        assertThat(service.listar("VIGENTES", "1_00", PAGINA).getTotalElements()).isZero();   // curinga casaria "1000"
-        assertThat(service.listar("VIGENTES", "porta_", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "1_00", null, PAGINA).getTotalElements()).isZero();   // curinga casaria "1000"
+        assertThat(service.listar("VIGENTES", "porta_", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(sublinhado);
-        assertThat(service.listar("VIGENTES", "a\\b", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "a\\b", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(barra);
-        assertThat(service.listar("VIGENTES", "1000", PAGINA).getContent())
+        assertThat(service.listar("VIGENTES", "1000", null, PAGINA).getContent())
                 .extracting(ManutencaoResponse::id).containsExactly(mil);
-        assertThat(service.listar("HISTORICO", "100%", PAGINA).getTotalElements()).isZero();
+        assertThat(service.listar("HISTORICO", "100%", null, PAGINA).getTotalElements()).isZero();
     }
 
     @Test
     void recusaSituacaoDeListagemInvalida() {
-        assertThatThrownBy(() -> service.listar("ATIVA", "", PAGINA))
+        assertThatThrownBy(() -> service.listar("ATIVA", "", null, PAGINA))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

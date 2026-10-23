@@ -8,13 +8,18 @@ import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.service.EstadoManutencaoEquipamento;
 import br.com.inframonitor.manutencao.config.ManutencaoAgendadaProperties;
+import br.com.inframonitor.manutencao.dto.AlterarFimRequest;
 import br.com.inframonitor.manutencao.dto.CriarManutencaoRequest;
+import br.com.inframonitor.manutencao.dto.EditarManutencaoRequest;
 import br.com.inframonitor.manutencao.dto.ManutencaoResponse;
 import br.com.inframonitor.manutencao.dto.ParametrosManutencaoResponse;
+import br.com.inframonitor.manutencao.dto.UltimaAlteracaoResponse;
 import br.com.inframonitor.manutencao.entity.EscopoManutencao;
 import br.com.inframonitor.manutencao.entity.ManutencaoAgendada;
 import br.com.inframonitor.manutencao.entity.SituacaoManutencao;
+import br.com.inframonitor.manutencao.entity.TipoAlteracao;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
+import br.com.inframonitor.manutencao.repository.EdicaoManutencao;
 import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.unidade.entity.Unidade;
 import br.com.inframonitor.unidade.repository.UnidadeRepository;
@@ -68,13 +73,14 @@ public class ManutencaoAgendadaService {
     private final EquipamentoRepository equipamentos;
     private final UsuarioRepository usuarios;
     private final ManutencaoAgendadaProperties propriedades;
+    private final EdicaoManutencao edicao;
     private final TransactionTemplate transacao;
     private final TransactionTemplate leitura;
 
     public ManutencaoAgendadaService(ManutencaoAgendadaRepository repositorio, CoberturaManutencao cobertura,
                                      EstadoManutencaoEquipamento estado, UnidadeRepository unidades,
                                      EquipamentoRepository equipamentos, UsuarioRepository usuarios,
-                                     ManutencaoAgendadaProperties propriedades,
+                                     ManutencaoAgendadaProperties propriedades, EdicaoManutencao edicao,
                                      PlatformTransactionManager transactionManager) {
         this.repositorio = repositorio;
         this.cobertura = cobertura;
@@ -83,6 +89,7 @@ public class ManutencaoAgendadaService {
         this.equipamentos = equipamentos;
         this.usuarios = usuarios;
         this.propriedades = propriedades;
+        this.edicao = edicao;
         this.transacao = new TransactionTemplate(transactionManager);
         this.leitura = new TransactionTemplate(transactionManager);
         this.leitura.setReadOnly(true);
@@ -157,7 +164,93 @@ public class ManutencaoAgendadaService {
         }
     }
 
-    public Page<ManutencaoResponse> listar(String situacao, String busca, Pageable pageable) {
+    public ManutencaoResponse obterPorId(Long id) {
+        return detalhar(id);
+    }
+
+    /**
+     * Edita uma AGENDADA (MA21). Lock e CAS na transacao (MA26); a ativacao imediata vem depois do
+     * commit e so com o agendador ligado (MA25): desligado, nada ativaria uma janela que nada encerra.
+     */
+    public ManutencaoResponse editar(Long id, EditarManutencaoRequest req, Long usuarioId) {
+        Instant agora = Instant.now();
+        transacao.executeWithoutResult(s -> {
+            EdicaoManutencao.Retrato antes = edicao.travar(id, SituacaoManutencao.AGENDADA.name(), req.versao())
+                    .orElseThrow(() -> recusaEdicao(id, req.versao(), SituacaoManutencao.AGENDADA));
+            boolean mesmaUnidade = antes.unidadeId() == req.unidadeId();
+            Validado v = validar(req.unidadeId(), req.escopo(), req.equipamentoIds(), req.inicioPrevisto(),
+                    req.fimPrevisto(), req.motivo(),
+                    mesmaUnidade ? new LinkedHashSet<>(antes.equipamentoIds()) : Set.of(), agora);
+            EdicaoManutencao.Retrato depois = new EdicaoManutencao.Retrato(v.unidade().getId(), req.escopo().name(),
+                    v.equipamentos().stream().map(Equipamento::getId).sorted().toList(), req.inicioPrevisto(),
+                    req.fimPrevisto(), v.motivo());
+            if (!edicao.gravarEdicao(id, req.versao(), depois, agora)) {
+                throw new IllegalStateException("Janela " + id + " mudou sob lock");
+            }
+            edicao.registrar(id, TipoAlteracao.EDICAO, usuarioId, agora, antes, depois);
+        });
+        if (propriedades.isEnabled()) {
+            try {
+                if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
+                    reavaliarCobertos(id);
+                }
+            } catch (RuntimeException e) {
+                log.warn("Janela {} editada, mas a ativacao imediata falhou; o reconciliador repara na proxima passada",
+                        id, e);
+            }
+        }
+        return detalhar(id);
+    }
+
+    /** Prorroga ou antecipa uma ATIVA (MA22). Teto sobre o total, tambem no WHERE (MA23). */
+    public ManutencaoResponse alterarFim(Long id, AlterarFimRequest req, Long usuarioId) {
+        if (!propriedades.isEnabled()) {
+            throw new ConflitoException(MSG_DESLIGADO);
+        }
+        Instant agora = Instant.now();
+        Instant novoFim = req.fimPrevisto();
+        Duration maxima = propriedades.getDuracaoMaxima();
+        transacao.executeWithoutResult(s -> {
+            EdicaoManutencao.Retrato antes = edicao.travar(id, SituacaoManutencao.ATIVA.name(), req.versao())
+                    .orElseThrow(() -> recusaEdicao(id, req.versao(), SituacaoManutencao.ATIVA));
+            if (!novoFim.isAfter(agora)) {
+                throw new IllegalArgumentException("O novo fim ja passou. Para terminar agora use Encerrar agora");
+            }
+            if (novoFim.equals(antes.fimPrevisto())) {
+                throw new IllegalArgumentException("O novo fim e igual ao atual");
+            }
+            if (Duration.between(antes.inicioPrevisto(), novoFim).compareTo(maxima) > 0) {
+                throw new IllegalArgumentException("A janela nao pode passar de " + maxima.toHours()
+                        + " horas desde o inicio");
+            }
+            if (!edicao.gravarFim(id, req.versao(), novoFim, agora, maxima)) {
+                throw new IllegalStateException("Janela " + id + " mudou sob lock");
+            }
+            TipoAlteracao tipo = novoFim.isAfter(antes.fimPrevisto()) ? TipoAlteracao.PRORROGACAO
+                    : TipoAlteracao.ANTECIPACAO;
+            edicao.registrar(id, tipo, usuarioId, agora, antes, antes.comFim(novoFim));
+        });
+        return detalhar(id);
+    }
+
+    /** Por que o lock voltou vazio: inexistente (404), outra situacao (409) ou versao velha (409). */
+    private RuntimeException recusaEdicao(long id, int versao, SituacaoManutencao esperada) {
+        EdicaoManutencao.EstadoAtual atual = edicao.estado(id).orElse(null);
+        if (atual == null) {
+            return new RecursoNaoEncontradoException("Janela de manutencao nao encontrada");
+        }
+        if (!atual.status().equals(esperada.name())) {
+            if (esperada == SituacaoManutencao.AGENDADA) {
+                return new ConflitoException("Nao e possivel editar: a janela esta " + atual.status() + "."
+                        + ("ATIVA".equals(atual.status()) ? " Use Alterar fim." : ""));
+            }
+            return new ConflitoException("Nao e possivel alterar o fim: a janela esta " + atual.status() + "."
+                    + ("CONCLUIDA".equals(atual.status()) ? " Agende uma continuacao." : ""));
+        }
+        return new ConflitoException("A janela foi alterada por outra pessoa. Recarregue e tente de novo.");
+    }
+
+    public Page<ManutencaoResponse> listar(String situacao, String busca, Long unidadeId, Pageable pageable) {
         String filtro = situacao == null ? "VIGENTES" : situacao.strip().toUpperCase(Locale.ROOT);
         if (!filtro.equals("VIGENTES") && !filtro.equals("HISTORICO")) {
             throw new IllegalArgumentException("Situacao de listagem invalida: use VIGENTES ou HISTORICO");
@@ -169,10 +262,13 @@ public class ManutencaoAgendadaService {
         Pageable pagina = PageRequest.of(pageable.getPageNumber(),
                 Math.min(pageable.getPageSize(), Paginacao.TAMANHO_MAXIMO));
         return leitura.execute(s -> {
+            long unidade = unidadeId == null ? 0L : unidadeId;
             Page<ManutencaoAgendada> janelas = filtro.equals("VIGENTES")
-                    ? repositorio.vigentes(VIGENTES, termo, pagina)
-                    : repositorio.historico(HISTORICO, termo, pagina);
-            return janelas.map(this::paraResposta);
+                    ? repositorio.vigentes(VIGENTES, termo, unidade, pagina)
+                    : repositorio.historico(HISTORICO, termo, unidade, pagina);
+            Map<Long, EdicaoManutencao.Ultima> ultimas = edicao.ultimas(
+                    janelas.getContent().stream().map(ManutencaoAgendada::getId).toList());
+            return janelas.map(m -> paraResposta(m, ultimas.get(m.getId())));
         });
     }
 
@@ -180,36 +276,46 @@ public class ManutencaoAgendadaService {
         return new ParametrosManutencaoResponse(propriedades.isEnabled(), propriedades.getDuracaoMaxima().toHours());
     }
 
-    private ManutencaoAgendada validarEMontar(CriarManutencaoRequest req, Long usuarioId, Instant agora) {
-        Unidade unidade = unidades.findById(req.unidadeId())
+    /** Resultado da validacao comum a criar e editar. */
+    private record Validado(Unidade unidade, Set<Equipamento> equipamentos, String motivo) { }
+
+    private Validado validar(Long unidadeId, EscopoManutencao escopo, List<Long> equipamentoIds, Instant inicio,
+                             Instant fim, String motivoBruto, Set<Long> jaVinculados, Instant agora) {
+        Unidade unidade = unidades.findById(unidadeId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Unidade nao encontrada"));
         if (!unidade.isAtivo()) {
             throw new ConflitoException("Nao e possivel agendar manutencao em unidade inativa");
         }
-        String motivo = req.motivo() == null ? "" : req.motivo().strip();
+        String motivo = motivoBruto == null ? "" : motivoBruto.strip();
         if (motivo.isEmpty()) {
             throw new IllegalArgumentException("Informe o motivo da manutencao");
         }
-        if (!req.fimPrevisto().isAfter(req.inicioPrevisto())) {
+        if (!fim.isAfter(inicio)) {
             throw new IllegalArgumentException("O fim da janela deve ser depois do inicio");
         }
-        if (req.inicioPrevisto().isBefore(agora.minus(TOLERANCIA_PASSADO))) {
+        if (inicio.isBefore(agora.minus(TOLERANCIA_PASSADO))) {
             throw new IllegalArgumentException("Nao e possivel agendar manutencao com inicio no passado");
         }
         Duration maxima = propriedades.getDuracaoMaxima();
-        if (Duration.between(req.inicioPrevisto(), req.fimPrevisto()).compareTo(maxima) > 0) {
+        if (Duration.between(inicio, fim).compareTo(maxima) > 0) {
             throw new IllegalArgumentException("A janela nao pode passar de " + maxima.toHours() + " horas");
         }
-        Set<Equipamento> cobertos = equipamentosDoEscopo(req, unidade);
-        Usuario autor = usuarios.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado"));
-        return new ManutencaoAgendada(unidade, req.escopo(), req.inicioPrevisto(), req.fimPrevisto(), motivo, autor,
-                cobertos);
+        return new Validado(unidade, equipamentosDoEscopo(escopo, equipamentoIds, unidade, jaVinculados), motivo);
     }
 
-    private Set<Equipamento> equipamentosDoEscopo(CriarManutencaoRequest req, Unidade unidade) {
-        List<Long> ids = req.equipamentoIds() == null ? List.of() : req.equipamentoIds();
-        if (req.escopo() == EscopoManutencao.UNIDADE) {
+    private ManutencaoAgendada validarEMontar(CriarManutencaoRequest req, Long usuarioId, Instant agora) {
+        Validado v = validar(req.unidadeId(), req.escopo(), req.equipamentoIds(), req.inicioPrevisto(),
+                req.fimPrevisto(), req.motivo(), Set.of(), agora);
+        Usuario autor = usuarios.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado"));
+        return new ManutencaoAgendada(v.unidade(), req.escopo(), req.inicioPrevisto(), req.fimPrevisto(), v.motivo(),
+                autor, v.equipamentos());
+    }
+
+    private Set<Equipamento> equipamentosDoEscopo(EscopoManutencao escopo, List<Long> idsBrutos, Unidade unidade,
+                                                  Set<Long> jaVinculados) {
+        List<Long> ids = idsBrutos == null ? List.of() : idsBrutos;
+        if (escopo == EscopoManutencao.UNIDADE) {
             if (!ids.isEmpty()) {
                 throw new IllegalArgumentException("Escopo UNIDADE nao recebe equipamentos");
             }
@@ -229,13 +335,16 @@ public class ManutencaoAgendadaService {
             if (equipamento == null) {
                 throw new RecursoNaoEncontradoException("Equipamento " + id + " nao encontrado");
             }
-            if (!equipamento.getUnidade().getId().equals(unidade.getId())) {
-                throw new IllegalArgumentException("O equipamento " + equipamento.getNome()
-                        + " nao pertence a unidade");
-            }
-            if (!equipamento.isAtivo()) {
-                throw new ConflitoException("Nao e possivel agendar manutencao do equipamento "
-                        + equipamento.getNome() + " porque ele esta inativo");
+            // MA21: ja vinculado e a unidade da janela nao mudou -> continua mesmo inativo ou movido.
+            if (!jaVinculados.contains(id)) {
+                if (!equipamento.getUnidade().getId().equals(unidade.getId())) {
+                    throw new IllegalArgumentException("O equipamento " + equipamento.getNome()
+                            + " nao pertence a unidade");
+                }
+                if (!equipamento.isAtivo()) {
+                    throw new ConflitoException("Nao e possivel agendar manutencao do equipamento "
+                            + equipamento.getNome() + " porque ele esta inativo");
+                }
             }
             resultado.add(equipamento);
         }
@@ -261,10 +370,11 @@ public class ManutencaoAgendadaService {
 
     private ManutencaoResponse detalhar(Long id) {
         return leitura.execute(s -> paraResposta(repositorio.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Janela de manutencao nao encontrada"))));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Janela de manutencao nao encontrada")),
+                edicao.ultimas(List.of(id)).get(id)));
     }
 
-    private ManutencaoResponse paraResposta(ManutencaoAgendada m) {
+    private ManutencaoResponse paraResposta(ManutencaoAgendada m, EdicaoManutencao.Ultima ultima) {
         boolean vigente = VIGENTES.contains(m.getSituacao());
         List<Long> sobreposicoes = vigente
                 ? repositorio.sobreposicoes(m.getId(), m.getUnidade().getId(), m.getEscopo().name(),
@@ -277,7 +387,9 @@ public class ManutencaoAgendadaService {
         return new ManutencaoResponse(m.getId(), referencia(m.getUnidade()), m.getEscopo(), cobertos,
                 m.getInicioPrevisto(), m.getFimPrevisto(), m.getMotivo(), m.getSituacao(),
                 referencia(m.getCriadoPor()), m.getAtivadaEm(), m.getEncerradaEm(), referencia(m.getEncerradaPor()),
-                m.getCanceladaEm(), referencia(m.getCanceladaPor()), sobreposicoes);
+                m.getCanceladaEm(), referencia(m.getCanceladaPor()), sobreposicoes,
+                m.getVersao(), ultima == null ? null : new UltimaAlteracaoResponse(ultima.tipo(),
+                        new ReferenciaResponse(ultima.porId(), ultima.porNome()), ultima.em()));
     }
 
     private static ReferenciaResponse referencia(Unidade unidade) {
