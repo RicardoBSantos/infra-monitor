@@ -86,7 +86,7 @@ mesma tolerância a falha do MA18 (WARN, 200 com a janela).
 
 Recusa com 409 `MSG_DESLIGADO` se o agendador está desligado. Numa transação:
 1. `SELECT … WHERE id = :id AND status = 'ATIVA' AND versao = :versao FOR UPDATE`. Vazio → 404/409 como acima
-   (CONCLUIDA: "A janela concluiu as HH:MM. Agende uma continuacao.").
+   (CONCLUIDA: "Nao e possivel alterar o fim: a janela esta CONCLUIDA. Agende uma continuacao."; a hora de conclusao a tela formata no fuso dela, a partir de `GET /{id}`).
 2. `novoFim > agora` (senão 400 "Para terminar agora use Encerrar agora"); `novoFim ≠ fimAtual` (400);
    `novoFim − inicio_previsto ≤ máximo` (400 "A janela nao pode passar de N horas desde o inicio").
 3. `UPDATE … SET fim_previsto = :novoFim, versao = versao + 1 WHERE id = :id AND status = 'ATIVA' AND versao = :versao
