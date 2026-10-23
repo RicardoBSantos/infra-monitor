@@ -107,17 +107,19 @@ Erros no formato `ErroResposta` (400 validação, 404, 409 `BUSINESS_CONFLICT`).
   Subtítulo: "Intervenções planejadas. Equipamentos em janela ativa não são verificados e o período não conta no
   relatório de disponibilidade."
 - Banner quando `agendadorLigado = false`: "O agendamento está desligado neste servidor: janelas não são ativadas.
-  Peça para ligar MANUTENCAO_AGENDADA_ENABLED no backend. Enquanto isso, use Iniciar manutenção no equipamento."
+  Peça para ligar MANUTENCAO_AGENDADA_ENABLED no backend. Enquanto isso, use Iniciar manutenção no equipamento.
+  Janelas ativas não terminam sozinhas enquanto o agendamento estiver desligado: encerre-as aqui."
   Botão "+ Agendar manutenção" desabilitado nesse caso.
 - Filtro segmentado Vigentes / Histórico; busca (unidade, motivo).
 - `.tabela`: `#`, Unidade, Escopo, Início, Fim, Motivo, Criado por, Situação (`StatusBadgeComponent`), Ações (`app-action-menu`).
   Início/Fim mostram o previsto; se real difere em mais de 1 min, segunda linha "ativada 10:47 (47 min de atraso)" / "encerrada …".
+  Linha ATIVA com o fim previsto no passado: segunda linha "fim previsto já passou" no Fim, em tom de aviso (MA18).
 - `app-paginacao` com total do servidor.
 - Badges novos em `StatusBadgeComponent` (não locais): `AGENDADA` "Agendada" (muted), `ATIVA` "Ativa" (info),
   `CONCLUIDA` "Concluída" (muted), `EXPIRADA` "Expirada" (warning); `CANCELADA` reaproveita a entrada existente.
 - Agendar: `app-modal` (Escape, foco entra no primeiro campo e volta ao gatilho — mecânica do componente compartilhado),
   campos Unidade (select), Escopo (rádio Unidade inteira / Equipamentos selecionados → lista de checagem dos
-  equipamentos ativos da unidade), Início, Fim (`datetime-local`, fuso do navegador como o resto do app), Motivo (textarea).
+  equipamentos ativos da unidade; padrão "Equipamentos selecionados", MA18), Início, Fim (`datetime-local`, fuso do navegador como o resto do app), Motivo (textarea).
   Validação local espelha a do backend (inclui duração máxima de `/parametros`); erro do backend no rodapé.
   Sucesso: aviso "Janela #N agendada." + "Atenção: sobrepõe a janela #M." quando houver.
 

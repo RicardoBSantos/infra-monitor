@@ -18,7 +18,7 @@ Evidências (suítes, corridas e reversões, e2e por clique, exercício no banco
 | Arquivo | O que é |
 |---|---|
 | [manutencao-agendada-desenho.md](manutencao-agendada-desenho.md) | Investigação e desenho completo: mockup campo a campo, modelo, ciclo de vida, convivência com o botão, escopo unidade, efeitos, concorrência, tela, fatiamento |
-| [manutencao-agendada-decisoes.md](manutencao-agendada-decisoes.md) | Log de decisões (MA01–MA17): o que foi decidido, o que foi descartado, por quê |
+| [manutencao-agendada-decisoes.md](manutencao-agendada-decisoes.md) | Log de decisões (MA01–MA18): o que foi decidido, o que foi descartado, por quê |
 | [manutencao-agendada-pendencias.md](manutencao-agendada-pendencias.md) | Decisões de produto em aberto e dívidas que o desenho não resolve de propósito |
 
 ## Regra de manutenção

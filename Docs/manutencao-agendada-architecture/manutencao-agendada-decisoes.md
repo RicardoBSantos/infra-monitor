@@ -200,3 +200,29 @@ o período decorrido continua fora porque não foi medido) e numa nota fixa abai
 exato no spec da F1 (`Docs/superpowers/specs/2026-10-22-manutencao-agendada-f1-design.md` §3.2).
 
 **Descartado: o texto do mockup** ("o período passará a contar para o SLA"), que é falso.
+
+---
+
+## MA18 — Ajustes da revisão final
+
+Quatro ajustes da revisão final da branch, todos para não deixar o operador sem saber o estado real.
+
+1. **POST de criação não falha depois de salvar a janela.** Se a ativação imediata ou a reavaliação
+   de algum equipamento falha depois do insert, `criar` registra WARN com o id da janela e devolve 201
+   com a janela. O `divergentes()` do reconciliador repara o flag na próxima passada (criar exige o
+   agendador ligado). Encerrar continua subindo o erro: reenviar o encerramento não duplica nada.
+   **Descartado: subir o erro** (comportamento anterior). O operador veria falha, reenviaria e criaria
+   uma segunda janela idêntica.
+2. **Escopo padrão "Equipamentos selecionados" no modal de agendar.** Silenciar a unidade inteira
+   precisa ser escolha explícita; o padrão antigo "Unidade inteira" tirava do monitoramento tudo da
+   unidade com um clique distraído.
+3. **"Origem desconhecida"** quando `emManutencao` é verdadeiro sem manual nem janela ativa (flag
+   divergente, por exemplo escrito por código anterior à F1). Antes a legenda sumia e a manutenção
+   parecia sem causa.
+4. **Janela ATIVA vencida é visível.** Com `MANUTENCAO_AGENDADA_ENABLED=false` só o encerramento
+   manual conclui uma janela ATIVA. A lista mostra "fim previsto já passou" no Fim dessas linhas, o
+   banner do agendador desligado diz "Janelas ativas não terminam sozinhas enquanto o agendamento
+   estiver desligado: encerre-as aqui." e o README do backend repete o aviso junto da variável.
+   **Descartado: concluir janelas vencidas sem o reconciliador** (no boot ou na leitura da lista). Seria
+   um segundo caminho de conclusão fora do lock e da ordem do reconciliador, por um caso operacional
+   que a tela já resolve.

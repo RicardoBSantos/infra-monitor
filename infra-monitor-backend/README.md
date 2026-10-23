@@ -65,6 +65,11 @@ Manutenção agendada (janelas em `/api/v1/manutencoes`):
 | `MANUTENCAO_AGENDADA_ENABLED` | `false` | Liga o reconciliador que ativa, conclui e expira as janelas. **Desligado, a criação de janela é recusada com 409** (nenhuma janela seria ativada) e a tela mostra o aviso; o botão manual "Iniciar manutenção" do equipamento continua funcionando. Cancelar e encerrar janelas existentes funcionam com ele desligado. |
 | `MANUTENCAO_AGENDADA_INTERVALO_MS` | `30000` | Intervalo entre duas passadas do reconciliador. A janela entra e sai com atraso de até um intervalo. |
 | `MANUTENCAO_AGENDADA_DURACAO_MAXIMA` | `72h` | Duração máxima de uma janela, em formato `java.time.Duration` do Spring (`72h`, `5d`, `90m`). Mudar exige reiniciar. |
+
+Janelas **ativas não terminam sozinhas** com o agendamento desligado (só o reconciliador as conclui):
+o equipamento fica fora do monitoramento além do fim previsto, e a lista marca a linha com "fim
+previsto já passou". Encerre-as pela tela, em "Encerrar agora".
+
 ### Produção: o gerenciador do serviço injeta as variáveis
 
 Guarde as variáveis num arquivo **fora do repositório e fora do diretório da
@@ -156,6 +161,42 @@ uma nova versão (`V2__...`, `V3__...`).
 | `V8__add_incident_thresholds_to_monitor.sql` | Adiciona thresholds de falha e recovery ao monitor. |
 | `V9__create_notificacao.sql` | Cria notificações idempotentes por incidente, canal e evento. |
 | `V10__add_notification_dispatch_queue.sql` | Adiciona a fila de despacho e seu índice de elegibilidade. |
+
+### Atualização para a V21 (manutenção agendada) e rollback
+
+A V21 separa o botão manual (`manutencao_manual`) do estado efetivo (`em_manutencao` = manual OU
+janela ativa) e trava a relação com `ck_equipamento_manutencao_manual_efetiva`
+(`CHECK (NOT manutencao_manual OR em_manutencao)`).
+
+**Antes de atualizar**, anote quem está em manutenção:
+
+```sql
+select id, nome from equipamento where em_manutencao;
+```
+
+A V21 faz o backfill `manutencao_manual = em_manutencao`: todos esses passam a ser manutenção
+**manual** e só saem por "Encerrar manutenção" no equipamento.
+
+**Código anterior à F1 num banco já em V21** (rollback do jar sem rollback do banco, ou uma segunda
+instância antiga apontando para o mesmo banco). O código antigo não conhece `manutencao_manual`:
+
+- "Iniciar manutenção" nele grava só `em_manutencao = true`; o reconciliador da versão nova (quando ligado)
+  enxerga um flag sem origem (nem manual nem janela) e o desfaz na próxima passada;
+- "Encerrar manutenção" nele, num equipamento com `manutencao_manual = true`, grava
+  `em_manutencao = false`, viola `ck_equipamento_manutencao_manual_efetiva` e devolve erro.
+
+Remédio antes de subir o código antigo sobre um banco em V21:
+
+```sql
+UPDATE equipamento SET manutencao_manual = false WHERE manutencao_manual;
+```
+
+O CHECK continua aceitando `em_manutencao = true` sozinho, então quem estava em manutenção segue
+em manutenção e o código antigo volta a controlar o flag. Ao reinstalar a versão nova, refaça o
+"Iniciar manutenção" desses equipamentos (ou rode o `UPDATE` inverso para os que devem ser manuais).
+
+Atenção: o banco da carga real (`inframonitor-carga`) **já está em V21**, enquanto a pilha do dia a
+dia pode estar rodando código anterior à F1. Não aponte um jar antigo para ele sem o `UPDATE` acima.
 
 ## Executar a aplicação
 

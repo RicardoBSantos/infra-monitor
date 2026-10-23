@@ -1,5 +1,8 @@
 # Manutenção agendada F1 — Evidências da F1
 
+> Atualização e rollback (código anterior à F1 num banco em V21, backfill da manutenção manual):
+> ver `infra-monitor-backend/README.md`, seção "Atualização para a V21 (manutenção agendada) e rollback".
+
 ## Task 1 — lost update de `em_manutencao`
 
 Teste: `FlagManutencaoNaoSobrescritoPostgresIntegrationTest` (PostgreSQL 16 real, Testcontainers).
