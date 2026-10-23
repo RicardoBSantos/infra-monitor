@@ -66,7 +66,7 @@ describe('EquipamentoListComponent', () => {
 
   afterEach(() => http.verify());
 
-  function montar(inventario: DashboardEquipamentoLista[]): ComponentFixture<EquipamentoListComponent> {
+  function montar(inventario: DashboardEquipamentoLista[], agendadorLigado = false): ComponentFixture<EquipamentoListComponent> {
     const fixture = TestBed.createComponent(EquipamentoListComponent);
     fixture.detectChanges();
     http.expectOne((requisicao) => requisicao.url.endsWith('/unidades')).flush([
@@ -76,6 +76,7 @@ describe('EquipamentoListComponent', () => {
       { id: 2, nome: 'Switch', descricao: null, ativo: true, createdAt: '', updatedAt: '' },
     ]);
     http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush(inventario);
+    http.expectOne((requisicao) => requisicao.url.endsWith('/manutencoes/parametros')).flush({ agendadorLigado, duracaoMaximaHoras: 72 });
     fixture.detectChanges();
     return fixture;
   }
@@ -307,6 +308,8 @@ describe('EquipamentoListComponent', () => {
     http.expectOne((requisicao) => requisicao.url.endsWith('/tipos-equipamento')).flush([]);
     http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos'))
       .flush('erro', { status: 500, statusText: 'Server Error' });
+    http.expectOne((requisicao) => requisicao.url.endsWith('/manutencoes/parametros'))
+      .flush('erro', { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
 
     expect(texto(fixture)).toContain('Não foi possível carregar o inventário');
@@ -326,6 +329,7 @@ describe('EquipamentoListComponent', () => {
     http.match((requisicao) => requisicao.url.endsWith('/unidades')).forEach((r) => r.flush([]));
     http.match((requisicao) => requisicao.url.endsWith('/tipos-equipamento')).forEach((r) => r.flush([]));
     http.match((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).forEach((r) => r.flush([linha({ id: 7 })]));
+    http.match((requisicao) => requisicao.url.endsWith('/manutencoes/parametros')).forEach((r) => r.flush({ agendadorLigado: false, duracaoMaximaHoras: 72 }));
     harness.detectChanges();
   }
 
@@ -506,7 +510,7 @@ describe('EquipamentoListComponent', () => {
       comPermissao(true);
       const fixture = montar([linha({ id: 1 })]);
       const ids = itens(fixture, linha({ id: 1 })).map((i) => i.id);
-      expect(ids).toEqual(['ver', 'editar', 'desativar', 'iniciarManutencao', 'excluir']);
+      expect(ids).toEqual(['ver', 'editar', 'desativar', 'iniciarManutencao', 'agendarManutencao', 'excluir']);
       expect(itens(fixture, linha({ id: 1 }))[3].rotulo).toBe('Iniciar manutenção');
     });
 
@@ -523,7 +527,7 @@ describe('EquipamentoListComponent', () => {
       comPermissao(true);
       const l = linha({ id: 1, ativo: false });
       const fixture = montar([l]);
-      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao'))).toBe(false);
+      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao') && i.id !== 'agendarManutencao')).toBe(false);
     });
 
     it('desabilita o item sem permissão de gestão', () => {
@@ -566,7 +570,7 @@ describe('EquipamentoListComponent', () => {
       comPermissao(true);
       const l = linha({ id: 1, ativo: false, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41 });
       const fixture = montar([l]);
-      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao'))).toBe(false);
+      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao') && i.id !== 'agendarManutencao')).toBe(false);
     });
 
     it('mostra a origem da manutenção na coluna de status', () => {
@@ -624,6 +628,46 @@ describe('EquipamentoListComponent', () => {
         { status: 409, statusText: 'Conflict' });
       fixture.detectChanges();
       expect(texto(fixture)).toContain('Recusado pela API');
+    });
+
+    describe('agendar manutenção', () => {
+      const alvo = (fixture: ComponentFixture<EquipamentoListComponent>, l: DashboardEquipamentoLista) =>
+        itens(fixture, l).find((i) => i.id === 'agendarManutencao')!;
+
+      it('habilita na linha ativa quando o agendador está ligado', () => {
+        comPermissao(true);
+        const fixture = montar([linha({ id: 1 })], true);
+        expect(alvo(fixture, linha({ id: 1 })).desabilitado).toBe(false);
+      });
+
+      it('desabilita para linha inativa, agendador desligado ou sem permissão', () => {
+        comPermissao(true);
+        const ligado = montar([linha({ id: 1 })], true);
+        expect(alvo(ligado, linha({ id: 1, ativo: false })).desabilitado).toBe(true);
+        const desligado = montar([linha({ id: 1 })], false);
+        expect(alvo(desligado, linha({ id: 1 })).desabilitado).toBe(true);
+      });
+
+      it('clicar abre o modal com a unidade travada e o equipamento marcado; agendada avisa e recarrega', () => {
+        comPermissao(true);
+        const fixture = montar([linha({ id: 1, unidadeId: 1 })], true);
+        fixture.componentInstance['executarAcao'](linha({ id: 1, unidadeId: 1 }), 'agendarManutencao');
+        fixture.detectChanges();
+        http.expectOne((r) => r.url.endsWith('/unidades') && r.params.get('ativo') === 'true').flush([
+          { id: 1, nome: 'Matriz', sigla: 'MAT', descricao: null, ativo: true, createdAt: '', updatedAt: '' }]);
+        http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1, unidadeId: 1 })]);
+        fixture.detectChanges();
+        const modal = (fixture.nativeElement as HTMLElement).querySelector('app-agendar-manutencao app-modal section[role="dialog"]');
+        expect(modal).not.toBeNull();
+        expect(modal!.querySelector<HTMLSelectElement>('[formcontrolname="unidadeId"]')!.disabled).toBe(true);
+        expect(modal!.querySelector<HTMLSelectElement>('[formcontrolname="unidadeId"]')!.value).toBe('1');
+        expect(modal!.textContent).toContain('EQ-1');
+
+        fixture.componentInstance['aoAgendar']({ id: 9, sobreposicoes: [] } as never);
+        fixture.detectChanges();
+        expect(texto(fixture)).toContain('Janela #9 agendada.');
+        http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1 })]);
+      });
     });
 
     it('excluir continua com botão de perigo', () => {

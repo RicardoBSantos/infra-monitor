@@ -275,6 +275,10 @@
           {{ linha()?.manutencaoManual ? 'Encerrar manutenção' : 'Iniciar manutenção' }}
         </button>
       }
+      @if (linha()?.ativo) {
+        <button class="botao" type="button" (click)="agendarManutencao.emit()" [disabled]="!podeAgendar()"
+                [attr.title]="podeAgendar() ? null : 'Agendamento desligado neste servidor'">Agendar manutenção</button>
+      }
     }
   </footer>
 </aside>

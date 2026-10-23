@@ -269,6 +269,44 @@ describe('EquipamentoDetalheDrawerComponent', () => {
       expect(rodape(fixture).some((t) => /manutenção/.test(t))).toBe(false);
     });
 
+    it('com acoesDeGestao e usuário ADMIN, linha ativa: Agendar manutenção existe e emite agendarManutencao', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      fixture.componentRef.setInput('podeAgendar', true);
+      responder(fixture);
+      let pedidos = 0;
+      fixture.componentInstance.agendarManutencao.subscribe(() => (pedidos += 1));
+      const botao = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes button')).find((b) => b.textContent?.trim() === 'Agendar manutenção')!;
+      expect(botao.disabled).toBe(false);
+      botao.click();
+      expect(pedidos).toBe(1);
+    });
+
+    it('com podeAgendar=false fica desabilitado com o motivo no title', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      responder(fixture);
+      const botao = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes button')).find((b) => b.textContent?.trim() === 'Agendar manutenção')!;
+      expect(botao.disabled).toBe(true);
+      expect(botao.getAttribute('title')).toBe('Agendamento desligado neste servidor');
+    });
+
+    it('linha inativa não oferece Agendar manutenção', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', { ...LINHA, ativo: false });
+      responder(fixture);
+      expect(rodape(fixture)).not.toContain('Agendar manutenção');
+    });
+
+    it('sem acoesDeGestao (Mapa) o botão Agendar manutenção não existe, mesmo com podeAgendar', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      fixture.componentRef.setInput('podeAgendar', true);
+      fixture.componentRef.setInput('acoesDeGestao', false);
+      responder(fixture);
+      expect(rodape(fixture)).not.toContain('Agendar manutenção');
+    });
+
     it('sem acoesDeGestao (Mapa) não mostra', () => {
       const fixture = montar();
       fixture.componentRef.setInput('acoesDeGestao', false);

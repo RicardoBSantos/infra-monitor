@@ -274,14 +274,21 @@
          visivel mas fora de alcance: inert tira foco, Tab e clique do que esta atras
          do backdrop, e o effect de foco do painel deixa de disputar com o formulario. -->
     <app-equipamento-detalhe-drawer
-      [attr.inert]="formAberto() || acao() !== null ? '' : null"
+      [attr.inert]="formAberto() || acao() !== null || agendando() ? '' : null"
       [equipamentoId]="id"
       [linha]="detalheLinha()"
+      [podeAgendar]="agendadorLigado()"
       (fechar)="fecharDetalhe()"
       (editar)="editarDoDetalhe()"
       (alternarEquipamento)="alternarDoDetalhe()"
       (alternarManutencao)="alternarManutencaoDoDetalhe()"
+      (agendarManutencao)="agendarDoDetalhe()"
     />
+  }
+
+  @if (authState.canManageInventory()) {
+    <app-agendar-manutencao [aberto]="agendando()" [preset]="presetAgendamento()" [duracaoMaximaHoras]="parametrosManutencao()?.duracaoMaximaHoras ?? 72"
+      (fechar)="fecharAgendamento()" (agendada)="aoAgendar($event)" />
   }
 
   <app-confirm-dialog

@@ -12,13 +12,16 @@ import { isApiError } from '../../core/models/api-error';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
 import { EquipamentoCreateRequest, EquipamentoResponse } from '../../core/models/equipamento';
 import { TipoEquipamentoResponse } from '../../core/models/tipo-equipamento';
+import { ManutencaoResponse, ParametrosManutencao, PresetAgendamento } from '../../core/models/manutencao';
 import { UnidadeResponse } from '../../core/models/unidade';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { DashboardApiService } from '../../core/services/dashboard-api.service';
+import { ManutencaoApiService } from '../../core/services/manutencao-api.service';
 import { EquipamentoApiService } from '../../core/services/equipamento-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu/action-menu.component';
+import { AgendarManutencaoComponent } from '../manutencoes/agendar-manutencao.component';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ModalComponent } from '../../shared/modal/modal.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
@@ -90,7 +93,7 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
 @Component({
   selector: 'app-equipamento-list',
   imports: [ReactiveFormsModule, ConfirmDialogComponent, ModalComponent, PaginacaoComponent, StatusBadgeComponent,
-    ActionMenuComponent, EquipamentoDetalheDrawerComponent],
+    ActionMenuComponent, EquipamentoDetalheDrawerComponent, AgendarManutencaoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipamento-list.component.html',
   styleUrl: './equipamento-list.component.scss',
@@ -106,6 +109,11 @@ export class EquipamentoListComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly authState = inject(AuthStateService);
+  private readonly manutencaoApi = inject(ManutencaoApiService);
+  protected readonly parametrosManutencao = signal<ParametrosManutencao | null>(null);
+  protected readonly agendadorLigado = computed(() => this.parametrosManutencao()?.agendadorLigado === true);
+  protected readonly agendando = signal(false);
+  protected readonly presetAgendamento = signal<PresetAgendamento | null>(null);
 
   /**
    * `:id` da rota. Reativo de propósito: navegar de `/equipamentos/1` para
@@ -287,6 +295,10 @@ export class EquipamentoListComponent {
   constructor() {
     this.carregarOpcoesDoFormulario();
     this.carregar();
+    this.manutencaoApi.parametros().pipe(take(1)).subscribe({
+      next: (p) => this.parametrosManutencao.set(p),
+      error: () => this.parametrosManutencao.set(null),
+    });
   }
 
   // ---- Carga ------------------------------------------------------------------
@@ -363,6 +375,7 @@ export class EquipamentoListComponent {
         desabilitado: !podeGerenciar,
       },
       ...(manutencao ? [{ id: manutencao, rotulo: manutencao === 'iniciarManutencao' ? 'Iniciar manutenção' : 'Encerrar manutenção', desabilitado: !podeGerenciar }] : []),
+      { id: 'agendarManutencao', rotulo: 'Agendar manutenção', desabilitado: !podeGerenciar || !linha.ativo || !this.agendadorLigado() },
       { id: 'excluir', rotulo: 'Excluir', divisorAntes: true, destrutivo: true, desabilitado: !podeGerenciar },
     ];
   }
@@ -371,6 +384,7 @@ export class EquipamentoListComponent {
     switch (acao) {
       case 'ver': this.abrirDetalhe(linha); break;
       case 'editar': this.abrirEdicao(linha); break;
+      case 'agendarManutencao': this.abrirAgendamento(linha); break;
       case 'ativar':
       case 'desativar':
       case 'iniciarManutencao':
@@ -551,6 +565,31 @@ export class EquipamentoListComponent {
     // O modal abriu por cima da gaveta e a gaveta estava inert: sem isso o foco
     // ficaria no <body> ao cancelar, e o Tab recomecaria do topo da pagina.
     this.devolverFocoAGaveta();
+  }
+
+  protected abrirAgendamento(linha: DashboardEquipamentoLista): void {
+    this.aviso.set(null);
+    this.presetAgendamento.set({ unidadeId: linha.unidadeId, travarUnidade: true, equipamentoIds: [linha.id] });
+    this.agendando.set(true);
+  }
+
+  protected agendarDoDetalhe(): void {
+    const linha = this.detalheLinha();
+    if (!linha) return;
+    this.guardarGatilhoDaGaveta();
+    this.abrirAgendamento(linha);
+  }
+
+  protected fecharAgendamento(): void {
+    this.agendando.set(false);
+    this.devolverFocoAGaveta();
+  }
+
+  protected aoAgendar(janela: ManutencaoResponse): void {
+    this.fecharAgendamento();
+    const outras = janela.sobreposicoes.map((id) => `#${id}`);
+    this.aviso.set(`Janela #${janela.id} agendada.` + (outras.length ? ` Atenção: sobrepõe ${outras.length === 1 ? 'a janela' : 'as janelas'} ${outras.join(', ')}.` : ''));
+    this.carregar();
   }
 
   /** Botão da gaveta que abriu o modal ou a confirmação por cima dela. */
