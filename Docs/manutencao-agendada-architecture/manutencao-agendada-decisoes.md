@@ -294,3 +294,8 @@ recusado com o 409 do MA16: antecipar sem o agendador mentiria.
 `FOR UPDATE … WHERE status AND versao` e repetem a condição no UPDATE. Equipamento criado na unidade enquanto
 a janela conclui não divide lock com a conclusão: a garantia é o reconciliador de nível, convergência em até
 uma passada. Declarado assim no teste, sem fingir CAS.
+
+Nas corridas C1 (editar × ativação) e C2 (alterar fim × conclusão) a guarda é **dupla**: a transição do
+reconciliador também faz `versao = versao + 1`, então a edição preparada sobre a versão lida perde pelo
+`status` e pela `versao`, de forma independente. Remover só uma das duas deixa o teste verde; a prova de
+reversão remove as duas (`Docs/validacao-producao/manutencao-agendada-f2.md`).

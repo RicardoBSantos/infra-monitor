@@ -130,8 +130,8 @@ Escopo UNIDADE dinâmico (MA05), reconciliador, `reavaliar`, cancelar/encerrar (
 
 | # | Corrida | Desfechos legítimos | Ilegítimo | Reversão (remover → vermelho) |
 |---|---|---|---|---|
-| C1 | Editar AGENDADA (troca A→B, mantém início devido) × `reconciliar` | edição ganha → ATIVA com B, B em manutenção, A fora; job ganha → 409, ATIVA com A, A em manutenção | ATIVA com B na ligação e A em manutenção / B fora | `status = 'AGENDADA'` do SELECT e do UPDATE |
-| C2 | Alterar fim (+1 h) × `reconciliar` com fim vencido | prorrogou → ATIVA, fim novo, equipamento dentro; concluiu → 409, CONCLUIDA, fim antigo, equipamento fora | CONCLUIDA com fim alterado; ATIVA com equipamento fora | `status = 'ATIVA'` do SELECT e do UPDATE |
+| C1 | Editar AGENDADA (troca A→B, mantém início devido) × `reconciliar` | edição ganha → ATIVA com B, B em manutenção, A fora; job ganha → 409, ATIVA com A, A em manutenção | ATIVA com B na ligação e A em manutenção / B fora | `status = 'AGENDADA'` do SELECT e do UPDATE **e** o `versao = versao + 1` da ativação (`ativarDevidas`/`ativarSeDevida`). Guarda dupla: remover só um dos dois segue verde (ver `Docs/validacao-producao/manutencao-agendada-f2.md`) |
+| C2 | Alterar fim (+1 h) × `reconciliar` com fim vencido | prorrogou → ATIVA, fim novo, equipamento dentro; concluiu → 409, CONCLUIDA, fim antigo, equipamento fora | CONCLUIDA com fim alterado; ATIVA com equipamento fora | `status = 'ATIVA'` do SELECT e do UPDATE **e** o `versao = versao + 1` da conclusão (`concluirVencidas`). Guarda dupla: remover só um dos dois segue verde (ver `Docs/validacao-producao/manutencao-agendada-f2.md`) |
 | C3 | Duas edições com a mesma `versao` (variantes editar×editar e fim×fim) | exatamente um 200 e um 409; estado final inteiro de um pedido; uma linha de alteração | dois 200, campos misturados, união de equipamentos, duas alterações | `versao = :versao` do SELECT e do UPDATE |
 | C4 | Janela UNIDADE concluindo × equipamento criado na unidade | após no máximo **uma** passada extra, nenhum divergente; distribuição de quantos precisaram dela | divergente depois da passada extra | `divergentes()` da passada |
 
