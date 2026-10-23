@@ -66,7 +66,10 @@
                     @if (fimPassou(janela)) { <small class="desvio">fim previsto já passou</small> }
                   </td>
                   <td class="motivo">{{ janela.motivo }}</td>
-                  <td>{{ janela.criadoPor.nome }}</td>
+                  <td>
+                    {{ janela.criadoPor.nome }}
+                    @if (linhaAlteracao(janela); as l) { <small class="desvio desvio--neutro">{{ l }}</small> }
+                  </td>
                   <td><app-status-badge [status]="janela.situacao" /></td>
                   <td class="acoes">
                     @if (acoesDe(janela); as acoes) {
@@ -89,7 +92,9 @@
   <p class="nota-sla">Cancelar ou encerrar uma janela não recupera SLA: o tempo em que os equipamentos ficaram em manutenção não foi medido.</p>
 
   @if (podeGerenciar()) {
-    <app-agendar-manutencao [aberto]="agendando()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="agendando.set(false)" (agendada)="aoAgendar($event)" />
+    <app-agendar-manutencao [aberto]="agendando()" [preset]="preset()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="agendando.set(false)" (agendada)="aoAgendar($event)" />
+    <app-agendar-manutencao [aberto]="!!editando()" [janela]="editando()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="editando.set(null)" (salva)="aoSalvar($event)" />
+    <app-alterar-fim [aberto]="!!alterandoFim()" [janela]="alterandoFim()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="alterandoFim.set(null)" (alterado)="aoAlterarFim($event)" (continuar)="aoContinuar($event)" />
   }
 
   <app-confirm-dialog [open]="!!confirmando()" [title]="textoDialogo()?.titulo ?? ''" [message]="textoDialogo()?.mensagem ?? ''" [confirmLabel]="textoDialogo()?.botao ?? ''"

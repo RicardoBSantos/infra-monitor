@@ -142,7 +142,33 @@ describe('ManutencaoListComponent', () => {
     expect(el(f).querySelector('.notice')?.textContent?.trim()).toBe('Janela #41 cancelada.');
   });
 
-  it('menu por situação: AGENDADA cancela, ATIVA encerra, as demais ficam sem menu', () => {
+  it('ATIVA com agendador desligado: Alterar fim desabilitado, Encerrar agora segue habilitado', () => {
+    const f = carregada([janela({ situacao: MaintenanceWindowStatus.Active, ativadaEm: local(10, 0) })], false);
+    const itens = abrirMenu(f);
+    expect(itens.find((b) => b.textContent?.trim() === 'Alterar fim')!.disabled).toBe(true);
+    expect(itens.find((b) => b.textContent?.trim() === 'Encerrar agora')!.disabled).toBe(false);
+  });
+
+  it('mostra "editada por Ana às …" com a última alteração', () => {
+    const f = carregada([janela({ ultimaAlteracao: { tipo: 'EDICAO', por: { id: 2, nome: 'Ana' }, em: local(10, 42) } })]);
+    expect(celulas(f)[6].textContent?.replace(/\s+/g, ' ').trim()).toBe('Ana Operadora editada por Ana às 22/10/2026 10:42');
+  });
+
+  it('continuar abre o modal de agendar com o preset', () => {
+    const f = carregada([janela({ situacao: MaintenanceWindowStatus.Active, ativadaEm: local(10, 0) })]);
+    (f.componentInstance as unknown as { aoContinuar(p: unknown): void }).aoContinuar({ unidadeId: 1, travarUnidade: true, equipamentoIds: [], motivo: 'Troca do switch core' });
+    f.detectChanges();
+    lista().flush(pagina([janela()])); f.detectChanges();
+    http.expectOne((r) => r.url.endsWith('/unidades')).flush([{ id: 1, nome: 'Sede', sigla: 'SED', ativo: true }]);
+    http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([]);
+    f.detectChanges();
+    const modal = el(f).querySelector('app-modal section[role="dialog"]')!;
+    expect(modal.querySelector('h2')?.textContent).toBe('Agendar manutenção');
+    expect(modal.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Troca do switch core');
+    expect(modal.querySelector<HTMLSelectElement>('select[formcontrolname="unidadeId"]')!.disabled).toBe(true);
+  });
+
+  it('menu por situação: AGENDADA edita/cancela, ATIVA altera fim/encerra, as demais ficam sem menu', () => {
     const f = carregada([
       janela(),
       janela({ id: 42, situacao: MaintenanceWindowStatus.Active, ativadaEm: local(10, 0) }),
@@ -150,9 +176,9 @@ describe('ManutencaoListComponent', () => {
       janela({ id: 44, situacao: MaintenanceWindowStatus.Cancelled }),
       janela({ id: 45, situacao: MaintenanceWindowStatus.Expired }),
     ]);
-    expect(abrirMenu(f, 0).map((b) => b.textContent?.trim())).toEqual(['Cancelar']);
+    expect(abrirMenu(f, 0).map((b) => b.textContent?.trim())).toEqual(['Editar', 'Cancelar']);
     abrirMenu(f, 0);
-    expect(abrirMenu(f, 1).map((b) => b.textContent?.trim())).toEqual(['Encerrar agora']);
+    expect(abrirMenu(f, 1).map((b) => b.textContent?.trim())).toEqual(['Alterar fim', 'Encerrar agora']);
     abrirMenu(f, 1);
     expect(el(f).querySelectorAll('.menu-acoes__gatilho').length).toBe(2);
     for (const linha of [2, 3, 4]) expect(celulas(f, linha)[8].textContent?.trim()).toBe('—');
@@ -162,8 +188,7 @@ describe('ManutencaoListComponent', () => {
     sessao('VISUALIZADOR');
     const f = carregada([janela()]);
     expect(botaoAgendar(f)).toBeUndefined();
-    const [cancelar] = abrirMenu(f);
-    expect(cancelar.disabled).toBe(true);
+    expect(abrirMenu(f).every((b) => b.disabled)).toBe(true);
   });
 
   it('agendador desligado: banner com o texto exato e botão de agendar desabilitado', () => {

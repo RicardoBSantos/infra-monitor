@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { take } from 'rxjs';
 import { MaintenanceScope, MaintenanceWindowStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
-import { FiltroManutencao, ManutencaoResponse, ParametrosManutencao } from '../../core/models/manutencao';
+import { FiltroManutencao, ManutencaoResponse, ParametrosManutencao, PresetAgendamento } from '../../core/models/manutencao';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { ManutencaoApiService } from '../../core/services/manutencao-api.service';
 import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
@@ -12,6 +12,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { AgendarManutencaoComponent } from './agendar-manutencao.component';
+import { AlterarFimComponent } from './alterar-fim.component';
 import { dataHora, hora } from './periodo';
 
 type Estado = 'carregando' | 'sucesso' | 'vazio' | 'erro';
@@ -42,7 +43,7 @@ const TEXTOS: Record<Acao, { titulo: (id: number) => string; botao: string; mens
  */
 @Component({
   selector: 'app-manutencao-list',
-  imports: [AppIconComponent, ActionMenuComponent, ConfirmDialogComponent, PaginacaoComponent, StatusBadgeComponent, AgendarManutencaoComponent],
+  imports: [AppIconComponent, ActionMenuComponent, ConfirmDialogComponent, PaginacaoComponent, StatusBadgeComponent, AgendarManutencaoComponent, AlterarFimComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './manutencao-list.component.html',
   styleUrl: './manutencao-list.component.scss',
@@ -64,6 +65,9 @@ export class ManutencaoListComponent {
   protected readonly totalPaginas = signal(1);
   protected readonly totalItens = signal(0);
   protected readonly agendando = signal(false);
+  protected readonly editando = signal<ManutencaoResponse | null>(null);
+  protected readonly alterandoFim = signal<ManutencaoResponse | null>(null);
+  protected readonly preset = signal<PresetAgendamento | null>(null);
   protected readonly confirmando = signal<{ acao: Acao; janela: ManutencaoResponse } | null>(null);
   protected readonly ocupado = signal(false);
   protected readonly erroDialogo = signal<string | null>(null);
@@ -135,7 +139,18 @@ export class ManutencaoListComponent {
 
   protected mudarPagina(pagina: number): void { this.pagina.set(pagina); this.carregar(); }
 
-  protected abrirAgendamento(): void { this.aviso.set(null); this.agendando.set(true); }
+  protected abrirAgendamento(): void { this.aviso.set(null); this.preset.set(null); this.agendando.set(true); }
+  protected aoSalvar(j: ManutencaoResponse): void { this.editando.set(null); this.aviso.set(`Janela #${j.id} atualizada.`); this.carregar(); }
+  protected aoAlterarFim(j: ManutencaoResponse): void { this.alterandoFim.set(null); this.aviso.set(`Fim da janela #${j.id} alterado para ${dataHora(j.fimPrevisto)}.`); this.carregar(); }
+  protected aoContinuar(p: PresetAgendamento): void { this.alterandoFim.set(null); this.preset.set(p); this.agendando.set(true); this.carregar(); }
+
+  /** "editada por Ana às 23/10 10:42" — só a última alteração (MA24). */
+  protected linhaAlteracao(janela: ManutencaoResponse): string | null {
+    const a = janela.ultimaAlteracao;
+    if (!a) return null;
+    const verbo = a.tipo === 'PRORROGACAO' ? 'prorrogada' : a.tipo === 'ANTECIPACAO' ? 'fim antecipado' : 'editada';
+    return `${verbo} por ${a.por.nome} às ${dataHora(a.em)}`;
+  }
 
   protected aoAgendar(janela: ManutencaoResponse): void {
     this.agendando.set(false);
@@ -147,14 +162,22 @@ export class ManutencaoListComponent {
 
   protected acoesDe(janela: ManutencaoResponse): ActionMenuItem[] {
     const desabilitado = !this.podeGerenciar();
-    if (janela.situacao === MaintenanceWindowStatus.Scheduled) return [{ id: 'cancelar', rotulo: 'Cancelar', desabilitado }];
-    if (janela.situacao === MaintenanceWindowStatus.Active) return [{ id: 'encerrar', rotulo: 'Encerrar agora', desabilitado }];
+    if (janela.situacao === MaintenanceWindowStatus.Scheduled) {
+      return [{ id: 'editar', rotulo: 'Editar', desabilitado }, { id: 'cancelar', rotulo: 'Cancelar', desabilitado }];
+    }
+    if (janela.situacao === MaintenanceWindowStatus.Active) {
+      // MA25: sem o agendador, antecipar mentiria (nada encerra a janela).
+      return [{ id: 'alterarFim', rotulo: 'Alterar fim', desabilitado: desabilitado || this.agendadorDesligado() },
+        { id: 'encerrar', rotulo: 'Encerrar agora', desabilitado }];
+    }
     return [];
   }
 
   protected executar(janela: ManutencaoResponse, acao: string): void {
-    if (acao !== 'cancelar' && acao !== 'encerrar') return;
     this.aviso.set(null);
+    if (acao === 'editar') { this.editando.set(janela); return; }
+    if (acao === 'alterarFim') { this.alterandoFim.set(janela); return; }
+    if (acao !== 'cancelar' && acao !== 'encerrar') return;
     this.erroDialogo.set(null);
     this.confirmando.set({ acao, janela });
   }
