@@ -18,7 +18,7 @@ const janela = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse =
 const pagina = (content: ManutencaoResponse[], totalPages = 1) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages, first: true, last: totalPages <= 1 });
 const erroApi = (status: number, message: string) => ({ timestamp: '', status, error: 'Error', code: status === 409 ? 'BUSINESS_CONFLICT' : 'INTERNAL_ERROR', message, path: '/api/v1/manutencoes' });
 
-const BANNER = 'O agendamento está desligado neste servidor: janelas não são ativadas. Peça para ligar MANUTENCAO_AGENDADA_ENABLED no backend. Enquanto isso, use Iniciar manutenção no equipamento.';
+const BANNER = 'O agendamento está desligado neste servidor: janelas não são ativadas. Peça para ligar MANUTENCAO_AGENDADA_ENABLED no backend. Enquanto isso, use Iniciar manutenção no equipamento. Janelas ativas não terminam sozinhas enquanto o agendamento estiver desligado: encerre-as aqui.';
 const MSG_CANCELAR = 'A janela não vai acontecer. Ela ainda não excluiu nenhum período do relatório de disponibilidade, então nada muda no SLA.';
 const MSG_ENCERRAR = 'Os equipamentos voltam a ser verificados na próxima varredura. O período desde o início da janela continua fora do relatório de disponibilidade: nele não houve medição, e encerrar não o devolve ao SLA. Equipamentos que também estão em manutenção manual continuam fora até ela ser encerrada.';
 const NOTA_SLA = 'Cancelar ou encerrar uma janela não recupera SLA: o tempo em que os equipamentos ficaram em manutenção não foi medido.';
@@ -106,6 +106,40 @@ describe('ManutencaoListComponent', () => {
     ]);
     expect(celulas(f)[3].querySelector('small')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('ativada 10:47 · 47 min de atraso');
     expect(celulas(f, 1)[3].querySelector('small')).toBeNull();
+  });
+
+  it('ATIVA com o fim previsto já passado ganha a segunda linha "fim previsto já passou"', () => {
+    const daqui = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
+    const f = carregada([
+      janela({ situacao: MaintenanceWindowStatus.Active, inicioPrevisto: daqui(-180), fimPrevisto: daqui(-30), ativadaEm: daqui(-180) }),
+      janela({ id: 42, situacao: MaintenanceWindowStatus.Active, inicioPrevisto: daqui(-60), fimPrevisto: daqui(60), ativadaEm: daqui(-60) }),
+      janela({ id: 43, inicioPrevisto: daqui(-180), fimPrevisto: daqui(-30) }),
+      janela({ id: 44, situacao: MaintenanceWindowStatus.Expired, inicioPrevisto: daqui(-180), fimPrevisto: daqui(-30) }),
+    ]);
+    const aviso = celulas(f)[4].querySelector('small.desvio');
+    expect(aviso?.textContent?.trim()).toBe('fim previsto já passou');
+    expect(aviso?.classList.contains('desvio--neutro')).toBe(false);
+    for (const linha of [1, 2, 3]) expect(celulas(f, linha)[4].querySelector('small')).toBeNull();
+  });
+
+  it('página esvaziada depois de uma ação volta para a última página existente', () => {
+    const f = carregada([janela()], true, 3);
+    [...el(f).querySelectorAll<HTMLButtonElement>('app-paginacao button')].find((b) => b.textContent?.includes('Próxima'))!.click(); f.detectChanges();
+    lista().flush({ ...pagina([janela()], 3), page: 1 }); f.detectChanges();
+    [...el(f).querySelectorAll<HTMLButtonElement>('app-paginacao button')].find((b) => b.textContent?.includes('Próxima'))!.click(); f.detectChanges();
+    lista().flush({ ...pagina([janela()], 3), page: 2 }); f.detectChanges();
+    expect(texto(f)).toContain('Página 3 de 3');
+
+    escolher(f, 'Cancelar');
+    [...dialogo(f)!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === 'Cancelar janela')!.click(); f.detectChanges();
+    http.expectOne(`${URL}/41/cancelar`).flush(janela({ situacao: MaintenanceWindowStatus.Cancelled })); f.detectChanges();
+    const vazia = lista(); expect(vazia.request.params.get('page')).toBe('2');
+    vazia.flush({ ...pagina([], 2), page: 2, totalElements: 40 }); f.detectChanges();
+    const volta = lista(); expect(volta.request.params.get('page')).toBe('1');
+    volta.flush({ ...pagina([janela({ id: 60 })], 2), page: 1, totalElements: 40 }); f.detectChanges();
+    expect(texto(f)).toContain('Página 2 de 2');
+    expect(celulas(f)[0].textContent?.trim()).toBe('#60');
+    expect(el(f).querySelector('.notice')?.textContent?.trim()).toBe('Janela #41 cancelada.');
   });
 
   it('menu por situação: AGENDADA cancela, ATIVA encerra, as demais ficam sem menu', () => {

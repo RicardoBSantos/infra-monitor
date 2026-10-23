@@ -74,6 +74,16 @@ describe('AgendarManutencaoComponent', () => {
     expect(document.activeElement).toBe(gatilho);
   });
 
+  it('escopo padrão é Equipamentos selecionados: unidade inteira só por escolha explícita', () => {
+    const { f } = abrir();
+    const marcado = modal(f)!.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+    expect(marcado?.value).toBe(MaintenanceScope.Equipment);
+    valido(f);
+    enviar(f);
+    http.expectNone(URL);
+    expect(modal(f)!.textContent).toContain('Selecione ao menos um equipamento.');
+  });
+
   it('Equipamentos selecionados lista só os ativos da unidade e exige pelo menos um', () => {
     const { f } = abrir();
     valido(f);
@@ -143,6 +153,7 @@ describe('AgendarManutencaoComponent', () => {
   it('recusa 409/400 da API aparece no rodapé do modal, que continua aberto', () => {
     const { f } = abrir();
     valido(f);
+    escopo(f, MaintenanceScope.Unit);
     enviar(f);
     http.expectOne(URL).flush({ timestamp: '', status: 409, error: 'Conflict', code: 'BUSINESS_CONFLICT', message: 'Agendamento de manutencao desligado neste servidor.', path: '/api/v1/manutencoes' }, { status: 409, statusText: 'Conflict' });
     f.detectChanges();

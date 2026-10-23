@@ -130,8 +130,6 @@ public class Equipamento {
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public boolean isEmManutencao() { return emManutencao; }
-    /** So para testes em memoria; nao persiste (updatable = false). */
-    public void setEmManutencao(boolean emManutencao) { this.emManutencao = emManutencao; }
     public boolean isManutencaoManual() { return manutencaoManual; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

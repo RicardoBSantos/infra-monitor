@@ -43,7 +43,7 @@ export class AgendarManutencaoComponent {
   private readonly equipamentos = signal<DashboardEquipamentoLista[]>([]);
   protected readonly erroCarga = signal<string | null>(null);
   protected readonly unidadeId = signal<number | null>(null);
-  protected readonly escopo = signal<MaintenanceScope>(MaintenanceScope.Unit);
+  protected readonly escopo = signal<MaintenanceScope>(MaintenanceScope.Equipment);
   protected readonly selecionados = signal<ReadonlySet<number>>(new Set());
   protected readonly tentou = signal(false);
   protected readonly erroPeriodo = signal<string | null>(null);
@@ -52,7 +52,8 @@ export class AgendarManutencaoComponent {
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     unidadeId: ['', Validators.required],
-    escopo: [MaintenanceScope.Unit as MaintenanceScope],
+    // Padrão "Equipamentos selecionados" (MA18): silenciar a unidade inteira é escolha explícita.
+    escopo: [MaintenanceScope.Equipment as MaintenanceScope],
     inicio: [''],
     fim: [''],
     motivo: ['', [Validators.maxLength(300)]],
@@ -119,7 +120,7 @@ export class AgendarManutencaoComponent {
     // Sugestão: próxima hora cheia, duas horas de janela. O operador ajusta.
     const inicio = new Date(); inicio.setMinutes(0, 0, 0); inicio.setHours(inicio.getHours() + 1);
     const fim = new Date(inicio.getTime() + 2 * 3_600_000);
-    this.form.reset({ unidadeId: '', escopo: MaintenanceScope.Unit, inicio: isoParaLocal(inicio.toISOString()), fim: isoParaLocal(fim.toISOString()), motivo: '' });
+    this.form.reset({ unidadeId: '', escopo: MaintenanceScope.Equipment, inicio: isoParaLocal(inicio.toISOString()), fim: isoParaLocal(fim.toISOString()), motivo: '' });
     this.selecionados.set(new Set());
     this.tentou.set(false); this.erroPeriodo.set(null); this.erroApi.set(null); this.erroCarga.set(null);
     this.unidadesApi.list(true).pipe(take(1)).subscribe({

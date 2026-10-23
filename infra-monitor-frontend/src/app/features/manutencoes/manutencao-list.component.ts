@@ -95,6 +95,13 @@ export class ManutencaoListComponent {
     this.api.list(this.filtro(), this.busca(), this.pagina() - 1).pipe(take(1)).subscribe({
       next: (resposta) => {
         if (pedido !== this.pedido) return;
+        // Página esvaziada por cancelar/encerrar/recarregar: volta para a última que existe.
+        const ultima = Math.max(resposta.totalPages, 1);
+        if (!resposta.content.length && this.pagina() > ultima) {
+          this.pagina.set(ultima);
+          this.carregar();
+          return;
+        }
         this.itens.set(resposta.content);
         this.totalPaginas.set(Math.max(resposta.totalPages, 1));
         this.totalItens.set(resposta.totalElements);
@@ -196,6 +203,11 @@ export class ManutencaoListComponent {
     const diferenca = Date.parse(janela.encerradaEm) - Date.parse(janela.fimPrevisto);
     if (Math.abs(diferenca) <= TOLERANCIA_MS) return null;
     return `encerrada ${hora(janela.encerradaEm)} · ${duracao(Math.abs(diferenca))} ${diferenca > 0 ? 'de atraso' : 'antes do previsto'}`;
+  }
+
+  /** ATIVA com o fim previsto já passado: com o agendador desligado ninguém a conclui (MA18). */
+  protected fimPassou(janela: ManutencaoResponse): boolean {
+    return janela.situacao === MaintenanceWindowStatus.Active && Date.parse(janela.fimPrevisto) < Date.now();
   }
 
   protected contagem(): string {

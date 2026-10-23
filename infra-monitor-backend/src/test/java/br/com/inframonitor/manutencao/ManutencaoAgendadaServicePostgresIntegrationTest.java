@@ -365,13 +365,15 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
     }
 
     @Test
-    void criarAtivaReavaliaTodosMesmoComFalhaNoPrimeiro() {
-        IllegalStateException falha = new IllegalStateException("simulada");
-        doThrow(falha).when(estado).reavaliar(e1);
+    void criarNaoFalhaQuandoReavaliacaoFalhaEReavaliaOsDemais() {
+        // MA18: a janela ja esta salva; erro no POST levaria o operador a reenviar e duplicar.
+        doThrow(new IllegalStateException("simulada")).when(estado).reavaliar(e1);
 
-        assertThatThrownBy(() -> service.criar(agora(EscopoManutencao.UNIDADE, null), operadorId)).isSameAs(falha);
+        ManutencaoResponse r = service.criar(agora(EscopoManutencao.UNIDADE, null), operadorId);
 
-        assertThat(jdbc.queryForObject("select status from manutencao_agendada", String.class)).isEqualTo("ATIVA");
+        assertThat(r.situacao()).isEqualTo(SituacaoManutencao.ATIVA);
+        assertThat(jdbc.queryForObject("select count(*) from manutencao_agendada", Integer.class)).isEqualTo(1);
+        assertThat(situacao(r.id())).isEqualTo("ATIVA");
         assertThat(emManutencao(e1)).isFalse();
         assertThat(emManutencao(e2)).isTrue();
     }

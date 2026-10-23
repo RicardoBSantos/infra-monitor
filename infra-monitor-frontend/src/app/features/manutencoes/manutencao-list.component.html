@@ -12,7 +12,7 @@
   @if (agendadorDesligado()) {
     <div class="banner-agendador" role="status">
       <span class="marca marca--warning" aria-hidden="true"><app-icon name="power" /></span>
-      <p><strong>O agendamento está desligado neste servidor: janelas não são ativadas.</strong> Peça para ligar <code>MANUTENCAO_AGENDADA_ENABLED</code> no backend. Enquanto isso, use Iniciar manutenção no equipamento.</p>
+      <p><strong>O agendamento está desligado neste servidor: janelas não são ativadas.</strong> Peça para ligar <code>MANUTENCAO_AGENDADA_ENABLED</code> no backend. Enquanto isso, use Iniciar manutenção no equipamento. Janelas ativas não terminam sozinhas enquanto o agendamento estiver desligado: encerre-as aqui.</p>
     </div>
   }
   @if (erroParametros()) {
@@ -63,6 +63,7 @@
                   <td class="data">
                     {{ dataHora(janela.fimPrevisto) }}
                     @if (linhaEncerramento(janela); as linha) { <small class="desvio" [class.desvio--neutro]="linha.endsWith('antes do previsto')">{{ linha }}</small> }
+                    @if (fimPassou(janela)) { <small class="desvio">fim previsto já passou</small> }
                   </td>
                   <td class="motivo">{{ janela.motivo }}</td>
                   <td>{{ janela.criadoPor.nome }}</td>

@@ -95,11 +95,19 @@ public class ManutencaoAgendadaService {
         Instant agora = Instant.now();
         Long id = transacao.execute(s -> repositorio.saveAndFlush(validarEMontar(req, usuarioId, agora)).getId());
         // Fora da transacao de criacao: a ativacao e a reavaliacao sao transacoes proprias,
-        // como no reconciliador. Uma falha aqui deixa a janela AGENDADA, e o tick a ativa.
-        // Relogio lido de novo: o agora da validacao ficou para tras durante o insert, e o CAS
-        // (inicio_previsto <= agora) ja e a guarda de "devida".
-        if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
-            reavaliarCobertos(id);
+        // como no reconciliador. Relogio lido de novo: o agora da validacao ficou para tras
+        // durante o insert, e o CAS (inicio_previsto <= agora) ja e a guarda de "devida".
+        // A janela ja esta salva: falha daqui em diante NAO pode virar erro no POST, senao o
+        // operador reenvia e duplica a janela (MA18). Falha na ativacao deixa a janela AGENDADA
+        // e o tick a ativa; falha na reavaliacao deixa o flag divergente e o divergentes() do
+        // reconciliador repara na proxima passada (criar exige o agendador ligado).
+        try {
+            if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
+                reavaliarCobertos(id);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Janela {} criada, mas a ativacao imediata falhou; o reconciliador repara na proxima passada",
+                    id, e);
         }
         return detalhar(id);
     }
