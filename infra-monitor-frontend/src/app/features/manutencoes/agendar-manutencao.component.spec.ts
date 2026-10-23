@@ -4,7 +4,7 @@ import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EquipmentOperationalStatus, MaintenanceScope, MaintenanceWindowStatus } from '../../core/models/api-enums';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
-import { ManutencaoResponse } from '../../core/models/manutencao';
+import { ManutencaoResponse, PresetAgendamento } from '../../core/models/manutencao';
 import { UnidadeResponse } from '../../core/models/unidade';
 import { AgendarManutencaoComponent } from './agendar-manutencao.component';
 import { isoParaLocal, localParaIso } from './periodo';
@@ -12,17 +12,20 @@ import { isoParaLocal, localParaIso } from './periodo';
 @Component({
   imports: [AgendarManutencaoComponent],
   template: `<button id="gatilho" type="button" (click)="aberto.set(true)">+ Agendar manutenção</button>
-    <app-agendar-manutencao [aberto]="aberto()" [duracaoMaximaHoras]="72" (fechar)="aberto.set(false)" (agendada)="criada.set($event); aberto.set(false)" />`,
+    <app-agendar-manutencao [aberto]="aberto()" [duracaoMaximaHoras]="72" [preset]="preset()" [janela]="janela()" (fechar)="aberto.set(false)" (agendada)="criada.set($event); aberto.set(false)" (salva)="salva.set($event); aberto.set(false)" />`,
 })
 class HostComponent {
   readonly aberto = signal(false);
   readonly criada = signal<ManutencaoResponse | null>(null);
+  readonly preset = signal<PresetAgendamento | null>(null);
+  readonly janela = signal<ManutencaoResponse | null>(null);
+  readonly salva = signal<ManutencaoResponse | null>(null);
 }
 
 const URL = 'http://localhost:8080/api/v1/manutencoes';
 const unidade = (id: number, nome: string): UnidadeResponse => ({ id, nome, sigla: nome.slice(0, 3).toUpperCase(), descricao: null, codigoIbge: null, ativo: true, createdAt: '', updatedAt: '', endereco: null, cidade: null, uf: null, latitude: null, longitude: null, conectaAUnidadeId: null });
 const equipamento = (id: number, nome: string, unidadeId: number, ativo = true): DashboardEquipamentoLista => ({ id, nome, tipoNome: 'Switch', unidadeId, unidadeNome: '', hostname: null, ip: null, status: EquipmentOperationalStatus.Available, latenciaMs: null, ativo, localizacao: null, numeroSerie: null, emManutencao: false, manutencaoManual: false, janelaAtivaId: null, janelaAtivaFim: null });
-const resposta = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse => ({ id: 50, unidade: { id: 1, nome: 'Sede' }, escopo: MaintenanceScope.Unit, equipamentos: [], inicioPrevisto: '', fimPrevisto: '', motivo: 'x', situacao: MaintenanceWindowStatus.Scheduled, criadoPor: { id: 1, nome: 'Ana' }, ativadaEm: null, encerradaEm: null, encerradaPor: null, canceladaEm: null, canceladaPor: null, sobreposicoes: [], ...parcial });
+const resposta = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse => ({ id: 50, unidade: { id: 1, nome: 'Sede' }, escopo: MaintenanceScope.Unit, equipamentos: [], inicioPrevisto: '', fimPrevisto: '', motivo: 'x', situacao: MaintenanceWindowStatus.Scheduled, criadoPor: { id: 1, nome: 'Ana' }, ativadaEm: null, encerradaEm: null, encerradaPor: null, canceladaEm: null, canceladaPor: null, sobreposicoes: [], versao: 0, ultimaAlteracao: null, ...parcial });
 
 describe('AgendarManutencaoComponent', () => {
   let http: HttpTestingController;
@@ -34,8 +37,8 @@ describe('AgendarManutencaoComponent', () => {
 
   const el = (f: ComponentFixture<HostComponent>) => f.nativeElement as HTMLElement;
   const modal = (f: ComponentFixture<HostComponent>) => el(f).querySelector<HTMLElement>('app-modal section[role="dialog"]');
-  const abrir = () => {
-    const f = TestBed.createComponent(HostComponent); f.detectChanges();
+  const abrir = (config?: (h: HostComponent) => void) => {
+    const f = TestBed.createComponent(HostComponent); config?.(f.componentInstance); f.detectChanges();
     const gatilho = el(f).querySelector<HTMLButtonElement>('#gatilho')!;
     gatilho.focus(); gatilho.click(); f.detectChanges();
     const unidadesReq = http.expectOne((r) => r.url.endsWith('/unidades'));
@@ -46,6 +49,12 @@ describe('AgendarManutencaoComponent', () => {
     ]);
     f.detectChanges();
     return { f, gatilho };
+  };
+  const abrirEdicao = (j: ManutencaoResponse) => {
+    const r = abrir((h) => h.janela.set(j));
+    http.expectOne(`${URL}/${j.id}`).flush(j);
+    r.f.detectChanges();
+    return r;
   };
   const campo = <T extends HTMLElement>(f: ComponentFixture<HostComponent>, nome: string) => modal(f)!.querySelector<T>(`[formcontrolname="${nome}"]`)!;
   const preencher = (f: ComponentFixture<HostComponent>, nome: string, valor: string) => {
@@ -164,5 +173,45 @@ describe('AgendarManutencaoComponent', () => {
     http.expectOne(URL).flush({ timestamp: '', status: 400, error: 'Bad Request', code: 'VALIDATION_ERROR', message: 'Dados inválidos.', path: '/api/v1/manutencoes' }, { status: 400, statusText: 'Bad Request' });
     f.detectChanges();
     expect(modal(f)!.querySelector('.modal-form__rodape [role="alert"]')?.textContent?.trim()).toBe('Dados inválidos.');
+  });
+
+  it('preset trava a unidade e marca o equipamento', () => {
+    const { f } = abrir((h) => h.preset.set({ unidadeId: 1, travarUnidade: true, equipamentoIds: [8] }));
+    expect(campo<HTMLSelectElement>(f, 'unidadeId').disabled).toBe(true);
+    expect(campo<HTMLSelectElement>(f, 'unidadeId').value).toBe('1');
+    const marcados = [...modal(f)!.querySelectorAll<HTMLInputElement>('.checagem input:checked')].map((i) => i.parentElement!.textContent!.trim());
+    expect(marcados).toEqual(['AP-01']);
+  });
+
+  it('com todos os ativos marcados sugere Unidade inteira', () => {
+    const { f } = abrir((h) => h.preset.set({ unidadeId: 1, travarUnidade: true, equipamentoIds: [7, 8] }));
+    expect(modal(f)!.textContent).toContain('Todos marcados. Para incluir também os equipamentos criados durante a janela, use Unidade inteira.');
+  });
+
+  it('edição carrega GET /{id}, mostra vinculado inativo com nota e envia PUT com versao', () => {
+    const j = resposta({ id: 50, escopo: MaintenanceScope.Equipment, unidade: { id: 1, nome: 'Sede' }, equipamentos: [{ id: 9, nome: 'AP-VELHO' }],
+      inicioPrevisto: new Date(Date.now() + 3_600_000).toISOString(), fimPrevisto: new Date(Date.now() + 7_200_000).toISOString(), motivo: 'Original', versao: 3 });
+    const { f } = abrirEdicao(j);
+    expect(modal(f)!.querySelector('h2')!.textContent).toContain('Editar janela #50');
+    expect(modal(f)!.textContent).toContain('AP-VELHO');
+    expect(modal(f)!.textContent).toContain('inativo');
+    preencher(f, 'motivo', 'Novo motivo');
+    enviar(f);
+    const put = http.expectOne(`${URL}/50`);
+    expect(put.request.method).toBe('PUT');
+    expect(put.request.body).toEqual(expect.objectContaining({ versao: 3, motivo: 'Novo motivo', equipamentoIds: [9], unidadeId: 1 }));
+    put.flush({ ...j, versao: 4 });
+    f.detectChanges();
+    expect(f.componentInstance.salva()?.versao).toBe(4);
+  });
+
+  it('na edição, trocar a unidade limpa a seleção e esconde os vinculados da unidade antiga', () => {
+    const j = resposta({ id: 51, escopo: MaintenanceScope.Equipment, equipamentos: [{ id: 7, nome: 'SW-CORE' }],
+      inicioPrevisto: new Date(Date.now() + 3_600_000).toISOString(), fimPrevisto: new Date(Date.now() + 7_200_000).toISOString() });
+    const { f } = abrirEdicao(j);
+    preencher(f, 'unidadeId', '2');
+    expect(modal(f)!.querySelectorAll('.checagem input:checked').length).toBe(0);
+    expect(modal(f)!.textContent).not.toContain('SW-CORE');
+    expect(modal(f)!.textContent).toContain('RT-ITA');
   });
 });

@@ -22,3 +22,9 @@ export function erroDoPeriodo(inicio: string | null, fim: string | null, agora: 
   if (f - i > maxHoras * 3_600_000) return `A janela não pode passar de ${maxHoras} horas.`;
   return null;
 }
+
+const p2 = (n: number) => String(n).padStart(2, '0');
+/** "HH:MM" no horário local. */
+export function hora(iso: string): string { const d = new Date(iso); return `${p2(d.getHours())}:${p2(d.getMinutes())}`; }
+/** "DD/MM/AAAA HH:MM" no horário local. */
+export function dataHora(iso: string): string { const d = new Date(iso); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()} ${hora(iso)}`; }

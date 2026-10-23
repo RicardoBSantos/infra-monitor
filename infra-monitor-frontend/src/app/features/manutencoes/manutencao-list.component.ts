@@ -12,6 +12,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { AgendarManutencaoComponent } from './agendar-manutencao.component';
+import { dataHora, hora } from './periodo';
 
 type Estado = 'carregando' | 'sucesso' | 'vazio' | 'erro';
 type Acao = 'cancelar' | 'encerrar';
@@ -216,9 +217,6 @@ export class ManutencaoListComponent {
   }
 }
 
-const p2 = (n: number) => String(n).padStart(2, '0');
-function hora(iso: string): string { const d = new Date(iso); return `${p2(d.getHours())}:${p2(d.getMinutes())}`; }
-function dataHora(iso: string): string { const d = new Date(iso); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()} ${hora(iso)}`; }
 function duracao(ms: number): string {
   const minutos = Math.round(ms / 60_000);
   if (minutos < 60) return `${minutos} min`;

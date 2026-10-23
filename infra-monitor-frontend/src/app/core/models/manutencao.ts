@@ -19,7 +19,12 @@ export interface ManutencaoResponse {
   canceladaEm: string | null;
   canceladaPor: Referencia | null;
   sobreposicoes: number[];
+  versao: number;
+  ultimaAlteracao: UltimaAlteracao | null;
 }
+
+export type TipoAlteracao = 'EDICAO' | 'PRORROGACAO' | 'ANTECIPACAO';
+export interface UltimaAlteracao { tipo: TipoAlteracao; por: Referencia; em: string; }
 
 export interface CriarManutencaoRequest {
   unidadeId: number;
@@ -28,6 +33,20 @@ export interface CriarManutencaoRequest {
   inicioPrevisto: string;
   fimPrevisto: string;
   motivo: string;
+}
+
+export interface EditarManutencaoRequest extends CriarManutencaoRequest { versao: number; }
+export interface AlterarFimRequest { fimPrevisto: string; versao: number; }
+
+/** Pré-preenchimento do modal de agendar (Equipamentos, Unidade, continuação). Datas ISO. */
+export interface PresetAgendamento {
+  unidadeId: number;
+  travarUnidade: boolean;
+  escopo?: MaintenanceScope;
+  equipamentoIds?: number[];
+  motivo?: string;
+  inicio?: string;
+  fim?: string;
 }
 
 export interface ParametrosManutencao { agendadorLigado: boolean; duracaoMaximaHoras: number; }

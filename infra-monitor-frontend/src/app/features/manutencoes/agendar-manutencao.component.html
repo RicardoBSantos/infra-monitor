@@ -1,4 +1,4 @@
-<app-modal [aberto]="aberto()" titulo="Agendar manutenção" subtitulo="Os equipamentos cobertos deixam de ser verificados durante a janela, e o período não conta no relatório de disponibilidade." largura="560px" [bloqueado]="salvando()" (fechar)="pedirFechar()">
+<app-modal [aberto]="aberto()" [titulo]="titulo()" subtitulo="Os equipamentos cobertos deixam de ser verificados durante a janela, e o período não conta no relatório de disponibilidade." largura="560px" [bloqueado]="salvando()" (fechar)="pedirFechar()">
   <form class="modal-form" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
     <label>UNIDADE *
       <span class="campo-select"><select formControlName="unidadeId">
@@ -23,10 +23,12 @@
       } @else {
         <div class="checagem" role="group" aria-label="Equipamentos da janela">
           @for (equipamento of equipamentosDaUnidade(); track equipamento.id) {
-            <label class="checagem__item"><input type="checkbox" [checked]="selecionados().has(equipamento.id)" (change)="alternar(equipamento.id, $any($event.target).checked)">{{ equipamento.nome }}</label>
+            <label class="checagem__item"><input type="checkbox" [checked]="selecionados().has(equipamento.id)" (change)="alternar(equipamento.id, $any($event.target).checked)">{{ equipamento.nome }}@if (equipamento.nota) { <small class="checagem__nota">· {{ equipamento.nota }}</small> }</label>
           }
         </div>
         <p class="escopo__contagem">{{ selecionados().size }} de {{ equipamentosDaUnidade().length }} selecionados</p>
+        @if (todosMarcados()) { <p class="escopo__dica" role="note">Todos marcados. Para incluir também os equipamentos criados durante a janela, use Unidade inteira.</p> }
+        @if (emEdicao() && temVinculadoComNota()) { <p class="escopo__dica">Equipamentos marcados com nota continuam na janela; desmarcados, não podem voltar.</p> }
       }
       @if (tentou() && faltaEquipamento()) { <small class="field-error">Selecione ao menos um equipamento.</small> }
     </fieldset>
@@ -47,7 +49,7 @@
     <div class="modal-form__rodape">
       @if (erroApi()) { <p class="rodape-erro" role="alert">{{ erroApi() }}</p> }
       <button class="botao" type="button" (click)="pedirFechar()" [disabled]="salvando()">Cancelar</button>
-      <button class="botao botao--primario" type="submit" [disabled]="salvando()">{{ salvando() ? 'Agendando…' : 'Agendar janela' }}</button>
+      <button class="botao botao--primario" type="submit" [disabled]="salvando()">{{ salvando() ? (emEdicao() ? 'Salvando…' : 'Agendando…') : (emEdicao() ? 'Salvar alterações' : 'Agendar janela') }}</button>
     </div>
   </form>
 </app-modal>

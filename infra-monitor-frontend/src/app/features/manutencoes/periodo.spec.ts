@@ -1,4 +1,4 @@
-import { erroDoPeriodo, isoParaLocal, localParaIso } from './periodo';
+import { dataHora, erroDoPeriodo, hora, isoParaLocal, localParaIso } from './periodo';
 
 describe('periodo', () => {
   const agora = new Date(2026, 9, 22, 10, 0);
@@ -31,5 +31,11 @@ describe('periodo', () => {
 
   it('isoParaLocal é o inverso, no horário local', () => {
     expect(isoParaLocal(new Date(2026, 9, 22, 9, 5).toISOString())).toBe('2026-10-22T09:05');
+  });
+
+  it('formata hora e data-hora no horário local', () => {
+    const iso = new Date(2026, 9, 23, 7, 5).toISOString();
+    expect(hora(iso)).toBe('07:05');
+    expect(dataHora(iso)).toBe('23/10/2026 07:05');
   });
 });

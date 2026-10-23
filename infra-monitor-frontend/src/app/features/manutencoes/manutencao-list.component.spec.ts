@@ -13,7 +13,7 @@ const janela = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse =
   id: 41, unidade: { id: 1, nome: 'Sede' }, escopo: MaintenanceScope.Unit, equipamentos: [],
   inicioPrevisto: local(10, 0), fimPrevisto: local(12, 0), motivo: 'Troca do switch core',
   situacao: MaintenanceWindowStatus.Scheduled, criadoPor: { id: 1, nome: 'Ana Operadora' },
-  ativadaEm: null, encerradaEm: null, encerradaPor: null, canceladaEm: null, canceladaPor: null, sobreposicoes: [], ...parcial,
+  ativadaEm: null, encerradaEm: null, encerradaPor: null, canceladaEm: null, canceladaPor: null, sobreposicoes: [], versao: 0, ultimaAlteracao: null, ...parcial,
 });
 const pagina = (content: ManutencaoResponse[], totalPages = 1) => ({ content, page: 0, size: 20, totalElements: content.length, totalPages, first: true, last: totalPages <= 1 });
 const erroApi = (status: number, message: string) => ({ timestamp: '', status, error: 'Error', code: status === 409 ? 'BUSINESS_CONFLICT' : 'INTERNAL_ERROR', message, path: '/api/v1/manutencoes' });
