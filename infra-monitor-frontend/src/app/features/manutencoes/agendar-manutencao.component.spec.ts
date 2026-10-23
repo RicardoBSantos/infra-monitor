@@ -12,10 +12,11 @@ import { isoParaLocal, localParaIso } from './periodo';
 @Component({
   imports: [AgendarManutencaoComponent],
   template: `<button id="gatilho" type="button" (click)="aberto.set(true)">+ Agendar manutenção</button>
-    <app-agendar-manutencao [aberto]="aberto()" [duracaoMaximaHoras]="72" [preset]="preset()" [janela]="janela()" (fechar)="aberto.set(false)" (agendada)="criada.set($event); aberto.set(false)" (salva)="salva.set($event); aberto.set(false)" />`,
+    <app-agendar-manutencao [aberto]="aberto()" [duracaoMaximaHoras]="72" [preset]="preset()" [janela]="janela()" (fechar)="aberto.set(false)" (agendada)="criada.set($event); aberto.set(false)" (salva)="salva.set($event); aberto.set(false)" (desatualizada)="desatualizada.set(true)" />`,
 })
 class HostComponent {
   readonly aberto = signal(false);
+  readonly desatualizada = signal(false);
   readonly criada = signal<ManutencaoResponse | null>(null);
   readonly preset = signal<PresetAgendamento | null>(null);
   readonly janela = signal<ManutencaoResponse | null>(null);
@@ -50,9 +51,9 @@ describe('AgendarManutencaoComponent', () => {
     f.detectChanges();
     return { f, gatilho };
   };
-  const abrirEdicao = (j: ManutencaoResponse) => {
+  const abrirEdicao = (j: ManutencaoResponse, atual: ManutencaoResponse = j) => {
     const r = abrir((h) => h.janela.set(j));
-    http.expectOne(`${URL}/${j.id}`).flush(j);
+    http.expectOne(`${URL}/${j.id}`).flush(atual);
     r.f.detectChanges();
     return r;
   };
@@ -203,6 +204,48 @@ describe('AgendarManutencaoComponent', () => {
     put.flush({ ...j, versao: 4 });
     f.detectChanges();
     expect(f.componentInstance.salva()?.versao).toBe(4);
+  });
+
+  it('continuação: equipamento da janela anterior que não está mais ativo na unidade é desmarcado e avisado', () => {
+    // 9 ficou inativo e 10 está em outra unidade: nenhum aparece na checklist travada.
+    const { f } = abrir((h) => h.preset.set({ unidadeId: 1, travarUnidade: true, escopo: MaintenanceScope.Equipment, equipamentoIds: [7, 9, 10] }));
+    expect(modal(f)!.querySelector('.escopo__contagem')?.textContent?.trim()).toBe('1 de 2 selecionados');
+    expect(modal(f)!.querySelector('[role="status"]')?.textContent?.trim())
+      .toBe('2 equipamentos da janela anterior não estão mais ativos nesta unidade e foram desmarcados.');
+    preencher(f, 'inicio', daqui(60)); preencher(f, 'fim', daqui(180)); preencher(f, 'motivo', 'Continuação');
+    enviar(f);
+    const req = http.expectOne(URL);
+    expect(req.request.body.equipamentoIds).toEqual([7]);
+    req.flush(resposta());
+  });
+
+  it('continuação com um equipamento descartado usa o singular', () => {
+    const { f } = abrir((h) => h.preset.set({ unidadeId: 1, travarUnidade: true, escopo: MaintenanceScope.Equipment, equipamentoIds: [8, 9] }));
+    expect(modal(f)!.querySelector('[role="status"]')?.textContent?.trim())
+      .toBe('1 equipamento da janela anterior não está mais ativo nesta unidade e foi desmarcado.');
+  });
+
+  it('edição de janela que já ativou: avisa "use Alterar fim" e não deixa enviar', () => {
+    const j = resposta({ id: 52, escopo: MaintenanceScope.Unit, inicioPrevisto: new Date(Date.now() + 3_600_000).toISOString(),
+      fimPrevisto: new Date(Date.now() + 7_200_000).toISOString(), versao: 1 });
+    const { f } = abrirEdicao(j, { ...j, situacao: MaintenanceWindowStatus.Active, versao: 2 });
+    expect(modal(f)!.querySelector('.modal-form__rodape [role="alert"]')?.textContent?.trim()).toBe('A janela está ATIVA: use Alterar fim.');
+    expect(modal(f)!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+    expect(f.componentInstance.desatualizada()).toBe(true);
+    enviar(f);
+    http.expectNone(`${URL}/52`);
+  });
+
+  it('edição recusada com 409 avisa a lista que a linha está velha', () => {
+    const j = resposta({ id: 53, escopo: MaintenanceScope.Unit, inicioPrevisto: new Date(Date.now() + 3_600_000).toISOString(),
+      fimPrevisto: new Date(Date.now() + 7_200_000).toISOString(), versao: 1 });
+    const { f } = abrirEdicao(j);
+    expect(f.componentInstance.desatualizada()).toBe(false);
+    preencher(f, 'motivo', 'Outro');
+    enviar(f);
+    http.expectOne(`${URL}/53`).flush({ timestamp: '', status: 409, error: 'Conflict', code: 'BUSINESS_CONFLICT', message: 'A janela foi alterada por outra pessoa. Recarregue e tente de novo.', path: '' }, { status: 409, statusText: 'Conflict' });
+    f.detectChanges();
+    expect(f.componentInstance.desatualizada()).toBe(true);
   });
 
   it('na edição, trocar a unidade limpa a seleção e esconde os vinculados da unidade antiga', () => {

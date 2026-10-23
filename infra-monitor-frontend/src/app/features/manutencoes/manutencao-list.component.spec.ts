@@ -297,6 +297,71 @@ describe('ManutencaoListComponent', () => {
     expect(document.activeElement).toBe(botao);
   });
 
+  it('depois de salvar a edição a tabela fica no lugar e o foco volta ao gatilho do menu da linha', () => {
+    const futura = janela({ inicioPrevisto: new Date(Date.now() + 3_600_000).toISOString(), fimPrevisto: new Date(Date.now() + 7_200_000).toISOString() });
+    const f = carregada([futura]);
+    const gatilho = el(f).querySelector<HTMLButtonElement>('.menu-acoes__gatilho')!;
+    gatilho.focus();
+    escolher(f, 'Editar');
+    http.expectOne((r) => r.url.endsWith('/unidades')).flush([]);
+    http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([]);
+    http.expectOne(`${URL}/41`).flush(futura);
+    f.detectChanges();
+    expect(el(f).querySelector('app-modal section[role="dialog"]')?.contains(document.activeElement)).toBe(true);
+
+    (f.componentInstance as unknown as { aoSalvar(j: ManutencaoResponse): void }).aoSalvar({ ...futura, motivo: 'Editada', versao: 1 });
+    f.detectChanges();
+    expect(el(f).querySelector('.esqueleto')).toBeNull();
+    expect(document.activeElement).toBe(gatilho);
+    lista().flush(pagina([{ ...futura, motivo: 'Editada', versao: 1 }])); f.detectChanges();
+    expect(celulas(f)[5].textContent?.trim()).toBe('Editada');
+    expect(document.activeElement).toBe(gatilho);
+  });
+
+  it('se a linha do gatilho some depois da ação, o foco vai para "+ Agendar manutenção", não para o body', async () => {
+    const f = carregada([janela()]);
+    el(f).querySelector<HTMLButtonElement>('.menu-acoes__gatilho')!.focus();
+    escolher(f, 'Cancelar');
+    [...dialogo(f)!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === 'Cancelar janela')!.click(); f.detectChanges();
+    http.expectOne(`${URL}/41/cancelar`).flush(janela({ situacao: MaintenanceWindowStatus.Cancelled })); f.detectChanges();
+    lista().flush(pagina([])); f.detectChanges();
+    await f.whenStable();
+    expect(document.activeElement).toBe(botaoAgendar(f));
+  });
+
+  it('Alterar fim recusado com 409 recarrega a lista ao fechar o diálogo', () => {
+    const daqui = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
+    const ativa = janela({ situacao: MaintenanceWindowStatus.Active, inicioPrevisto: daqui(-60), fimPrevisto: daqui(60), ativadaEm: daqui(-60), versao: 2 });
+    const f = carregada([ativa]);
+    escolher(f, 'Alterar fim');
+    http.expectOne(`${URL}/41`).flush(ativa); f.detectChanges();
+    const modal = el(f).querySelector('app-modal section[role="dialog"]')!;
+    const campo = modal.querySelector<HTMLInputElement>('input[type="datetime-local"]')!;
+    const novo = new Date(Date.now() + 120 * 60_000); novo.setSeconds(0, 0);
+    const p = (n: number) => String(n).padStart(2, '0');
+    campo.value = `${novo.getFullYear()}-${p(novo.getMonth() + 1)}-${p(novo.getDate())}T${p(novo.getHours())}:${p(novo.getMinutes())}`;
+    campo.dispatchEvent(new Event('input')); f.detectChanges();
+    modal.querySelector<HTMLButtonElement>('button[type="submit"]')!.click(); f.detectChanges();
+    http.expectOne(`${URL}/41/fim`).flush(erroApi(409, 'A janela foi alterada por outra pessoa. Recarregue e tente de novo.'), { status: 409, statusText: 'Conflict' });
+    http.expectOne(`${URL}/41`).flush({ ...ativa, versao: 3 }); f.detectChanges();
+    http.expectNone((r) => r.url === URL);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); f.detectChanges();
+    lista().flush(pagina([{ ...ativa, versao: 3 }])); f.detectChanges();
+    expect(el(f).querySelector('app-modal section[role="dialog"]')).toBeNull();
+  });
+
+  it('fechar sem nada desatualizado não recarrega a lista', () => {
+    const futura = janela({ inicioPrevisto: new Date(Date.now() + 3_600_000).toISOString(), fimPrevisto: new Date(Date.now() + 7_200_000).toISOString() });
+    const f = carregada([futura]);
+    escolher(f, 'Editar');
+    http.expectOne((r) => r.url.endsWith('/unidades')).flush([]);
+    http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([]);
+    http.expectOne(`${URL}/41`).flush(futura); f.detectChanges();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); f.detectChanges();
+    http.expectNone((r) => r.url === URL);
+  });
+
   it('agendar: abre o modal, sucesso fecha, avisa a sobreposição e recarrega', () => {
     const f = carregada([janela()]);
     botaoAgendar(f)!.click(); f.detectChanges();

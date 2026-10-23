@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
 import { take } from 'rxjs';
 import { MaintenanceScope, MaintenanceWindowStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
@@ -13,7 +13,7 @@ import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { AgendarManutencaoComponent } from './agendar-manutencao.component';
 import { AlterarFimComponent } from './alterar-fim.component';
-import { dataHora, hora } from './periodo';
+import { avisoDeAgendamento, dataHora, hora } from './periodo';
 
 type Estado = 'carregando' | 'sucesso' | 'vazio' | 'erro';
 type Acao = 'cancelar' | 'encerrar';
@@ -80,6 +80,11 @@ export class ManutencaoListComponent {
     return c ? { titulo: TEXTOS[c.acao].titulo(c.janela.id), botao: TEXTOS[c.acao].botao, mensagem: TEXTOS[c.acao].mensagem } : null;
   });
 
+  private readonly injector = inject(Injector);
+  private readonly botaoAgendar = viewChild<ElementRef<HTMLButtonElement>>('botaoAgendar');
+  private readonly titulo = viewChild.required<ElementRef<HTMLHeadingElement>>('titulo');
+  /** Um modal viu que a linha que o abriu está velha (409 ou GET divergente): recarregar ao fechar. */
+  private linhaDesatualizada = false;
   private temporizadorBusca: ReturnType<typeof setTimeout> | undefined;
   /** Descarta respostas fora de ordem (troca rápida de filtro ou página). */
   private pedido = 0;
@@ -93,9 +98,15 @@ export class ManutencaoListComponent {
     this.carregar();
   }
 
-  protected carregar(): void {
+  /**
+   * `depoisDeAcao`: recarga depois de um modal ou diálogo. Com linhas na tela, a tabela fica no
+   * lugar (sem esqueleto) e os dados são trocados por id — o gatilho "…" da linha sobrevive e o
+   * app-modal devolve o foco a ele. Se a linha sumir (foi para o Histórico), o foco cairia no
+   * body: vai para "+ Agendar manutenção" ou, sem ele, para o título.
+   */
+  protected carregar(depoisDeAcao = false): void {
     const pedido = ++this.pedido;
-    this.estado.set('carregando');
+    if (!depoisDeAcao || this.estado() !== 'sucesso') this.estado.set('carregando');
     this.erro.set(null);
     this.api.list(this.filtro(), this.busca(), this.pagina() - 1).pipe(take(1)).subscribe({
       next: (resposta) => {
@@ -104,13 +115,14 @@ export class ManutencaoListComponent {
         const ultima = Math.max(resposta.totalPages, 1);
         if (!resposta.content.length && this.pagina() > ultima) {
           this.pagina.set(ultima);
-          this.carregar();
+          this.carregar(depoisDeAcao);
           return;
         }
         this.itens.set(resposta.content);
         this.totalPaginas.set(Math.max(resposta.totalPages, 1));
         this.totalItens.set(resposta.totalElements);
         this.estado.set(resposta.content.length ? 'sucesso' : 'vazio');
+        if (depoisDeAcao) afterNextRender(() => this.resgatarFoco(), { injector: this.injector });
       },
       error: (erro: unknown) => {
         if (pedido !== this.pedido) return;
@@ -118,6 +130,25 @@ export class ManutencaoListComponent {
         this.estado.set('erro');
       },
     });
+  }
+
+  /** O elemento focado saiu do DOM junto com a linha: o navegador devolve o foco ao body. */
+  private resgatarFoco(): void {
+    const ativo = document.activeElement;
+    if (ativo && ativo !== document.body && ativo.isConnected) return;
+    const botao = this.botaoAgendar()?.nativeElement;
+    (botao && !botao.disabled ? botao : this.titulo().nativeElement).focus();
+  }
+
+  protected marcarDesatualizada(): void { this.linhaDesatualizada = true; }
+
+  /** Fechar depois de um 409 (ou de um GET que divergiu da linha) recarrega: reabrir não pode reenviar a versão velha. */
+  protected fecharEdicao(): void { this.editando.set(null); this.recarregarSeDesatualizada(); }
+  protected fecharAlterarFim(): void { this.alterandoFim.set(null); this.recarregarSeDesatualizada(); }
+  private recarregarSeDesatualizada(): void {
+    if (!this.linhaDesatualizada) return;
+    this.linhaDesatualizada = false;
+    this.carregar(true);
   }
 
   protected mudarFiltro(filtro: FiltroManutencao): void {
@@ -140,9 +171,9 @@ export class ManutencaoListComponent {
   protected mudarPagina(pagina: number): void { this.pagina.set(pagina); this.carregar(); }
 
   protected abrirAgendamento(): void { this.aviso.set(null); this.preset.set(null); this.agendando.set(true); }
-  protected aoSalvar(j: ManutencaoResponse): void { this.editando.set(null); this.aviso.set(`Janela #${j.id} atualizada.`); this.carregar(); }
-  protected aoAlterarFim(j: ManutencaoResponse): void { this.alterandoFim.set(null); this.aviso.set(`Fim da janela #${j.id} alterado para ${dataHora(j.fimPrevisto)}.`); this.carregar(); }
-  protected aoContinuar(p: PresetAgendamento): void { this.alterandoFim.set(null); this.preset.set(p); this.agendando.set(true); this.carregar(); }
+  protected aoSalvar(j: ManutencaoResponse): void { this.editando.set(null); this.linhaDesatualizada = false; this.aviso.set(`Janela #${j.id} atualizada.`); this.carregar(true); }
+  protected aoAlterarFim(j: ManutencaoResponse): void { this.alterandoFim.set(null); this.linhaDesatualizada = false; this.aviso.set(`Fim da janela #${j.id} alterado para ${dataHora(j.fimPrevisto)}.`); this.carregar(true); }
+  protected aoContinuar(p: PresetAgendamento): void { this.alterandoFim.set(null); this.linhaDesatualizada = false; this.preset.set(p); this.agendando.set(true); this.carregar(true); }
 
   /** "editada por Ana às 23/10 10:42" — só a última alteração (MA24). */
   protected linhaAlteracao(janela: ManutencaoResponse): string | null {
@@ -154,10 +185,8 @@ export class ManutencaoListComponent {
 
   protected aoAgendar(janela: ManutencaoResponse): void {
     this.agendando.set(false);
-    const outras = janela.sobreposicoes.map((id) => `#${id}`);
-    const atencao = outras.length === 0 ? '' : outras.length === 1 ? ` Atenção: sobrepõe a janela ${outras[0]}.` : ` Atenção: sobrepõe as janelas ${outras.join(', ')}.`;
-    this.aviso.set(`Janela #${janela.id} agendada.${atencao}`);
-    this.carregar();
+    this.aviso.set(avisoDeAgendamento(janela));
+    this.carregar(true);
   }
 
   protected acoesDe(janela: ManutencaoResponse): ActionMenuItem[] {
@@ -195,7 +224,7 @@ export class ManutencaoListComponent {
         this.ocupado.set(false);
         this.confirmando.set(null);
         this.aviso.set(TEXTOS[alvo.acao].sucesso(alvo.janela.id));
-        this.carregar();
+        this.carregar(true);
       },
       error: (erro: unknown) => {
         this.ocupado.set(false);

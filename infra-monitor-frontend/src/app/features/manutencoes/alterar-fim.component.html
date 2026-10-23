@@ -1,5 +1,5 @@
 <app-modal [aberto]="aberto()" [titulo]="concluida() ? 'Janela #' + concluida()!.id + ' concluída' : 'Alterar fim da janela #' + (janela()?.id ?? '')"
-  subtitulo="Prorrogue ou antecipe o fim. Início, escopo e motivo de uma janela ativa não mudam." largura="460px" [bloqueado]="salvando()" (fechar)="pedirFechar()">
+  [subtitulo]="subtitulo()" largura="460px" [bloqueado]="salvando()" (fechar)="pedirFechar()">
   @if (concluida(); as c) {
     <div class="continuacao">
       <p>A janela #{{ c.id }} concluiu às {{ hora(c.encerradaEm!) }}. Os equipamentos voltaram a ser verificados: até a nova janela ativar, eles são pingados por alguns segundos.</p>
@@ -8,7 +8,7 @@
         <button #botaoContinuar class="botao botao--primario" type="button" (click)="agendarContinuacao()">Agendar continuação</button>
       </div>
     </div>
-  } @else if (janela(); as j) {
+  } @else if (atual(); as j) {
     <form class="modal-form" (submit)="$event.preventDefault(); enviar()" novalidate>
       <p class="fim-atual">Fim atual: <strong>{{ dataHora(j.fimPrevisto) }}</strong></p>
       <label>NOVO FIM *<input type="datetime-local" [formControl]="fim"></label>
@@ -16,7 +16,7 @@
       <div class="modal-form__rodape">
         @if (erro()) { <p class="rodape-erro" role="alert">{{ erro() }}</p> }
         <button class="botao" type="button" (click)="pedirFechar()" [disabled]="salvando()">Cancelar</button>
-        <button class="botao botao--primario" type="submit" [disabled]="salvando()">{{ salvando() ? 'Salvando…' : 'Alterar fim' }}</button>
+        <button class="botao botao--primario" type="submit" [disabled]="salvando() || bloqueada()">{{ salvando() ? 'Salvando…' : 'Alterar fim' }}</button>
       </div>
     </form>
   }

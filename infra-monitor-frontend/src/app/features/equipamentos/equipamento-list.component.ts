@@ -22,6 +22,7 @@ import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu/action-menu.component';
 import { AgendarManutencaoComponent } from '../manutencoes/agendar-manutencao.component';
+import { avisoDeAgendamento } from '../manutencoes/periodo';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ModalComponent } from '../../shared/modal/modal.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
@@ -587,8 +588,7 @@ export class EquipamentoListComponent {
 
   protected aoAgendar(janela: ManutencaoResponse): void {
     this.fecharAgendamento();
-    const outras = janela.sobreposicoes.map((id) => `#${id}`);
-    this.aviso.set(`Janela #${janela.id} agendada.` + (outras.length ? ` Atenção: sobrepõe ${outras.length === 1 ? 'a janela' : 'as janelas'} ${outras.join(', ')}.` : ''));
+    this.aviso.set(avisoDeAgendamento(janela));
     this.carregar();
   }
 

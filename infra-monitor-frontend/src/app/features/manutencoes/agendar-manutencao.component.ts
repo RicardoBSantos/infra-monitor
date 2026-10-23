@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { take } from 'rxjs';
-import { MaintenanceScope } from '../../core/models/api-enums';
+import { MaintenanceScope, MaintenanceWindowStatus } from '../../core/models/api-enums';
 import { isApiError } from '../../core/models/api-error';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
 import { CriarManutencaoRequest, ManutencaoResponse, PresetAgendamento } from '../../core/models/manutencao';
@@ -40,6 +40,8 @@ export class AgendarManutencaoComponent {
   readonly janela = input<ManutencaoResponse | null>(null);
   readonly agendada = output<ManutencaoResponse>();
   readonly salva = output<ManutencaoResponse>();
+  /** A linha que abriu a edição não confere mais com o servidor (versão ou situação): o pai recarrega ao fechar. */
+  readonly desatualizada = output<void>();
 
   protected readonly escopos = MaintenanceScope;
   protected readonly unidades = signal<UnidadeResponse[]>([]);
@@ -52,6 +54,10 @@ export class AgendarManutencaoComponent {
   protected readonly erroPeriodo = signal<string | null>(null);
   protected readonly erroApi = signal<string | null>(null);
   protected readonly salvando = signal(false);
+  /** Edição de janela que já saiu de AGENDADA: explica e trava o envio em vez de esperar o 409. */
+  protected readonly bloqueioEdicao = signal<string | null>(null);
+  /** Continuação com equipamento que não aparece mais na checklist: avisa que foi desmarcado. */
+  protected readonly avisoPreset = signal<string | null>(null);
   protected readonly emEdicao = computed(() => this.janela() !== null);
   /** Janela carregada do GET /{id} ao abrir em edição: valores e versão frescos. */
   private readonly carregada = signal<ManutencaoResponse | null>(null);
@@ -110,7 +116,7 @@ export class AgendarManutencaoComponent {
   protected pedirFechar(): void { if (!this.salvando()) this.fechar.emit(); }
 
   protected enviar(): void {
-    if (this.salvando()) return;
+    if (this.salvando() || this.bloqueioEdicao()) return;
     this.tentou.set(true);
     this.erroApi.set(null);
     const v = this.form.getRawValue();
@@ -134,6 +140,7 @@ export class AgendarManutencaoComponent {
       next: (janela) => { this.salvando.set(false); if (existente) this.salva.emit(janela); else this.agendada.emit(janela); },
       error: (erro: unknown) => {
         this.salvando.set(false);
+        if (existente && erro instanceof HttpErrorResponse && erro.status === 409) this.desatualizada.emit();
         this.erroApi.set(erro instanceof HttpErrorResponse && isApiError(erro.error) ? erro.error.message : existente ? 'Não foi possível salvar a janela.' : 'Não foi possível agendar a manutenção.');
       },
     });
@@ -141,6 +148,7 @@ export class AgendarManutencaoComponent {
 
   private preparar(): void {
     this.tentou.set(false); this.erroPeriodo.set(null); this.erroApi.set(null); this.erroCarga.set(null);
+    this.bloqueioEdicao.set(null); this.avisoPreset.set(null);
     this.carregada.set(null);
     const janela = this.janela();
     if (janela) {
@@ -148,7 +156,14 @@ export class AgendarManutencaoComponent {
       this.carregada.set(janela);
       // Valores e versão frescos: a linha da lista pode estar velha.
       this.api.get(janela.id).pipe(take(1)).subscribe({
-        next: (atual) => { this.carregada.set(atual); this.preencherDe(atual); },
+        next: (atual) => {
+          if (atual.versao !== janela.versao || atual.situacao !== janela.situacao) this.desatualizada.emit();
+          if (atual.situacao !== MaintenanceWindowStatus.Scheduled) {
+            this.bloqueioEdicao.set(atual.situacao === MaintenanceWindowStatus.Active ? 'A janela está ATIVA: use Alterar fim.'
+              : `A janela está ${atual.situacao}: não pode mais ser editada.`);
+          }
+          this.carregada.set(atual); this.preencherDe(atual);
+        },
         error: () => this.erroCarga.set('Não foi possível carregar a janela.'),
       });
     } else {
@@ -164,9 +179,23 @@ export class AgendarManutencaoComponent {
       error: () => this.erroCarga.set('Não foi possível carregar as unidades.'),
     });
     this.dashboardApi.getEquipamentos().pipe(take(1)).subscribe({
-      next: (equipamentos) => this.equipamentos.set(equipamentos),
+      next: (equipamentos) => { this.equipamentos.set(equipamentos); if (!janela) this.descartarInvisiveisDoPreset(); },
       error: () => this.erroCarga.set('Não foi possível carregar os equipamentos.'),
     });
+  }
+
+  /**
+   * Criação: id do preset fora da checklist (inativo ou movido durante a janela anterior) não
+   * pode ser desmarcado pelo operador e o backend o recusaria. Sai da seleção, com aviso.
+   */
+  private descartarInvisiveisDoPreset(): void {
+    const visiveis = new Set(this.equipamentosDaUnidade().map((e) => e.id));
+    const atuais = this.selecionados();
+    const fora = [...atuais].filter((id) => !visiveis.has(id)).length;
+    if (!fora) return;
+    this.selecionados.set(new Set([...atuais].filter((id) => visiveis.has(id))));
+    this.avisoPreset.set(fora === 1 ? '1 equipamento da janela anterior não está mais ativo nesta unidade e foi desmarcado.'
+      : `${fora} equipamentos da janela anterior não estão mais ativos nesta unidade e foram desmarcados.`);
   }
 
   private preencherDe(j: ManutencaoResponse): void {

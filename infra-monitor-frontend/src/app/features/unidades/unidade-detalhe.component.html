@@ -48,6 +48,8 @@
       </div>
     </header>
 
+    @if (aviso()) { <div class="notice" role="status">{{ aviso() }}</div> }
+
     @if (ativa() || proxima()) {
       <div class="banner-janela" role="status">
         <span class="marca marca--info" aria-hidden="true"><app-icon name="wrench" /></span>
@@ -123,6 +125,6 @@
   }
   @if (authState.canManageInventory()) {
     <app-agendar-manutencao [aberto]="agendando()" [preset]="preset()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72"
-      (fechar)="agendando.set(false)" (agendada)="aoAgendar()" />
+      (fechar)="agendando.set(false)" (agendada)="aoAgendar($event)" />
   }
 </section>

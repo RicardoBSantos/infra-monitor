@@ -52,8 +52,9 @@ describe('UnidadeDetalheComponent', () => {
   const janela = (extra: object) => ({ id: 41, situacao: MaintenanceWindowStatus.Active, motivo: 'Troca do switch', inicioPrevisto: '2026-10-23T10:00:00Z', fimPrevisto: '2026-10-23T15:00:00Z', versao: 1, ...extra });
 
   /** Chamadas do agendamento, disparadas no construtor junto com o carregamento da unidade. */
-  function responderManutencao(parametros: object = { agendadorLigado: true, duracaoMaximaHoras: 72 }, janelas: object[] | 'erro' = []) {
-    httpTesting.expectOne((request) => request.url.endsWith('/manutencoes/parametros')).flush(parametros);
+  function responderManutencao(parametros: object | 'erro' = { agendadorLigado: true, duracaoMaximaHoras: 72 }, janelas: object[] | 'erro' = []) {
+    const params = httpTesting.expectOne((request) => request.url.endsWith('/manutencoes/parametros'));
+    if (parametros === 'erro') params.error(new ProgressEvent('erro'), { status: 0, statusText: 'Unknown Error' }); else params.flush(parametros);
     const lista = httpTesting.expectOne((request) => request.url.endsWith('/manutencoes'));
     expect(lista.request.params.get('situacao')).toBe('VIGENTES');
     expect(lista.request.params.get('unidadeId')).toBe('7');
@@ -142,6 +143,31 @@ describe('UnidadeDetalheComponent', () => {
     responder(fixture, detalhe, [{ agendadorLigado: false, duracaoMaximaHoras: 72 }]);
     expect(botaoAgendar(fixture)!.disabled).toBe(true);
     expect(botaoAgendar(fixture)!.title).toBe('Agendamento desligado neste servidor');
+  });
+
+  it('falha ao consultar o agendador não se passa por agendador desligado', async () => {
+    await configurar('7');
+    sessao('OPERADOR');
+    const fixture = criar();
+    responder(fixture, detalhe, ['erro']);
+    expect(botaoAgendar(fixture)!.disabled).toBe(true);
+    expect(botaoAgendar(fixture)!.title).toBe('Não foi possível consultar o agendador');
+  });
+
+  it('depois de agendar avisa "Janela #N agendada." com a sobreposição, em role="status"', async () => {
+    await configurar('7');
+    sessao('OPERADOR');
+    const fixture = criar();
+    responder(fixture);
+    botaoAgendar(fixture)!.click();
+    fixture.detectChanges();
+    httpTesting.match(() => true);
+    (fixture.componentInstance as unknown as { aoAgendar(j: object): void }).aoAgendar(janela({ id: 50, situacao: MaintenanceWindowStatus.Scheduled, sobreposicoes: [41, 44] }));
+    fixture.detectChanges();
+    httpTesting.expectOne((request) => request.url.endsWith('/manutencoes')).flush(pagina([]));
+    fixture.detectChanges();
+    const aviso = (fixture.nativeElement as HTMLElement).querySelector('.notice[role="status"]');
+    expect(aviso?.textContent?.trim()).toBe('Janela #50 agendada. Atenção: sobrepõe as janelas #41, #44.');
   });
 
   it('desabilita o botão com "Unidade inativa" quando a unidade está inativa', async () => {

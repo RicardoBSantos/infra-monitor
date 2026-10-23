@@ -14,7 +14,7 @@ import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
 import { BreadcrumbLabelService } from '../../shared/breadcrumbs/breadcrumb-label.service';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { AgendarManutencaoComponent } from '../manutencoes/agendar-manutencao.component';
-import { dataHora } from '../manutencoes/periodo';
+import { avisoDeAgendamento, dataHora } from '../manutencoes/periodo';
 import { JANELA_DIAS, UnidadeDetalheStore } from './detalhe/unidade-detalhe.store';
 import { UnidadeFormDrawerComponent } from './unidade-form-drawer.component';
 
@@ -53,6 +53,9 @@ export class UnidadeDetalheComponent {
   private readonly manutencaoApi = inject(ManutencaoApiService);
   protected readonly authState = inject(AuthStateService);
   protected readonly parametros = signal<ParametrosManutencao | null>(null);
+  /** Falha de rede em /parametros não é "agendador desligado": a dica do botão diz o que de fato aconteceu. */
+  protected readonly erroParametros = signal(false);
+  protected readonly aviso = signal<string | null>(null);
   protected readonly janelas = signal<ManutencaoResponse[]>([]);
   protected readonly agendando = signal(false);
   protected readonly preset = signal<PresetAgendamento | null>(null);
@@ -62,7 +65,8 @@ export class UnidadeDetalheComponent {
   /** A lista VIGENTES vem com ATIVA primeiro e depois por início: a primeira AGENDADA é a próxima. */
   protected readonly proxima = computed(() => this.janelas().find((j) => j.situacao === MaintenanceWindowStatus.Scheduled) ?? null);
   protected readonly bloqueioAgendar = computed(() =>
-    this.parametros()?.agendadorLigado !== true ? 'Agendamento desligado neste servidor'
+    this.erroParametros() ? 'Não foi possível consultar o agendador'
+      : this.parametros()?.agendadorLigado !== true ? 'Agendamento desligado neste servidor'
       : this.store.cadastro()?.ativo === false ? 'Unidade inativa' : null);
 
   private readonly gatilhosDeAba = viewChildren<ElementRef<HTMLAnchorElement>>('gatilhoAba');
@@ -83,7 +87,7 @@ export class UnidadeDetalheComponent {
     const id = Number(inject(ActivatedRoute).snapshot.paramMap.get('id'));
     if (!Number.isInteger(id) || id < 1) { this.store.estado.set('not-found'); return; }
     this.store.carregar(id);
-    this.manutencaoApi.parametros().pipe(take(1)).subscribe({ next: (p) => this.parametros.set(p), error: () => this.parametros.set(null) });
+    this.manutencaoApi.parametros().pipe(take(1)).subscribe({ next: (p) => this.parametros.set(p), error: () => this.erroParametros.set(true) });
     this.carregarJanelas(id);
   }
 
@@ -95,11 +99,16 @@ export class UnidadeDetalheComponent {
   }
 
   protected abrirAgendamento(): void {
+    this.aviso.set(null);
     this.preset.set({ unidadeId: this.store.id(), travarUnidade: true });
     this.agendando.set(true);
   }
 
-  protected aoAgendar(): void { this.agendando.set(false); this.carregarJanelas(this.store.id()); }
+  protected aoAgendar(janela: ManutencaoResponse): void {
+    this.agendando.set(false);
+    this.aviso.set(avisoDeAgendamento(janela));
+    this.carregarJanelas(this.store.id());
+  }
 
   protected recarregar(): void { this.store.carregar(this.store.id()); }
 

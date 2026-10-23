@@ -12,6 +12,9 @@
 
 .abas { align-self: start; }
 
+/* Mesmo notice da lista de manutenções (local por tela, não primitiva global). */
+.notice { margin: 0; padding: 9px 11px; border-left: 3px solid var(--im-success); background: var(--im-success-bg); color: var(--im-success-soft); font-size: 12px; }
+
 /* Janelas vigentes: mesmo tratamento do .banner-agendador da lista de manutenções, em tom informativo. */
 .banner-janela {
   display: flex; align-items: center; gap: 12px; padding: 12px 14px;

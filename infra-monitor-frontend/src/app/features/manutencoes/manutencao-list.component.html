@@ -1,11 +1,11 @@
 <section class="pagina" aria-labelledby="manutencoes-title">
   <header class="pagina__cabecalho">
     <div>
-      <h1 id="manutencoes-title">Janelas de manutenção</h1>
+      <h1 #titulo id="manutencoes-title" tabindex="-1">Janelas de manutenção</h1>
       <p class="pagina__descricao">Intervenções planejadas. Equipamentos em janela ativa não são verificados e o período não conta no relatório de disponibilidade.</p>
     </div>
     @if (podeGerenciar()) {
-      <button class="botao botao--primario" type="button" (click)="abrirAgendamento()" [disabled]="!podeAgendar()">+ Agendar manutenção</button>
+      <button #botaoAgendar class="botao botao--primario" type="button" (click)="abrirAgendamento()" [disabled]="!podeAgendar()">+ Agendar manutenção</button>
     }
   </header>
 
@@ -93,8 +93,8 @@
 
   @if (podeGerenciar()) {
     <app-agendar-manutencao [aberto]="agendando()" [preset]="preset()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="agendando.set(false)" (agendada)="aoAgendar($event)" />
-    <app-agendar-manutencao [aberto]="!!editando()" [janela]="editando()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="editando.set(null)" (salva)="aoSalvar($event)" />
-    <app-alterar-fim [aberto]="!!alterandoFim()" [janela]="alterandoFim()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="alterandoFim.set(null)" (alterado)="aoAlterarFim($event)" (continuar)="aoContinuar($event)" />
+    <app-agendar-manutencao [aberto]="!!editando()" [janela]="editando()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="fecharEdicao()" (salva)="aoSalvar($event)" (desatualizada)="marcarDesatualizada()" />
+    <app-alterar-fim [aberto]="!!alterandoFim()" [janela]="alterandoFim()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72" (fechar)="fecharAlterarFim()" (alterado)="aoAlterarFim($event)" (continuar)="aoContinuar($event)" (desatualizada)="marcarDesatualizada()" />
   }
 
   <app-confirm-dialog [open]="!!confirmando()" [title]="textoDialogo()?.titulo ?? ''" [message]="textoDialogo()?.mensagem ?? ''" [confirmLabel]="textoDialogo()?.botao ?? ''"

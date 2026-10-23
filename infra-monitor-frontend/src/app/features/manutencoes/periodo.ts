@@ -28,3 +28,10 @@ const p2 = (n: number) => String(n).padStart(2, '0');
 export function hora(iso: string): string { const d = new Date(iso); return `${p2(d.getHours())}:${p2(d.getMinutes())}`; }
 /** "DD/MM/AAAA HH:MM" no horário local. */
 export function dataHora(iso: string): string { const d = new Date(iso); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()} ${hora(iso)}`; }
+
+/** "Janela #50 agendada. Atenção: sobrepõe a janela #41." — mesmo texto na lista, em Equipamentos e no detalhe da unidade. */
+export function avisoDeAgendamento(janela: { id: number; sobreposicoes: number[] }): string {
+  const outras = janela.sobreposicoes.map((id) => `#${id}`);
+  const atencao = outras.length === 0 ? '' : outras.length === 1 ? ` Atenção: sobrepõe a janela ${outras[0]}.` : ` Atenção: sobrepõe as janelas ${outras.join(', ')}.`;
+  return `Janela #${janela.id} agendada.${atencao}`;
+}
