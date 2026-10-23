@@ -226,3 +226,71 @@ Quatro ajustes da revisão final da branch, todos para não deixar o operador se
    **Descartado: concluir janelas vencidas sem o reconciliador** (no boot ou na leitura da lista). Seria
    um segundo caminho de conclusão fora do lock e da ordem do reconciliador, por um caso operacional
    que a tela já resolve.
+
+---
+
+# F2 — integração, edição e prorrogação (2026-10-23)
+
+Aprovadas em chat em 2026-10-23. Spec: `Docs/superpowers/specs/2026-10-23-manutencao-agendada-f2-design.md`.
+
+## MA19 — Agendar a partir de Equipamentos: menu da linha e drawer, sem seleção múltipla na tabela
+
+O modal abre com a unidade travada e o equipamento marcado; outros da mesma unidade se marcam na checklist.
+No Mapa o item não aparece (`acoesDeGestao=false`, M06).
+
+**Descartado: seleção múltipla na tabela.** A janela é de uma unidade e a tabela mistura unidades: a seleção
+teria de ser recusada ou partida em N janelas. A checklist do modal já é a seleção múltipla, por unidade.
+
+## MA20 — Agendar a partir da Unidade: unidade travada, escopo ainda explícito
+
+O botão do cabeçalho (antes desabilitado, "Em breve") abre o modal com a unidade travada e o padrão
+"Equipamentos selecionados" do MA18. Banner de janela ativa e próxima agendada no detalhe.
+
+**Descartado: pré-marcar todos os equipamentos.** Congela a lista e contradiz o MA05; quando o operador marca
+todos, o modal sugere "Unidade inteira".
+
+## MA21 — Editar: AGENDADA tudo, ATIVA só o fim, encerradas nada
+
+Edição de ATIVA nunca toca início, escopo, equipamentos ou motivo: não reescreve o que já aconteceu, e o
+motivo é o que foi anunciado (F3). Trocar a unidade de uma AGENDADA limpa a seleção e o backend recusa ids de
+fora da unidade nova. Equipamento já vinculado que ficou inativo ou mudou de unidade sozinho continua, se a
+unidade da janela não mudou: sem isso, salvar só o motivo daria 400 por um equipamento que ninguém tocou.
+
+**Descartado: PATCH parcial.** Repetiria a dívida "PUT não distingue ausente de limpar"; o PUT é do objeto
+completo, com `versao`.
+
+## MA22 — Prorrogar = Alterar fim de ATIVA; concluída não reabre
+
+Mesma operação para prorrogar e antecipar. Fim ≤ agora é "Encerrar agora". Janela que acabou de concluir
+responde 409 e a tela oferece "Agendar continuação" pré-preenchida, dizendo que os equipamentos são pingados
+por alguns segundos no intervalo (aceito).
+
+**Descartado: reabrir CONCLUÍDA.** Reescreveria `encerrada_em` e a `janela_monitoramento` já reaberta.
+
+## MA23 — O teto de duração vale para o total
+
+`fim_previsto − inicio_previsto ≤ duracao-maxima` depois de alterar o fim, checado também no WHERE do CAS.
+Encadear uma janela nova depois da conclusão continua possível: é ato explícito e registrado.
+
+**Descartado: teto por prorrogação.** Prorrogações em série virariam a desativação disfarçada que o P-04 barra.
+
+## MA24 — Registro de alterações com JSONB antes/depois
+
+`manutencao_agendada_alteracao` (tipo `EDICAO`/`PRORROGACAO`/`ANTECIPACAO`, autor, instante, retratos). A tela
+mostra só a última. Criação, cancelamento e encerramento seguem nas colunas próprias da V21.
+
+**Descartado: colunas por campo.** O conjunto alterado varia (equipamentos é lista): tabela larga e quase nula.
+
+## MA25 — Agendador desligado: editar AGENDADA sim, alterar fim não
+
+Editar uma AGENDADA com o agendador desligado é permitido: senão ninguém corrige data ou motivo de uma janela
+futura enquanto ele estiver fora. A edição então **não** tenta ativar (criaria uma ATIVA que nada encerra).
+AGENDADA vencida só se edita movendo o início para o futuro (mesma validação da criação). Alterar fim é
+recusado com o 409 do MA16: antecipar sem o agendador mentiria.
+
+## MA26 — Concorrência da edição por `versao`; janela de unidade × criação é convergência
+
+`versao` incrementa em toda escrita na linha; editar e alterar fim travam a linha com
+`FOR UPDATE … WHERE status AND versao` e repetem a condição no UPDATE. Equipamento criado na unidade enquanto
+a janela conclui não divide lock com a conclusão: a garantia é o reconciliador de nível, convergência em até
+uma passada. Declarado assim no teste, sem fingir CAS.
