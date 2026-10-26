@@ -159,6 +159,35 @@ public class CoberturaManutencao {
                 RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
     }
 
+    /**
+     * Candidatas a ativar, so leitura e em ordem de id: o reconciliador faz o CAS
+     * {@link #ativarSeDevida} de cada uma na sua transacao, com o anuncio (MA31), para uma janela
+     * com anuncio quebrado nao desfazer as outras. O CAS rechecka tudo; o previsto daqui so serve
+     * ao log de atraso.
+     */
+    public List<Transicao> devidasParaAtivar(Instant agora) {
+        return jdbc.query("""
+                SELECT id, inicio_previsto AS previsto FROM manutencao_agendada
+                 WHERE status = 'AGENDADA' AND inicio_previsto <= :agora AND fim_previsto > :agora
+                 ORDER BY id""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
+    }
+
+    /** Candidatas a concluir pelo job, so leitura e em ordem de id (mesmo motivo de {@link #devidasParaAtivar}). */
+    public List<Long> vencidasParaConcluir(Instant agora) {
+        return jdbc.queryForList("""
+                SELECT id FROM manutencao_agendada WHERE status = 'ATIVA' AND fim_previsto <= :agora ORDER BY id""",
+                Map.of("agora", ts(agora)), Long.class);
+    }
+
+    /** CAS de {@link #concluirVencidas} restrito a uma janela. */
+    public Optional<Transicao> concluirSeVencida(long id, Instant agora) {
+        return jdbc.query("""
+                UPDATE manutencao_agendada SET versao = versao + 1, status = 'CONCLUIDA', encerrada_em = :agora, updated_at = :agora
+                 WHERE id = :id AND status = 'ATIVA' AND fim_previsto <= :agora
+                RETURNING id, fim_previsto AS previsto""", Map.of("id", id, "agora", ts(agora)),
+                Transicao.mapper(agora)).stream().findFirst();
+    }
+
     /** CAS AGENDADA -> CANCELADA. Janela ATIVA nao se cancela: se encerra. */
     public boolean cancelar(long id, long usuarioId, Instant agora) {
         return jdbc.update("""

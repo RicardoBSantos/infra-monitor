@@ -85,8 +85,10 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
     //    calibracao: com ele a reversao do FOR UPDATE da 20/30 vermelho.
     private static final long ATRASO_SEGUNDO_ENCERRAR_MS = 4;
     // 5: o motor e um INSERT so; o reconciliador precisa ativar e chegar ao lock do equipamento.
-    //    Medicao de calibracao, 0..8 ms no motor: 19 INC_PRIMEIRO / 11 MANUT_PRIMEIRO.
-    private static final long ATRASO_MOTOR_MS = 8;
+    //    Medicao de calibracao, 0..8 ms no motor: 19 INC_PRIMEIRO / 11 MANUT_PRIMEIRO. Recalibrado em 2026-10-26
+    //    (F3: o anuncio entrou na transacao da ativacao e o reconciliador le as candidatas antes): 0..8 deu 30/30
+    //    INC_PRIMEIRO; 0..20 deu 18 INC / 12 MANUT; 0..40 deu 6/24.
+    private static final long ATRASO_MOTOR_MS = 20;
     // 6: duas passadas simetricas; 0..4 ms alterna quem ganha o CAS de ativacao (medicao de
     //    calibracao: 24 A / 6 B).
     private static final long ATRASO_SEGUNDA_PASSADA_MS = 4;

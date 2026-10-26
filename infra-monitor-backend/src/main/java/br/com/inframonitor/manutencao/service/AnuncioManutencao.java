@@ -48,11 +48,12 @@ public class AnuncioManutencao {
 
     /**
      * Depois do CAS AGENDADA -> ATIVA. Atrasado quando a ativacao real passou do previsto por mais de
-     * duas passadas do reconciliador: o sistema esteve fora no horario.
+     * duas passadas do reconciliador: o sistema esteve fora no horario. So o job pode dizer isso
+     * ({@code peloJob}): criar/editar com inicio ate 5 min no passado ativa com o servidor no ar.
      */
-    public void anunciarInicio(long janelaId, Instant agora) {
+    public void anunciarInicio(long janelaId, Instant agora, boolean peloJob) {
         Linha l = ler(janelaId);
-        boolean atrasado = Duration.between(l.janela().inicioPrevisto(), agora)
+        boolean atrasado = peloJob && Duration.between(l.janela().inicioPrevisto(), agora)
                 .compareTo(Duration.ofMillis(2 * props.getIntervaloMs())) > 0;
         notificacoes.criarParaManutencaoIniciada(l.janela(), agora, atrasado);
     }

@@ -157,7 +157,7 @@ public class ManutencaoAgendadaService {
             if (!cobertura.ativarSeDevida(id, agora)) {
                 return false;
             }
-            anuncio.anunciarInicio(id, agora);
+            anuncio.anunciarInicio(id, agora, false);   // nunca "sistema esteve fora": o servidor esta no ar
             return true;
         }));
     }

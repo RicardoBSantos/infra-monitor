@@ -1,17 +1,23 @@
 package br.com.inframonitor.manutencao;
 
+import br.com.inframonitor.manutencao.config.ManutencaoAgendadaProperties;
 import br.com.inframonitor.manutencao.dto.AlterarFimRequest;
 import br.com.inframonitor.manutencao.dto.CriarManutencaoRequest;
 import br.com.inframonitor.manutencao.dto.EditarManutencaoRequest;
 import br.com.inframonitor.manutencao.dto.ManutencaoResponse;
 import br.com.inframonitor.manutencao.entity.EscopoManutencao;
+import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
 import br.com.inframonitor.manutencao.service.ManutencaoAgendadaService;
 import br.com.inframonitor.manutencao.service.ReconciliadorManutencao;
-import br.com.inframonitor.notificacao.service.DadosAnuncio;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.testsupport.RequerDocker;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,9 +37,9 @@ import java.util.List;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 
@@ -74,6 +80,7 @@ class ManutencaoAnuncioPostgresIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ReconciliadorManutencao reconciliador;
     @Autowired private ManutencaoAgendadaService service;
+    @Autowired private ManutencaoAgendadaProperties props;
     // Spy so para injetar falha na montagem do anuncio; nos demais testes delega ao bean real.
     @MockitoSpyBean private NotificacaoService notificacoes;
 
@@ -332,27 +339,72 @@ class ManutencaoAnuncioPostgresIntegrationTest {
     }
 
     /**
-     * MA31, exatamente uma vez acima de disponibilidade: se o anuncio nao pode ser montado, a
-     * transicao inteira volta e a passada seguinte tenta de novo; nunca janela ATIVA sem anuncio.
+     * MA31 por janela: a transicao cuja montagem de anuncio falha volta sozinha (nunca ATIVA sem
+     * anuncio) e e tentada de novo na passada seguinte; as demais janelas da mesma passada ativam e
+     * concluem normalmente. Antes, um lote so: uma janela quebrada desfazia todas e parava a passada.
      */
     @Test
-    void falhaAoMontarAnuncioDesfazATransicao() {
-        long j = janela("AGENDADA", EscopoManutencao.EQUIPAMENTOS, centro, agora.minusSeconds(30),
+    void janelaComAnuncioQuebradoNaoBloqueiaAsDemais() {
+        long quebrada = janela("AGENDADA", EscopoManutencao.EQUIPAMENTOS, centro, agora.minusSeconds(30),
                 agora.plus(1, HOURS), ana, sw);
-        doThrow(new IllegalStateException("anuncio quebrado")).when(notificacoes)
-                .criarParaManutencaoIniciada(any(DadosAnuncio.Janela.class), any(Instant.class), anyBoolean());
+        long boa = janela("AGENDADA", EscopoManutencao.EQUIPAMENTOS, centro, agora.minusSeconds(20),
+                agora.plus(1, HOURS), ana, ap);
+        long vencida = janela("ATIVA", EscopoManutencao.EQUIPAMENTOS, centro, agora.minus(2, HOURS),
+                agora.minus(1, MINUTES), ana, nvr);
+        doThrow(new IllegalStateException("anuncio quebrado")).when(notificacoes).criarParaManutencaoIniciada(
+                argThat(j -> j != null && j.id() == quebrada), any(Instant.class), anyBoolean());
+        Logger logger = (Logger) LoggerFactory.getLogger(ReconciliadorManutencao.class);
+        ListAppender<ILoggingEvent> registros = new ListAppender<>();
+        registros.start();
+        logger.addAppender(registros);
+        try {
+            var r = reconciliador.reconciliar(agora);
 
-        assertThatThrownBy(() -> reconciliador.reconciliar(agora)).hasMessage("anuncio quebrado");
-
-        assertThat(status(j)).isEqualTo("AGENDADA");
-        assertThat(contar("MANUTENCAO_INICIADA")).isZero();
+            assertThat(r.ativadas()).extracting(CoberturaManutencao.Transicao::manutencaoId).containsExactly(boa);
+            assertThat(r.concluidas()).extracting(CoberturaManutencao.Transicao::manutencaoId)
+                    .containsExactly(vencida);
+        } finally {
+            logger.detachAppender(registros);
+        }
+        assertThat(status(quebrada)).isEqualTo("AGENDADA");
+        assertThat(status(boa)).isEqualTo("ATIVA");
+        assertThat(status(vencida)).isEqualTo("CONCLUIDA");
+        assertThat(jdbc.queryForList("select manutencao_agendada_id from notificacao where tipo_evento = "
+                + "'MANUTENCAO_INICIADA'", Long.class)).containsExactly(boa);
+        assertThat(ancora("MANUTENCAO_ENCERRADA")).isEqualTo(vencida);
+        assertThat(registros.list).anySatisfy(e -> {
+            assertThat(e.getLevel()).isEqualTo(Level.ERROR);
+            assertThat(e.getFormattedMessage()).contains("janela " + quebrada);
+        });
 
         reset(notificacoes);
         reconciliador.reconciliar(agora.plusSeconds(30));
 
-        assertThat(status(j)).isEqualTo("ATIVA");
-        assertThat(contar("MANUTENCAO_INICIADA")).isEqualTo(1);
+        assertThat(status(quebrada)).isEqualTo("ATIVA");
+        assertThat(jdbc.queryForObject("select count(*) from notificacao where tipo_evento = 'MANUTENCAO_INICIADA' "
+                + "and manutencao_agendada_id = ?", Integer.class, quebrada)).isEqualTo(1);
     }
+
+    /**
+     * "Sistema esteve fora" so pelo job: na criacao com inicio poucos minutos atras (tolerancia de 5 min)
+     * o servidor estava no ar; com o intervalo padrao de 30 s, 2 min ja passaria do limite de 2 x intervalo.
+     */
+    @Test
+    void ativacaoNaCriacaoNuncaDizAtrasada() {
+        long intervalo = props.getIntervaloMs();
+        props.setIntervaloMs(30_000);
+        try {
+            Instant inicio = Instant.now().minus(2, MINUTES).truncatedTo(ChronoUnit.SECONDS);
+            ManutencaoResponse r = service.criar(new CriarManutencaoRequest(centro, EscopoManutencao.EQUIPAMENTOS,
+                    List.of(sw), inicio, inicio.plus(1, HOURS), "Troca do switch core"), ana);
+
+            assertThat(status(r.id())).isEqualTo("ATIVA");
+            assertThat(mensagem("MANUTENCAO_INICIADA")).contains("Início: ").doesNotContain("(previsto");
+        } finally {
+            props.setIntervaloMs(intervalo);
+        }
+    }
+
 
     // --- caminhos que nao anunciam ----------------------------------------------------------
 

@@ -62,7 +62,7 @@ class ReconciliadorManutencaoTest {
     @Test
     void primeiraPassadaComFalhaAindaLiberaOMotor() {
         IllegalStateException falha = new IllegalStateException("banco fora");
-        when(cobertura.ativarDevidas(any())).thenThrow(falha);
+        when(cobertura.devidasParaAtivar(any())).thenThrow(falha);
         assertThat(inicial.pronta()).isFalse();
 
         // Pelo agendador: nao estoura, loga e libera.
@@ -79,7 +79,7 @@ class ReconciliadorManutencaoTest {
     @Test
     void chamadaDiretaPropagaAFalhaMasLiberaOMotor() {
         IllegalStateException falha = new IllegalStateException("banco fora");
-        when(cobertura.ativarDevidas(any())).thenThrow(falha);
+        when(cobertura.devidasParaAtivar(any())).thenThrow(falha);
 
         assertThatThrownBy(() -> reconciliador.reconciliar(AGORA)).isSameAs(falha);
 
