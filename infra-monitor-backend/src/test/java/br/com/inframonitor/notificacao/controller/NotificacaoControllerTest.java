@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class NotificacaoControllerTest {
     private static final NotificacaoResponse NOTIFICACAO = new NotificacaoResponse(100L, CanalNotificacao.TELEGRAM,
             TipoEventoNotificacao.INCIDENTE_ABERTO, StatusNotificacao.PENDENTE, 0, "snapshot", null, null,
-            new IncidenteNotificacaoResponse(10L, StatusIncidente.ABERTO), null,
+            new IncidenteNotificacaoResponse(10L, StatusIncidente.ABERTO), null, null, null,
             "ping", "SW-CORE", "Sesc Centro", Instant.parse("2026-08-19T12:00:00Z"),
             Instant.parse("2026-08-19T12:00:00Z"));
 
@@ -40,7 +40,7 @@ class NotificacaoControllerTest {
     @Test
     void consultaEFiltra() throws Exception {
         when(notificacaoService.buscarPorId(100L)).thenReturn(NOTIFICACAO);
-        when(notificacaoService.listar(eq(10L), isNull(), eq(StatusNotificacao.PENDENTE), eq(CanalNotificacao.TELEGRAM),
+        when(notificacaoService.listar(eq(10L), isNull(), isNull(), isNull(), eq(StatusNotificacao.PENDENTE), eq(CanalNotificacao.TELEGRAM),
                 eq(TipoEventoNotificacao.INCIDENTE_ABERTO), any(), any(), any())).thenReturn(new PageImpl<>(List.of(NOTIFICACAO)));
 
         mockMvc.perform(get("/api/v1/notificacoes/100")).andExpect(status().isOk())
@@ -52,10 +52,11 @@ class NotificacaoControllerTest {
     @Test
     void retorna404E400ParaEntradasInvalidas() throws Exception {
         when(notificacaoService.buscarPorId(99L)).thenThrow(new RecursoNaoEncontradoException("Notificacao nao encontrada"));
-        when(notificacaoService.listar(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(notificacaoService.listar(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("inicio deve ser menor ou igual a fim"));
 
         mockMvc.perform(get("/api/v1/notificacoes/99")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/notificacoes?manutencaoId=41&manutencaoManualId=7")).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/notificacoes?status=INVALIDO")).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/notificacoes?canal=EMAIL")).andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/v1/notificacoes?inicio=2026-08-20T00:00:00Z&fim=2026-08-19T00:00:00Z"))

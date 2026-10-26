@@ -53,3 +53,69 @@ Sem a correção os três falham com
 Com a correção passam (5/5 na classe) e o log traz `ancora=episodioLatencia=3` /
 `ancora=manutencao=41`. A reversão local da correção voltou a deixar os três vermelhos (3 falhas em
 5), e a correção foi restaurada em seguida.
+
+## Listagem de notificações (`NotificacaoService.listar`, `paraResposta`, controller, graphs)
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `NotificacaoController.listar` | recebia `incidenteId`, `episodioLatenciaId`; repassa ao serviço | **muda** | Ganha `manutencaoId` e `manutencaoManualId` (opcionais), repassados logo depois de `episodioLatenciaId`. `CAMPOS_ORDENAVEIS` não muda: nenhuma coluna nova é ordenável. |
+| `NotificacaoController.buscarPorId` | `findById` → `paraResposta` | não muda | Só a resposta ganha campos (abaixo). |
+| `NotificacaoService.listar`, validação de âncora | recusava `incidenteId` + `episodioLatenciaId` com mensagem própria | **muda** | Quatro âncoras exclusivas (`ck_notificacao_ancora_exclusiva`): qualquer par nunca casaria. Conta as informadas e recusa mais de uma com `IllegalArgumentException("informe apenas uma ancora: incidenteId, episodioLatenciaId, manutencaoId ou manutencaoManualId")`, que o `TratadorGlobalDeErros` devolve como 400 no formato `ErroResposta`. |
+| `NotificacaoService.listar`, filtros `Specification` | `root.get("incidente").get("id")` e `episodioLatencia` | **muda** | Dois filtros novos: `manutencaoAgendada.id` e `manutencaoManual.id`. O `cb.equal` sobre `get("x").get("id")` não faz join (o Hibernate usa a FK), então não duplica linha nem distorce o `count` da página. |
+| `NotificacaoService.listar`, `status`/`canal`/`tipoEvento`/`inicio`/`fim` | filtros por coluna própria | não muda | Independem da âncora; `tipoEvento` aceita os valores novos sem código (enum em `@RequestParam`). |
+| `NotificacaoService.paraResposta`, blocos `incidente` e `episodioLatencia` | monta os blocos de âncora | não muda | Já tratava âncora nula. |
+| `NotificacaoService.paraResposta`, `monitor`/`equipamento`/`unidade` | lia tudo de `incidente.monitor` ou `episodio.monitor`; sem monitor, tudo `null` | **muda** | Sem a correção, notificação de janela/manual sairia com `equipamentoNome` e `unidadeNome` nulos e a tela não saberia de que unidade é o aviso. Agora: monitor da âncora de monitor; equipamento = o do monitor ou o da sessão manual; unidade = a do equipamento ou a da janela. Janela: `equipamentoNome` e `monitorNome` nulos, `unidadeNome` da janela. Manual: equipamento e unidade do equipamento, monitor nulo. |
+| `NotificacaoService.paraResposta`, blocos novos | — | **muda** | `manutencao {id, unidadeNome}` e `manutencaoManual {id, equipamentoId, equipamentoNome}` entram depois de `episodioLatencia`. Leem `getUnidade()` e `getEquipamento()` das âncoras, seguro porque os `EntityGraph` de `findById`/`findAll` já trazem `manutencaoAgendada.unidade` e `manutencaoManual.equipamento.unidade`. Provado em `NotificacaoListagemManutencaoPostgresIntegrationTest` (leitura fora de transação, sem `LazyInitializationException`). |
+| `NotificacaoRepository.findById` / `findAll` (graphs) | joins das âncoras | não muda nesta tarefa | Já cobriam as âncoras novas (T1). Fecha o ponto de atenção da seção do dispatcher para o caminho da listagem: `paraResposta` acessa atributos das âncoras e funciona. |
+| `NotificacaoRepository.findByIncidenteId` | `@EntityGraph("incidente")`, por incidente | não muda | Âncora de incidente apenas. |
+| `NotificacaoResponse` (DTO) | contrato com o front | **muda** | Dois campos novos depois de `episodioLatencia`; o JSON do front (`notificacao.ts`) confere campo a campo. |
+
+## Relatório de histórico (`RelatorioService.notificacoes`, `HistoricoNotificacaoResponse`)
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `RelatorioService.notificacoes`, SQL | `select ... incidente_id ... from notificacao` sem join | **muda** | Lê também `manutencao_agendada_id` e `manutencao_manual_id`. Sem join com monitor, então não perde linha de janela/manual (um `join incidente` perderia). |
+| `RelatorioService.notificacoes`, mapper | `r.getLong("incidente_id")` | **muda** | **Bug latente que a F3 expõe:** `ResultSet.getLong` devolve `0` para `NULL`. Desde a F1 uma notificação de latência já saía com `incidenteId: 0`; com janela/manual seria a maioria. Passa a `(Long) r.getObject(...)` e o histórico devolve `null`. Teste: `historicoTrazAsDuasColunasNovasEIncidenteNuloNaoViraZero`. |
+| `RelatorioService.notificacoes`, filtros (`incidenteId`, `status`, `canal`, `tipo`) | `incidente_id = :incidenteId` | não muda | Filtrar por incidente continua filtrando só âncora de incidente. O histórico não ganha filtro por janela/sessão: o brief só pede as colunas. |
+| `RelatorioService.filters(... incidenteId)` | 404 se o incidente não existe | não muda | Só vale quando o filtro é informado. |
+| `RelatorioService.validarExportacaoNotificacoes` e mapa de ordenação | `order(sort, ...)` | não muda | Ordena por colunas que já existiam; as novas não são ordenáveis. |
+| `HistoricoNotificacaoResponse` | record | **muda** | `Long manutencaoId, Long manutencaoManualId` no **fim** (contrato do front). `incidenteId` já era `Long`. |
+| `RelatorioController.notificacoes` | repassa parâmetros | não muda | Assinatura do endpoint intacta. |
+
+## Export CSV de notificações (`RelatorioExportService.notificacoes`)
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `NOTIFICACOES` (SQL) | `select id,incidente_id,...` | **muda** | Acrescenta as duas colunas no fim do `select`. |
+| Cabeçalho e linha do CSV | `notificacao_id,incidente_id,tipo_evento,canal,status,tentativas,created_at,enviado_em` | **muda** | `manutencao_id,manutencao_manual_id` no **fim**, para não deslocar as colunas que planilhas e scripts já consomem. |
+| `lng(r, "incidente_id")` | `getObject` + `Number.longValue` | não muda | Já era null-safe: o CSV nunca teve o bug do `0` do histórico. Célula vazia para âncora ausente. |
+| Filtros e ordenação do export | `incidenteId`, `status`, `canal`, `tipo` | não muda | Mesmos do relatório. |
+| `RelatorioExportController.notificacoes` | repassa | não muda | Sem parâmetro novo. |
+| Colunas `mensagem` e `erro` | fora do CSV por desenho | não muda | Continuam excluídas (teste existente: `doesNotContain("mensagem fora do CSV", "erro", ...)`). A mensagem de janela carrega motivo e nome de usuário; ficar fora do CSV é o que já a protege. |
+
+## PDF Visão Geral (`VisaoGeralPdfRepository.KPIS`) e indicadores
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `KPIS`, `notificacoes_falha` | `count(*) from notificacao where status='FALHA' and created_at between` | não muda | Sem filtro de âncora nem de tipo: conta falha de entrega no canal, e falha de anúncio de janela/manual é exatamente isso (saúde do canal, spec §2.8). Teste: `falhaDeAnuncioDeManutencaoContaEmNotificacoesFalha` (25 → 27 no indicador). |
+| `KPIS`, `incidentes_abertos` e `medicoes_falha` | tabelas `incidente` e `medicao` | não muda | Sem relação com `notificacao`. |
+| `RelatorioService.indicadoresVisaoGeral` | chama `coletarKpis` | não muda | O PDF (`coletar`) e o endpoint de indicadores usam o mesmo `coletarKpis`: o número da tela e o do PDF não divergem. |
+| Demais blocos do PDF (unidades, equipamentos, latência) | disponibilidade e latência | não muda | Não leem `notificacao`. |
+
+## Dashboard (`DashboardIncidenteReadRepository`, `DashboardIncidenteResponse`)
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| Braço `INCIDENTE` do `EVENTO`, LATERAL em `notificacao` | `where nn.incidente_id = i.id order by created_at desc, id desc limit 1` | não muda | Só olha notificação ancorada naquele incidente; as âncoras novas têm `incidente_id` nulo e nunca casam. O `LATERAL ... LIMIT 1` continua sendo a proteção do `count` contra linha duplicada. |
+| Braço `LATENCIA`, LATERAL | `where nn.episodio_latencia_id = ep.id` | não muda | Mesmo raciocínio. |
+| `notificacaoCanal`/`Status`/`EnviadoEm` | último aviso do incidente/episódio | não muda | O dashboard é de incidentes e latência; aviso de janela/sessão não é evento deles e não deve aparecer ali. Incidente encerrado por manutenção mostra como último aviso o `INCIDENTE_ENCERRADO_MANUTENCAO`, que já existia e continua ancorado no incidente. |
+| `MAPPER` | `r.getLong("monitor_id")` etc. | não muda | Colunas do join interno com monitor/equipamento/unidade, nunca nulas. |
+| `DashboardIncidenteResponse` | record | não muda | Sem campo de âncora. |
+
+## `EfeitosManutencao` (entrada em manutenção)
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `aplicarEntrada`, passo 5: `tratarEncerramentoPorManutencao(incidente\|episodio, agora)` | cancela abertura pendente e avisa `INCIDENTE_ENCERRADO_MANUTENCAO` / `LATENCIA_ENCERRADA_MANUTENCAO` | não muda | Os dois eventos têm âncora de monitor e seguem por `inserirPendenteSeAusente(incidenteId, episodioId, null, null, ...)`. O aviso novo da F3 (`MANUTENCAO_MANUAL_INICIADA`) é criado por `AnuncioManutencaoManual.anunciarInicio`, chamado em `EstadoManutencaoEquipamento`, **fora** deste método e na transação do chamador (lock do equipamento, MA31). |
+| `aplicarSaida` | `cicloJanela.abrirEquipamento` | não muda | Sem notificação. |
+| Releitura por id e filtro `MotivoEncerramento == MANUTENCAO` | evita notificar o que o motor fechou | não muda | Regra de incidente/episódio; independe das âncoras novas. |

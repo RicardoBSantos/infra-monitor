@@ -92,11 +92,11 @@ class NotificacaoServiceTest {
                 .thenReturn(new PageImpl<>(List.of(notificacao)));
 
         assertThat(notificacaoService.buscarPorId(100L).incidente().id()).isEqualTo(10L);
-        assertThat(notificacaoService.listar(10L, null, StatusNotificacao.PENDENTE, CanalNotificacao.TELEGRAM,
+        assertThat(notificacaoService.listar(10L, null, null, null, StatusNotificacao.PENDENTE, CanalNotificacao.TELEGRAM,
                 TipoEventoNotificacao.INCIDENTE_ABERTO, INICIO, INICIO.plusSeconds(60), PageRequest.of(0, 20))
                 .getContent()).hasSize(1);
         assertThatThrownBy(() -> notificacaoService.buscarPorId(99L)).isInstanceOf(RecursoNaoEncontradoException.class);
-        assertThatThrownBy(() -> notificacaoService.listar(null, null, null, null, null, INICIO.plusSeconds(1), INICIO,
+        assertThatThrownBy(() -> notificacaoService.listar(null, null, null, null, null, null, null, INICIO.plusSeconds(1), INICIO,
                 PageRequest.of(0, 20))).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -106,15 +106,22 @@ class NotificacaoServiceTest {
                 org.mockito.ArgumentMatchers.<Pageable>any())).thenReturn(new PageImpl<>(List.of()));
         Pageable pagina = PageRequest.of(0, 20);
 
-        notificacaoService.listar(null, null, null, null, null, null, null, pagina);
-        notificacaoService.listar(10L, null, null, null, null, null, null, pagina);
-        notificacaoService.listar(null, 33L, null, null, null, null, null, pagina);
-        notificacaoService.listar(null, null, StatusNotificacao.PENDENTE, CanalNotificacao.TELEGRAM,
+        notificacaoService.listar(null, null, null, null, null, null, null, null, null, pagina);
+        notificacaoService.listar(10L, null, null, null, null, null, null, null, null, pagina);
+        notificacaoService.listar(null, 33L, null, null, null, null, null, null, null, pagina);
+        notificacaoService.listar(null, null, 41L, null, null, null, null, null, null, pagina);
+        notificacaoService.listar(null, null, null, 7L, null, null, null, null, null, pagina);
+        notificacaoService.listar(null, null, null, null, StatusNotificacao.PENDENTE, CanalNotificacao.TELEGRAM,
                 TipoEventoNotificacao.INCIDENTE_ABERTO, INICIO, INICIO.plusSeconds(60), pagina);
 
-        // As duas ancoras sao mutuamente exclusivas no schema; pedir as duas e erro de chamada.
-        assertThatThrownBy(() -> notificacaoService.listar(10L, 33L, null, null, null, null, null, pagina))
-                .isInstanceOf(IllegalArgumentException.class);
+        // As ancoras sao mutuamente exclusivas no schema; pedir duas e erro de chamada.
+        String mensagem = "informe apenas uma ancora: incidenteId, episodioLatenciaId, manutencaoId ou manutencaoManualId";
+        assertThatThrownBy(() -> notificacaoService.listar(10L, 33L, null, null, null, null, null, null, null, pagina))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage(mensagem);
+        assertThatThrownBy(() -> notificacaoService.listar(10L, null, 41L, null, null, null, null, null, null, pagina))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage(mensagem);
+        assertThatThrownBy(() -> notificacaoService.listar(null, null, 41L, 7L, null, null, null, null, null, pagina))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage(mensagem);
     }
 
     private Incidente incidente() {

@@ -2,10 +2,16 @@ package br.com.inframonitor.notificacao.service;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.equipamento.entity.Equipamento;
+import br.com.inframonitor.equipamento.entity.ManutencaoManual;
+import br.com.inframonitor.manutencao.entity.ManutencaoAgendada;
 import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.unidade.entity.Unidade;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import br.com.inframonitor.notificacao.dto.EpisodioLatenciaNotificacaoResponse;
 import br.com.inframonitor.notificacao.dto.IncidenteNotificacaoResponse;
+import br.com.inframonitor.notificacao.dto.ManutencaoManualNotificacaoResponse;
+import br.com.inframonitor.notificacao.dto.ManutencaoNotificacaoResponse;
 import br.com.inframonitor.notificacao.dto.NotificacaoResponse;
 import br.com.inframonitor.notificacao.entity.CanalNotificacao;
 import br.com.inframonitor.notificacao.entity.Notificacao;
@@ -22,8 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
@@ -204,18 +212,23 @@ public class NotificacaoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Notificacao nao encontrada")));
     }
 
-    public Page<NotificacaoResponse> listar(Long incidenteId, Long episodioLatenciaId, StatusNotificacao status, CanalNotificacao canal,
+    public Page<NotificacaoResponse> listar(Long incidenteId, Long episodioLatenciaId, Long manutencaoId,
+                                             Long manutencaoManualId, StatusNotificacao status, CanalNotificacao canal,
                                              TipoEventoNotificacao tipoEvento, Instant inicio, Instant fim,
                                              Pageable pageable) {
         validarPeriodo(inicio, fim);
-        // As duas ancoras sao mutuamente exclusivas por ck_notificacao_ancora_exclusiva:
-        // filtrar pelas duas juntas nunca casaria e mascararia um erro de chamada.
-        if (incidenteId != null && episodioLatenciaId != null) {
-            throw new IllegalArgumentException("informe incidenteId ou episodioLatenciaId, nunca os dois");
+        // As ancoras sao mutuamente exclusivas por ck_notificacao_ancora_exclusiva:
+        // filtrar por duas juntas nunca casaria e mascararia um erro de chamada.
+        if (Stream.of(incidenteId, episodioLatenciaId, manutencaoId, manutencaoManualId)
+                .filter(Objects::nonNull).count() > 1) {
+            throw new IllegalArgumentException(
+                    "informe apenas uma ancora: incidenteId, episodioLatenciaId, manutencaoId ou manutencaoManualId");
         }
         List<Specification<Notificacao>> filtros = new ArrayList<>();
         if (incidenteId != null) filtros.add((root, query, cb) -> cb.equal(root.get("incidente").get("id"), incidenteId));
         if (episodioLatenciaId != null) filtros.add((root, query, cb) -> cb.equal(root.get("episodioLatencia").get("id"), episodioLatenciaId));
+        if (manutencaoId != null) filtros.add((root, query, cb) -> cb.equal(root.get("manutencaoAgendada").get("id"), manutencaoId));
+        if (manutencaoManualId != null) filtros.add((root, query, cb) -> cb.equal(root.get("manutencaoManual").get("id"), manutencaoManualId));
         if (status != null) filtros.add((root, query, cb) -> cb.equal(root.get("status"), status));
         if (canal != null) filtros.add((root, query, cb) -> cb.equal(root.get("canal"), canal));
         if (tipoEvento != null) filtros.add((root, query, cb) -> cb.equal(root.get("tipoEvento"), tipoEvento));
@@ -234,18 +247,28 @@ public class NotificacaoService {
     private NotificacaoResponse paraResposta(Notificacao notificacao) {
         Incidente incidente = notificacao.getIncidente();
         MonitorEpisodioLatencia episodio = notificacao.getEpisodioLatencia();
-        // O monitor vem da ancora que estiver preenchida; a listagem nao precisa saber qual.
+        ManutencaoAgendada janela = notificacao.getManutencaoAgendada();
+        ManutencaoManual sessao = notificacao.getManutencaoManual();
+        // Monitor, equipamento e unidade vem da ancora preenchida; a listagem nao precisa saber qual.
+        // Janela agendada nao tem monitor nem equipamento (so a unidade); a sessao manual tem equipamento.
         Monitor monitor = incidente != null ? incidente.getMonitor()
                 : episodio != null ? episodio.getMonitor() : null;
+        Equipamento equipamento = monitor != null ? monitor.getEquipamento()
+                : sessao != null ? sessao.getEquipamento() : null;
+        Unidade unidade = equipamento != null ? equipamento.getUnidade()
+                : janela != null ? janela.getUnidade() : null;
         return new NotificacaoResponse(notificacao.getId(), notificacao.getCanal(), notificacao.getTipoEvento(),
                 notificacao.getStatus(), notificacao.getTentativas(), notificacao.getMensagem(), notificacao.getErro(),
                 notificacao.getEnviadoEm(),
                 incidente == null ? null : new IncidenteNotificacaoResponse(incidente.getId(), incidente.getStatus()),
                 episodio == null ? null : new EpisodioLatenciaNotificacaoResponse(episodio.getId(),
                         episodio.getIniciadoEm(), episodio.getEncerradoEm(), episodio.getLimiarMs()),
+                janela == null ? null : new ManutencaoNotificacaoResponse(janela.getId(), janela.getUnidade().getNome()),
+                sessao == null ? null : new ManutencaoManualNotificacaoResponse(sessao.getId(),
+                        sessao.getEquipamento().getId(), sessao.getEquipamento().getNome()),
                 monitor == null ? null : monitor.getNome(),
-                monitor == null ? null : monitor.getEquipamento().getNome(),
-                monitor == null ? null : monitor.getEquipamento().getUnidade().getNome(),
+                equipamento == null ? null : equipamento.getNome(),
+                unidade == null ? null : unidade.getNome(),
                 notificacao.getCreatedAt(), notificacao.getUpdatedAt());
     }
 }
