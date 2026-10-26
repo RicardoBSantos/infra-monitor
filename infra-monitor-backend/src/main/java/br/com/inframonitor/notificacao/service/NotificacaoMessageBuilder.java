@@ -6,12 +6,24 @@ import br.com.inframonitor.incidente.entity.MotivoEncerramentoIncidente;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Component
 public class NotificacaoMessageBuilder {
+
+    private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    private final ZoneId fuso;
+
+    public NotificacaoMessageBuilder(@Value("${app.reports.timezone:America/Sao_Paulo}") String fuso) {
+        this.fuso = ZoneId.of(fuso);
+    }
 
     public String construir(Incidente incidente, TipoEventoNotificacao tipoEvento) {
         Monitor monitor = incidente.getMonitor();
@@ -37,7 +49,7 @@ public class NotificacaoMessageBuilder {
             mensagem.append("\nIP: ").append(equipamento.getIp());
         }
         mensagem.append("\nMonitor: ").append(monitor.getNome())
-                .append("\nInicio: ").append(incidente.getIniciadoEm());
+                .append("\nInicio: ").append(hora(incidente.getIniciadoEm()));
         if (tipoEvento == TipoEventoNotificacao.INCIDENTE_ABERTO && incidente.getMotivo() != null) {
             mensagem.append("\nMotivo: ").append(incidente.getMotivo());
         }
@@ -47,7 +59,7 @@ public class NotificacaoMessageBuilder {
         // mesmo estilo dos vizinhos.
         if (tipoEvento == TipoEventoNotificacao.INCIDENTE_FECHADO
                 || tipoEvento == TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO) {
-            mensagem.append("\nFim: ").append(incidente.getEncerradoEm());
+            mensagem.append("\nFim: ").append(hora(incidente.getEncerradoEm()));
             if (incidente.getIniciadoEm() != null && incidente.getEncerradoEm() != null) {
                 mensagem.append("\nDuracao: ").append(formatarDuracao(Duration.between(
                         incidente.getIniciadoEm(), incidente.getEncerradoEm())));
@@ -59,7 +71,7 @@ public class NotificacaoMessageBuilder {
             mensagem.append("\nEncerrado por: ").append(incidente.getFechadoPor() != null
                     ? incidente.getFechadoPor().getNome() : "operador nao identificado");
         }
-        return mensagem.toString();
+        return mensagem.append("\n").append(rodape(incidente.getIniciadoEm())).toString();
     }
 
     /**
@@ -87,21 +99,32 @@ public class NotificacaoMessageBuilder {
         }
         mensagem.append("\nMonitor: ").append(monitor.getNome())
                 .append("\nLimiar: ").append(episodio.getLimiarMs()).append(" ms")
-                .append("\nInicio: ").append(episodio.getIniciadoEm());
+                .append("\nInicio: ").append(hora(episodio.getIniciadoEm()));
         // Mesma logica do lado do incidente: Fim/Duracao valem para qualquer
         // encerramento, manutencao inclusive.
         if (tipoEvento == TipoEventoNotificacao.LATENCIA_NORMALIZADA
                 || tipoEvento == TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO) {
-            mensagem.append("\nFim: ").append(episodio.getEncerradoEm());
+            mensagem.append("\nFim: ").append(hora(episodio.getEncerradoEm()));
             if (episodio.getIniciadoEm() != null && episodio.getEncerradoEm() != null) {
                 mensagem.append("\nDuracao: ").append(formatarDuracao(Duration.between(
                         episodio.getIniciadoEm(), episodio.getEncerradoEm())));
             }
         }
-        return mensagem.toString();
+        return mensagem.append("\n").append(rodape(episodio.getIniciadoEm())).toString();
     }
 
-    private String formatarDuracao(Duration duracao) {
+    String hora(Instant instante) {
+        // Nulo nao deve derrubar a criacao da notificacao (antes saia "null" no texto).
+        return instante == null ? "-" : FORMATO_HORA.format(instante.atZone(fuso));
+    }
+
+    /** Offset do instante de referencia, nao o de hoje: vale em fusos com horario de verao. */
+    String rodape(Instant referencia) {
+        String offset = fuso.getRules().getOffset(referencia).getId();
+        return "Horários: UTC" + ("Z".equals(offset) ? "+00:00" : offset) + " (" + fuso.getId() + ")";
+    }
+
+    String formatarDuracao(Duration duracao) {
         long segundos = duracao.getSeconds();
         long horas = segundos / 3600;
         long minutos = (segundos % 3600) / 60;
