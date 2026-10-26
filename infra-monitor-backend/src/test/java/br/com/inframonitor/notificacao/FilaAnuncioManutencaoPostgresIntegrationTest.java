@@ -104,10 +104,12 @@ class FilaAnuncioManutencaoPostgresIntegrationTest {
                 assertThat(prontos()).contains(inicio);
             }
         }
-        limparNotificacoes();
-        linha(null, sessao, "MANUTENCAO_MANUAL_INICIADA", "ENVIANDO");
-        long fimManual = linha(null, sessao, "MANUTENCAO_MANUAL_ENCERRADA", "PENDENTE");
-        assertThat(prontos()).doesNotContain(fimManual);
+        for (String estado : List.of("PENDENTE", "ENVIANDO")) {
+            limparNotificacoes();
+            linha(null, sessao, "MANUTENCAO_MANUAL_INICIADA", estado);
+            long fimManual = linha(null, sessao, "MANUTENCAO_MANUAL_ENCERRADA", "PENDENTE");
+            assertThat(prontos()).as("sessao, inicio " + estado).doesNotContain(fimManual);
+        }
     }
 
     @Test
@@ -191,6 +193,36 @@ class FilaAnuncioManutencaoPostgresIntegrationTest {
 
         assertThat(status(inicio)).isEqualTo("CANCELADA");
         assertThat(mensagemDoFim("MANUTENCAO_MANUAL_ENCERRADA")).contains(NAO_ENTREGUE);
+    }
+
+    @Test
+    void inicioDevolvidoPorReservaVencidaDizTalvez() {
+        long inicio = linha(janela, null, "MANUTENCAO_INICIADA", "ENVIANDO");
+        jdbc.update("update notificacao set updated_at = now() - interval '1 hour' where id = ?", inicio);
+
+        int devolvidas = tx.execute(s -> repository.releaseStaleSending(Instant.now().minusSeconds(60)));
+        assertThat(devolvidas).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select tentativas from notificacao where id = ?", Integer.class, inicio))
+                .isZero();
+
+        service.criarParaManutencaoEncerrada(dadosJanela(), agora, agora.plusSeconds(60), termino(), List.of());
+
+        assertThat(status(inicio)).isEqualTo("CANCELADA");
+        assertThat(mensagemDoFim("MANUTENCAO_ENCERRADA")).contains(TALVEZ).doesNotContain(NAO_ENTREGUE);
+    }
+
+    @Test
+    void cancelamentoDoInicioVoltaComRollbackDoChamador() {
+        long inicio = linha(janela, null, "MANUTENCAO_INICIADA", "PENDENTE");
+
+        tx.execute(s -> {
+            service.criarParaManutencaoEncerrada(dadosJanela(), agora, agora.plusSeconds(60), termino(), List.of());
+            s.setRollbackOnly();
+            return null;
+        });
+
+        assertThat(status(inicio)).isEqualTo("PENDENTE");
+        assertThat(contar("MANUTENCAO_ENCERRADA")).isZero();
     }
 
     // ---- idempotencia -------------------------------------------------------------------------

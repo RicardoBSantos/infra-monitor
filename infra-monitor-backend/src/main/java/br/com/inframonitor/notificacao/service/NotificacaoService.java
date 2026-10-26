@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 @Service
 @Transactional(readOnly = true)
@@ -173,14 +175,14 @@ public class NotificacaoService {
     }
 
     /**
-     * Cancelou com zero tentativas: o inicio nunca saiu. Cancelou com tentativas (retry ou ENVIANDO
-     * devolvido a PENDENTE): o Telegram pode ter recebido. Nao cancelou: FALHA tambem e ambigua
+     * Cancelou sem tentativas e sem marca de erro: o inicio nunca saiu. Cancelou com tentativas (retry) ou
+     * com marca de erro (ENVIANDO vencido devolvido a PENDENTE): o Telegram pode ter recebido. Nao cancelou: FALHA tambem e ambigua
      * (timeout); ENVIANDO, ENVIADA ou inexistente seguem como fim normal.
      */
-    private DadosAnuncio.EntregaInicio resolverEntrega(java.util.Optional<Integer> canceladoComTentativas,
-                                                       java.util.function.BooleanSupplier inicioEmFalha) {
-        if (canceladoComTentativas.isPresent()) {
-            return canceladoComTentativas.get() == 0
+    private DadosAnuncio.EntregaInicio resolverEntrega(Optional<InicioAnuncioRepository.InicioCancelado> cancelado,
+                                                       BooleanSupplier inicioEmFalha) {
+        if (cancelado.isPresent()) {
+            return cancelado.get().certamenteNaoEntregue()
                     ? DadosAnuncio.EntregaInicio.NAO_ENTREGUE : DadosAnuncio.EntregaInicio.TALVEZ_ENTREGUE;
         }
         return inicioEmFalha.getAsBoolean()

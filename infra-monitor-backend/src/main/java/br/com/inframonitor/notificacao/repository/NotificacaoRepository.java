@@ -94,8 +94,15 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
             + "where n.id = :id and n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE")
     int reserveForDispatch(@Param("id") Long id, @Param("agora") java.time.Instant agora);
 
+    /**
+     * Devolve a reserva vencida a fila SEM mexer em tentativas (preserva o orcamento de retry), mas
+     * deixa a marca em erro: o envio pode ter chegado ao Telegram e travado depois. Sem ela, um
+     * primeiro envio devolvido ficaria com tentativas = 0, indistinguivel de "nunca tentou", e o
+     * aviso de fim da manutencao afirmaria com falsa certeza que o inicio nao foi entregue.
+     */
     @Modifying
-    @Query("update Notificacao n set n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE "
+    @Query("update Notificacao n set n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE, "
+            + "n.erro = 'Reserva vencida devolvida a fila: o envio pode ter ocorrido' "
             + "where n.status = br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIANDO and n.updatedAt < :limite")
     int releaseStaleSending(@Param("limite") java.time.Instant limite);
 

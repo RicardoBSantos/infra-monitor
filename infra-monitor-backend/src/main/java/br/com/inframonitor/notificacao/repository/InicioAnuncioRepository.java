@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,11 +23,19 @@ public class InicioAnuncioRepository {
     private static final String CANCELAR = """
             UPDATE notificacao SET status = 'CANCELADA', updated_at = :agora
              WHERE %s = :id AND tipo_evento = '%s' AND status = 'PENDENTE'
-            RETURNING tentativas""";
+            RETURNING tentativas, erro""";
 
     private static final String EM_FALHA = """
             SELECT EXISTS (SELECT 1 FROM notificacao
                             WHERE %s = :id AND tipo_evento = '%s' AND status = 'FALHA')""";
+
+    /** O que o UPDATE devolveu da linha cancelada: tentativas e a marca de erro (retry ou reserva vencida). */
+    public record InicioCancelado(int tentativas, String erro) {
+        /** Sem tentativa e sem marca: o inicio nunca saiu. Qualquer outra coisa pode ter chegado ao Telegram. */
+        public boolean certamenteNaoEntregue() {
+            return tentativas == 0 && erro == null;
+        }
+    }
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -37,11 +44,11 @@ public class InicioAnuncioRepository {
     }
 
     /** Vazio quando o inicio nao estava PENDENTE (ja saiu, esta saindo, falhou ou nao existe). */
-    public Optional<Integer> cancelarInicioDaJanela(long janelaId, Instant agora) {
+    public Optional<InicioCancelado> cancelarInicioDaJanela(long janelaId, Instant agora) {
         return cancelar("manutencao_agendada_id", "MANUTENCAO_INICIADA", janelaId, agora);
     }
 
-    public Optional<Integer> cancelarInicioDaSessao(long sessaoId, Instant agora) {
+    public Optional<InicioCancelado> cancelarInicioDaSessao(long sessaoId, Instant agora) {
         return cancelar("manutencao_manual_id", "MANUTENCAO_MANUAL_INICIADA", sessaoId, agora);
     }
 
@@ -54,10 +61,10 @@ public class InicioAnuncioRepository {
         return emFalha("manutencao_manual_id", "MANUTENCAO_MANUAL_INICIADA", sessaoId);
     }
 
-    private Optional<Integer> cancelar(String coluna, String tipoEvento, long id, Instant agora) {
-        List<Integer> tentativas = jdbc.queryForList(CANCELAR.formatted(coluna, tipoEvento),
-                new MapSqlParameterSource("id", id).addValue("agora", Timestamp.from(agora)), Integer.class);
-        return tentativas.stream().findFirst();
+    private Optional<InicioCancelado> cancelar(String coluna, String tipoEvento, long id, Instant agora) {
+        return jdbc.query(CANCELAR.formatted(coluna, tipoEvento),
+                new MapSqlParameterSource("id", id).addValue("agora", Timestamp.from(agora)),
+                (rs, i) -> new InicioCancelado(rs.getInt("tentativas"), rs.getString("erro"))).stream().findFirst();
     }
 
     private boolean emFalha(String coluna, String tipoEvento, long id) {
