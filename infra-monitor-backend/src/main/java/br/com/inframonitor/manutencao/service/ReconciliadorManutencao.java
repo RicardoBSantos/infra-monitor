@@ -35,17 +35,20 @@ public class ReconciliadorManutencao {
     private static final Logger log = LoggerFactory.getLogger(ReconciliadorManutencao.class);
 
     private final CoberturaManutencao cobertura;
+    private final AnuncioManutencao anuncio;
     private final EstadoManutencaoEquipamento estado;
     private final ReconciliacaoInicial inicial;
     private final ManutencaoAgendadaProperties props;
     private final TransactionTemplate transacao;
     private final Clock clock;
 
-    public ReconciliadorManutencao(CoberturaManutencao cobertura, EstadoManutencaoEquipamento estado,
+    public ReconciliadorManutencao(CoberturaManutencao cobertura, AnuncioManutencao anuncio,
+                                   EstadoManutencaoEquipamento estado,
                                    ReconciliacaoInicial inicial, ManutencaoAgendadaProperties props,
                                    PlatformTransactionManager transactionManager,
                                    @Qualifier("monitoringClock") Clock clock) {
         this.cobertura = cobertura;
+        this.anuncio = anuncio;
         this.estado = estado;
         this.inicial = inicial;
         this.props = props;
@@ -74,9 +77,20 @@ public class ReconciliadorManutencao {
      */
     public Resultado reconciliar(Instant agora) {
         try {
-            List<Transicao> ativadas = transacao.execute(s -> cobertura.ativarDevidas(agora));
+            // Anuncio na transacao do CAS (MA31): transicao e anuncio confirmam juntos ou nenhum. Falha ao
+            // anunciar desfaz as transicoes desta transacao, e a passada seguinte tenta de novo.
+            List<Transicao> ativadas = transacao.execute(s -> {
+                List<Transicao> lista = cobertura.ativarDevidas(agora);
+                lista.forEach(t -> anuncio.anunciarInicio(t.manutencaoId(), agora));
+                return lista;
+            });
+            // Expirada nao anuncia (MA27): nada foi anunciado antes.
             List<Transicao> expiradas = transacao.execute(s -> cobertura.expirarPerdidas(agora));
-            List<Transicao> concluidas = transacao.execute(s -> cobertura.concluirVencidas(agora));
+            List<Transicao> concluidas = transacao.execute(s -> {
+                List<Transicao> lista = cobertura.concluirVencidas(agora);
+                lista.forEach(t -> anuncio.anunciarFim(t.manutencaoId(), agora));
+                return lista;
+            });
             // Expirada nao entra: nunca ativou, entao nao ha efeito a aplicar nem a desfazer.
             SortedSet<Long> alvos = new TreeSet<>();
             Stream.concat(ativadas.stream(), concluidas.stream())

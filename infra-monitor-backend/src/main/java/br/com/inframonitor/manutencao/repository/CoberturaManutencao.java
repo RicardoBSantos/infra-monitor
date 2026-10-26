@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Repository
@@ -79,6 +80,44 @@ public class CoberturaManutencao {
                     OR (ma.escopo = 'EQUIPAMENTOS' AND EXISTS (SELECT 1 FROM manutencao_agendada_equipamento mae
                          WHERE mae.manutencao_id = ma.id AND mae.equipamento_id = e.id))
                  WHERE ma.id = :id ORDER BY e.id""", Map.of("id", manutencaoId), Long.class);
+    }
+
+    /** Nomes dos equipamentos, em ordem de nome (desempate por id), para o texto do anuncio. */
+    public List<String> nomes(List<Long> equipamentoIds) {
+        if (equipamentoIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.queryForList("SELECT e.nome FROM equipamento e WHERE e.id IN (:ids) ORDER BY e.nome, e.id",
+                Map.of("ids", equipamentoIds), String.class);
+    }
+
+    /**
+     * Dos equipamentos dados, os que seguem em manutencao quando a janela {@code manutencaoId} termina:
+     * botao manual ligado (janela nula) ou outra janela ATIVA de menor id cobrindo (mesmo predicado de
+     * {@link #janelaVigente}). E a intencao, lida antes da reavaliacao; ordem de nome.
+     */
+    public List<DadosAnuncio.Seguinte> seguemEmManutencao(long manutencaoId, List<Long> equipamentoIds) {
+        if (equipamentoIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.query("""
+                SELECT e.nome, e.manutencao_manual,
+                       (SELECT min(ma.id) FROM manutencao_agendada ma
+                         WHERE ma.status = 'ATIVA' AND ma.id <> :janela
+                           AND ((ma.escopo = 'UNIDADE' AND ma.unidade_id = e.unidade_id)
+                             OR (ma.escopo = 'EQUIPAMENTOS' AND EXISTS (SELECT 1 FROM manutencao_agendada_equipamento mae
+                                  WHERE mae.manutencao_id = ma.id AND mae.equipamento_id = e.id)))) AS outra
+                  FROM equipamento e WHERE e.id IN (:ids) ORDER BY e.nome, e.id""",
+                Map.of("janela", manutencaoId, "ids", equipamentoIds),
+                (rs, i) -> {
+                    long outra = rs.getLong("outra");
+                    Long janela = rs.wasNull() ? null : outra;
+                    // Manual primeiro: e o que NAO volta sozinho quando a outra janela terminar.
+                    if (rs.getBoolean("manutencao_manual")) {
+                        return new DadosAnuncio.Seguinte(rs.getString("nome"), null);
+                    }
+                    return janela == null ? null : new DadosAnuncio.Seguinte(rs.getString("nome"), janela);
+                }).stream().filter(Objects::nonNull).toList();
     }
 
     // ---------------------------------------------------------------------------

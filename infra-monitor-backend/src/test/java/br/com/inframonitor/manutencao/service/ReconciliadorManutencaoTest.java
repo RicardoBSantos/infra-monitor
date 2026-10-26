@@ -49,7 +49,8 @@ class ReconciliadorManutencaoTest {
         var props = new ManutencaoAgendadaProperties();
         props.setEnabled(true);
         inicial = new ReconciliacaoInicial(props);
-        reconciliador = new ReconciliadorManutencao(cobertura, estado, inicial, props, transacoes,
+        reconciliador = new ReconciliadorManutencao(cobertura, mock(AnuncioManutencao.class), estado, inicial, props,
+                transacoes,
                 Clock.fixed(AGORA, ZoneOffset.UTC));
     }
 
