@@ -235,6 +235,9 @@ cada equipamento que já está no botão), duas colunas-âncora em `notificacao`
 (`MANUTENCAO_INICIADA`, `MANUTENCAO_ENCERRADA`, `MANUTENCAO_FIM_ALTERADO`, `MANUTENCAO_MANUAL_INICIADA`,
 `MANUTENCAO_MANUAL_ENCERRADA`).
 
+Deploy com janela já ATIVA: ela termina com o "alertas retomados" normal sem ter tido anúncio de início (uma vez por janela;
+só as transições depois do deploy anunciam).
+
 **Rollback para o código da V22 não é suportado depois que existir qualquer linha de notificação da F3, em qualquer status.**
 O `tipo_evento` é lido como `@Enumerated(STRING)`; pelo comportamento esperado desse mapeamento, o código anterior não
 conhece os cinco valores novos e falha ao ler essas linhas, na fila do dispatcher e também em `GET /api/v1/notificacoes` e

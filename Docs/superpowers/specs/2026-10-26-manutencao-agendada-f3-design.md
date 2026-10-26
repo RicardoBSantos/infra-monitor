@@ -175,6 +175,25 @@ demais. `expirarPerdidas` segue em lote, sem anúncio. O "sistema esteve fora" (
 vem do job: criar ou editar com início "agora" passam `atrasado = false` (a pessoa que ativa não é o sistema fora do ar).
 Registrada em `Docs/manutencao-agendada-architecture/manutencao-agendada-decisoes.md` (MA31 e MA28).
 
+**Correção de 2026-10-26 (revisão final):** nos FINS (conclusão pelo job, "Encerrar agora" e fim do botão manual), falha
+ao reunir os dados ou montar o texto **não** desfaz mais a transição: desfazer deixava a janela ATIVA (ou o equipamento
+no botão) para sempre, com os alertas suprimidos, e o "Encerrar agora" respondia 500. A falha vira log ERROR com o id e
+o fim entra com o texto de reserva:
+
+```
+✅ MANUTENÇÃO ENCERRADA — alertas retomados
+
+Janela: #<id>
+Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+(no botão: `✅ MANUTENÇÃO MANUAL ENCERRADA — alertas retomados` e `Equipamento: <nome ou #id>` no lugar de `Janela:`).
+O cancelamento do início pendente e a unicidade continuam; a coleta roda num savepoint JDBC para um erro de SQL não
+abortar a transação. CAS, cancelamento e INSERT seguem estritos, assim como início e "Alterar fim". A tabela acima ainda
+cita `ativarDevidas`/`concluirVencidas`: os dois métodos de lote foram removidos (sem chamador desde a Task 7). Registrada
+no MA31.
+
 ### 2.4 MA32 / MA33 no repositório
 
 - `cancelarInicioPendenteDaManutencao(id, agora)` e `...DaSessaoManual(id, agora)`: `UPDATE ... SET status =
@@ -203,6 +222,18 @@ indistinguível de "nunca tentou", e o fim afirmaria com falsa certeza que o in�
 quando `tentativas = 0 AND erro IS NULL`; `tentativas > 0` **ou** `erro IS NOT NULL` dá `TALVEZ_ENTREGUE`. O resto da
 lista vale como escrito. A marca não some de uma linha devolvida e depois enviada (`marcarEnviada` limpa `erro`): só
 permanece em CANCELADA/FALHA. Registrada no MA32.
+
+**Correção de 2026-10-26 (revisão final):** depois de uma queda do Telegram, `MANUTENCAO_FIM_ALTERADO` podia sair
+depois do `MANUTENCAO_ENCERRADA` ou apesar do "este é o registro completo". (a) O fim da janela cancela, na mesma
+transação, os `MANUTENCAO_FIM_ALTERADO` PENDENTE dela (`InicioAnuncioRepository.cancelarFimAlteradoDaJanela`), sem
+entrar na decisão de `EntregaInicio`, que continua só no retorno do cancelamento do início. (b) O `NOT EXISTS` passa a
+ser:
+```
+and not exists (select 1 from Notificacao p where (p.tipoEvento in (MANUTENCAO_INICIADA, MANUTENCAO_MANUAL_INICIADA)
+        or (n.tipoEvento = MANUTENCAO_ENCERRADA and p.tipoEvento = MANUTENCAO_FIM_ALTERADO))
+    and p.status in (PENDENTE, ENVIANDO) and p.id <> n.id and <mesma âncora>)
+```
+O `FIM_ALTERADO` continua preso só pelo início. Registrada no MA33.
 
 ### 2.5 Dispatcher (ajuste 3)
 

@@ -369,6 +369,17 @@ janela com dado corrompido repetiria a falha a cada passada e nenhuma outra ativ
 **Descartado: engolir a falha do anúncio e seguir.** A janela ficaria ativa sem o grupo saber, que é o problema que a F3
 resolve.
 
+**Correção de 2026-10-26 (revisão final): exceção nos FINS.** Desfazer a transição só é o lado seguro no início e na
+alteração de fim (alertas continuam ligados). No fim, uma falha determinística ao reunir os dados ou montar o texto
+desfazia ATIVA→CONCLUIDA a cada passada (e o "Encerrar agora" devolvia 500): a janela ficava ATIVA para sempre, com os
+alertas suprimidos. Agora, na conclusão pelo job, no "Encerrar agora" e no fim do botão manual, essa falha vira log ERROR
+(com o id e a exceção) e o `MANUTENCAO_ENCERRADA` / `MANUTENCAO_MANUAL_ENCERRADA` entra com um texto de reserva
+("Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).", com `Janela: #id` ou `Equipamento: nome`/`#id`),
+e a transição confirma. As regras de fila continuam: o início PENDENTE é cancelado (A4), o fim é único. A coleta roda num
+savepoint JDBC da própria transação (`ColetaDoAnuncio`): um erro de SQL nela não aborta a transação do CAS. **Não** são
+protegidos: o CAS, o cancelamento e o INSERT (falha deles continua desfazendo tudo). Início e alteração de fim seguem
+estritos. `CoberturaManutencao.ativarDevidas`/`concluirVencidas` (lote, sem chamador desde a Task 7) foram removidos.
+
 ## MA32 — O texto do fim é escolhido pelo número de linhas do UPDATE que cancela o início (A4 para estas âncoras)
 
 No fim, o `MANUTENCAO_INICIADA` (ou `MANUTENCAO_MANUAL_INICIADA`) ainda PENDENTE é cancelado por
@@ -404,6 +415,15 @@ início ENVIADA, FALHA ou CANCELADA.
 
 **Descartado: ordenar só por `created_at`.** Um retry do início (backoff de 30 s) deixaria o fim chegar antes, e o grupo
 leria "encerrada" antes de "iniciada".
+
+**Correção de 2026-10-26 (revisão final): a prorrogação também segura o fim.** Depois de uma queda do Telegram, um
+`MANUTENCAO_FIM_ALTERADO` podia sair depois do `MANUTENCAO_ENCERRADA`, ou sair mesmo com o fim dizendo "este é o
+registro completo". Duas regras novas: (a) ao concluir a janela, na mesma transação, os `MANUTENCAO_FIM_ALTERADO`
+PENDENTE dela são cancelados — fora da decisão de entrega do início (MA32), que continua só no retorno do cancelamento do
+início; (b) no `NOT EXISTS`, o `MANUTENCAO_ENCERRADA` também não fica pronto enquanto houver `MANUTENCAO_FIM_ALTERADO` da
+mesma janela em PENDENTE/ENVIANDO (na prática o ENVIANDO, já que o PENDENTE foi cancelado). O `FIM_ALTERADO` continua
+preso só pelo início. A fila ordena por `proximaTentativaEm, createdAt` com workers em paralelo: fora destas regras não há
+ordem garantida (nem entre o início e os `INCIDENTE_ENCERRADO_MANUTENCAO` do mesmo equipamento).
 
 ## MA34 — Todas as mensagens em horário local do fuso configurado
 
