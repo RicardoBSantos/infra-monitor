@@ -13,7 +13,7 @@ nome da pasta.
 Evidências (suítes, corridas e reversões, e2e por clique, exercício no banco da carga):
 [`Docs/validacao-producao/manutencao-agendada-f1.md`](../validacao-producao/manutencao-agendada-f1.md).
 
-**Estado em 2026-10-26: F3 implementada; exercício e e2e pendentes** no branch `feat/manutencao-f3` (spec:
+**Estado em 2026-10-26: F3 implementada e exercitada em clone (Telegram mock)** no branch `feat/manutencao-f3` (spec:
 `Docs/superpowers/specs/2026-10-26-manutencao-agendada-f3-design.md`). Telegram para a janela (início, fim, alteração do
 fim) e para o botão manual (ligar, desligar), com sessão manual histórica (`manutencao_manual`), âncoras novas em
 `notificacao` e mensagens em horário local (`V23__add_notificacao_manutencao_e_manutencao_manual.sql`). Decisões

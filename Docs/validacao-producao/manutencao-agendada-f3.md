@@ -270,6 +270,335 @@ Achados menores das revisões, deliberadamente adiados (nenhum bloqueia a F3):
 
 ## Exercício no clone e e2e
 
-TODO (Task 12): exercício no clone descartável da carga com Telegram em mock local (spec §9), e2e Playwright por clique
-(histórico no drawer, filtros e rótulos de notificação, link de origem) com capturas, e a reconfirmação das suítes no HEAD
-final.
+Executado em 2026-10-26 (18:33–18:42 em America/Sao_Paulo), Task 12, código do HEAD `50eaee8` (jar empacotado desse commit).
+A reconfirmação das suítes no HEAD final ficou com o controlador, numa corrida separada (não repetida aqui).
+
+### Ambiente
+
+| Peça | Valor |
+|---|---|
+| Banco | clone descartável da carga: container `inframonitor-f3-clone` (`docker run`, nunca compose), `127.0.0.1:5440`, db/usuário `inframonitor_f3`; restaurado de `pg_dump` do `inframonitor-carga`, na V22; a V23 rodou no boot do jar (`Migrating schema "public" to version "23 - add notificacao manutencao e manutencao manual"`, aplicada em 0,162 s) |
+| Backend | jar da F3 na porta **8083**; motor ICMP, dispatcher, Telegram e agendador ligados; intervalo do agendador 15 s; `REPORT_TIMEZONE=America/Sao_Paulo`; admin de bootstrap próprio do clone (`f3.exercicio@inframonitor.local`, nome "Exercicio F3"); CORS só 4300 |
+| Telegram | `TELEGRAM_API_BASE_URL=http://127.0.0.1:18443` (mock local), token e chat fictícios. `grep api.telegram.org env.sh` vazio (exit 1) antes de subir. Prova de que o jar falou com o mock: `GET /api/v1/notificacoes/telegram/configuracao` → `"bot":{"status":"VERIFICADO","username":"mock_f3_bot","botId":1}`, identidade que só o `getMe` do mock devolve |
+| Mock | servidor HTTP Node que responde `getMe`/`sendMessage` como o Telegram e grava cada `sendMessage` (campo `text`) em JSONL |
+| Front | `npx ng serve --port 4300` a partir do worktree; Playwright reescreve `localhost:8080` → `8083` (`e2e/api-porta.cjs`, `API_PORT=8083`) |
+
+Não tocados: banco da carga `127.0.0.1:5436`, backend 8080 e front 4200 (nenhuma conexão, nem leitura). Senha do admin e
+`JWT_SECRET` ficam fora deste documento.
+
+### Escolha dos equipamentos
+
+Excluídos por nome antes de tudo: Servidor AD Core (id 1), Gateway Servidores (id 2) e Swtich CPD (id 8, que no clone tem
+um incidente RECONHECIDO e medições em falha). Usados: AP_IND_01 e AP_IND_02 (passo 1), **todos** os 6 de Sesc Indiaroba
+(passo 2, unidade inteira) e ServidorADATA, Hotel Atalaia (passos 3 e 4; o mesmo equipamento, para o drawer mostrar as
+duas sessões).
+
+Critério, rodado no clone antes de cada passo (coluna `criterio` só diz APROVADO quando: ativo, `em_manutencao = false`,
+zero incidente ABERTO/RECONHECIDO em qualquer monitor do equipamento, medições na última hora > 0 e todas SUCESSO, id fora
+de 1/2/8):
+
+```sql
+select e.id, e.nome, u.nome as unidade, e.ativo, e.em_manutencao, e.manutencao_manual,
+  (select count(*) from incidente i join monitor m on m.id=i.monitor_id
+     where m.equipamento_id=e.id and i.status in ('ABERTO','RECONHECIDO')) as incid_abertos,
+  (select count(*) from medicao d join monitor m on m.id=d.monitor_id
+     where m.equipamento_id=e.id and d.executado_em > now()-interval '1 hour') as med_1h,
+  (select count(*) from medicao d join monitor m on m.id=d.monitor_id
+     where m.equipamento_id=e.id and d.executado_em > now()-interval '1 hour' and d.status='SUCESSO') as med_1h_sucesso,
+  (select max(d.executado_em) from medicao d join monitor m on m.id=d.monitor_id where m.equipamento_id=e.id) as ultima_medicao,
+  case when <todas as condições acima> and e.id not in (1,2,8) then 'APROVADO' else 'REPROVADO' end as criterio
+from equipamento e join unidade u on u.id=e.unidade_id where e.id in (...) order by e.id;
+```
+
+Antes do passo 1:
+
+```
+           agora_utc
+-------------------------------
+ 2026-10-26 21:35:29.871272+00
+
+ id |   nome    |    unidade     | ativo | em_manutencao | manutencao_manual | incid_abertos | med_1h | med_1h_sucesso |        ultima_medicao         | criterio
+----+-----------+----------------+-------+---------------+-------------------+---------------+--------+----------------+-------------------------------+----------
+ 12 | AP_IND_01 | Sesc Indiaroba | t     | f             | f                 |             0 |      2 |              2 | 2026-10-26 21:34:54.031305+00 | APROVADO
+ 13 | AP_IND_02 | Sesc Indiaroba | t     | f             | f                 |             0 |      2 |              2 | 2026-10-26 21:34:54.031305+00 | APROVADO
+```
+
+Antes do passo 2 (unidade Sesc Indiaroba tem 6 equipamentos, 6 ativos; AP_IND_01/02 já com medição SUCESSO **depois** de
+saírem da janela do passo 1, às 21:36:09):
+
+```
+           agora_utc
+-------------------------------
+ 2026-10-26 21:36:35.871888+00
+
+ id |       nome        |    unidade     | ativo | em_manutencao | manutencao_manual | incid_abertos | med_1h | med_1h_sucesso |        ultima_medicao         | criterio
+----+-------------------+----------------+-------+---------------+-------------------+---------------+--------+----------------+-------------------------------+----------
+  7 | Servidor_IND      | Sesc Indiaroba | t     | f             | f                 |             0 |      3 |              3 | 2026-10-26 21:35:54.117425+00 | APROVADO
+ 10 | SW_IND            | Sesc Indiaroba | t     | f             | f                 |             0 |      3 |              3 | 2026-10-26 21:35:54.144247+00 | APROVADO
+ 11 | Roteador_Marvitel | Sesc Indiaroba | t     | f             | f                 |             0 |      3 |              3 | 2026-10-26 21:35:54.151188+00 | APROVADO
+ 12 | AP_IND_01         | Sesc Indiaroba | t     | f             | f                 |             0 |      3 |              3 | 2026-10-26 21:36:09.55844+00  | APROVADO
+ 13 | AP_IND_02         | Sesc Indiaroba | t     | f             | f                 |             0 |      3 |              3 | 2026-10-26 21:36:09.55844+00  | APROVADO
+ 14 | AP_IND_03         | Sesc Indiaroba | t     | f             | f                 |             0 |      3 |              3 | 2026-10-26 21:35:54.07767+00  | APROVADO
+```
+
+Antes do passo 3:
+
+```
+           agora_utc
+------------------------------
+ 2026-10-26 21:38:55.83538+00
+
+ id |     nome      |    unidade    | ativo | em_manutencao | manutencao_manual | incid_abertos | med_1h | med_1h_sucesso |        ultima_medicao         | criterio
+----+---------------+---------------+-------+---------------+-------------------+---------------+--------+----------------+-------------------------------+----------
+  6 | ServidorADATA | Hotel Atalaia | t     | f             | f                 |             0 |      5 |              5 | 2026-10-26 21:37:55.433936+00 | APROVADO
+```
+
+Antes do passo 4 (esperou-se uma medição nova, 21:39:56, posterior ao fim da sessão manual do passo 3):
+
+```
+           agora_utc
+-------------------------------
+ 2026-10-26 21:40:09.342213+00
+
+ id |     nome      |    unidade    | ativo | em_manutencao | manutencao_manual | incid_abertos | med_1h | med_1h_sucesso |        ultima_medicao         | criterio
+----+---------------+---------------+-------+---------------+-------------------+---------------+--------+----------------+-------------------------------+----------
+  6 | ServidorADATA | Hotel Atalaia | t     | f             | f                 |             0 |      7 |              7 | 2026-10-26 21:39:56.484676+00 | APROVADO
+```
+
+No passo 4, entre criar a janela e apertar o botão, o equipamento estava `em_manutencao = t, manutencao_manual = f` com a
+janela #11 ATIVA; depois do botão, `t / t`; depois de encerrar o manual, `t / f` com a #11 ainda ATIVA. Nenhum incidente
+foi aberto durante o exercício (únicos incidentes do dia: #4 FECHADO e #5 RECONHECIDO, ambos do monitor 8, Swtich CPD,
+anteriores ao exercício).
+
+### Roteiro e conferência
+
+Tudo pela API com o JWT do admin do clone.
+
+| # | Ação | Notificação | Evento | Status | Texto contra o §3 |
+|---|---|---|---|---|---|
+| 1a | `POST /manutencoes` EQUIPAMENTOS [12, 13] em Sesc Indiaroba, início agora, fim +20 min → janela **#9** ATIVA na hora | 10 | `MANUTENCAO_INICIADA` | ENVIADA (1 tentativa) | confere (`Escopo: 2 equipamentos — AP_IND_01, AP_IND_02`) |
+| 1b | `PATCH /manutencoes/9/fim` +10 min (versão 1) | 11 | `MANUTENCAO_FIM_ALTERADO` | ENVIADA | confere (cabeçalho `⏱️ MANUTENÇÃO PRORROGADA`, `18:55 → 19:05`) |
+| 1c | `PATCH /manutencoes/9/encerrar` | 12 | `MANUTENCAO_ENCERRADA` | ENVIADA | confere (`Término: antecipado por Exercicio F3 (previsto 19:05)`) |
+| 2a | `POST /manutencoes` UNIDADE Sesc Indiaroba, início agora, fim +2 min → janela **#10** | 13 | `MANUTENCAO_INICIADA` | ENVIADA | confere (`Escopo: unidade inteira (6 equipamentos)`) |
+| 2b | job concluiu a #10 às 21:38:37 (`encerrada_por_id` nulo) | 14 | `MANUTENCAO_ENCERRADA` | ENVIADA | confere (`Término: como previsto`) |
+| 3a | `PATCH /equipamentos/6/manutencao/iniciar` → sessão manual **#1** | 15 | `MANUTENCAO_MANUAL_INICIADA` | ENVIADA | confere (`Sem fim previsto: volta só quando alguém encerrar.`) |
+| 3b | `PATCH /equipamentos/6/manutencao/encerrar` | 16 | `MANUTENCAO_MANUAL_ENCERRADA` | ENVIADA | confere, com a observação do `IP:` abaixo |
+| 4a | `POST /manutencoes` EQUIPAMENTOS [6] em Hotel Atalaia, início agora, fim +10 min → janela **#11** | 17 | `MANUTENCAO_INICIADA` | ENVIADA | confere (`Escopo: 1 equipamento — ServidorADATA`) |
+| 4b | botão manual no 6, coberto pela #11 → sessão manual **#2** | 18 | `MANUTENCAO_MANUAL_INICIADA` | ENVIADA | confere (`Já estava na janela #11 (até 26/10/2026 18:50); agora não volta sozinho no fim dela.`) |
+| 4c | encerrar o manual com a #11 ATIVA | 19 | `MANUTENCAO_MANUAL_ENCERRADA` | ENVIADA | confere (cabeçalho `— segue em manutenção pela janela #11 até 26/10/2026 18:50`) |
+| 4d | `PATCH /manutencoes/11/encerrar` (limpeza do passo) | 20 | `MANUTENCAO_ENCERRADA` | ENVIADA | confere (`antecipado por Exercicio F3 (previsto 18:50)`) |
+
+Em todas as 11: horários em `dd/MM/yyyy HH:mm` locais (UTC−3; ex.: início real 21:35:30Z → `18:35`), rodapé
+`Horários: UTC-03:00 (America/Sao_Paulo)`, duração no formato `0h 0m 38s`, nenhuma frase de "aviso de início não
+entregue" (todos os inícios foram ENVIADA antes do fim, caso `ENTREGUE` do MA32). Log do dispatcher com a âncora
+(`Telegram enviado: notificationId=10, ancora=manutencao=9, tipoEvento=MANUTENCAO_INICIADA, tentativa=1`); zero linhas
+`ERROR`/`WARN` e zero "Erro interno" no log do jar.
+
+**Observação de texto (não corrigida, para decisão):** o §3 desenha a `MANUTENÇÃO MANUAL ENCERRADA` só com `Unidade: ...`
+e `Equipamento: ...` antes do `Período:`; o envio real traz também `IP: <ip>` (mesmo bloco de dados da mensagem de início,
+`dadosManual` no `NotificacaoMessageBuilder`). O teste `NotificacaoMessageBuilderManutencaoTest.manualEncerradaRetoma`
+fixa esse `IP:`, então é escolha da implementação; o spec é que ficou ambíguo (o `...` não diz se o IP entra). Ou se
+acerta o desenho do §3, ou se tira a linha — não há outra divergência.
+
+SQL das notificações no fim (ordem de envio = ordem do mock, #1 a #11):
+
+```
+ id |         tipo_evento         | status  | tentativas |          enviado_em           | janela | manual | erro | ordem_envio
+----+-----------------------------+---------+------------+-------------------------------+--------+--------+------+-------------
+ 10 | MANUTENCAO_INICIADA         | ENVIADA |          1 | 2026-10-26 21:35:31.472435+00 |      9 |        |      |           1
+ 11 | MANUTENCAO_FIM_ALTERADO     | ENVIADA |          1 | 2026-10-26 21:35:58.239801+00 |      9 |        |      |           2
+ 12 | MANUTENCAO_ENCERRADA        | ENVIADA |          1 | 2026-10-26 21:36:09.583571+00 |      9 |        |      |           3
+ 13 | MANUTENCAO_INICIADA         | ENVIADA |          1 | 2026-10-26 21:36:36.356871+00 |     10 |        |      |           4
+ 14 | MANUTENCAO_ENCERRADA        | ENVIADA |          1 | 2026-10-26 21:38:38.577054+00 |     10 |        |      |           5
+ 15 | MANUTENCAO_MANUAL_INICIADA  | ENVIADA |          1 | 2026-10-26 21:38:57.02901+00  |        |      1 |      |           6
+ 16 | MANUTENCAO_MANUAL_ENCERRADA | ENVIADA |          1 | 2026-10-26 21:39:08.300052+00 |        |      1 |      |           7
+ 17 | MANUTENCAO_INICIADA         | ENVIADA |          1 | 2026-10-26 21:40:09.834133+00 |     11 |        |      |           8
+ 18 | MANUTENCAO_MANUAL_INICIADA  | ENVIADA |          1 | 2026-10-26 21:40:20.067426+00 |        |      2 |      |           9
+ 19 | MANUTENCAO_MANUAL_ENCERRADA | ENVIADA |          1 | 2026-10-26 21:40:30.28493+00  |        |      2 |      |          10
+ 20 | MANUTENCAO_ENCERRADA        | ENVIADA |          1 | 2026-10-26 21:40:42.584589+00 |     11 |        |      |          11
+```
+
+Estado final: janelas #9 e #11 CONCLUIDA com `encerrada_por_id = 6`, #10 CONCLUIDA com `encerrada_por_id` nulo; sessões
+manuais #1 e #2 do equipamento 6, ambas com início, autor e encerrador preenchidos; os 8 equipamentos usados com
+`em_manutencao = f, manutencao_manual = f`.
+
+### Textos recebidos pelo mock (integrais, na ordem)
+
+```
+#1 2026-10-26T21:35:31.464Z  chat -100000000  /bot<token>/sendMessage
+🔧 MANUTENÇÃO INICIADA — alertas suspensos
+
+Unidade: Sesc Indiaroba
+Escopo: 2 equipamentos — AP_IND_01, AP_IND_02
+Motivo: Exercicio F3 passo 1
+Início: 26/10/2026 18:35
+Fim previsto: 26/10/2026 18:55
+Agendada por: Exercicio F3
+Janela: #9
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#2 2026-10-26T21:35:58.230Z
+⏱️ MANUTENÇÃO PRORROGADA
+
+Unidade: Sesc Indiaroba
+Escopo: 2 equipamentos — AP_IND_01, AP_IND_02
+Motivo: Exercicio F3 passo 1
+Fim previsto: 26/10/2026 18:55 → 26/10/2026 19:05
+Alterado por: Exercicio F3
+Janela: #9
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#3 2026-10-26T21:36:09.574Z
+✅ MANUTENÇÃO ENCERRADA — alertas retomados
+
+Unidade: Sesc Indiaroba
+Escopo: 2 equipamentos — AP_IND_01, AP_IND_02
+Motivo: Exercicio F3 passo 1
+Período: 26/10/2026 18:35 → 26/10/2026 18:36 (0h 0m 38s)
+Término: antecipado por Exercicio F3 (previsto 19:05)
+Janela: #9
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#4 2026-10-26T21:36:36.348Z
+🔧 MANUTENÇÃO INICIADA — alertas suspensos
+
+Unidade: Sesc Indiaroba
+Escopo: unidade inteira (6 equipamentos)
+Motivo: Exercicio F3 passo 2
+Início: 26/10/2026 18:36
+Fim previsto: 26/10/2026 18:38
+Agendada por: Exercicio F3
+Janela: #10
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#5 2026-10-26T21:38:38.570Z
+✅ MANUTENÇÃO ENCERRADA — alertas retomados
+
+Unidade: Sesc Indiaroba
+Escopo: unidade inteira (6 equipamentos)
+Motivo: Exercicio F3 passo 2
+Período: 26/10/2026 18:36 → 26/10/2026 18:38 (0h 2m 1s)
+Término: como previsto
+Janela: #10
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#6 2026-10-26T21:38:57.024Z
+🔧 EQUIPAMENTO EM MANUTENÇÃO MANUAL — alertas suspensos
+
+Unidade: Hotel Atalaia
+Equipamento: ServidorADATA
+IP: 10.72.10.1
+Iniciada por: Exercicio F3
+Início: 26/10/2026 18:38
+Sem fim previsto: volta só quando alguém encerrar.
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#7 2026-10-26T21:39:08.295Z
+✅ MANUTENÇÃO MANUAL ENCERRADA — alertas retomados
+
+Unidade: Hotel Atalaia
+Equipamento: ServidorADATA
+IP: 10.72.10.1
+Período: 26/10/2026 18:38 → 26/10/2026 18:39 (0h 0m 11s)
+Encerrada por: Exercicio F3
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#8 2026-10-26T21:40:09.830Z
+🔧 MANUTENÇÃO INICIADA — alertas suspensos
+
+Unidade: Hotel Atalaia
+Escopo: 1 equipamento — ServidorADATA
+Motivo: Exercicio F3 passo 4
+Início: 26/10/2026 18:40
+Fim previsto: 26/10/2026 18:50
+Agendada por: Exercicio F3
+Janela: #11
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#9 2026-10-26T21:40:20.063Z
+🔧 EQUIPAMENTO EM MANUTENÇÃO MANUAL — alertas suspensos
+
+Unidade: Hotel Atalaia
+Equipamento: ServidorADATA
+IP: 10.72.10.1
+Iniciada por: Exercicio F3
+Início: 26/10/2026 18:40
+Já estava na janela #11 (até 26/10/2026 18:50); agora não volta sozinho no fim dela.
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#10 2026-10-26T21:40:30.280Z
+✅ MANUTENÇÃO MANUAL ENCERRADA — segue em manutenção pela janela #11 até 26/10/2026 18:50
+
+Unidade: Hotel Atalaia
+Equipamento: ServidorADATA
+IP: 10.72.10.1
+Período: 26/10/2026 18:40 → 26/10/2026 18:40 (0h 0m 10s)
+Encerrada por: Exercicio F3
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+```
+#11 2026-10-26T21:40:42.579Z
+✅ MANUTENÇÃO ENCERRADA — alertas retomados
+
+Unidade: Hotel Atalaia
+Escopo: 1 equipamento — ServidorADATA
+Motivo: Exercicio F3 passo 4
+Período: 26/10/2026 18:40 → 26/10/2026 18:40 (0h 0m 32s)
+Término: antecipado por Exercicio F3 (previsto 18:50)
+Janela: #11
+Horários: UTC-03:00 (America/Sao_Paulo)
+```
+
+Todas as 11 chegaram ao chat fictício `-100000000` pela URL `/bot<token>/sendMessage` do mock.
+
+### E2E Playwright
+
+Script `infra-monitor-frontend/e2e/manutencao-agendada-f3.cjs` (`npm run e2e:manutencao-agendada-f3`), no padrão do da F2:
+navegação só por clique depois do login, nenhum `catch` em seletor, resultado e `rede.json` gravados em `finally`,
+`unrouteAll({ behavior: 'ignoreErrors' })` antes de fechar. **Só lê**: depende do exercício acima (nenhum POST/PATCH/PUT/DELETE).
+
+```
+MANUT_F3_EMAIL=... MANUT_F3_SENHA=... MANUT_F3_EQUIPAMENTO=ServidorADATA MANUT_F3_SESSOES=2 MANUT_F3_JANELA=10 \
+BASE=http://127.0.0.1:4300 API_PORT=8083 npm run e2e:manutencao-agendada-f3
+```
+
+Resultado: **17/17 OK** na primeira execução, nenhum erro de página/console.
+
+| Caso | O que conferiu |
+|---|---|
+| a | Equipamentos → busca → "Ver": drawer com "Manutenção manual — histórico" e as **2** sessões (API `totalElements = 2`): `26/10/2026 18:40 até 26/10/2026 18:40 · 10 s · Iniciada por Exercicio F3 · encerrada por Exercicio F3` e `18:38 até 18:39 · 11 s` |
+| b | Telegram → Histórico → EVENTO "Manutenção iniciada": pedido com `tipoEvento=MANUTENCAO_INICIADA`, 3 linhas todas com o rótulo novo, origem "Janela #10" como link para `/manutencoes` |
+| c | EVENTO "Manutenção manual iniciada": 2 linhas com origem "Manutenção manual · ServidorADATA"; "Ver detalhe" → origem igual, evento "Manutenção manual iniciada", mensagem registrada começa no cabeçalho do botão e termina no rodapé de fuso |
+| d | Relatórios → aba Notificações → Evento "Manutenção iniciada": 200, 3 linhas com o rótulo novo, origem "Janela #10" com link para `/manutencoes` |
+
+Capturas em `infra-monitor-frontend/e2e/manutencao-agendada-f3-evidence/`:
+`01-drawer-historico-manual.png`, `02-notificacoes-filtro-manutencao-iniciada.png`,
+`03-notificacoes-filtro-manual-iniciada.png`, `04-notificacao-detalhe-manual.png`,
+`05-relatorios-notificacoes-manutencao-iniciada.png`, `manutencao-agendada-f3.json` (resultados) e `rede.json` (método,
+status e caminho de cada chamada à API; sem cabeçalhos nem corpos).
+
+### Limpeza
+
+Processos parados por PID (`taskkill //PID <pid> //F //T`), conferidos antes pelo `CommandLine`: jar `java -jar
+backend-f3.jar` (28956), mock `node mock-telegram.cjs` (48748), `ng serve --port 4300` (47304, com o filho 43288).
+`docker rm -f inframonitor-f3-clone`. Depois: `netstat -ano` sem nenhum `LISTENING` em 8083, 18443, 4300 ou 5440, e
+`docker ps` sem o clone (o `inframonitor-carga` segue de pé, intocado).
