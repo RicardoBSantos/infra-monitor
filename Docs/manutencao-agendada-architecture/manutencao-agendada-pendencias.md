@@ -50,7 +50,7 @@ Decisões da F2: MA19 a MA26. Dívidas encontradas, nenhuma bloqueia:
 - **Exercício no banco da carga** com motor e Telegram ligados em outro processo notifica o grupo de verdade:
   escolher equipamento online e sem incidente aberto (ver "Efeito colateral" na evidência).
 
-## F3 (entregue em 2026-10-26)
+## F3 (implementada em 2026-10-26; exercício e e2e pendentes)
 
 - **P-02 fechada** (MA27 a MA36): uma mensagem por janela no início, no fim e na alteração do fim; o botão manual
   avisa ao ligar e ao desligar; os avisos individuais `INCIDENTE_ENCERRADO_MANUTENCAO` / `LATENCIA_ENCERRADA_MANUTENCAO`

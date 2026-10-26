@@ -249,6 +249,11 @@ Achados menores das revisões, deliberadamente adiados (nenhum bloqueia a F3):
 
 **Testes**
 
+- As distribuições das corridas 1 e 3 são sensíveis à carga da máquina (2 a 4 de 30 no ramo minoritário na suíte
+  completa) e nenhuma asserção exige que os **dois** rótulos apareçam; a Task 12 roda a classe isolada e registra a
+  distribuição.
+- Uma thread que passa do `join` de uma repetição pode vazar para a próxima repetição das corridas.
+- O teste de CSV de notificações usa `@Order` com estado compartilhado entre os métodos.
 - Assertion fraca no teste do Mapa para "Iniciar manutenção" em `.gaveta__acoes`.
 - `manualAtivo` indo de `null` para `false` dispara uma segunda requisição do histórico no drawer (a primeira é cancelada).
 - Faltam testes negativos de `ck_manutencao_manual_periodo` e `ck_manutencao_manual_encerrador`.

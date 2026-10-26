@@ -235,22 +235,20 @@ cada equipamento que já está no botão), duas colunas-âncora em `notificacao`
 (`MANUTENCAO_INICIADA`, `MANUTENCAO_ENCERRADA`, `MANUTENCAO_FIM_ALTERADO`, `MANUTENCAO_MANUAL_INICIADA`,
 `MANUTENCAO_MANUAL_ENCERRADA`).
 
-**Risco de rollback: código da V22 sobre um banco com linhas da F3 quebra o dispatcher antigo ao ler o enum.** O `tipo_evento`
-é lido como `@Enumerated(STRING)`; o código anterior não conhece os cinco valores e falha ao carregar (erro a cada ciclo, a linha não sai de PENDENTE) qualquer linha de
-manutenção. O schema em si é compatível (nada foi removido), então o jar da F2 sobe, mas essas linhas não andam enquanto
-houver linha F3. Antes de voltar o jar para o código da V22 sobre um banco que já recebeu a F3:
+**Rollback para o código da V22 não é suportado depois que existir qualquer linha de notificação da F3, em qualquer status.**
+O `tipo_evento` é lido como `@Enumerated(STRING)`; pelo comportamento esperado desse mapeamento, o código anterior não
+conhece os cinco valores novos e falha ao ler essas linhas, na fila do dispatcher e também em `GET /api/v1/notificacoes` e
+nos relatórios. Isso é inferido do mapeamento e **não foi exercitado contra um jar real da V22**. O schema em si é compatível
+(nada foi removido), mas o caminho de saída é corrigir para frente, com código da F3. A consulta abaixo é só diagnóstico, para
+saber se já existem linhas da F3:
 
 ```sql
--- Linhas que o código antigo não consegue ler (PENDENTE/ENVIANDO ficam presas e dão erro a cada ciclo).
 select id, tipo_evento, status from notificacao
  where tipo_evento in ('MANUTENCAO_INICIADA','MANUTENCAO_ENCERRADA','MANUTENCAO_FIM_ALTERADO',
-                       'MANUTENCAO_MANUAL_INICIADA','MANUTENCAO_MANUAL_ENCERRADA')
-   and status in ('PENDENTE','ENVIANDO');
+                       'MANUTENCAO_MANUAL_INICIADA','MANUTENCAO_MANUAL_ENCERRADA');
 ```
 
-Cancele essas linhas (`status = 'CANCELADA'`) antes de subir o código antigo, ou deixe a F3 no ar. As já ENVIADA/FALHA/CANCELADA
-não são carregadas pela fila, mas listagens que as devolvam (`GET /api/v1/notificacoes`, relatórios) no código antigo
-também falham ao ler o enum.
+Qualquer alteração de dados em produção por causa disso é decisão do operador e fica fora deste guia.
 
 O banco da carga real (`inframonitor-carga`) **não recebeu a V23**: a 8080 roda código da V22 com dispatcher e Telegram
 reais, e uma linha F3 iria ao grupo e quebraria o enum do código antigo. Aplicar a V23 lá e trocar a 8080 para a F3 é decisão
