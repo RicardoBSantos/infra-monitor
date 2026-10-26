@@ -111,7 +111,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
      * do save sem olhar se algo tinha sido inserido.
      *
      * <p>{@code FOR UPDATE OF e} disputa a MESMA linha de equipamento que
-     * {@code EquipamentoRepository.marcarEmManutencaoSeNaoEstiver} trava. Sem isto, sob
+     * {@code EquipamentoRepository.travarEstadoManutencao} trava. Sem isto, sob
      * READ COMMITTED, este SELECT e aquele UPDATE tocam linhas diferentes (equipamento
      * vs. incidente) e nunca serializam: a abertura pode ler em_manutencao=false antes
      * do flag commitar, inserir o incidente, e so depois a manutencao rodar
@@ -120,7 +120,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
      * manutencao ja tiver travado a linha, este SELECT espera; ao ser liberado, o
      * Postgres reavalia o WHERE via EvalPlanQual sobre a versao nova da linha
      * (em_manutencao=true) e nao insere nada. Ordem de lock equipamento-antes-de-
-     * incidente e a MESMA nas duas transacoes (entrarEmManutencao tambem trava
+     * incidente e a MESMA nas duas transacoes (EstadoManutencaoEquipamento tambem trava
      * equipamento primeiro e so depois escreve em incidente), entao nao ha ciclo nem
      * risco de deadlock.
      */
@@ -148,7 +148,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     /**
      * Leitura de elegibilidade para a abertura MANUAL de incidente, com lock na linha do
      * equipamento. Mesmo predicado e mesmo lock de {@link #inserirSeElegivel}: o
-     * {@code FOR UPDATE OF e} serializa com {@code EquipamentoService.entrarEmManutencao},
+     * {@code FOR UPDATE OF e} serializa com {@code EstadoManutencaoEquipamento},
      * que trava a mesma linha antes de tocar em incidente (equipamento antes de incidente,
      * sem ciclo de lock). Sem ele, o INSERT ainda nao commitado do incidente escapa do
      * fechamento por manutencao e sobrevive ABERTO com o equipamento fora de observacao.
@@ -164,7 +164,7 @@ public interface IncidenteRepository extends JpaRepository<Incidente, Long>, Jpa
     // Espelha reconhecerSeAberto. Fecha todos os monitores do equipamento numa
     // instrucao e devolve quantos fechou.
     //
-    // Grafo minimo de proposito: o chamador (EquipamentoService.entrarEmManutencao) so
+    // Grafo minimo de proposito: o chamador (EfeitosManutencao.aplicarEntrada) so
     // usa esta lista para extrair ids ANTES do bulk update — nao para ler campos de
     // equipamento/unidade, muito menos os escalares que o UPDATE esta prestes a mudar
     // (status, encerradoEm, motivoEncerramento). Widening o grafo aqui so esconderia o

@@ -3,6 +3,7 @@ package br.com.inframonitor.unidade.service;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.unidade.dto.ConexaoUnidadeRequest;
 import br.com.inframonitor.unidade.dto.CreateUnidadeRequest;
 import br.com.inframonitor.unidade.dto.UnidadeResponse;
@@ -24,10 +25,13 @@ public class UnidadeService {
 
     private final UnidadeRepository unidadeRepository;
     private final EquipamentoRepository equipamentoRepository;
+    private final ManutencaoAgendadaRepository manutencaoRepository;
 
-    public UnidadeService(UnidadeRepository unidadeRepository, EquipamentoRepository equipamentoRepository) {
+    public UnidadeService(UnidadeRepository unidadeRepository, EquipamentoRepository equipamentoRepository,
+                          ManutencaoAgendadaRepository manutencaoRepository) {
         this.unidadeRepository = unidadeRepository;
         this.equipamentoRepository = equipamentoRepository;
+        this.manutencaoRepository = manutencaoRepository;
     }
 
     @Transactional
@@ -172,6 +176,10 @@ public class UnidadeService {
         // explicita mantem a exclusao de unidade com filhos no mesmo formato das demais (409).
         if (unidadeRepository.existsByConectaAUnidadeId(id)) {
             throw new ConflitoException("Nao e possivel excluir a unidade porque existem unidades conectadas a ela");
+        }
+        // Mesmo motivo: a FK de manutencao_agendada barraria como 500. Janela encerrada e historico.
+        if (manutencaoRepository.existsByUnidadeId(id)) {
+            throw new ConflitoException("Nao e possivel excluir a unidade porque ela consta em janelas de manutencao");
         }
         unidadeRepository.delete(unidade);
     }

@@ -15,7 +15,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Ligar Telegram, dispatcher ou motor tem de ser ato explicito de quem sobe o processo.
+ * Ligar Telegram, dispatcher, motor ou agendador de manutencao tem de ser ato explicito de quem sobe o processo.
  *
  * <p>Resolve os YAML versionados sem nenhuma variavel de ambiente: o que sobra e o default.
  * Tambem barra {@code spring.config.import} nos YAML, porque importar o {@code .env} do
@@ -34,7 +34,7 @@ class ConfiguracaoPadraoDesligadaTest {
     }
 
     @Test
-    void semVariaveisDeAmbienteTelegramDispatcherEMotorFicamDesligados() throws IOException {
+    void semVariaveisDeAmbienteNadaQueAgeSozinhoLiga() throws IOException {
         MutablePropertySources fontes = new MutablePropertySources();
         carregar("application.yml").forEach(fontes::addLast);
         PropertySourcesPropertyResolver resolver = new PropertySourcesPropertyResolver(fontes);
@@ -42,6 +42,7 @@ class ConfiguracaoPadraoDesligadaTest {
         assertThat(resolver.getProperty("notification.telegram.enabled", Boolean.class)).isFalse();
         assertThat(resolver.getProperty("notification.dispatcher.enabled", Boolean.class)).isFalse();
         assertThat(resolver.getProperty("monitoring.engine.enabled", Boolean.class)).isFalse();
+        assertThat(resolver.getProperty("manutencao.agendada.enabled", Boolean.class)).isFalse();
         assertThat(resolver.getProperty("notification.telegram.bot-token")).isEmpty();
     }
 

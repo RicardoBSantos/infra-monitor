@@ -265,8 +265,9 @@ class AberturaManualElegibilidadePostgresIntegrationTest {
         long tipo = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");
         long unidade = insert("insert into unidade (nome, sigla, ativo) values ('Centro', 'CTR', true) returning id");
         return insert("insert into equipamento (unidade_id, tipo_equipamento_id, nome, ip_address, ativo, "
-                        + "em_manutencao) values (?, ?, 'SW-CORE', '10.0.0.10', true, ?) returning id",
-                unidade, tipo, emManutencao);
+                        + "em_manutencao, manutencao_manual) values (?, ?, 'SW-CORE', '10.0.0.10', true, ?, ?) "
+                        + "returning id",
+                unidade, tipo, emManutencao, emManutencao);   // legado: toda manutencao pre-V21 e manual
     }
 
     private long montarMonitor(long equipamentoId) {

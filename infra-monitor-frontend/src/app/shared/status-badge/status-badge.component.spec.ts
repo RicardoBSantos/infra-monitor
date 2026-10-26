@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { IncidentStatus, MonitorOperationalStatus, NotificationStatus, UnitOperationalStatus } from '../../core/models/api-enums';
+import { IncidentStatus, MaintenanceWindowStatus, MonitorOperationalStatus, NotificationStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { StatusBadgeComponent, tomDoStatus } from './status-badge.component';
 
 @Component({ imports: [StatusBadgeComponent], template: '<app-status-badge [status]="status" />' })
@@ -47,6 +47,25 @@ describe('StatusBadgeComponent', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Resolvido');
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Fechado');
     expect((fixture.nativeElement as HTMLElement).querySelector('.badge')?.classList).toContain('badge--success');
+  });
+
+  it('rotula e dá tom às situações da janela de manutenção', () => {
+    const casos: [MaintenanceWindowStatus, string, string][] = [
+      [MaintenanceWindowStatus.Scheduled, 'Agendada', 'muted'],
+      [MaintenanceWindowStatus.Active, 'Ativa', 'info'],
+      [MaintenanceWindowStatus.Completed, 'Concluída', 'muted'],
+      [MaintenanceWindowStatus.Expired, 'Expirada', 'warning'],
+      [MaintenanceWindowStatus.Cancelled, 'Cancelada', 'muted'],
+    ];
+    for (const [status, rotulo, tom] of casos) {
+      const fixture = TestBed.createComponent(StatusBadgeComponent);
+      fixture.componentRef.setInput('status', status);
+      fixture.detectChanges();
+      const badge = fixture.nativeElement.querySelector('.badge');
+      expect(badge.textContent.trim()).toBe(rotulo);
+      expect(badge.className).toContain('badge--' + tom);
+      expect(tomDoStatus(status)).toBe(tom as 'muted');
+    }
   });
 
   it('rotula CANCELADA sem dizer que falhou', () => {

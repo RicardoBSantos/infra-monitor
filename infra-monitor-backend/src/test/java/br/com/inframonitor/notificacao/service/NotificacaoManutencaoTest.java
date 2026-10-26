@@ -69,7 +69,8 @@ class NotificacaoManutencaoTest {
         long tipo = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");
         long unidade = insert("insert into unidade (nome, sigla, ativo) values ('Centro', 'CTR', true) returning id");
         long equipamento = insert("insert into equipamento (unidade_id, tipo_equipamento_id, nome, ip_address, ativo, "
-                + "em_manutencao) values (?, ?, 'SW-CORE', '10.0.0.10', true, true) returning id", unidade, tipo);
+                + "em_manutencao, manutencao_manual) values (?, ?, 'SW-CORE', '10.0.0.10', true, true, true) "
+                + "returning id", unidade, tipo);
         long monitorId = insert("insert into monitor (equipamento_id, tipo, nome, intervalo_segundos, timeout_ms, ativo, "
                 + "falhas_para_incidente, sucessos_para_recovery) "
                 + "values (?, 'ICMP', 'ICMP CORE', 60, 2000, true, 3, 2) returning id", equipamento);

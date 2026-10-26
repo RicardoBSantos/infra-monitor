@@ -327,6 +327,20 @@ produção — aí `max(executado_em)` para de andar sem que o motor esteja para
 - **Rede da máquina volta depois do motor (hibernação, reinício):** incidente em massa falso e
   rajada no Telegram continuam possíveis até (f4).
 
+### Sinal parcial: atraso de janela de manutenção (2026-10-22)
+
+A manutenção agendada (`Docs/manutencao-agendada-architecture/`, MA08) grava separadamente o horário
+previsto e o real de cada transição: `ativada_em` × `inicio_previsto` e `encerrada_em` × `fim_previsto`.
+O reconciliador roda a cada 30 s; atraso acima de dois intervalos só acontece se o processo esteve
+fora (ou o reconciliador, desligado) no horário previsto. Uma janela `EXPIRADA` diz que o sistema
+esteve fora durante a janela inteira. É a primeira coisa no sistema que **data** uma parada a partir
+de um dado gravado, e a tela a mostra ("ativada com 47 min de atraso").
+
+**Não substitui a detecção.** O sinal só existe quando havia uma janela agendada justamente no
+horário da parada; só aparece depois que o sistema volta; não avisa ninguém enquanto está parado; e
+não corrige o SLA nem os incidentes do período (cenários (a)–(e) de §1.2 continuam como estão). É
+evidência lateral para quem investiga, não alarme. As opções de §2 continuam necessárias.
+
 ### Nota lateral
 
 Durante a leitura: `NotificationDispatcher.java:67-70` desreferencia `getIncidente().getId()` no

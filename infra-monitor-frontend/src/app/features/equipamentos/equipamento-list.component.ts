@@ -1,3 +1,4 @@
+import { formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -11,18 +12,23 @@ import { isApiError } from '../../core/models/api-error';
 import { DashboardEquipamentoLista } from '../../core/models/dashboard';
 import { EquipamentoCreateRequest, EquipamentoResponse } from '../../core/models/equipamento';
 import { TipoEquipamentoResponse } from '../../core/models/tipo-equipamento';
+import { ManutencaoResponse, ParametrosManutencao, PresetAgendamento } from '../../core/models/manutencao';
 import { UnidadeResponse } from '../../core/models/unidade';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { DashboardApiService } from '../../core/services/dashboard-api.service';
+import { ManutencaoApiService } from '../../core/services/manutencao-api.service';
 import { EquipamentoApiService } from '../../core/services/equipamento-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { ActionMenuComponent, ActionMenuItem } from '../../shared/action-menu/action-menu.component';
+import { AgendarManutencaoComponent } from '../manutencoes/agendar-manutencao.component';
+import { avisoDeAgendamento } from '../manutencoes/periodo';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ModalComponent } from '../../shared/modal/modal.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.component';
+import { origemDaManutencao } from './origem-manutencao';
 import { classificarIp, motivoRecusaIp, validadorIpv4Monitoravel } from './ip-helper';
 
 type Estado = 'loading' | 'success' | 'empty' | 'error';
@@ -31,9 +37,17 @@ type Ordenacao = 'nome,asc' | 'nome,desc' | 'status' | 'latencia';
 
 const POR_PAGINA = 20;
 
-/** Manutenção de equipamento inativo não tem efeito, mas sair dela tem de ser sempre possível. */
-function acaoDeManutencao(linha: Pick<DashboardEquipamentoLista, 'ativo' | 'emManutencao'>): 'iniciarManutencao' | 'encerrarManutencao' | null {
-  if (linha.emManutencao) return 'encerrarManutencao';
+function fimDaJanela(iso: string | null): string {
+  return iso ? formatDate(iso, 'dd/MM HH:mm', 'en-US') : '';
+}
+
+/**
+ * Decide pelo BOTÃO (`manutencaoManual`), não pelo estado efetivo: com janela ativa e botão desligado,
+ * "Encerrar" não faria nada (o CAS do manual devolve 0). Manutenção de equipamento inativo não tem
+ * efeito, mas sair da manual tem de ser sempre possível.
+ */
+function acaoDeManutencao(linha: Pick<DashboardEquipamentoLista, 'ativo' | 'manutencaoManual'>): 'iniciarManutencao' | 'encerrarManutencao' | null {
+  if (linha.manutencaoManual) return 'encerrarManutencao';
   return linha.ativo ? 'iniciarManutencao' : null;
 }
 
@@ -80,13 +94,14 @@ const GRAVIDADE: EquipmentOperationalStatus[] = [
 @Component({
   selector: 'app-equipamento-list',
   imports: [ReactiveFormsModule, ConfirmDialogComponent, ModalComponent, PaginacaoComponent, StatusBadgeComponent,
-    ActionMenuComponent, EquipamentoDetalheDrawerComponent],
+    ActionMenuComponent, EquipamentoDetalheDrawerComponent, AgendarManutencaoComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './equipamento-list.component.html',
   styleUrl: './equipamento-list.component.scss',
 })
 export class EquipamentoListComponent {
   protected readonly plural = plural;
+  protected readonly origemDaManutencao = origemDaManutencao;
   private readonly api = inject(EquipamentoApiService);
   private readonly dashboard = inject(DashboardApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -95,6 +110,11 @@ export class EquipamentoListComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly authState = inject(AuthStateService);
+  private readonly manutencaoApi = inject(ManutencaoApiService);
+  protected readonly parametrosManutencao = signal<ParametrosManutencao | null>(null);
+  protected readonly agendadorLigado = computed(() => this.parametrosManutencao()?.agendadorLigado === true);
+  protected readonly agendando = signal(false);
+  protected readonly presetAgendamento = signal<PresetAgendamento | null>(null);
 
   /**
    * `:id` da rota. Reativo de propósito: navegar de `/equipamentos/1` para
@@ -260,7 +280,10 @@ export class EquipamentoListComponent {
           + `O período não conta no relatório de disponibilidade.`;
       case 'encerrarManutencao':
         return `${alvo.nome} volta a ser verificado por ICMP na próxima varredura. `
-          + `Se continuar fora do ar, um incidente é aberto depois das falhas consecutivas configuradas no monitor.`;
+          + `Se continuar fora do ar, um incidente é aberto depois das falhas consecutivas configuradas no monitor.`
+          + (alvo.janelaAtivaId !== null
+            ? ` ${alvo.nome} continua em manutenção pela janela #${alvo.janelaAtivaId}${alvo.janelaAtivaFim ? ` até ${fimDaJanela(alvo.janelaAtivaFim)}` : ''}.`
+            : '');
       default:
         return '';
     }
@@ -273,6 +296,10 @@ export class EquipamentoListComponent {
   constructor() {
     this.carregarOpcoesDoFormulario();
     this.carregar();
+    this.manutencaoApi.parametros().pipe(take(1)).subscribe({
+      next: (p) => this.parametrosManutencao.set(p),
+      error: () => this.parametrosManutencao.set(null),
+    });
   }
 
   // ---- Carga ------------------------------------------------------------------
@@ -349,6 +376,7 @@ export class EquipamentoListComponent {
         desabilitado: !podeGerenciar,
       },
       ...(manutencao ? [{ id: manutencao, rotulo: manutencao === 'iniciarManutencao' ? 'Iniciar manutenção' : 'Encerrar manutenção', desabilitado: !podeGerenciar }] : []),
+      { id: 'agendarManutencao', rotulo: 'Agendar manutenção', desabilitado: !podeGerenciar || !linha.ativo || !this.agendadorLigado() },
       { id: 'excluir', rotulo: 'Excluir', divisorAntes: true, destrutivo: true, desabilitado: !podeGerenciar },
     ];
   }
@@ -357,6 +385,7 @@ export class EquipamentoListComponent {
     switch (acao) {
       case 'ver': this.abrirDetalhe(linha); break;
       case 'editar': this.abrirEdicao(linha); break;
+      case 'agendarManutencao': this.abrirAgendamento(linha); break;
       case 'ativar':
       case 'desativar':
       case 'iniciarManutencao':
@@ -446,7 +475,7 @@ export class EquipamentoListComponent {
         this.acao.set(null);
         this.alvo.set(null);
         this.devolverFocoAGaveta();
-        this.aviso.set(avisoDeSucesso(acao, alvo.nome));
+        this.aviso.set(avisoDeSucesso(acao, alvo));
         this.carregar();
       },
       error: (erro: unknown) => {
@@ -539,6 +568,30 @@ export class EquipamentoListComponent {
     this.devolverFocoAGaveta();
   }
 
+  protected abrirAgendamento(linha: DashboardEquipamentoLista): void {
+    this.aviso.set(null);
+    this.presetAgendamento.set({ unidadeId: linha.unidadeId, travarUnidade: true, equipamentoIds: [linha.id] });
+    this.agendando.set(true);
+  }
+
+  protected agendarDoDetalhe(): void {
+    const linha = this.detalheLinha();
+    if (!linha) return;
+    this.guardarGatilhoDaGaveta();
+    this.abrirAgendamento(linha);
+  }
+
+  protected fecharAgendamento(): void {
+    this.agendando.set(false);
+    this.devolverFocoAGaveta();
+  }
+
+  protected aoAgendar(janela: ManutencaoResponse): void {
+    this.fecharAgendamento();
+    this.aviso.set(avisoDeAgendamento(janela));
+    this.carregar();
+  }
+
   /** Botão da gaveta que abriu o modal ou a confirmação por cima dela. */
   private guardarGatilhoDaGaveta(): void {
     this.gatilhoNaGaveta = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -625,13 +678,17 @@ export class EquipamentoListComponent {
   protected rotuloStatus(status: EquipmentOperationalStatus): string { return ROTULOS_STATUS[status]; }
 }
 
-function avisoDeSucesso(acao: Acao, nome: string): string {
+function avisoDeSucesso(acao: Acao, alvo: DashboardEquipamentoLista): string {
+  const nome = alvo.nome;
   switch (acao) {
     case 'excluir': return `${nome} foi excluído.`;
     case 'desativar': return `Monitoramento de ${nome} desativado.`;
     case 'ativar': return `Monitoramento de ${nome} ativado.`;
     case 'iniciarManutencao': return `${nome} em manutenção.`;
-    case 'encerrarManutencao': return `Manutenção de ${nome} encerrada.`;
+    case 'encerrarManutencao':
+      return alvo.janelaAtivaId !== null
+        ? `Manutenção manual de ${nome} encerrada. Continua em manutenção pela janela #${alvo.janelaAtivaId}.`
+        : `Manutenção de ${nome} encerrada.`;
   }
 }
 

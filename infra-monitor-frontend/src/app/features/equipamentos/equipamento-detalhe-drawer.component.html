@@ -172,6 +172,13 @@
                  aparece logo abaixo, no chip de monitoramento. -->
             <dt>Estado atual</dt>
             <dd>@if (statusAtual(); as status) { <app-status-badge [status]="status" /> } @else { <span class="mono">—</span> }</dd>
+            @if (origemManutencao(); as origem) {
+              <dt>Origem da manutenção</dt>
+              <dd>
+                {{ origem }}@if (linha()?.janelaAtivaFim; as fim) { até {{ fim | date:'dd/MM HH:mm' }}}
+                @if (linha()?.janelaAtivaId !== null && linha()?.janelaAtivaId !== undefined) { · <a [routerLink]="['/manutencoes']">Ver janelas</a> }
+              </dd>
+            }
             <dt>Falhas consecutivas</dt>
             <dd [class]="'mono ' + severidadeFalhas()">{{ falhasConsecutivas() }} / {{ monitor.falhasParaIncidente }}</dd>
             <dt>Último sucesso</dt><dd class="mono">{{ ultimoSucesso() ? (ultimoSucesso() | date:'dd/MM/yyyy HH:mm:ss') : '—' }}</dd>
@@ -263,10 +270,14 @@
       </button>
       <!-- Um só <button> com rótulo interpolado, como o de ativar/desativar: dois botões em
            @if/@else trocariam de elemento no reload da lista e o foco devolvido cairia no body. -->
-      @if (linha()?.emManutencao || linha()?.ativo) {
+      @if (linha()?.manutencaoManual || linha()?.ativo) {
         <button class="botao" type="button" (click)="alternarManutencao.emit()">
-          {{ linha()?.emManutencao ? 'Encerrar manutenção' : 'Iniciar manutenção' }}
+          {{ linha()?.manutencaoManual ? 'Encerrar manutenção' : 'Iniciar manutenção' }}
         </button>
+      }
+      @if (linha()?.ativo) {
+        <button class="botao" type="button" (click)="agendarManutencao.emit()" [disabled]="!podeAgendar()"
+                [attr.title]="podeAgendar() ? null : 'Agendamento desligado neste servidor'">Agendar manutenção</button>
       }
     }
   </footer>

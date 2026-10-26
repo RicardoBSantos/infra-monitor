@@ -1,0 +1,209 @@
+{
+  "quando": "2026-10-22T22:25:04.534Z",
+  "base": "http://127.0.0.1:4201",
+  "apiPort": "8082",
+  "unidade": "Sede Administrativa",
+  "equipamento": "SWI-07-U1",
+  "janelaId": 3,
+  "instantes": {
+    "inicioPrevistoLocal": "2026-10-22T19:25",
+    "fimPrevistoLocal": "2026-10-22T19:55",
+    "agendarClique": "2026-10-22T22:23:26.327Z",
+    "ativaVistaEm": "2026-10-22T22:25:03.662Z",
+    "encerrarClique": "2026-10-22T22:25:04.352Z"
+  },
+  "falhas": 0,
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4201/dashboard (API_PORT=8082)"
+    },
+    {
+      "caso": "banner-ausente",
+      "nome": "agendador ligado: sem banner de desligado",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "botao-habilitado",
+      "nome": "\"+ Agendar manutenção\" habilitado",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "modal-titulo",
+      "nome": "modal \"Agendar manutenção\" aberto",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "modal-foco-inicial",
+      "nome": "foco entra no primeiro campo (select Unidade)",
+      "ok": true,
+      "detalhe": "SELECT unidadeId"
+    },
+    {
+      "caso": "modal-escape-foco",
+      "nome": "Escape fecha o modal e o foco volta ao \"+ Agendar manutenção\"",
+      "ok": true,
+      "detalhe": "BUTTON \"+ Agendar manutenção\""
+    },
+    {
+      "caso": "modal-contagem",
+      "nome": "um equipamento selecionado",
+      "ok": true,
+      "detalhe": "1 de 21 selecionados"
+    },
+    {
+      "caso": "post",
+      "nome": "POST /manutencoes 201",
+      "ok": true,
+      "detalhe": "201"
+    },
+    {
+      "caso": "aviso-agendada",
+      "nome": "aviso \"Janela #N agendada.\"",
+      "ok": true,
+      "detalhe": "Janela #3 agendada."
+    },
+    {
+      "caso": "linha-agendada",
+      "nome": "linha da janela em AGENDADA",
+      "ok": true,
+      "detalhe": "Agendada"
+    },
+    {
+      "caso": "linha-escopo",
+      "nome": "escopo \"1 equipamento\" com o nome no title",
+      "ok": true,
+      "detalhe": "1 equipamento [title=SWI-07-U1]"
+    },
+    {
+      "caso": "linha-ativa",
+      "nome": "o job ativou a janela (linha ATIVA)",
+      "ok": true,
+      "detalhe": "Ativa após 19 recargas"
+    },
+    {
+      "caso": "equipamento-badge",
+      "nome": "linha do equipamento em \"Em manutenção\"",
+      "ok": true,
+      "detalhe": "Em manutenção"
+    },
+    {
+      "caso": "equipamento-origem",
+      "nome": "legenda \"Janela #3\"",
+      "ok": true,
+      "detalhe": "Janela #3"
+    },
+    {
+      "caso": "dialogo-titulo",
+      "nome": "título do diálogo",
+      "ok": true,
+      "detalhe": "Encerrar agora a janela #3?"
+    },
+    {
+      "caso": "dialogo-sla",
+      "nome": "mensagem é o texto de SLA da spec §3.2",
+      "ok": true,
+      "detalhe": "Os equipamentos voltam a ser verificados na próxima varredura. O período desde o início da janela continua fora do relatório de disponibilidade: nele não houve medição, e encerrar não o devolve ao SLA. Equipamentos que também estão em manutenção manual continuam fora até ela ser encerrada."
+    },
+    {
+      "caso": "dialogo-botao",
+      "nome": "botão primário \"Encerrar janela\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "encerrar",
+      "nome": "encerrar 200",
+      "ok": true,
+      "detalhe": "PATCH 200 /manutencoes/3/encerrar"
+    },
+    {
+      "caso": "aviso-encerrada",
+      "nome": "aviso \"Janela #N encerrada.\"",
+      "ok": true,
+      "detalhe": "Janela #3 encerrada."
+    },
+    {
+      "caso": "linha-concluida",
+      "nome": "linha CONCLUÍDA no Histórico",
+      "ok": true,
+      "detalhe": "Concluída"
+    },
+    {
+      "caso": "sem-erros",
+      "nome": "nenhum erro de página/console",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "rede": [
+    "2026-10-22T22:23:24.976Z POST 200 /auth/login",
+    "2026-10-22T22:23:25.038Z GET 200 /unidades?ativo=true",
+    "2026-10-22T22:23:25.041Z GET 200 /tipos-equipamento",
+    "2026-10-22T22:23:25.041Z GET 200 /relatorios/latencia/unidades?inicio=2026-09-22T22:23:24.998Z&fim=2026-10-22T22:23:24.998Z&size=500",
+    "2026-10-22T22:23:25.049Z GET 200 /equipamentos?size=500&sort=nome,asc",
+    "2026-10-22T22:23:25.098Z GET 200 /manutencoes/parametros",
+    "2026-10-22T22:23:25.104Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:25.114Z GET 200 /dashboard/resumo",
+    "2026-10-22T22:23:25.167Z GET 200 /dashboard/unidades",
+    "2026-10-22T22:23:25.171Z GET 200 /relatorios/disponibilidade/unidades?inicio=2026-09-22T22:23:24.997Z&fim=2026-10-22T22:23:24.997Z&size=200",
+    "2026-10-22T22:23:25.230Z GET 200 /unidades?ativo=true",
+    "2026-10-22T22:23:25.328Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T22:23:25.888Z GET 200 /unidades?ativo=true",
+    "2026-10-22T22:23:25.989Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T22:23:26.386Z POST 201 /manutencoes",
+    "2026-10-22T22:23:26.402Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:31.542Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:23:31.591Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:36.658Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:23:36.708Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:41.774Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:23:41.825Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:46.891Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:23:46.941Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:52.008Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:23:52.057Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:23:57.126Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:23:57.179Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:02.256Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:02.308Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:07.373Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:07.424Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:12.490Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:12.539Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:17.591Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:17.639Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:22.708Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:22.757Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:27.827Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:27.876Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:32.929Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:32.976Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:38.043Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:38.093Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:43.159Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:43.209Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:48.260Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:48.309Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:53.378Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:53.425Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:24:58.492Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:24:58.542Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:25:03.611Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-22T22:25:03.658Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:25:03.786Z GET 200 /unidades?ativo=true",
+    "2026-10-22T22:25:03.787Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-22T22:25:03.900Z GET 200 /dashboard/equipamentos",
+    "2026-10-22T22:25:04.095Z GET 200 /manutencoes/parametros",
+    "2026-10-22T22:25:04.095Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:25:04.402Z PATCH 200 /manutencoes/3/encerrar",
+    "2026-10-22T22:25:04.413Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-22T22:25:04.458Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20"
+  ],
+  "erros": []
+}

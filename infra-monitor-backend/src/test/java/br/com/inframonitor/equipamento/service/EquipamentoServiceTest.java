@@ -8,6 +8,7 @@ import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.validation.RegraIpv4;
+import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.tipoequipamento.entity.TipoEquipamento;
 import br.com.inframonitor.tipoequipamento.repository.TipoEquipamentoRepository;
@@ -26,6 +27,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +45,8 @@ class EquipamentoServiceTest {
     @Mock private UnidadeRepository unidadeRepository;
     @Mock private TipoEquipamentoRepository tipoEquipamentoRepository;
     @Mock private MonitorRepository monitorRepository;
+    @Mock private EstadoManutencaoEquipamento estado;
+    @Mock private ManutencaoAgendadaRepository manutencaoRepository;
     @InjectMocks private EquipamentoService equipamentoService;
 
     @Test
@@ -50,12 +54,13 @@ class EquipamentoServiceTest {
         Unidade unidade = new Unidade("Matriz", "MTZ", null);
         TipoEquipamento tipo = new TipoEquipamento("Switch", null);
         relacionamentosAtivos(unidade, tipo);
-        when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        salvarEReler();
 
         var resposta = equipamentoService.criar(criacao("  SW-CORE-01  ", " 10.0.0.10 "));
 
         ArgumentCaptor<Equipamento> captor = ArgumentCaptor.forClass(Equipamento.class);
         verify(equipamentoRepository).save(captor.capture());
+        verify(estado).reavaliar(captor.getValue().getId());
         assertThat(captor.getValue().getNome()).isEqualTo("SW-CORE-01");
         assertThat(captor.getValue().getIp()).isEqualTo("10.0.0.10");
         assertThat(captor.getValue().isAtivo()).isTrue();
@@ -216,7 +221,7 @@ class EquipamentoServiceTest {
         definirId(unidade, 1L);
         definirId(tipo, 2L);
         relacionamentosAtivos(unidade, tipo);
-        when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+        salvarEReler();
 
         EquipamentoResponse semNumero = equipamentoService.criar(new CreateEquipamentoRequest(
                 1L, 2L, "SW-02", null, null, null, null, "   ", "   ", null));
@@ -233,7 +238,7 @@ class EquipamentoServiceTest {
         definirId(unidade, 1L);
         definirId(tipo, 2L);
         relacionamentosAtivos(unidade, tipo);
-        when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+        salvarEReler();
 
         assertThat(equipamentoService.criar(criacao("SW-03", "\u2003")).ip()).isNull();
         assertThat(equipamentoService.criar(criacao("SW-04", "\u200310.0.0.1\u2003")).ip()).isEqualTo("10.0.0.1");
@@ -241,6 +246,20 @@ class EquipamentoServiceTest {
 
     private CreateEquipamentoRequest criacao(String nome, String ip) {
         return new CreateEquipamentoRequest(1L, 2L, nome, ip, "sw-core", "Switch core", "Rack 01", null, null, null);
+    }
+
+    /**
+     * criar reavalia a manutencao (escritor unico) e responde relendo: a reavaliacao pode
+     * limpar a sessao. Aqui o mock devolve o que foi salvo, sem id, na releitura.
+     */
+    private void salvarEReler() {
+        AtomicReference<Equipamento> salvo = new AtomicReference<>();
+        when(equipamentoRepository.save(any(Equipamento.class))).thenAnswer(invocacao -> {
+            salvo.set(invocacao.getArgument(0));
+            return invocacao.getArgument(0);
+        });
+        when(equipamentoRepository.findById(org.mockito.ArgumentMatchers.<Long>isNull()))
+                .thenAnswer(invocacao -> Optional.ofNullable(salvo.get()));
     }
 
     private void relacionamentosAtivos(Unidade unidade, TipoEquipamento tipo) {

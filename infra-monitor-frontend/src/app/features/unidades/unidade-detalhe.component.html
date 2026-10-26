@@ -40,11 +40,26 @@
       </div>
       <div class="unidade-detalhe__acoes">
         <a class="botao botao--primario" routerLink="/equipamentos">+ Novo equipamento</a>
-        <!-- TODO: feature de janelas de manutenção -->
-        <button class="botao" type="button" disabled title="Em breve">Agendar manutenção</button>
+        @if (authState.canManageInventory()) {
+          <button class="botao" type="button" (click)="abrirAgendamento()" [disabled]="!!bloqueioAgendar() || !store.cadastro()"
+                  [attr.title]="bloqueioAgendar()">Agendar manutenção</button>
+        }
         <button class="botao" type="button" (click)="abrirEdicao()" [disabled]="!store.cadastro()">Editar unidade</button>
       </div>
     </header>
+
+    @if (aviso()) { <div class="notice" role="status">{{ aviso() }}</div> }
+
+    @if (ativa() || proxima()) {
+      <div class="banner-janela" role="status">
+        <span class="marca marca--info" aria-hidden="true"><app-icon name="wrench" /></span>
+        <div class="banner-janela__texto">
+          @if (ativa(); as a) { <p><strong>Janela #{{ a.id }} ativa até {{ dataHora(a.fimPrevisto) }}</strong> · {{ a.motivo }}</p> }
+          @if (proxima(); as p) { <p>Próxima: #{{ p.id }} em {{ dataHora(p.inicioPrevisto) }} · {{ p.motivo }}</p> }
+        </div>
+        <a class="link" routerLink="/manutencoes">Ver janelas</a>
+      </div>
+    }
 
     <div class="kpis">
       <article class="kpi">
@@ -107,5 +122,9 @@
       (fechado)="gavetaAberta.set(false)"
       (salvo)="aoSalvarCadastro()"
     />
+  }
+  @if (authState.canManageInventory()) {
+    <app-agendar-manutencao [aberto]="agendando()" [preset]="preset()" [duracaoMaximaHoras]="parametros()?.duracaoMaximaHoras ?? 72"
+      (fechar)="agendando.set(false)" (agendada)="aoAgendar($event)" />
   }
 </section>

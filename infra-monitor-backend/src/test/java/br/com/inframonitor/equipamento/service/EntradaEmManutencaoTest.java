@@ -27,10 +27,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Prova a transacao unica de {@link EquipamentoService#entrarEmManutencao} e
- * {@link EquipamentoService#sairDeManutencao}: flag com CAS, fechamento de incidente e
- * de episodio, fechamento/reabertura de janela e resolucao das notificacoes.
+ * {@link EquipamentoService#sairDeManutencao}: flag sob lock (EstadoManutencaoEquipamento),
+ * fechamento de incidente e de episodio, fechamento/reabertura de janela e resolucao das
+ * notificacoes (EfeitosManutencao).
  *
- * <p>Contra Postgres real porque marcarEmManutencaoSeNaoEstiver/fecharPorManutencao sao
+ * <p>Contra Postgres real porque marcarManual/fecharPorManutencao sao
  * @Query de UPDATE, e sairDeManutencao precisa reavaliar o predicado inteiro da janela
  * (equipamento.ativo incluido).
  */
@@ -112,11 +113,12 @@ class EntradaEmManutencaoTest {
 
     @Test
     void entrarEmManutencaoDuasVezesRodaOsEfeitosUmaVezSo() {
-        // ATENCAO: este teste NAO exercita a CAS de marcarEmManutencaoSeNaoEstiver. Sem
+        // ATENCAO: este teste NAO exercita o lock de travarEstadoManutencao. Sem
         // incidente/episodio aberto, a segunda chamada ja encontra abertosDoEquipamento
         // vazio (filtro de status/encerradoEm, nao a flag) e a asserção de contagem
-        // passaria mesmo se o "if (... == 0) return" fosse removido — verificado por
-        // reversao manual no fix round 1. A CAS protege a corrida CONCORRENTE (dois
+        // passaria mesmo se o "if (manual) return" de iniciarManual fosse removido —
+        // verificado por reversao manual no fix round 1 (entao sobre a CAS antiga
+        // marcarEmManutencaoSeNaoEstiver). O lock protege a corrida CONCORRENTE (dois
         // operadores clicando ao mesmo tempo), que uma chamada sequencial no mesmo
         // thread nao alcanca. Este teste prova so que rodar duas vezes em sequencia e
         // seguro, nao que a corrida esta coberta.

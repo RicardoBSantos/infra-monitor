@@ -24,6 +24,9 @@ function linha(overrides: Partial<DashboardEquipamentoLista> & { id: number }): 
     localizacao: `Rack ${overrides.id}`,
     numeroSerie: `SN-000${overrides.id}`,
     emManutencao: false,
+    manutencaoManual: false,
+    janelaAtivaId: null,
+    janelaAtivaFim: null,
     ...overrides,
   };
 }
@@ -40,6 +43,7 @@ const CADASTRO_COMPLETO: EquipamentoResponse = {
   modelo: 'Catalyst 9200-24T',
   ativo: true,
   emManutencao: false,
+  manutencaoManual: false,
   unidade: { id: 1, nome: 'Matriz' },
   tipoEquipamento: { id: 2, nome: 'Switch' },
   createdAt: '2026-01-01T00:00:00Z',
@@ -62,7 +66,7 @@ describe('EquipamentoListComponent', () => {
 
   afterEach(() => http.verify());
 
-  function montar(inventario: DashboardEquipamentoLista[]): ComponentFixture<EquipamentoListComponent> {
+  function montar(inventario: DashboardEquipamentoLista[], agendadorLigado = false): ComponentFixture<EquipamentoListComponent> {
     const fixture = TestBed.createComponent(EquipamentoListComponent);
     fixture.detectChanges();
     http.expectOne((requisicao) => requisicao.url.endsWith('/unidades')).flush([
@@ -72,6 +76,7 @@ describe('EquipamentoListComponent', () => {
       { id: 2, nome: 'Switch', descricao: null, ativo: true, createdAt: '', updatedAt: '' },
     ]);
     http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).flush(inventario);
+    http.expectOne((requisicao) => requisicao.url.endsWith('/manutencoes/parametros')).flush({ agendadorLigado, duracaoMaximaHoras: 72 });
     fixture.detectChanges();
     return fixture;
   }
@@ -303,6 +308,8 @@ describe('EquipamentoListComponent', () => {
     http.expectOne((requisicao) => requisicao.url.endsWith('/tipos-equipamento')).flush([]);
     http.expectOne((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos'))
       .flush('erro', { status: 500, statusText: 'Server Error' });
+    http.expectOne((requisicao) => requisicao.url.endsWith('/manutencoes/parametros'))
+      .flush('erro', { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
 
     expect(texto(fixture)).toContain('Não foi possível carregar o inventário');
@@ -322,6 +329,7 @@ describe('EquipamentoListComponent', () => {
     http.match((requisicao) => requisicao.url.endsWith('/unidades')).forEach((r) => r.flush([]));
     http.match((requisicao) => requisicao.url.endsWith('/tipos-equipamento')).forEach((r) => r.flush([]));
     http.match((requisicao) => requisicao.url.endsWith('/dashboard/equipamentos')).forEach((r) => r.flush([linha({ id: 7 })]));
+    http.match((requisicao) => requisicao.url.endsWith('/manutencoes/parametros')).forEach((r) => r.flush({ agendadorLigado: false, duracaoMaximaHoras: 72 }));
     harness.detectChanges();
   }
 
@@ -502,13 +510,13 @@ describe('EquipamentoListComponent', () => {
       comPermissao(true);
       const fixture = montar([linha({ id: 1 })]);
       const ids = itens(fixture, linha({ id: 1 })).map((i) => i.id);
-      expect(ids).toEqual(['ver', 'editar', 'desativar', 'iniciarManutencao', 'excluir']);
+      expect(ids).toEqual(['ver', 'editar', 'desativar', 'iniciarManutencao', 'agendarManutencao', 'excluir']);
       expect(itens(fixture, linha({ id: 1 }))[3].rotulo).toBe('Iniciar manutenção');
     });
 
     it('oferece Encerrar mesmo com o equipamento inativo (status DESABILITADO mascara a manutenção)', () => {
       comPermissao(true);
-      const l = linha({ id: 1, ativo: false, emManutencao: true, status: EquipmentOperationalStatus.Disabled });
+      const l = linha({ id: 1, ativo: false, emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Disabled });
       const fixture = montar([l]);
       const item = itens(fixture, l).find((i) => i.id === 'encerrarManutencao');
       expect(item?.rotulo).toBe('Encerrar manutenção');
@@ -519,7 +527,7 @@ describe('EquipamentoListComponent', () => {
       comPermissao(true);
       const l = linha({ id: 1, ativo: false });
       const fixture = montar([l]);
-      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao'))).toBe(false);
+      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao') && i.id !== 'agendarManutencao')).toBe(false);
     });
 
     it('desabilita o item sem permissão de gestão', () => {
@@ -549,9 +557,53 @@ describe('EquipamentoListComponent', () => {
       expect(texto(fixture)).toContain('SW-CORE em manutenção.');
     });
 
+    it('só em janela, o botão oferece Iniciar (decide pelo flag manual, não pelo estado efetivo)', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41, status: EquipmentOperationalStatus.Maintenance });
+      const fixture = montar([l]);
+      const ids = itens(fixture, l).map((i) => i.id);
+      expect(ids).toContain('iniciarManutencao');
+      expect(ids).not.toContain('encerrarManutencao');
+    });
+
+    it('inativo só em janela não oferece manutenção', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, ativo: false, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41 });
+      const fixture = montar([l]);
+      expect(itens(fixture, l).some((i) => i.id.includes('Manutencao') && i.id !== 'agendarManutencao')).toBe(false);
+    });
+
+    it('mostra a origem da manutenção na coluna de status', () => {
+      const origem = (f: ComponentFixture<EquipamentoListComponent>) =>
+        (f.nativeElement as HTMLElement).querySelector('.equipamentos__origem')?.textContent?.trim();
+      const janela = montar([linha({ id: 1, emManutencao: true, janelaAtivaId: 41, status: EquipmentOperationalStatus.Maintenance })]);
+      expect(texto(janela)).toContain('Em manutenção');
+      expect(origem(janela)).toBe('Janela #41');
+      janela.destroy();
+      const manual = montar([linha({ id: 2, emManutencao: true, manutencaoManual: true })]);
+      expect(origem(manual)).toBe('Manual');
+      manual.destroy();
+      const ambos = montar([linha({ id: 3, emManutencao: true, manutencaoManual: true, janelaAtivaId: 41 })]);
+      expect(origem(ambos)).toBe('Manual + janela #41');
+    });
+
+    it('encerrar manual com janela ativa avisa que continua em manutenção pela janela', () => {
+      comPermissao(true);
+      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, manutencaoManual: true, janelaAtivaId: 41, janelaAtivaFim: '2026-10-23T15:30:00Z', status: EquipmentOperationalStatus.Maintenance });
+      const fixture = montar([l]);
+      fixture.componentInstance['executarAcao'](l, 'encerrarManutencao');
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('continua em manutenção pela janela #41 até');
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('app-confirm-dialog .botao--primario')!.click();
+      http.expectOne((r) => r.method === 'PATCH' && r.url.endsWith('/equipamentos/1/manutencao/encerrar')).flush({});
+      http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1, nome: 'SW-CORE', emManutencao: true, janelaAtivaId: 41, status: EquipmentOperationalStatus.Maintenance })]);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('Manutenção manual de SW-CORE encerrada. Continua em manutenção pela janela #41.');
+    });
+
     it('confirma o encerramento e chama a API certa', () => {
       comPermissao(true);
-      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      const l = linha({ id: 1, nome: 'SW-CORE', emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Maintenance });
       const fixture = montar([l]);
       fixture.componentInstance['executarAcao'](l, 'encerrarManutencao');
       fixture.detectChanges();
@@ -576,6 +628,46 @@ describe('EquipamentoListComponent', () => {
         { status: 409, statusText: 'Conflict' });
       fixture.detectChanges();
       expect(texto(fixture)).toContain('Recusado pela API');
+    });
+
+    describe('agendar manutenção', () => {
+      const alvo = (fixture: ComponentFixture<EquipamentoListComponent>, l: DashboardEquipamentoLista) =>
+        itens(fixture, l).find((i) => i.id === 'agendarManutencao')!;
+
+      it('habilita na linha ativa quando o agendador está ligado', () => {
+        comPermissao(true);
+        const fixture = montar([linha({ id: 1 })], true);
+        expect(alvo(fixture, linha({ id: 1 })).desabilitado).toBe(false);
+      });
+
+      it('desabilita para linha inativa, agendador desligado ou sem permissão', () => {
+        comPermissao(true);
+        const ligado = montar([linha({ id: 1 })], true);
+        expect(alvo(ligado, linha({ id: 1, ativo: false })).desabilitado).toBe(true);
+        const desligado = montar([linha({ id: 1 })], false);
+        expect(alvo(desligado, linha({ id: 1 })).desabilitado).toBe(true);
+      });
+
+      it('clicar abre o modal com a unidade travada e o equipamento marcado; agendada avisa e recarrega', () => {
+        comPermissao(true);
+        const fixture = montar([linha({ id: 1, unidadeId: 1 })], true);
+        fixture.componentInstance['executarAcao'](linha({ id: 1, unidadeId: 1 }), 'agendarManutencao');
+        fixture.detectChanges();
+        http.expectOne((r) => r.url.endsWith('/unidades') && r.params.get('ativo') === 'true').flush([
+          { id: 1, nome: 'Matriz', sigla: 'MAT', descricao: null, ativo: true, createdAt: '', updatedAt: '' }]);
+        http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1, unidadeId: 1 })]);
+        fixture.detectChanges();
+        const modal = (fixture.nativeElement as HTMLElement).querySelector('app-agendar-manutencao app-modal section[role="dialog"]');
+        expect(modal).not.toBeNull();
+        expect(modal!.querySelector<HTMLSelectElement>('[formcontrolname="unidadeId"]')!.disabled).toBe(true);
+        expect(modal!.querySelector<HTMLSelectElement>('[formcontrolname="unidadeId"]')!.value).toBe('1');
+        expect(modal!.textContent).toContain('EQ-1');
+
+        fixture.componentInstance['aoAgendar']({ id: 9, sobreposicoes: [] } as never);
+        fixture.detectChanges();
+        expect(texto(fixture)).toContain('Janela #9 agendada.');
+        http.expectOne((r) => r.url.endsWith('/dashboard/equipamentos')).flush([linha({ id: 1 })]);
+      });
     });
 
     it('excluir continua com botão de perigo', () => {

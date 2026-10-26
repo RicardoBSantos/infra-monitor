@@ -60,9 +60,10 @@ class DashboardControllerTest {
     @Test void expoeInventarioCompletoSemPaginacao() throws Exception {
         when(dashboardService.equipamentos()).thenReturn(List.of(
                 new DashboardEquipamentoListaResponse(10L, "SW-CORE", "Switch", 1L, "Matriz", "sw-core.rede.local",
-                        "10.0.0.1", StatusOperacionalEquipamento.DISPONIVEL, 13, true, "Rack 03", "SN-0001", false),
+                        "10.0.0.1", StatusOperacionalEquipamento.DISPONIVEL, 13, true, "Rack 03", "SN-0001", false, false, null, null),
                 new DashboardEquipamentoListaResponse(11L, "SW-BORDA", "Switch", 2L, "Filial", null, null,
-                        StatusOperacionalEquipamento.INDISPONIVEL, null, false, null, null, true)));
+                        StatusOperacionalEquipamento.INDISPONIVEL, null, false, null, null, true, true, 7L,
+                        java.time.Instant.parse("2026-09-01T12:00:00Z"))));
 
         mockMvc.perform(get("/api/v1/dashboard/equipamentos")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -85,6 +86,11 @@ class DashboardControllerTest {
                 .andExpect(jsonPath("$[0].numeroSerie").value("SN-0001"))
                 .andExpect(jsonPath("$[0].emManutencao").value(false))
                 .andExpect(jsonPath("$[1].emManutencao").value(true))
+                .andExpect(jsonPath("$[0].manutencaoManual").value(false))
+                .andExpect(jsonPath("$[0].janelaAtivaId").doesNotExist())
+                .andExpect(jsonPath("$[1].manutencaoManual").value(true))
+                .andExpect(jsonPath("$[1].janelaAtivaId").value(7))
+                .andExpect(jsonPath("$[1].janelaAtivaFim").value("2026-09-01T12:00:00Z"))
                 // Descricao continua fora: texto longo que so o formulario de edicao usa.
                 .andExpect(jsonPath("$[0].descricao").doesNotExist());
     }

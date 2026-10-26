@@ -13,7 +13,7 @@ import { EquipamentoDetalheDrawerComponent } from './equipamento-detalhe-drawer.
 const CADASTRO: EquipamentoResponse = {
   id: 1, nome: 'SW-CORE', ip: '10.79.10.1', hostname: 'sw-core-cis-01', descricao: 'Switch de núcleo',
   localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', fabricante: 'Cisco', modelo: 'Catalyst 9200-24T',
-  ativo: true, emManutencao: false, unidade: { id: 3, nome: 'Centro Integrado de Saúde' },
+  ativo: true, emManutencao: false, manutencaoManual: false, unidade: { id: 3, nome: 'Centro Integrado de Saúde' },
   tipoEquipamento: { id: 2, nome: 'Switch' }, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
 };
 
@@ -57,7 +57,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     const fixture = TestBed.createComponent(EquipamentoDetalheDrawerComponent);
     fixture.componentRef.setInput('equipamentoId', 1);
     // A lista sempre passa a linha junto; é dela que vem o status operacional.
-    fixture.componentRef.setInput('linha', { id: 1, nome: 'SW-CORE', tipoNome: 'Switch', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde', hostname: 'sw-core-cis-01', ip: '10.79.10.1', status: EquipmentOperationalStatus.Unavailable, latenciaMs: null, ativo: true, localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', emManutencao: false });
+    fixture.componentRef.setInput('linha', { id: 1, nome: 'SW-CORE', tipoNome: 'Switch', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde', hostname: 'sw-core-cis-01', ip: '10.79.10.1', status: EquipmentOperationalStatus.Unavailable, latenciaMs: null, ativo: true, localizacao: 'Rack 1 / U4', numeroSerie: 'SN45796587', emManutencao: false, manutencaoManual: false, janelaAtivaId: null, janelaAtivaFim: null });
     fixture.detectChanges();
     return fixture;
   }
@@ -200,7 +200,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
   });
 
   describe('manutenção', () => {
-    const LINHA = { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Available, ativo: true, emManutencao: false };
+    const LINHA = { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Available, ativo: true, emManutencao: false, manutencaoManual: false };
 
     function rodape(fixture: ComponentFixture<EquipamentoDetalheDrawerComponent>): string[] {
       return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.gaveta__acoes .botao'))
@@ -209,7 +209,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
 
     it('em manutenção, mostra Encerrar e o clique emite alternarManutencao sem chamar a API', () => {
       const fixture = montar();
-      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Maintenance });
       responder(fixture);
       let pedidos = 0;
       fixture.componentInstance.alternarManutencao.subscribe(() => (pedidos += 1));
@@ -229,10 +229,23 @@ describe('EquipamentoDetalheDrawerComponent', () => {
         .find((b) => /manutenção/.test(b.textContent ?? ''))!;
       const antes = botao();
       expect(antes.textContent).toContain('Iniciar manutenção');
-      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, status: EquipmentOperationalStatus.Maintenance });
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, manutencaoManual: true, status: EquipmentOperationalStatus.Maintenance });
       fixture.detectChanges();
       expect(botao().textContent).toContain('Encerrar manutenção');
       expect(botao()).toBe(antes);
+    });
+
+    it('só em janela, o rodapé oferece Iniciar e o estado atual mostra a origem com link para /manutencoes', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', { ...LINHA, emManutencao: true, manutencaoManual: false, janelaAtivaId: 41, janelaAtivaFim: '2026-10-23T15:30:00Z', status: EquipmentOperationalStatus.Maintenance });
+      responder(fixture);
+      expect(rodape(fixture)).toContain('Iniciar manutenção');
+      expect(rodape(fixture)).not.toContain('Encerrar manutenção');
+      const dt = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('dt')).find((d) => d.textContent?.trim() === 'Origem da manutenção');
+      expect(dt).toBeDefined();
+      const dd = dt!.nextElementSibling as HTMLElement;
+      expect(dd.textContent).toMatch(/Janela #41 até [0-9]{2}.[0-9]{2} [0-9]{2}:[0-9]{2}/);
+      expect(dd.querySelector('a')?.getAttribute('href')).toBe('/manutencoes');
     });
 
     it('ativo fora de manutenção mostra Iniciar', () => {
@@ -254,6 +267,44 @@ describe('EquipamentoDetalheDrawerComponent', () => {
       fixture.componentRef.setInput('linha', null);
       responder(fixture);
       expect(rodape(fixture).some((t) => /manutenção/.test(t))).toBe(false);
+    });
+
+    it('com acoesDeGestao e usuário ADMIN, linha ativa: Agendar manutenção existe e emite agendarManutencao', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      fixture.componentRef.setInput('podeAgendar', true);
+      responder(fixture);
+      let pedidos = 0;
+      fixture.componentInstance.agendarManutencao.subscribe(() => (pedidos += 1));
+      const botao = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes button')).find((b) => b.textContent?.trim() === 'Agendar manutenção')!;
+      expect(botao.disabled).toBe(false);
+      botao.click();
+      expect(pedidos).toBe(1);
+    });
+
+    it('com podeAgendar=false fica desabilitado com o motivo no title', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      responder(fixture);
+      const botao = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.gaveta__acoes button')).find((b) => b.textContent?.trim() === 'Agendar manutenção')!;
+      expect(botao.disabled).toBe(true);
+      expect(botao.getAttribute('title')).toBe('Agendamento desligado neste servidor');
+    });
+
+    it('linha inativa não oferece Agendar manutenção', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', { ...LINHA, ativo: false });
+      responder(fixture);
+      expect(rodape(fixture)).not.toContain('Agendar manutenção');
+    });
+
+    it('sem acoesDeGestao (Mapa) o botão Agendar manutenção não existe, mesmo com podeAgendar', () => {
+      const fixture = montar();
+      fixture.componentRef.setInput('linha', LINHA);
+      fixture.componentRef.setInput('podeAgendar', true);
+      fixture.componentRef.setInput('acoesDeGestao', false);
+      responder(fixture);
+      expect(rodape(fixture)).not.toContain('Agendar manutenção');
     });
 
     it('sem acoesDeGestao (Mapa) não mostra', () => {

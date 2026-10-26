@@ -12,6 +12,27 @@
 
 .abas { align-self: start; }
 
+/* Mesmo notice da lista de manutenções (local por tela, não primitiva global). */
+.notice { margin: 0; padding: 9px 11px; border-left: 3px solid var(--im-success); background: var(--im-success-bg); color: var(--im-success-soft); font-size: 12px; }
+
+/* Janelas vigentes: mesmo tratamento do .banner-agendador da lista de manutenções, em tom informativo. */
+.banner-janela {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border: 1px solid var(--im-border); border-left: 3px solid var(--im-info-soft); border-radius: var(--im-radius-lg);
+  background: linear-gradient(90deg, var(--im-primary-soft), transparent 60%), var(--im-surface-raised);
+}
+.banner-janela__texto { flex: 1; min-width: 0; }
+.banner-janela p { margin: 0; color: var(--im-text-secondary); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.banner-janela p + p { margin-top: 3px; }
+.banner-janela strong { color: var(--im-info-soft); font-weight: 600; }
+.banner-janela .link { flex: none; color: var(--im-link); font-size: 12px; white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .banner-janela { flex-wrap: wrap; align-items: flex-start; }
+  .banner-janela__texto { flex-basis: calc(100% - 52px); }
+  .banner-janela .link { margin-left: 40px; }
+}
+
 @media (max-width: 860px) {
   .unidade-detalhe__acoes { width: 100%; }
 }

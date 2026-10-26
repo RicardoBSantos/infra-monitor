@@ -3,7 +3,9 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 
-import { UnitOperationalStatus } from '../../core/models/api-enums';
+import { MaintenanceWindowStatus, UnitOperationalStatus } from '../../core/models/api-enums';
+import { PapelUsuario } from '../../core/models/auth';
+import { AuthStateService } from '../../core/services/auth-state.service';
 import { UnidadeDetalheComponent } from './unidade-detalhe.component';
 import { Title } from '@angular/platform-browser';
 
@@ -18,7 +20,7 @@ const detalhe = {
 const cadastro = {
   id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true,
   createdAt: '', updatedAt: '', endereco: 'Av. Ivo do Prado, 1120', cidade: 'Aracaju', uf: 'SE',
-  latitude: -10.929, longitude: -37.0715,
+  latitude: -10.929, longitude: -37.0715, conectaAUnidadeId: null,
 };
 const equipamento = {
   id: 31, nome: 'SW-CORE', ip: '10.0.0.1', hostname: 'sw-core.rede.local', localizacao: 'Rack 1', ativo: true, status: 'DISPONIVEL',
@@ -46,7 +48,23 @@ describe('UnidadeDetalheComponent', () => {
   function criar() { const fixture = TestBed.createComponent(UnidadeDetalheComponent); fixture.detectChanges(); return fixture; }
   function texto(fixture: ComponentFixture<UnidadeDetalheComponent>) { return (fixture.nativeElement as HTMLElement).textContent ?? ''; }
 
-  function responder(fixture: ComponentFixture<UnidadeDetalheComponent>, corpo: object = detalhe) {
+  const sessao = (papel: PapelUsuario) => TestBed.inject(AuthStateService).setSession({ accessToken: 't', tokenType: 'Bearer', expiresIn: 60, usuario: { id: 1, nome: 'Ana', email: 'ana@example.test', papel, trocaSenhaObrigatoria: false } });
+  const janela = (extra: object) => ({ id: 41, situacao: MaintenanceWindowStatus.Active, motivo: 'Troca do switch', inicioPrevisto: '2026-10-23T10:00:00Z', fimPrevisto: '2026-10-23T15:00:00Z', versao: 1, ...extra });
+
+  /** Chamadas do agendamento, disparadas no construtor junto com o carregamento da unidade. */
+  function responderManutencao(parametros: object | 'erro' = { agendadorLigado: true, duracaoMaximaHoras: 72 }, janelas: object[] | 'erro' = []) {
+    const params = httpTesting.expectOne((request) => request.url.endsWith('/manutencoes/parametros'));
+    if (parametros === 'erro') params.error(new ProgressEvent('erro'), { status: 0, statusText: 'Unknown Error' }); else params.flush(parametros);
+    const lista = httpTesting.expectOne((request) => request.url.endsWith('/manutencoes'));
+    expect(lista.request.params.get('situacao')).toBe('VIGENTES');
+    expect(lista.request.params.get('unidadeId')).toBe('7');
+    expect(lista.request.params.get('page')).toBe('0');
+    expect(lista.request.params.get('size')).toBe('5');
+    if (janelas === 'erro') lista.error(new ProgressEvent('erro'), { status: 500, statusText: 'x' }); else lista.flush(pagina(janelas));
+  }
+
+  function responder(fixture: ComponentFixture<UnidadeDetalheComponent>, corpo: object = detalhe, manutencao: Parameters<typeof responderManutencao> = []) {
+    responderManutencao(...manutencao);
     httpTesting.expectOne((request) => request.url.endsWith('/dashboard/unidades/7')).flush(corpo);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades/7')).flush(cadastro);
     httpTesting.expectOne((request) => request.url.includes('/dashboard/unidades/7/equipamentos')).flush(pagina([equipamento]));
@@ -82,6 +100,7 @@ describe('UnidadeDetalheComponent', () => {
   it('omite os segmentos ausentes dos metadados em vez de exibir vazio', async () => {
     await configurar('7');
     const fixture = criar();
+    responderManutencao();
     httpTesting.expectOne((request) => request.url.endsWith('/dashboard/unidades/7')).flush(detalhe);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades/7'))
       .flush({ ...cadastro, endereco: null, cidade: null, uf: null, latitude: null, longitude: null });
@@ -95,15 +114,111 @@ describe('UnidadeDetalheComponent', () => {
     expect(meta?.textContent?.trim()).toBe('CIS-01');
   });
 
-  it('deixa "Agendar manutenção" desabilitado com a dica de indisponibilidade', async () => {
+  const botaoAgendar = (fixture: ComponentFixture<UnidadeDetalheComponent>) =>
+    [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')]
+      .find((elemento) => elemento.textContent?.includes('Agendar manutenção')) as HTMLButtonElement | undefined;
+
+  it('habilita "Agendar manutenção" para OPERADOR e abre o modal com a unidade travada', async () => {
     await configurar('7');
+    sessao('OPERADOR');
     const fixture = criar();
     responder(fixture);
 
-    const botao = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')]
-      .find((elemento) => elemento.textContent?.includes('Agendar manutenção')) as HTMLButtonElement;
-    expect(botao.disabled).toBe(true);
-    expect(botao.title).toBe('Em breve');
+    const botao = botaoAgendar(fixture)!;
+    expect(botao.disabled).toBe(false);
+    botao.click();
+    fixture.detectChanges();
+    // O modal carrega unidades e equipamentos ao abrir.
+    httpTesting.match(() => true);
+    fixture.detectChanges();
+    const modal = (fixture.nativeElement as HTMLElement).querySelector('app-agendar-manutencao');
+    expect(modal).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[role="dialog"]')).not.toBeNull();
+  });
+
+  it('desabilita o botão com a dica quando o agendador está desligado', async () => {
+    await configurar('7');
+    sessao('OPERADOR');
+    const fixture = criar();
+    responder(fixture, detalhe, [{ agendadorLigado: false, duracaoMaximaHoras: 72 }]);
+    expect(botaoAgendar(fixture)!.disabled).toBe(true);
+    expect(botaoAgendar(fixture)!.title).toBe('Agendamento desligado neste servidor');
+  });
+
+  it('falha ao consultar o agendador não se passa por agendador desligado', async () => {
+    await configurar('7');
+    sessao('OPERADOR');
+    const fixture = criar();
+    responder(fixture, detalhe, ['erro']);
+    expect(botaoAgendar(fixture)!.disabled).toBe(true);
+    expect(botaoAgendar(fixture)!.title).toBe('Não foi possível consultar o agendador');
+  });
+
+  it('depois de agendar avisa "Janela #N agendada." com a sobreposição, em role="status"', async () => {
+    await configurar('7');
+    sessao('OPERADOR');
+    const fixture = criar();
+    responder(fixture);
+    botaoAgendar(fixture)!.click();
+    fixture.detectChanges();
+    httpTesting.match(() => true);
+    (fixture.componentInstance as unknown as { aoAgendar(j: object): void }).aoAgendar(janela({ id: 50, situacao: MaintenanceWindowStatus.Scheduled, sobreposicoes: [41, 44] }));
+    fixture.detectChanges();
+    httpTesting.expectOne((request) => request.url.endsWith('/manutencoes')).flush(pagina([]));
+    fixture.detectChanges();
+    const aviso = (fixture.nativeElement as HTMLElement).querySelector('.notice[role="status"]');
+    expect(aviso?.textContent?.trim()).toBe('Janela #50 agendada. Atenção: sobrepõe as janelas #41, #44.');
+  });
+
+  it('desabilita o botão com "Unidade inativa" quando a unidade está inativa', async () => {
+    await configurar('7');
+    sessao('OPERADOR');
+    const fixture = criar();
+    responder(fixture);
+    TestBed.inject(UnidadeDetalheStore).cadastro.set({ ...cadastro, ativo: false });
+    fixture.detectChanges();
+    expect(botaoAgendar(fixture)!.disabled).toBe(true);
+    expect(botaoAgendar(fixture)!.title).toBe('Unidade inativa');
+  });
+
+  it('não mostra o botão para VISUALIZADOR', async () => {
+    await configurar('7');
+    sessao('VISUALIZADOR');
+    const fixture = criar();
+    responder(fixture);
+    expect(botaoAgendar(fixture)).toBeUndefined();
+  });
+
+  it('mostra o banner com a janela ativa e a próxima, com link para /manutencoes', async () => {
+    await configurar('7');
+    const fixture = criar();
+    responder(fixture, detalhe, [undefined, [
+      janela({}),
+      janela({ id: 42, situacao: MaintenanceWindowStatus.Scheduled, motivo: 'Atualizar firmware', inicioPrevisto: '2026-10-24T10:00:00Z', fimPrevisto: '2026-10-24T12:00:00Z' }),
+    ]]);
+
+    const banner = (fixture.nativeElement as HTMLElement).querySelector('.banner-janela')!;
+    expect(banner.textContent).toContain('Janela #41 ativa até');
+    expect(banner.textContent).toContain('· Troca do switch');
+    expect(banner.textContent).toContain('Próxima: #42 em');
+    expect(banner.textContent).toContain('Atualizar firmware');
+    expect(banner.querySelector('a')?.getAttribute('href')).toBe('/manutencoes');
+  });
+
+  it('sem janelas vigentes não mostra banner', async () => {
+    await configurar('7');
+    const fixture = criar();
+    responder(fixture);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.banner-janela')).toBeNull();
+  });
+
+  it('falha na lista de janelas esconde o banner e o resto da tela segue', async () => {
+    await configurar('7');
+    const fixture = criar();
+    responder(fixture, detalhe, [undefined, 'erro']);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.banner-janela')).toBeNull();
+    expect(texto(fixture)).toContain('Centro Operacional');
+    expect((fixture.nativeElement as HTMLElement).querySelector('[role="alert"]')).toBeNull();
   });
 
   it('expõe as cinco abas como tablist navegável', async () => {
@@ -158,6 +273,8 @@ describe('UnidadeDetalheComponent', () => {
   it('mostra unidade não encontrada quando a API responde 404', async () => {
     await configurar('99999');
     const fixture = criar();
+    httpTesting.expectOne((request) => request.url.endsWith('/manutencoes/parametros')).flush({ agendadorLigado: true, duracaoMaximaHoras: 72 });
+    httpTesting.expectOne((request) => request.url.endsWith('/manutencoes')).flush(pagina([]));
     httpTesting.expectOne((request) => request.url.endsWith('/dashboard/unidades/99999')).flush(
       { timestamp: '', status: 404, error: 'Not Found', code: 'RESOURCE_NOT_FOUND', message: 'Unidade nao encontrada', path: '' },
       { status: 404, statusText: 'Not Found' });
@@ -182,6 +299,7 @@ describe('UnidadeDetalheComponent', () => {
   it('mantém cabeçalho e KPIs legíveis quando os relatórios falham', async () => {
     await configurar('7');
     const fixture = criar();
+    responderManutencao();
     httpTesting.expectOne((request) => request.url.endsWith('/dashboard/unidades/7')).flush(detalhe);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades/7')).flush(cadastro);
     httpTesting.expectOne((request) => request.url.includes('/dashboard/unidades/7/equipamentos')).flush(pagina([equipamento]));

@@ -13,6 +13,7 @@ export interface EquipamentoResponse {
   modelo: string | null;
   ativo: boolean;
   emManutencao: boolean;
+  manutencaoManual: boolean;
   unidade: EquipamentoReferencia;
   tipoEquipamento: EquipamentoReferencia;
   createdAt: string;

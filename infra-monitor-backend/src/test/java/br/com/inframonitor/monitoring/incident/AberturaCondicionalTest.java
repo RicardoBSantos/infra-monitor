@@ -102,8 +102,9 @@ class AberturaCondicionalTest {
 
     @Test
     void naoAbreIncidenteParaEquipamentoEmManutencao() {
-        equipamento.setEmManutencao(true);
         equipamentoRepository.saveAndFlush(equipamento);
+        // em_manutencao e updatable = false: so SQL escreve.
+        jdbc.update("update equipamento set em_manutencao = ?, manutencao_manual = ? where id = ?", true, true, equipamento.getId());
 
         Optional<Incidente> aberto = incidenteService.abrirAutomaticamente(monitor, agora, 3);
 
@@ -115,8 +116,9 @@ class AberturaCondicionalTest {
 
     @Test
     void naoAbreEpisodioDeLatenciaParaEquipamentoEmManutencao() {
-        equipamento.setEmManutencao(true);
         equipamentoRepository.saveAndFlush(equipamento);
+        // em_manutencao e updatable = false: so SQL escreve.
+        jdbc.update("update equipamento set em_manutencao = ?, manutencao_manual = ? where id = ?", true, true, equipamento.getId());
 
         latencyEpisodeProcessor.process(medicaoDegradada);
 

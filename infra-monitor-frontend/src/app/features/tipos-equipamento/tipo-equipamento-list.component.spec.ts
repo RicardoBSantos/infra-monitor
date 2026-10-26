@@ -33,6 +33,9 @@ function equipamento(overrides: Partial<DashboardEquipamentoLista> & { id: numbe
     localizacao: null,
     numeroSerie: null,
     emManutencao: false,
+    manutencaoManual: false,
+    janelaAtivaId: null,
+    janelaAtivaFim: null,
     ...overrides,
   };
 }

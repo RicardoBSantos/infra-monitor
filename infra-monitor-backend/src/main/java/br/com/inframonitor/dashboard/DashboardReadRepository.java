@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 /** PostgreSQL read projections used by dashboard aggregates, without loading inventories to count them. */
@@ -132,12 +133,22 @@ public class DashboardReadRepository {
                     order by me.equipamento_id, me.executado_em desc, me.medicao_id desc
                 )
                 select e.id, e.nome, t.nome, u.id, u.nome, e.hostname, e.ip_address,
-                    ee.status, el.latencia_ms, e.ativo, e.localizacao, e.numero_serie, e.em_manutencao
+                    ee.status, el.latencia_ms, e.ativo, e.localizacao, e.numero_serie, e.em_manutencao,
+                    e.manutencao_manual, ja.id, ja.fim_previsto
                 from equipamento e
                 join equipamento_estado ee on ee.id = e.id
                 join unidade u on u.id = e.unidade_id
                 join tipo_equipamento t on t.id = e.tipo_equipamento_id
                 left join equipamento_latencia el on el.equipamento_id = e.id
+                left join lateral (
+                    select ma.id, ma.fim_previsto from manutencao_agendada ma
+                     where ma.status = 'ATIVA'
+                       and ((ma.escopo = 'UNIDADE' and ma.unidade_id = e.unidade_id)
+                         or (ma.escopo = 'EQUIPAMENTOS' and exists (
+                               select 1 from manutencao_agendada_equipamento mae
+                                where mae.manutencao_id = ma.id and mae.equipamento_id = e.id)))
+                     order by ma.fim_previsto desc, ma.id desc limit 1
+                ) ja on true
                 order by e.nome asc, e.id asc
                 """).setParameter(1, limiarLatenciaDegradadaMs).getResultList();
         return rows.stream().map(this::equipamento).toList();
@@ -147,7 +158,17 @@ public class DashboardReadRepository {
         return new EquipamentoRow(longValue(r[0]), (String) r[1], (String) r[2], longValue(r[3]), (String) r[4],
                 (String) r[5], (String) r[6], StatusOperacionalEquipamento.valueOf((String) r[7]),
                 r[8] == null ? null : ((Number) r[8]).intValue(), (Boolean) r[9],
-                (String) r[10], (String) r[11], (Boolean) r[12]);
+                (String) r[10], (String) r[11], (Boolean) r[12],
+                (Boolean) r[13], longOrNull(r[14]), instantOrNull(r[15]));
+    }
+
+    /** O driver entrega TIMESTAMPTZ de query nativa como Timestamp, OffsetDateTime ou Instant. */
+    private Instant instantOrNull(Object value) {
+        if (value == null) return null;
+        if (value instanceof Instant i) return i;
+        if (value instanceof java.sql.Timestamp t) return t.toInstant();
+        if (value instanceof java.time.OffsetDateTime o) return o.toInstant();
+        throw new IllegalStateException("Tipo de data inesperado: " + value.getClass());
     }
 
     private long longValue(Object value) { return ((Number) value).longValue(); }
@@ -164,7 +185,8 @@ public class DashboardReadRepository {
     public record EquipamentoRow(Long id, String nome, String tipoNome, Long unidadeId, String unidadeNome,
                                  String hostname, String ip, StatusOperacionalEquipamento status,
                                  Integer latenciaMs, boolean ativo, String localizacao, String numeroSerie,
-                                 boolean emManutencao) { }
+                                 boolean emManutencao, boolean manutencaoManual, Long janelaAtivaId,
+                                 Instant janelaAtivaFim) { }
 
     public record DashboardCounts(long unidadesTotal, long equipamentosTotal, long equipamentosAtivos,
                                   long equipamentosDisponiveis, long equipamentosDegradados, long equipamentosIndisponiveis,

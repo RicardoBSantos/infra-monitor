@@ -2,6 +2,8 @@ package br.com.inframonitor.dashboard.dto;
 
 import br.com.inframonitor.dashboard.StatusOperacionalEquipamento;
 
+import java.time.Instant;
+
 /**
  * Linha do inventario completo em /dashboard/equipamentos.
  *
@@ -14,6 +16,11 @@ import br.com.inframonitor.dashboard.StatusOperacionalEquipamento;
  * sobre {@code EM_MANUTENCAO} no resolver: a tela precisa do flag para oferecer "Encerrar manutencao"
  * a equipamento inativo.
  *
+ * <p>Origem da manutencao: {@code emManutencao} e o estado efetivo (botao manual OU janela ativa).
+ * {@code manutencaoManual} diz se o botao esta ligado. {@code janelaAtivaId} e {@code janelaAtivaFim}
+ * identificam a janela ATIVA que cobre o equipamento (a de maior fim, se houver varias) e sao nulos
+ * quando nenhuma cobre. Manual e janela podem coexistir.
+ *
  * <p>Distinto de {@link DashboardEquipamentoResponse}, que atende a aba de equipamentos da
  * unidade e permanece inalterado.
  */
@@ -21,5 +28,6 @@ public record DashboardEquipamentoListaResponse(Long id, String nome, String tip
                                                 String unidadeNome, String hostname, String ip,
                                                 StatusOperacionalEquipamento status, Integer latenciaMs,
                                                 boolean ativo, String localizacao, String numeroSerie,
-                                                boolean emManutencao) {
+                                                boolean emManutencao, boolean manutencaoManual,
+                                                Long janelaAtivaId, Instant janelaAtivaFim) {
 }

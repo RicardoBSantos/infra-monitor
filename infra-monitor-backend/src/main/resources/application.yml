@@ -117,3 +117,11 @@ notification:
     max-attempts: ${NOTIFICATION_DISPATCHER_MAX_ATTEMPTS:3}
     base-delay-seconds: ${NOTIFICATION_DISPATCHER_BASE_DELAY_SECONDS:30}
     processing-timeout-ms: ${NOTIFICATION_DISPATCHER_PROCESSING_TIMEOUT_MS:60000}
+
+manutencao:
+  agendada:
+    # Liga o reconciliador que ativa e conclui as janelas. Desligado, a criacao de janela e recusada (409).
+    enabled: ${MANUTENCAO_AGENDADA_ENABLED:false}
+    intervalo-ms: ${MANUTENCAO_AGENDADA_INTERVALO_MS:30000}
+    # java.time.Duration: 72h, 5d, 90m. Ajustar = mudar a variavel e reiniciar (MA15).
+    duracao-maxima: ${MANUTENCAO_AGENDADA_DURACAO_MAXIMA:72h}
