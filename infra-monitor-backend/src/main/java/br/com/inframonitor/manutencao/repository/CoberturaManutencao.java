@@ -1,5 +1,6 @@
 package br.com.inframonitor.manutencao.repository;
 
+import br.com.inframonitor.notificacao.service.DadosAnuncio;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -49,6 +50,19 @@ public class CoberturaManutencao {
                           WHERE mae.manutencao_id = ma.id AND mae.equipamento_id = e.id)))
                  ORDER BY ma.id LIMIT 1""", Map.of("id", equipamentoId), Long.class);
         return ids.stream().findFirst();
+    }
+
+    /** Janela ATIVA de menor id que cobre o equipamento (mesmo predicado e desempate de autorDaCobertura), para citar no texto. */
+    public Optional<DadosAnuncio.JanelaVigente> janelaVigente(long equipamentoId) {
+        return jdbc.query("""
+                SELECT ma.id, ma.fim_previsto FROM manutencao_agendada ma JOIN equipamento e ON e.id = :id
+                 WHERE ma.status = 'ATIVA'
+                   AND ((ma.escopo = 'UNIDADE' AND ma.unidade_id = e.unidade_id)
+                     OR (ma.escopo = 'EQUIPAMENTOS' AND EXISTS (SELECT 1 FROM manutencao_agendada_equipamento mae
+                          WHERE mae.manutencao_id = ma.id AND mae.equipamento_id = e.id)))
+                 ORDER BY ma.id LIMIT 1""", Map.of("id", equipamentoId),
+                (rs, i) -> new DadosAnuncio.JanelaVigente(rs.getLong("id"), rs.getTimestamp("fim_previsto").toInstant()))
+                .stream().findFirst();
     }
 
     /** Equipamentos cujo efetivo diverge do desejado. Ordem por id: mesma ordem de lock em todo lugar. */

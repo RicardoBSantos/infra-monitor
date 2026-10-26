@@ -2,6 +2,9 @@ package br.com.inframonitor.equipamento.service;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.equipamento.repository.SessaoManutencaoManual;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
 import br.com.inframonitor.usuario.entity.Usuario;
 import br.com.inframonitor.usuario.repository.UsuarioRepository;
@@ -34,17 +37,24 @@ import java.util.Optional;
 @Service
 public class EstadoManutencaoEquipamento {
 
+    private static final Logger log = LoggerFactory.getLogger(EstadoManutencaoEquipamento.class);
+
     private final EquipamentoRepository equipamentos;
     private final CoberturaManutencao cobertura;
     private final EfeitosManutencao efeitos;
     private final UsuarioRepository usuarios;
+    private final SessaoManutencaoManual sessoes;
+    private final AnuncioManutencaoManual anuncio;
 
     public EstadoManutencaoEquipamento(EquipamentoRepository equipamentos, CoberturaManutencao cobertura,
-                                       EfeitosManutencao efeitos, UsuarioRepository usuarios) {
+                                       EfeitosManutencao efeitos, UsuarioRepository usuarios,
+                                       SessaoManutencaoManual sessoes, AnuncioManutencaoManual anuncio) {
         this.equipamentos = equipamentos;
         this.cobertura = cobertura;
         this.efeitos = efeitos;
         this.usuarios = usuarios;
+        this.sessoes = sessoes;
+        this.anuncio = anuncio;
     }
 
     /** Leva em_manutencao ao desejado (manual OR coberto) e devolve o estado efetivo final. */
@@ -87,6 +97,11 @@ public class EstadoManutencaoEquipamento {
         }
         Instant agora = Instant.now();
         equipamentos.marcarManual(equipamentoId, agora);
+        long sessao = sessoes.abrir(equipamentoId, autor.getId(), agora);
+        // O anuncio vem ANTES dos efeitos de entrada: a fila ordena por id, e o aviso de inicio precisa
+        // preceder os INCIDENTE_ENCERRADO_MANUTENCAO que os efeitos criam. "Ja estava na janela" e o MESMO
+        // em_manutencao travado que decide os efeitos logo abaixo (nunca a tabela da janela).
+        anuncio.anunciarInicio(sessao, equipamentoId, travado.getEmManutencao(), agora);
         // Ja em manutencao pela janela: os efeitos ja rodaram na entrada dela.
         if (!travado.getEmManutencao()) {
             efeitos.aplicarEntrada(equipamentoId, autor, agora);
@@ -94,17 +109,26 @@ public class EstadoManutencaoEquipamento {
     }
 
     @Transactional
-    public void encerrarManual(Long equipamentoId) {
+    public void encerrarManual(Long equipamentoId, Long usuarioId) {
+        Usuario autor = usuarioObrigatorio(usuarioId);   // falha antes do lock, como iniciarManual
         var travado = equipamentos.travarEstadoManutencao(equipamentoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Equipamento nao encontrado"));
         if (!travado.getManutencaoManual()) {
             return;
         }
-        if (equipamentos.desmarcarManual(equipamentoId, Instant.now()) == 0) {
+        Instant agora = Instant.now();
+        if (equipamentos.desmarcarManual(equipamentoId, agora) == 0) {
             // Impossivel com o lock, como em reavaliar: falhar alto e melhor que reavaliar sem a virada.
             throw new IllegalStateException("manutencao_manual mudou sob lock do equipamento " + equipamentoId);
         }
-        reavaliar(equipamentoId);   // mesma transacao; o lock ja e nosso
+        Optional<Long> sessao = sessoes.fecharAberta(equipamentoId, autor.getId(), agora);
+        boolean segue = reavaliar(equipamentoId);   // mesma transacao; o lock ja e nosso
+        if (sessao.isPresent()) {
+            anuncio.anunciarFim(sessao.get(), equipamentoId, autor.getNome(), segue, agora);
+        } else {
+            // Impossivel depois do backfill da V23; sem sessao nao se inventa periodo.
+            log.warn("Manutencao manual encerrada sem sessao aberta no equipamento {}; nenhum aviso gerado", equipamentoId);
+        }
     }
 
     /**

@@ -4,10 +4,12 @@ import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.dto.EquipamentoResponse;
+import br.com.inframonitor.equipamento.dto.ManutencaoManualResponse;
 import br.com.inframonitor.equipamento.dto.ReferenciaResponse;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.equipamento.repository.SessaoManutencaoManual;
 import br.com.inframonitor.equipamento.validation.RegraIpv4;
 import br.com.inframonitor.manutencao.repository.ManutencaoAgendadaRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
@@ -36,12 +38,14 @@ public class EquipamentoService {
     private final CicloJanelaMonitoramentoService cicloJanela;
     private final EstadoManutencaoEquipamento estado;
     private final ManutencaoAgendadaRepository manutencaoRepository;
+    private final SessaoManutencaoManual sessoesManuais;
 
     @Autowired
     public EquipamentoService(EquipamentoRepository equipamentoRepository, UnidadeRepository unidadeRepository,
                               TipoEquipamentoRepository tipoEquipamentoRepository, MonitorRepository monitorRepository,
                               CicloJanelaMonitoramentoService cicloJanela, EstadoManutencaoEquipamento estado,
-                              ManutencaoAgendadaRepository manutencaoRepository) {
+                              ManutencaoAgendadaRepository manutencaoRepository,
+                              SessaoManutencaoManual sessoesManuais) {
         this.equipamentoRepository = equipamentoRepository;
         this.unidadeRepository = unidadeRepository;
         this.tipoEquipamentoRepository = tipoEquipamentoRepository;
@@ -49,6 +53,7 @@ public class EquipamentoService {
         this.cicloJanela = cicloJanela;
         this.estado = estado;
         this.manutencaoRepository = manutencaoRepository;
+        this.sessoesManuais = sessoesManuais;
     }
 
     @Transactional
@@ -146,8 +151,8 @@ public class EquipamentoService {
      * roda; a resposta diz isso pelos dois flags.
      */
     @Transactional
-    public EquipamentoResponse sairDeManutencao(Long id) {
-        estado.encerrarManual(id);
+    public EquipamentoResponse sairDeManutencao(Long id, Long usuarioId) {
+        estado.encerrarManual(id, usuarioId);
         return paraResposta(obterEquipamento(id));
     }
 
@@ -170,7 +175,16 @@ public class EquipamentoService {
         if (manutencaoRepository.equipamentoConstaEmJanela(id)) {
             throw new ConflitoException("Nao e possivel excluir o equipamento porque ele consta em janelas de manutencao");
         }
+        // Mesma razao: a FK das sessoes manuais (e das notificacoes delas) e RESTRICT, e a sessao e historico.
+        if (sessoesManuais.existeHistorico(id)) {
+            throw new ConflitoException("Nao e possivel excluir o equipamento porque ele tem historico de manutencao manual");
+        }
         equipamentoRepository.delete(equipamento);
+    }
+
+    public Page<ManutencaoManualResponse> historicoManutencaoManual(Long id, Pageable pageable) {
+        obterEquipamento(id);   // 404 se nao existe
+        return sessoesManuais.listar(id, pageable);
     }
 
     private Equipamento obterEquipamento(Long id) {

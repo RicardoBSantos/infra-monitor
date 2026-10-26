@@ -153,7 +153,7 @@ class EntradaEmManutencaoTest {
     @Test
     void sairDeManutencaoReabreJanelaReavaliandoOPredicado() {
         equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
-        equipamentoService.sairDeManutencao(equipamentoId);
+        equipamentoService.sairDeManutencao(equipamentoId, operadorId);
 
         assertThat(janelaRepository.aberta(monitorId)).isPresent();
     }
@@ -163,7 +163,7 @@ class EntradaEmManutencaoTest {
         jdbc.update("update equipamento set ativo = false where id = ?", equipamentoId);
 
         equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
-        equipamentoService.sairDeManutencao(equipamentoId);
+        equipamentoService.sairDeManutencao(equipamentoId, operadorId);
 
         assertThat(janelaRepository.aberta(monitorId)).isEmpty();
     }

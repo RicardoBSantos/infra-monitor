@@ -238,7 +238,7 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
                     atrasar(ATRASO_RECONCILIADOR_VS_MANUAL_MS);
                     reconciliador.reconciliar(Instant.now());
                 },
-                () -> equipamentoService.sairDeManutencao(equipamento));
+                () -> equipamentoService.sairDeManutencao(equipamento, operadorId));
 
         String s = situacao(j);
         Map<String, Object> flags = flags(equipamento);
