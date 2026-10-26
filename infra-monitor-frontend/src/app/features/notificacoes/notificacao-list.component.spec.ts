@@ -86,4 +86,34 @@ describe('NotificacaoListComponent', () => { let fixture: ComponentFixture<Notif
     expect(raiz.querySelector('section.operational-page > header')).toBeNull();
     expect(raiz.querySelector('section.operational-page')!.getAttribute('aria-label')).toBe('Histórico de notificações');
   });
+
+  it('monta as 11 opções do filtro de evento a partir do módulo compartilhado', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes')).flush(page([]));
+    fixture.detectChanges();
+    const selects = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('select')) as HTMLSelectElement[];
+    const evento = selects.find(s => s.closest('label')?.textContent?.startsWith('EVENTO'))!;
+    const opcoes = Array.from(evento.options).map(o => o.textContent);
+    expect(opcoes.length).toBe(12);
+    expect(opcoes).toContain('Manutenção iniciada');
+    expect(opcoes).toContain('Fim da manutenção alterado');
+    expect(opcoes).toContain('Manutenção manual encerrada');
+  });
+
+  it('mostra a origem de janela com link para /manutencoes e a de manutenção manual com o equipamento', () => {
+    fixture.detectChanges();
+    const base = { ...item(), incidente: null };
+    http.expectOne(value => value.url.endsWith('/notificacoes')).flush(page([
+      { ...base, id: 3, tipoEvento: 'MANUTENCAO_INICIADA', manutencao: { id: 41, unidadeNome: 'Sesc Centro' }, manutencaoManual: null, equipamentoNome: null },
+      { ...base, id: 4, tipoEvento: 'MANUTENCAO_MANUAL_INICIADA', manutencao: null, manutencaoManual: { id: 7, equipamentoId: 2, equipamentoNome: 'SW-01' } },
+    ]));
+    fixture.detectChanges();
+    const linhas = fixture.nativeElement.querySelectorAll('tbody tr');
+    expect(linhas[0].textContent).toContain('Janela #41');
+    expect(linhas[0].querySelector('a')!.getAttribute('href')).toBe('/manutencoes');
+    expect(linhas[0].textContent).toContain('Manutenção iniciada');
+    expect(linhas[1].textContent).toContain('Manutenção manual · SW-01');
+    expect(linhas[1].textContent).toContain('Manutenção manual iniciada');
+  });
+
 });

@@ -51,7 +51,9 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     });
   });
 
-  afterEach(() => http.verify({ ignoreCancelled: true }));
+  // O histórico de manutenção manual recarrega quando a linha troca a flag; testes que só olham o
+  // rodapé não o respondem, e uma requisição solta não é o que eles verificam.
+  afterEach(() => { responderHistorico(); http.verify({ ignoreCancelled: true }); });
 
   function montar(): ComponentFixture<EquipamentoDetalheDrawerComponent> {
     const fixture = TestBed.createComponent(EquipamentoDetalheDrawerComponent);
@@ -71,6 +73,17 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     medicao(18, 'SUCESSO', 4), medicao(19, 'SUCESSO', 6), medicao(20, 'FALHA', null), medicao(21, 'FALHA', null),
   ];
 
+  /** Sessões devolvidas pelo histórico de manutenção manual; `null` = o endpoint falha. */
+  let historicoManual: object[] | null = [];
+  beforeEach(() => { historicoManual = []; });
+
+  const responderHistorico = () => {
+    for (const requisicao of http.match((request) => request.url.endsWith('/equipamentos/1/manutencoes-manuais')).filter((r) => !r.cancelled)) {
+      if (historicoManual === null) requisicao.flush({ message: 'falhou' }, { status: 500, statusText: 'Server Error' });
+      else requisicao.flush(pagina(historicoManual));
+    }
+  };
+
   function responder(
     fixture: ComponentFixture<EquipamentoDetalheDrawerComponent>,
     falhas: string[] = [],
@@ -80,7 +93,7 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     latencia: object[] = [{ equipamentoId: 1, avgLatenciaMs: 4 }],
   ) {
     const responderOu = (url: string, corpo: object) => {
-      const requisicao = http.expectOne((request) => request.url.includes(url));
+      const requisicao = http.expectOne((request) => request.url.includes(url) && !request.url.includes('manutencoes-manuais'));
       if (falhas.includes(url)) requisicao.flush({ message: 'falhou' }, { status: 500, statusText: 'Server Error' });
       else requisicao.flush(corpo);
     };
@@ -92,7 +105,10 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     responderOu('/relatorios/latencia', pagina(latencia));
     responderOu('/relatorios/medicoes', pagina(medicoes));
     responderOu('/monitores', pagina(monitores));
+    responderHistorico();
     responderOu('/incidentes', pagina([{ id: 192, status: 'ABERTO', iniciadoEm: '2026-08-31T08:44:00Z', motivo: 'Equipamento offline', encerradoEm: null, observacao: null, monitor: { id: 10, nome: 'ICMP 10', tipo: 'ICMP', equipamentoId: 1, equipamentoNome: 'SW-CORE', unidadeId: 3, unidadeNome: 'Centro Integrado de Saúde' }, createdAt: '', updatedAt: '' }]));
+    fixture.detectChanges();
+    responderHistorico();
     fixture.detectChanges();
   }
 
@@ -483,4 +499,94 @@ describe('EquipamentoDetalheDrawerComponent', () => {
     expect(texto(fixture)).toContain('50,00%');
     expect(texto(fixture)).toContain('2 / 3');
   });
+
+  describe('Manutenção manual — histórico', () => {
+    const SESSAO = (id: number, extra: object = {}) => ({
+      id, iniciadaEm: '2026-10-20T13:00:00Z', iniciadaPor: { id: 1, nome: 'Ana' },
+      encerradaEm: '2026-10-20T14:30:00Z', encerradaPor: { id: 2, nome: 'Bruno' }, duracaoSegundos: 5400, ...extra,
+    });
+    const secao = (fixture: ComponentFixture<EquipamentoDetalheDrawerComponent>) =>
+      (fixture.nativeElement as HTMLElement).querySelector('section[aria-labelledby="titulo-manutencao-manual"]') as HTMLElement;
+
+    it('pede as 5 últimas sessões e mostra uma linha por sessão com período, duração e autoria', () => {
+      historicoManual = [1, 2, 3, 4, 5].map((n) => SESSAO(n));
+      const fixture = montar();
+      const pedido = http.expectOne((r) => r.url.endsWith('/equipamentos/1/manutencoes-manuais'));
+      expect(pedido.request.params.get('size')).toBe('5');
+      expect(pedido.request.params.get('page')).toBe('0');
+      pedido.flush(pagina(historicoManual));
+      responder(fixture);
+      const linhas = secao(fixture).querySelectorAll('li');
+      expect(linhas.length).toBe(5);
+      expect(secao(fixture).textContent).toContain('Manutenção manual — histórico');
+      expect(linhas[0].textContent).toMatch(/20\/10\/2026 \d{2}:\d{2}/);
+      expect(linhas[0].textContent).toContain('1 h 30 min');
+      expect(linhas[0].textContent).toContain('Iniciada por Ana');
+      expect(linhas[0].textContent).toContain('encerrada por Bruno');
+    });
+
+    it('sessão aberta mostra "em andamento" e legado mostra "início não registrado"', () => {
+      historicoManual = [
+        SESSAO(2, { encerradaEm: null, encerradaPor: null, duracaoSegundos: null }),
+        SESSAO(1, { iniciadaEm: null, iniciadaPor: null, duracaoSegundos: null }),
+      ];
+      const fixture = montar();
+      responder(fixture);
+      const linhas = secao(fixture).querySelectorAll('li');
+      expect(linhas[0].textContent).toContain('em andamento');
+      expect(linhas[0].textContent).not.toContain('encerrada por');
+      expect(linhas[1].textContent).toContain('início não registrado');
+    });
+
+    it('vazio mostra "Nenhuma manutenção manual registrada"', () => {
+      const fixture = montar();
+      responder(fixture);
+      expect(secao(fixture).textContent).toContain('Nenhuma manutenção manual registrada');
+      expect(secao(fixture).querySelector('li')).toBeNull();
+    });
+
+    it('erro mostra aviso com nova tentativa e o resto do drawer continua', () => {
+      historicoManual = null;
+      const fixture = montar();
+      responder(fixture);
+      expect(secao(fixture).querySelector('[role="alert"]')?.textContent).toContain('Não foi possível carregar o histórico de manutenção manual.');
+      expect(texto(fixture)).toContain('Cisco');
+      expect(texto(fixture)).toContain('Incidentes recentes');
+      historicoManual = [SESSAO(1)];
+      (secao(fixture).querySelector('button') as HTMLButtonElement).click();
+      responderHistorico();
+      fixture.detectChanges();
+      expect(secao(fixture).querySelectorAll('li').length).toBe(1);
+    });
+
+    it('recarrega quando linha().manutencaoManual muda', () => {
+      const fixture = montar();
+      responder(fixture);
+      expect(secao(fixture).querySelector('li')).toBeNull();
+      historicoManual = [SESSAO(9, { encerradaEm: null, encerradaPor: null, duracaoSegundos: null })];
+      fixture.componentRef.setInput('linha', { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Maintenance, ativo: true, emManutencao: true, manutencaoManual: true });
+      fixture.detectChanges();
+      responderHistorico();
+      fixture.detectChanges();
+      expect(secao(fixture).textContent).toContain('em andamento');
+    });
+
+    it('não recarrega o histórico quando a linha muda sem alterar manutencaoManual', () => {
+      const fixture = montar();
+      responder(fixture);
+      fixture.componentRef.setInput('linha', { nome: 'SW-CORE', tipoNome: 'Switch', unidadeNome: 'Centro Integrado de Saúde', status: EquipmentOperationalStatus.Available, ativo: true, emManutencao: false, manutencaoManual: false });
+      fixture.detectChanges();
+      http.expectNone((r) => r.url.endsWith('/manutencoes-manuais'));
+    });
+
+    it('aparece também sem ações de gestão (Mapa)', () => {
+      historicoManual = [SESSAO(1)];
+      const fixture = montar();
+      fixture.componentRef.setInput('acoesDeGestao', false);
+      responder(fixture);
+      expect(secao(fixture).querySelectorAll('li').length).toBe(1);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.gaveta__acoes')?.textContent).not.toContain('Iniciar manutenção');
+    });
+  });
+
 });

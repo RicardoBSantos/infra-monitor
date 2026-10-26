@@ -254,6 +254,39 @@
         </ul>
       }
     </section>
+    <!-- Histórico do botão manual ------------------------------------------- -->
+    <section class="cartao" aria-labelledby="titulo-manutencao-manual">
+      <h3 class="cartao__titulo" id="titulo-manutencao-manual">Manutenção manual — histórico</h3>
+      @if (sessoesManuaisEstado() === 'loading') {
+        <div class="esqueleto" role="status" aria-label="Carregando histórico de manutenção manual">@for (linha of [1,2]; track linha) { <span></span> }</div>
+      } @else if (sessoesManuaisEstado() === 'error') {
+        <div class="vazio" role="alert">
+          <strong>Não foi possível carregar o histórico de manutenção manual.</strong>
+          <button class="botao" type="button" (click)="carregarSessoesManuais()">Tentar novamente</button>
+        </div>
+      } @else if (sessoesManuais().length === 0) {
+        <div class="vazio">
+          <strong>Nenhuma manutenção manual registrada</strong>
+          <p>As sessões iniciadas pelo botão de manutenção deste equipamento aparecem aqui.</p>
+        </div>
+      } @else {
+        <ul class="sessoes-manuais">
+          @for (sessao of sessoesManuais(); track sessao.id) {
+            <li>
+              <span class="sessoes-manuais__periodo mono">
+                @if (sessao.iniciadaEm) { {{ sessao.iniciadaEm | date:'dd/MM/yyyy HH:mm' }} } @else { <span class="apagado">início não registrado</span> }
+                <span class="apagado">até</span>
+                @if (sessao.encerradaEm) { {{ sessao.encerradaEm | date:'dd/MM/yyyy HH:mm' }} } @else { <span class="valor--alerta">em andamento</span> }
+              </span>
+              <span class="sessoes-manuais__duracao mono">{{ duracaoDaSessao(sessao) }}</span>
+              <span class="sessoes-manuais__autoria apagado">
+                Iniciada por {{ sessao.iniciadaPor?.nome ?? '—' }}@if (sessao.encerradaEm) { · encerrada por {{ sessao.encerradaPor?.nome ?? '—' }} }
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
   </div>
 
   <!-- Duas condições distintas, não redundantes: `acoesDeGestao` diz se o HOST atende a ação,

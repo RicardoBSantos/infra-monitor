@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { EquipamentoCreateRequest, EquipamentoListQuery, EquipamentoResponse, EquipamentoUpdateRequest } from '../models/equipamento';
+import { EquipamentoCreateRequest, EquipamentoListQuery, EquipamentoResponse, EquipamentoUpdateRequest, ManutencaoManualResponse } from '../models/equipamento';
 import { PageResponse } from '../models/page-response';
 
 @Injectable({ providedIn: 'root' })
@@ -20,5 +20,7 @@ export class EquipamentoApiService {
   deactivate(id: number): Observable<EquipamentoResponse> { return this.http.patch<EquipamentoResponse>(`${this.endpoint}/${id}/desativar`, {}); }
   startMaintenance(id: number): Observable<EquipamentoResponse> { return this.http.patch<EquipamentoResponse>(`${this.endpoint}/${id}/manutencao/iniciar`, {}); }
   endMaintenance(id: number): Observable<EquipamentoResponse> { return this.http.patch<EquipamentoResponse>(`${this.endpoint}/${id}/manutencao/encerrar`, {}); }
+  /** Últimas sessões do botão manual, mais recente primeiro. */
+  historicoManutencaoManual(id: number, size = 5): Observable<PageResponse<ManutencaoManualResponse>> { return this.http.get<PageResponse<ManutencaoManualResponse>>(`${this.endpoint}/${id}/manutencoes-manuais`, { params: new HttpParams().set('page', 0).set('size', size) }); }
   delete(id: number): Observable<void> { return this.http.delete<void>(`${this.endpoint}/${id}`); }
 }

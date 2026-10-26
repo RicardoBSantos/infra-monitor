@@ -7,7 +7,7 @@ import { NotificacaoDetailComponent } from './notificacao-detail.component';
 const incidentNotification = {
   id: 5, canal: 'TELEGRAM', tipoEvento: 'INCIDENTE_ABERTO', status: 'ENVIADA', tentativas: 1,
   mensagem: 'INCIDENTE ABERTO', erro: null, enviadoEm: '2026-08-20T10:00:00Z',
-  incidente: { id: 9, status: 'ABERTO' }, episodioLatencia: null,
+  incidente: { id: 9, status: 'ABERTO' }, episodioLatencia: null, manutencao: null, manutencaoManual: null,
   monitorNome: 'ICMP', equipamentoNome: 'SW-CORE', unidadeNome: 'Sesc Centro',
   createdAt: '2026-08-20T09:00:00Z', updatedAt: '2026-08-20T10:00:00Z',
 };
@@ -106,4 +106,28 @@ describe('NotificacaoDetailComponent', () => {
     botao.click();
     http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush(incidentNotification);
   });
+
+  it('mostra a origem da janela com link para /manutencoes', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush({
+      ...incidentNotification, incidente: null, tipoEvento: 'MANUTENCAO_ENCERRADA',
+      manutencao: { id: 41, unidadeNome: 'Sesc Centro' }, equipamentoNome: null, monitorNome: null,
+    });
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('a[href="/manutencoes"]') as HTMLAnchorElement;
+    expect(link.textContent).toContain('Janela #41');
+    expect(fixture.nativeElement.textContent).toContain('Manutenção encerrada');
+  });
+
+  it('mostra a origem da manutenção manual com o nome do equipamento', () => {
+    fixture.detectChanges();
+    http.expectOne(value => value.url.endsWith('/notificacoes/5')).flush({
+      ...incidentNotification, incidente: null, tipoEvento: 'MANUTENCAO_MANUAL_INICIADA',
+      manutencaoManual: { id: 7, equipamentoId: 2, equipamentoNome: 'SW-01' },
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Manutenção manual · SW-01');
+    expect(fixture.nativeElement.textContent).toContain('Manutenção manual iniciada');
+  });
+
 });
