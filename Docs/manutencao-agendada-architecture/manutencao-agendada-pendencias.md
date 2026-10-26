@@ -34,3 +34,18 @@ Cada uma traz a recomendação e o que destrava.
   unidade em outro fuso, a tela precisa mostrar o fuso da unidade.
 - **Exclusão de equipamento/unidade com janela no histórico** passa a ser recusada (409). Se isso
   incomodar a operação, a alternativa é permitir quando só houver janelas `CANCELADA`/`EXPIRADA`.
+
+## F2 (entregue em 2026-10-26)
+
+Decisões da F2: MA19 a MA26. Dívidas encontradas, nenhuma bloqueia:
+
+- **Gaveta do Mapa mostra "Origem desconhecida"** com janela ativa: `resumoDoEquipamento()` não passa os
+  campos da janela. Vem da F1; achado no e2e da Task 9.
+- **Foco não é resgatado** quando `carregar(true)` termina em erro em `/manutencoes` (menor).
+- **Aviso de preset** diz "da janela anterior" mesmo em preset que não é continuação (na prática não ocorre).
+- **Edição recusada** quando a unidade da própria janela foi desativada (território da P-08; limite conhecido).
+- **Banner da unidade não recarrega** se o roteador reaproveitar o componente para outro `:id` (mesmo padrão
+  do store existente).
+- **"Os dois desfechos" de C1 a C3** é garantido pela evidência, não afirmado pelo teste (idioma da F1).
+- **Exercício no banco da carga** com motor e Telegram ligados em outro processo notifica o grupo de verdade:
+  escolher equipamento online e sem incidente aberto (ver "Efeito colateral" na evidência).

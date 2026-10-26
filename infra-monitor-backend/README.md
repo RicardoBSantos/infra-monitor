@@ -60,6 +60,12 @@ nos YAML.
 
 Manutenção agendada (janelas em `/api/v1/manutencoes`):
 
+- `GET /api/v1/manutencoes/{id}`: detalhe de uma janela.
+- `GET /api/v1/manutencoes`: a listagem aceita o filtro `unidadeId`.
+- `PUT /api/v1/manutencoes/{id}`: edita janela `AGENDADA`. Funciona com o agendador desligado e, nesse caso,
+  a janela **não é ativada** (MA25).
+- `PATCH /api/v1/manutencoes/{id}/fim`: altera o fim de janela `ATIVA`. **Exige o agendador ligado.**
+
 | Variável | Padrão | Efeito |
 |---|---|---|
 | `MANUTENCAO_AGENDADA_ENABLED` | `false` | Liga o reconciliador que ativa, conclui e expira as janelas. **Desligado, a criação de janela é recusada com 409** (nenhuma janela seria ativada) e a tela mostra o aviso; o botão manual "Iniciar manutenção" do equipamento continua funcionando. Cancelar e encerrar janelas existentes funcionam com ele desligado. |
@@ -194,6 +200,9 @@ UPDATE equipamento SET manutencao_manual = false WHERE manutencao_manual;
 O CHECK continua aceitando `em_manutencao = true` sozinho, então quem estava em manutenção segue
 em manutenção e o código antigo volta a controlar o flag. Ao reinstalar a versão nova, refaça o
 "Iniciar manutenção" desses equipamentos (ou rode o `UPDATE` inverso para os que devem ser manuais).
+
+A **V22** (F2) é aditiva: coluna com default e tabela nova de alterações. O código da F1 roda normalmente
+sobre um banco em V22, e voltar o jar para a F1 deixa a V22 no lugar, sem efeito.
 
 Atenção: o banco da carga real (`inframonitor-carga`) **já está em V21**, enquanto a pilha do dia a
 dia pode estar rodando código anterior à F1. Não aponte um jar antigo para ele sem o `UPDATE` acima.

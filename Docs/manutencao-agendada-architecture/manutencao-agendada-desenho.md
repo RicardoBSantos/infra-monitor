@@ -434,7 +434,7 @@ crescente); alternância **Histórico** (demais, início decrescente). Busca por
 |---|---|---|
 | **F0** | Botão manual na interface | **Já entregue** (PR #17) |
 | **F1 — agendar e confiar** | Migration (§2.1–2.2); `reavaliar` + split de efeitos; reconciliador com subida, atraso e EXPIRADA; guarda de subida no motor; escopos UNIDADE e EQUIPAMENTOS; hooks em `criar`/`atualizar`; API criar/listar/cancelar/encerrar; 409 com reconciliador desligado; segurança; read-model `manutencaoManual` + janela ativa; tela `/manutencoes` (lista, modal, cancelar, encerrar); ajuste do botão manual; testes concorrentes | **Sim.** Agenda-se a troca do switch e ninguém é acordado pelo alarme |
-| **F2 — integração** | Agendar a partir de Equipamentos e da Unidade; banner da unidade; editar AGENDADA; prorrogar ATIVA | Conforto. Na F1, prorrogar = criar nova janela começando agora (sobreposição permitida, sem buraco) |
+| **F2 — integração** (**entregue**, §11) | Agendar a partir de Equipamentos e da Unidade; banner da unidade; editar AGENDADA; prorrogar ATIVA | Conforto. Na F1, prorrogar = criar nova janela começando agora (sobreposição permitida, sem buraco) |
 | **F3 — Telegram** | Âncora nova em `notificacao`, eventos de início/fim, decisão de ruído (P-02) | Comunicação ao grupo |
 | **F4 — relatório** | "Manutenção declarada (min)" por unidade no relatório e no PDF | Prestação de contas |
 
@@ -453,3 +453,13 @@ implementação.
 O desenho acima não o absorve nem o substitui: ele continua sendo o "agora". Mas a F1 **precisa**
 mudar o critério dele de `emManutencao` para `manutencaoManual` (§4.3) — senão, com janelas, o botão
 passa a oferecer uma ação que não faz nada.
+
+---
+
+## 11. F2 entregue
+
+A F2 está pronta no branch `feat/manutencao-agendada` (local, sem push). Desenho e testes:
+`Docs/superpowers/specs/2026-10-23-manutencao-agendada-f2-design.md`. Decisões: MA19 a MA26 em
+`manutencao-agendada-decisoes.md`. Evidências (corridas, provas de reversão, e2e por clique, exercício no
+banco da carga, suítes): `Docs/validacao-producao/manutencao-agendada-f2.md`. A migration V22 é aditiva
+(coluna com default e tabela nova). Pendências novas: bloco "F2" em `manutencao-agendada-pendencias.md`.

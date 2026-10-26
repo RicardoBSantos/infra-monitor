@@ -179,7 +179,7 @@ vazio. A classe inteira rodada em seguida com o código restaurado é a seção 
 - Equipamento **Swtich CPD** (id 8), unidade **Sesc Itabaiana** (id 2, 3 equipamentos ativos).
   "Servidor AD Core" e "Servidor AD2" não foram usados.
 
-### E2E
+## E2E
 
 ```
 $ MSYS_NO_PATHCONV=1 BASE=http://127.0.0.1:4201 API_PORT=8081 MANUT_F2_ORIGEM_CORS=http://127.0.0.1:4200 \
@@ -190,16 +190,20 @@ $ MSYS_NO_PATHCONV=1 BASE=http://127.0.0.1:4201 API_PORT=8081 MANUT_F2_ORIGEM_CO
 
 | Passo | Verificações | Resultado |
 |---|---|---|
-| login | login por formulário; depois disso toda navegação é por clique | OK |
-| 1. Menu da linha (Equipamentos) | unidade travada, equipamento marcado; Escape fecha e devolve o foco ao `…` da linha (`Ações de Swtich CPD`); POST 201; aviso `Janela #7 agendada.` | 6 OK |
+| login | login por formulário; depois disso toda navegação é por clique | 1 OK |
+| 1. Menu da linha (Equipamentos) | unidade travada, equipamento marcado; Escape fecha e devolve o foco ao `…` da linha (`Ações de Swtich CPD`); POST 201; aviso `Janela #7 agendada.` | 5 OK |
 | 2. Drawer | menu "Ver" → "Agendar manutenção": preset igual; Escape devolve o foco ao botão do drawer, e o drawer continua aberto | 3 OK |
 | 3. Unidade | banner `Próxima: #7 em 26/10/2026 08:07 · E2E F2 linha`; unidade travada; os 3 marcados mostram "Todos marcados…"; Cancelar sem POST; foco volta ao "Agendar manutenção" | 5 OK |
 | 4. Editar AGENDADA | carrega `Editar janela #7`, motivo e início; Escape devolve o foco ao `…`; PUT 200; `Janela #7 atualizada.`; `editada por F2 Manutencao às 26/10/2026 08:03`; foco no `…` depois de salvar | 7 OK |
 | 5. ATIVA, prorrogar e 409 de dois operadores | ATIVA vista por recarga por clique; Escape no Alterar fim devolve o foco ao `…`; PATCH do "segundo operador" pela API (versão 2 → 3) com o diálogo aberto; envio da UI → 409 → `Fim atual atualizado; confira e envie de novo.` (fim atual 08:37); segundo envio 200 → `Fim da janela #7 alterado para 26/10/2026 08:42.`; `prorrogada por …`; foco no `…` | 10 OK |
-| 6. Continuação | antecipar → 200 e `fim antecipado por …`; diálogo reaberto e mantido aberto por 131 s; envio → 409 → `Janela #7 concluída`, "concluiu às 08:08 … pingados por alguns segundos", foco em "Agendar continuação"; modal pré-preenchido (unidade travada, equipamento marcado, motivo, fim pedido 08:39); POST 201 `Janela #8 agendada.`; foco em "+ Agendar manutenção" (não no body) | 11 OK |
+| 6. Continuação | antecipar → 200 e `fim antecipado por …`; diálogo reaberto e mantido aberto por 131 s; envio → 409 → `Janela #7 concluída`, "concluiu às 08:08 … pingados por alguns segundos", foco em "Agendar continuação"; modal pré-preenchido (unidade travada, equipamento marcado, motivo, fim pedido 08:39); POST 201 `Janela #8 agendada.`; foco em "+ Agendar manutenção" (não no body) | 10 OK |
 | 7. Mapa | Swtich CPD entre os afetados; gaveta com só `["Abrir histórico"]` | 2 OK |
 | 8. Limpeza | `#8 Ativa → 200` por "Encerrar agora"; foco em "+ Agendar manutenção" quando a linha sai; nenhuma "E2E F2" em Vigentes | 2 OK |
-| console | nenhum erro além dos 2 `409 (Conflict)` provocados de propósito (passos 5 e 6) | OK |
+| sem erros | console sem erro além dos 2 `409 (Conflict)` provocados de propósito (passos 5 e 6) | 1 OK |
+
+Soma: login 1 + passos 5+3+5+7+10+10+2+2 = 44 + sem erros 1 = 46, as mesmas 46 verificações do JSON.
+A origem CORS da 4201 **não foi exercitada**: o roteiro reescreveu os cabeçalhos (`MANUT_F2_ORIGEM_CORS`, opt-in)
+e a F2 não mexeu na configuração de CORS.
 
 Capturas em `infra-monitor-frontend/e2e/manutencao-agendada-f2-evidence/`: `01-modal-da-linha`,
 `02-linha-agendada-aviso`, `03-modal-do-drawer`, `04-unidade-banner`, `05-unidade-todos-marcados`,
@@ -232,7 +236,7 @@ ou conclusão **atrasada** (`WARN`), e o `backend.log` dela não tem nenhuma. As
 e 3,8 s depois do fim previsto. Isso combina com o intervalo de 5 s da 8081, mas não exclui o
 reconciliador de 30 s da 8080.
 
-### Exercício no banco da carga (SQL no 5436)
+## Exercício no banco da carga (SQL no 5436)
 
 ```
 select id, status, versao, inicio_previsto, fim_previsto, ativada_em, encerrada_em, encerrada_por_id
@@ -316,3 +320,40 @@ UPDATE 1
 ----+----------------------------------+-------
   5 | f2.manutencao@inframonitor.local | f
 ```
+
+## Efeito colateral no ambiente real
+
+O equipamento escolhido para o exercício, **Swtich CPD (id 8)**, estava **realmente OFFLINE**, com o
+incidente real #3 aberto desde 2026-10-23 15:38 UTC. As janelas do exercício o fecharam com motivo
+`MANUTENCAO` (`fechado_por` = usuário f2, id 5). O backend do usuário na 8080 (mesmo banco da carga, motor,
+dispatcher e Telegram **ligados**) mandou notificações reais ao grupo:
+
+| notificacao | evento | incidente | instante (UTC) |
+|---|---|---|---|
+| 6 | `INCIDENTE_ENCERRADO_MANUTENCAO` | 3 | 11:01:02 |
+| 7 | `INCIDENTE_ABERTO` | 4 | 11:05:10 |
+| 8 | `INCIDENTE_ENCERRADO_MANUTENCAO` | 4 | 11:06:03 |
+| 9 | `INCIDENTE_ABERTO` | 5 | 11:11:06 |
+
+A 9 é o motor reabrindo o incidente depois do fim das janelas; o #5 segue ABERTO e reflete o estado real do
+equipamento. Quatro execuções (3 tentativas que falharam + a final) produziram as janelas #4 a #9, todas
+em estado final.
+
+**Causa raiz:** a escolha do equipamento não aplicou o critério da F1 (online, sem incidente aberto,
+medições SUCCESS recentes). **Lição:** antes de qualquer exercício no banco da carga com motor e
+Telegram ligados em outro processo, escolher equipamento que cumpra esse critério, ou avisar o grupo.
+
+## Suítes
+
+Medidas no snapshot limpo do HEAD `d5f56fc`. Desde `2df02a1` nada em `src` mudou (a Task 9 só
+acrescentou e2e e documentação), então os números valem para o código final.
+
+| Suíte | Resultado |
+|---|---|
+| Backend, com Docker (`./mvnw test`) | `Tests run: 1165, Failures: 0, Errors: 0, Skipped: 0`, BUILD SUCCESS, nenhuma linha `!!` (era 656 na F1). Classe de corridas da F2: 152/152 |
+| Frontend (`npx ng test --watch=false`) | 61 arquivos, **682/682** |
+| `ng build` | OK; só o aviso preexistente de orçamento de `mapa.component.scss` (97,34 kB contra 6 kB) |
+
+**Nota de ambiente.** No checkout de trabalho do usuário, `ng test` falha em cerca de 235 specs **apenas**
+porque o `environment.ts` local, não versionado, aponta `apiUrl` para `http://10.79.20.163:8080` e os specs
+esperam `localhost:8080`. Não é defeito de código; com o `environment.ts` versionado a suíte passa.
