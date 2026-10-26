@@ -11,7 +11,8 @@ import java.util.Optional;
 
 /**
  * Destino do aviso de INICIO de uma manutencao (janela ou sessao do botao) quando o aviso de
- * FIM vai ser escrito (MA32). SQL puro, na transacao do chamador.
+ * FIM vai ser escrito (MA32), e das alteracoes de fim pendentes da janela (MA33). SQL puro, na
+ * transacao do chamador.
  *
  * <p>O cancelamento devolve {@code tentativas} na mesma instrucao: quem decide o texto do fim
  * olha o resultado do UPDATE, nunca uma leitura anterior (divida A4: entre a leitura e o UPDATE
@@ -50,6 +51,18 @@ public class InicioAnuncioRepository {
 
     public Optional<InicioCancelado> cancelarInicioDaSessao(long sessaoId, Instant agora) {
         return cancelar("manutencao_manual_id", "MANUTENCAO_MANUAL_INICIADA", sessaoId, agora);
+    }
+
+    /**
+     * MA33, correcao de 2026-10-26: no fim da janela, as alteracoes de fim ainda PENDENTE nao saem mais (o
+     * fim ja traz o termino real). A em ENVIANDO fica intocada e a fila segura o fim ate ela sair. Nao entra
+     * na decisao de entrega do inicio, que continua so no resultado de {@link #cancelarInicioDaJanela}.
+     */
+    public int cancelarFimAlteradoDaJanela(long janelaId, Instant agora) {
+        return jdbc.update("""
+                UPDATE notificacao SET status = 'CANCELADA', updated_at = :agora
+                 WHERE manutencao_agendada_id = :id AND tipo_evento = 'MANUTENCAO_FIM_ALTERADO' AND status = 'PENDENTE'""",
+                new MapSqlParameterSource("id", janelaId).addValue("agora", Timestamp.from(agora)));
     }
 
     /** FALHA e terminal: lida depois do UPDATE nao muda mais. */

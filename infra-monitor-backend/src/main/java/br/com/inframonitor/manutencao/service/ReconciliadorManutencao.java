@@ -119,9 +119,10 @@ public class ReconciliadorManutencao {
     }
 
     /**
-     * CAS + anuncio de UMA janela na sua transacao. Falha (anuncio que nao monta, dado corrompido)
-     * desfaz so esta janela, fica logada com o id e a passada segue; a janela continua candidata e a
-     * passada seguinte tenta de novo. Banco fora faz todas falharem aqui, cada uma logada.
+     * CAS + anuncio de UMA janela na sua transacao. Falha (anuncio de inicio que nao monta, dado
+     * corrompido, INSERT) desfaz so esta janela, fica logada com o id e a passada segue; a janela continua
+     * candidata e a passada seguinte tenta de novo. Banco fora faz todas falharem aqui, cada uma logada.
+     * Na conclusao, texto que nao monta nao chega aqui: o fim entra com o texto de reserva (MA31).
      */
     private Optional<Transicao> porJanela(long janelaId, String acao, Supplier<Optional<Transicao>> casEAnuncio) {
         try {

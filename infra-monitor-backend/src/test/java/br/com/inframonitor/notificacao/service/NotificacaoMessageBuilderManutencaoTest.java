@@ -185,7 +185,7 @@ class NotificacaoMessageBuilderManutencaoTest {
 
     @Test
     void fimAlteradoProrrogado() {
-        assertThat(builder.construirFimAlterado(unidadeInteira(), t(12, 0), t(14, 0), "Fulano")).isEqualTo("""
+        assertThat(builder.construirFimAlterado(unidadeInteira(), t(12, 0), t(14, 0), "Fulano", t(9, 30))).isEqualTo("""
                 ⏱️ MANUTENÇÃO PRORROGADA
 
                 Unidade: Sesc Socorro
@@ -199,7 +199,7 @@ class NotificacaoMessageBuilderManutencaoTest {
 
     @Test
     void fimAlteradoAntecipado() {
-        assertThat(builder.construirFimAlterado(unidadeInteira(), t(12, 0), t(10, 0), "Fulano")).isEqualTo("""
+        assertThat(builder.construirFimAlterado(unidadeInteira(), t(12, 0), t(10, 0), "Fulano", t(9, 30))).isEqualTo("""
                 ⏱️ FIM DA MANUTENÇÃO ANTECIPADO
 
                 Unidade: Sesc Socorro
@@ -284,5 +284,46 @@ class NotificacaoMessageBuilderManutencaoTest {
                 "Fulano", false, null, EntregaInicio.NAO_ENTREGUE))
                 .contains("\nEncerrada por: Fulano\nO aviso de início não foi entregue; este é o registro "
                         + "completo.\nHorários: UTC-03:00 (America/Sao_Paulo)");
+    }
+
+    /**
+     * Rodape no offset do instante da alteracao, nao do inicio previsto: a alteracao pode cair depois de
+     * uma troca de horario de verao (aqui EDT -> EST, 01/11/2026).
+     */
+    @Test
+    void fimAlteradoRodapeUsaOInstanteDaAlteracao() {
+        NotificacaoMessageBuilder novaYork = new NotificacaoMessageBuilder("America/New_York");
+        Janela j = new Janela(41, "Sesc Socorro", EscopoManutencao.UNIDADE, 20, List.of(), "Troca",
+                Instant.parse("2026-10-31T12:00:00Z"), Instant.parse("2026-11-03T12:00:00Z"), "Ricardo Barbosa");
+
+        assertThat(novaYork.construirFimAlterado(j, Instant.parse("2026-11-03T12:00:00Z"),
+                Instant.parse("2026-11-04T12:00:00Z"), "Fulano", Instant.parse("2026-11-02T12:00:00Z")))
+                .endsWith("\nHorários: UTC-05:00 (America/New_York)");
+    }
+
+    @Test
+    void fimJanelaReserva() {
+        assertThat(builder.construirFimJanelaReserva(41, t(12, 0))).isEqualTo("""
+                ✅ MANUTENÇÃO ENCERRADA — alertas retomados
+
+                Janela: #41
+                Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).
+                Horários: UTC-03:00 (America/Sao_Paulo)""");
+    }
+
+    @Test
+    void manualEncerradaReservaComNome() {
+        assertThat(builder.construirManualEncerradaReserva("SW-CORE", 9, t(12, 0))).isEqualTo("""
+                ✅ MANUTENÇÃO MANUAL ENCERRADA — alertas retomados
+
+                Equipamento: SW-CORE
+                Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).
+                Horários: UTC-03:00 (America/Sao_Paulo)""");
+    }
+
+    @Test
+    void manualEncerradaReservaSemNomeUsaId() {
+        assertThat(builder.construirManualEncerradaReserva(null, 9, t(12, 0))).contains("\nEquipamento: #9\n");
+        assertThat(builder.construirManualEncerradaReserva("  ", 9, t(12, 0))).contains("\nEquipamento: #9\n");
     }
 }

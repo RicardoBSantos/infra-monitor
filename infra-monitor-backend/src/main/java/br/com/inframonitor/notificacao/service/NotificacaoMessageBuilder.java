@@ -22,6 +22,8 @@ public class NotificacaoMessageBuilder {
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter FORMATO_HORA_CURTA = DateTimeFormatter.ofPattern("HH:mm");
     private static final int MAXIMO_NOMES = 5;
+    private static final String DETALHES_INDISPONIVEIS =
+            "Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).";
 
     private final ZoneId fuso;
 
@@ -147,15 +149,33 @@ public class NotificacaoMessageBuilder {
         return rodapeJanela(m, j, ativadaEm);
     }
 
+    /** Rodape no offset de {@code alteradoEm} (o instante da alteracao), nao do inicio previsto. */
     public String construirFimAlterado(DadosAnuncio.Janela j, Instant fimAnterior, Instant fimNovo,
-                                       String autorNome) {
+                                       String autorNome, Instant alteradoEm) {
         String cabecalho = fimNovo != null && fimAnterior != null && fimNovo.isAfter(fimAnterior)
                 ? "⏱️ MANUTENÇÃO PRORROGADA" : "⏱️ FIM DA MANUTENÇÃO ANTECIPADO";
         StringBuilder m = new StringBuilder(cabecalho).append("\n");
         cabecalhoJanela(m, j);
         m.append("\nFim previsto: ").append(hora(fimAnterior)).append(" → ").append(hora(fimNovo));
         linha(m, "Alterado por", autorNome);
-        return rodapeJanela(m, j, j.inicioPrevisto());
+        return rodapeJanela(m, j, alteradoEm);
+    }
+
+    /**
+     * Fim da janela quando o texto normal nao montou (MA31, correcao de 2026-10-26): o fim nao pode
+     * desfazer a conclusao, entao sai este texto minimo, sem nada que dependa dos dados que falharam.
+     */
+    public String construirFimJanelaReserva(long janelaId, Instant encerradaEm) {
+        return "✅ MANUTENÇÃO ENCERRADA — alertas retomados\n\nJanela: #" + janelaId + "\n" + DETALHES_INDISPONIVEIS
+                + "\n" + rodape(referenciaOuAgora(encerradaEm));
+    }
+
+    /** Reserva do fim do botao manual; sem o nome (a coleta falhou antes dele), o equipamento sai pelo id. */
+    public String construirManualEncerradaReserva(String equipamentoNome, long equipamentoId, Instant encerradaEm) {
+        String equipamento = equipamentoNome != null && !equipamentoNome.isBlank()
+                ? equipamentoNome : "#" + equipamentoId;
+        return "✅ MANUTENÇÃO MANUAL ENCERRADA — alertas retomados\n\nEquipamento: " + equipamento + "\n"
+                + DETALHES_INDISPONIVEIS + "\n" + rodape(referenciaOuAgora(encerradaEm));
     }
 
     public String construirManualIniciada(DadosAnuncio.Manual manual, boolean jaEmManutencao,

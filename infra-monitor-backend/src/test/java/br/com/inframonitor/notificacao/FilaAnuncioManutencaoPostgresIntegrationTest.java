@@ -143,6 +143,76 @@ class FilaAnuncioManutencaoPostgresIntegrationTest {
         assertThat(prontos()).contains(fimDaOutra);
     }
 
+    /**
+     * MA33 (correcao de 2026-10-26): depois de uma queda do Telegram a prorrogacao pendente nao pode sair
+     * depois do "alertas retomados". O fim espera a prorrogacao da mesma janela sair da fila; a prorrogacao
+     * continua presa so pelo inicio.
+     */
+    @Test
+    void encerradaEsperaProrrogacaoEmEnvio() {
+        for (String estado : List.of("PENDENTE", "ENVIANDO")) {
+            limparNotificacoes();
+            linha(janela, null, "MANUTENCAO_INICIADA", "ENVIADA");
+            long alterado = linha(janela, null, "MANUTENCAO_FIM_ALTERADO", estado);
+            long outraAlteracao = linha(janela, null, "MANUTENCAO_FIM_ALTERADO", "PENDENTE");
+            long fim = linha(janela, null, "MANUTENCAO_ENCERRADA", "PENDENTE");
+            long fimDaOutra = linha(outraJanela, null, "MANUTENCAO_ENCERRADA", "PENDENTE");
+
+            assertThat(prontos()).as("prorrogacao " + estado).doesNotContain(fim).contains(outraAlteracao, fimDaOutra);
+            if (estado.equals("PENDENTE")) {
+                assertThat(prontos()).contains(alterado);
+            }
+        }
+    }
+
+    @Test
+    void prorrogacaoEnviadaNaoSeguraEncerrada() {
+        for (String estado : List.of("ENVIADA", "FALHA", "CANCELADA")) {
+            limparNotificacoes();
+            linha(janela, null, "MANUTENCAO_INICIADA", "ENVIADA");
+            linha(janela, null, "MANUTENCAO_FIM_ALTERADO", estado);
+            long fim = linha(janela, null, "MANUTENCAO_ENCERRADA", "PENDENTE");
+
+            assertThat(prontos()).as("prorrogacao " + estado).contains(fim);
+        }
+    }
+
+    /**
+     * O fim cancela a prorrogacao PENDENTE da janela na mesma transacao (o "registro completo" nao pode
+     * vir seguido de uma prorrogacao velha). A em envio fica intocada e segura o fim (teste acima); a de
+     * outra janela nao e tocada. O texto do fim continua decidido so pelo cancelamento do inicio.
+     */
+    @Test
+    void fimCancelaProrrogacaoPendente() {
+        linha(janela, null, "MANUTENCAO_INICIADA", "ENVIADA");
+        long pendente = linha(janela, null, "MANUTENCAO_FIM_ALTERADO", "PENDENTE");
+        jdbc.update("update notificacao set tentativas = 2 where id = ?", pendente);
+        long enviando = linha(janela, null, "MANUTENCAO_FIM_ALTERADO", "ENVIANDO");
+        long enviada = linha(janela, null, "MANUTENCAO_FIM_ALTERADO", "ENVIADA");
+        long daOutra = linha(outraJanela, null, "MANUTENCAO_FIM_ALTERADO", "PENDENTE");
+
+        service.criarParaManutencaoEncerrada(dadosJanela(), agora, agora.plusSeconds(60), termino(), List.of());
+
+        assertThat(status(pendente)).isEqualTo("CANCELADA");
+        assertThat(status(enviando)).isEqualTo("ENVIANDO");
+        assertThat(status(enviada)).isEqualTo("ENVIADA");
+        assertThat(status(daOutra)).isEqualTo("PENDENTE");
+        assertThat(mensagemDoFim("MANUTENCAO_ENCERRADA")).doesNotContain(NAO_ENTREGUE).doesNotContain(TALVEZ);
+    }
+
+    @Test
+    void cancelamentoDaProrrogacaoVoltaComRollbackDoChamador() {
+        long pendente = linha(janela, null, "MANUTENCAO_FIM_ALTERADO", "PENDENTE");
+
+        tx.execute(s -> {
+            service.criarParaManutencaoEncerrada(dadosJanela(), agora, agora.plusSeconds(60), termino(), List.of());
+            s.setRollbackOnly();
+            return null;
+        });
+
+        assertThat(status(pendente)).isEqualTo("PENDENTE");
+    }
+
     // ---- MA32: texto do fim a partir do UPDATE ------------------------------------------------
 
     @Test
@@ -189,7 +259,7 @@ class FilaAnuncioManutencaoPostgresIntegrationTest {
     void manualEncerradaSegueAMesmaRegra() {
         long inicio = linha(null, sessao, "MANUTENCAO_MANUAL_INICIADA", "PENDENTE");
 
-        service.criarParaManualEncerrada(dadosManual(), agora.plusSeconds(60), "Fulano", false, null);
+        service.criarParaManualEncerrada(dadosManual(), equipamento, agora.plusSeconds(60), "Fulano", false, null);
 
         assertThat(status(inicio)).isEqualTo("CANCELADA");
         assertThat(mensagemDoFim("MANUTENCAO_MANUAL_ENCERRADA")).contains(NAO_ENTREGUE);

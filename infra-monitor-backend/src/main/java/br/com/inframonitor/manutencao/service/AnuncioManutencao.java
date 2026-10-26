@@ -4,8 +4,11 @@ import br.com.inframonitor.manutencao.config.ManutencaoAgendadaProperties;
 import br.com.inframonitor.manutencao.entity.EscopoManutencao;
 import br.com.inframonitor.manutencao.entity.TipoAlteracao;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
+import br.com.inframonitor.notificacao.service.ColetaDoAnuncio;
 import br.com.inframonitor.notificacao.service.DadosAnuncio;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -21,8 +24,13 @@ import java.util.Map;
  * Anuncios da janela (MA27/MA28): chamado DE DENTRO do {@code transacao.execute} que faz o CAS da
  * transicao, pelo reconciliador e pelo service. Le tudo na transacao corrente e entrega a
  * {@link NotificacaoService}, que entra nela (MA31): CAS e anuncio confirmam juntos ou nenhum. Por
- * isso uma falha aqui nao e engolida: desfaz a transicao, e a passada seguinte (ou o reconciliador,
- * depois de criar/editar) tenta de novo. Exatamente uma vez acima de disponibilidade.
+ * isso uma falha no INICIO e na alteracao de fim nao e engolida: desfaz a transicao (alertas seguem
+ * ligados, o lado seguro), e a passada seguinte (ou o reconciliador, depois de criar/editar) tenta de
+ * novo. Exatamente uma vez acima de disponibilidade.
+ *
+ * <p>Excecao do FIM (correcao de 2026-10-26): desfazer a conclusao deixaria a janela ATIVA e os alertas
+ * suprimidos para sempre. Falha ao reunir os dados ou ao montar o texto vira ERROR no log e o fim entra
+ * com o texto de reserva; falha do proprio CAS, do cancelamento ou do INSERT continua desfazendo tudo.
  *
  * <p>O {@code agora} de cada metodo e o MESMO instante que o CAS gravou (ativada_em, encerrada_em,
  * alterado_em): o chamador o captura numa variavel e passa aos dois.
@@ -33,17 +41,22 @@ import java.util.Map;
 @Component
 public class AnuncioManutencao {
 
+    private static final Logger log = LoggerFactory.getLogger(AnuncioManutencao.class);
+
     private final NamedParameterJdbcTemplate jdbc;
     private final CoberturaManutencao cobertura;
     private final NotificacaoService notificacoes;
     private final ManutencaoAgendadaProperties props;
+    private final ColetaDoAnuncio coleta;
 
     public AnuncioManutencao(NamedParameterJdbcTemplate jdbc, CoberturaManutencao cobertura,
-                             NotificacaoService notificacoes, ManutencaoAgendadaProperties props) {
+                             NotificacaoService notificacoes, ManutencaoAgendadaProperties props,
+                             ColetaDoAnuncio coleta) {
         this.jdbc = jdbc;
         this.cobertura = cobertura;
         this.notificacoes = notificacoes;
         this.props = props;
+        this.coleta = coleta;
     }
 
     /**
@@ -63,9 +76,24 @@ public class AnuncioManutencao {
      * reavaliacao dos equipamentos, que vem por equipamento depois do commit: mostra a intencao.
      */
     public void anunciarFim(long janelaId, Instant agora) {
-        Linha l = ler(janelaId);
-        List<DadosAnuncio.Seguinte> seguem = cobertura.seguemEmManutencao(janelaId, l.cobertos());
-        notificacoes.criarParaManutencaoEncerrada(l.janela(), l.ativadaEm(), agora, termino(janelaId, l), seguem);
+        DadosFim d;
+        try {
+            // Savepoint: um erro de SQL na coleta aborta a transacao no Postgres; voltando ao savepoint, o
+            // CAS ja feito continua valendo e o fim de reserva ainda entra.
+            d = coleta.emSavepoint(() -> {
+                Linha l = ler(janelaId);
+                return new DadosFim(l, cobertura.seguemEmManutencao(janelaId, l.cobertos()), termino(janelaId, l));
+            });
+        } catch (RuntimeException e) {
+            // MA31, correcao de 2026-10-26: no FIM a falha de montagem nao desfaz a conclusao (a janela ficaria
+            // ATIVA com os alertas suprimidos). So a coleta e protegida: o cancelamento e o INSERT estouram.
+            log.error("Falha ao reunir os dados do anuncio de fim da janela {}; gravado o texto de reserva",
+                    janelaId, e);
+            notificacoes.criarParaManutencaoEncerradaReserva(janelaId, agora);
+            return;
+        }
+        notificacoes.criarParaManutencaoEncerrada(d.linha().janela(), d.linha().ativadaEm(), agora, d.termino(),
+                d.seguem());
     }
 
     /** Depois de gravar o fim e registrar a alteracao. Nome do autor lido mesmo se o usuario estiver inativo. */
@@ -138,6 +166,9 @@ public class AnuncioManutencao {
     }
 
     private record Linha(DadosAnuncio.Janela janela, Instant ativadaEm, String encerradaPorNome, List<Long> cobertos) {
+    }
+
+    private record DadosFim(Linha linha, List<DadosAnuncio.Seguinte> seguem, DadosAnuncio.Termino termino) {
     }
 
     private record Alteracao(TipoAlteracao tipo, Instant fimAntes, Instant fimDepois, String autorNome) {

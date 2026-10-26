@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -466,30 +467,37 @@ class ManutencaoAgendadaServicePostgresIntegrationTest {
     }
 
     @Test
-    void transicoesEmLoteDoReconciliadorPassamNosChecks() {
+    void transicoesDoReconciliadorPassamNosChecks() {
         Instant agora = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         long devida = janela("AGENDADA", u, agora.minus(Duration.ofMinutes(10)), "devida");        // fim em +50 min
         long perdida = janela("AGENDADA", u, agora.minus(Duration.ofHours(2)), "perdida");        // fim em -1 h
         long vencida = janela("ATIVA", norte, agora.minus(Duration.ofHours(2)), "vencida");       // fim em -1 h
         long futura = janela("AGENDADA", u, agora.plus(Duration.ofHours(1)), "futura");
 
-        List<CoberturaManutencao.Transicao> ativadas = cobertura.ativarDevidas(agora);
-        List<CoberturaManutencao.Transicao> expiradas = cobertura.expirarPerdidas(agora);
-        List<CoberturaManutencao.Transicao> concluidas = cobertura.concluirVencidas(agora);
-
-        assertThat(ativadas).containsExactly(new CoberturaManutencao.Transicao(devida,
+        // Os mesmos passos do reconciliador: candidatas so leitura, depois o CAS de cada uma.
+        List<CoberturaManutencao.Transicao> devidas = cobertura.devidasParaAtivar(agora);
+        assertThat(devidas).containsExactly(new CoberturaManutencao.Transicao(devida,
                 agora.minus(Duration.ofMinutes(10)), agora));
-        assertThat(ativadas.get(0).atraso()).isEqualTo(Duration.ofMinutes(10));
+        assertThat(devidas.get(0).atraso()).isEqualTo(Duration.ofMinutes(10));
+        assertThat(cobertura.ativarSeDevida(devida, agora)).isTrue();
+        List<CoberturaManutencao.Transicao> expiradas = cobertura.expirarPerdidas(agora);
+        assertThat(cobertura.vencidasParaConcluir(agora)).containsExactly(vencida);
+        Optional<CoberturaManutencao.Transicao> concluida = cobertura.concluirSeVencida(vencida, agora);
+
         assertThat(expiradas).extracting(CoberturaManutencao.Transicao::manutencaoId).containsExactly(perdida);
-        assertThat(concluidas).extracting(CoberturaManutencao.Transicao::manutencaoId).containsExactly(vencida);
-        assertThat(concluidas.get(0).previsto()).isEqualTo(agora.minus(Duration.ofHours(1)));
+        assertThat(concluida).hasValueSatisfying(t -> {
+            assertThat(t.manutencaoId()).isEqualTo(vencida);
+            assertThat(t.previsto()).isEqualTo(agora.minus(Duration.ofHours(1)));
+        });
         assertThat(situacao(devida)).isEqualTo("ATIVA");
         assertThat(situacao(perdida)).isEqualTo("EXPIRADA");
         assertThat(situacao(vencida)).isEqualTo("CONCLUIDA");
         assertThat(situacao(futura)).isEqualTo("AGENDADA");
-        // Segunda passada: CAS nao repete nada.
-        assertThat(cobertura.ativarDevidas(agora)).isEmpty();
-        assertThat(cobertura.concluirVencidas(agora)).isEmpty();
+        // Segunda passada: nenhuma candidata, e o CAS nao repete nada.
+        assertThat(cobertura.devidasParaAtivar(agora)).isEmpty();
+        assertThat(cobertura.vencidasParaConcluir(agora)).isEmpty();
+        assertThat(cobertura.ativarSeDevida(devida, agora)).isFalse();
+        assertThat(cobertura.concluirSeVencida(vencida, agora)).isEmpty();
     }
 
     // ---------------------------------------------------------------------------

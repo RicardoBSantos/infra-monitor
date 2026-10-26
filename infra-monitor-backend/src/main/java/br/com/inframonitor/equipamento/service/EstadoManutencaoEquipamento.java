@@ -98,8 +98,9 @@ public class EstadoManutencaoEquipamento {
         Instant agora = Instant.now();
         equipamentos.marcarManual(equipamentoId, agora);
         long sessao = sessoes.abrir(equipamentoId, autor.getId(), agora);
-        // O anuncio vem ANTES dos efeitos de entrada: a fila ordena por id, e o aviso de inicio precisa
-        // preceder os INCIDENTE_ENCERRADO_MANUTENCAO que os efeitos criam. "Ja estava na janela" e o MESMO
+        // O anuncio vem ANTES dos efeitos de entrada, para nascer antes dos INCIDENTE_ENCERRADO_MANUTENCAO que
+        // eles criam. Isso NAO garante a ordem de envio: a fila ordena por proximaTentativaEm, createdAt, com
+        // workers em paralelo e retry; so "inicio antes do fim da mesma manutencao" e garantido (MA33). "Ja estava na janela" e o MESMO
         // em_manutencao travado que decide os efeitos logo abaixo (nunca a tabela da janela).
         anuncio.anunciarInicio(sessao, equipamentoId, travado.getEmManutencao(), agora);
         // Ja em manutencao pela janela: os efeitos ja rodaram na entrada dela.

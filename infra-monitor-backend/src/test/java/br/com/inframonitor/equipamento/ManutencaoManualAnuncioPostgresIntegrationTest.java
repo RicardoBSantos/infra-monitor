@@ -2,11 +2,18 @@ package br.com.inframonitor.equipamento;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.equipamento.dto.ManutencaoManualResponse;
+import br.com.inframonitor.equipamento.repository.SessaoManutencaoManual;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.equipamento.service.EstadoManutencaoEquipamento;
+import br.com.inframonitor.notificacao.service.NotificacaoMessageBuilder;
 import br.com.inframonitor.testsupport.RequerDocker;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -16,6 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
@@ -32,6 +40,11 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.reset;
 
 /**
  * Sessao do botao manual (V23): anuncio de inicio e fim no Telegram, autor do encerramento, recusa de
@@ -69,6 +82,9 @@ class ManutencaoManualAnuncioPostgresIntegrationTest {
     @Autowired private EquipamentoService equipamentoService;
     @Autowired private EstadoManutencaoEquipamento estado;
     @Autowired private PasswordEncoder encoder;
+    // Spies so para quebrar o texto (builder) ou a coleta (sessoes) do fim; senao delegam ao bean real.
+    @MockitoSpyBean private NotificacaoMessageBuilder builder;
+    @MockitoSpyBean private SessaoManutencaoManual sessoesSpy;
 
     private long ana;
     private long bruno;
@@ -79,6 +95,7 @@ class ManutencaoManualAnuncioPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
+        reset(builder, sessoesSpy);
         jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
                 + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, manutencao_manual, "
                 + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
@@ -164,6 +181,45 @@ class ManutencaoManualAnuncioPostgresIntegrationTest {
                 .contains("segue em manutenção pela janela #" + janela + " até ")
                 .doesNotContain("alertas retomados");
         assertThat(flags()).containsEntry("em_manutencao", true).containsEntry("manutencao_manual", false);
+    }
+
+    /**
+     * MA31, correcao de 2026-10-26: texto do fim quebrado nao pode desfazer o encerramento (o equipamento
+     * ficaria em manutencao com os alertas suprimidos). O fim entra com o texto de reserva, o inicio
+     * pendente e cancelado e o ERROR fica no log.
+     */
+    @Test
+    void encerrarManualComTextoQuebradoUsaReserva() {
+        estado.iniciarManual(e, ana);
+        doThrow(new IllegalStateException("texto quebrado")).when(builder)
+                .construirManualEncerrada(any(), any(), any(), anyBoolean(), any(), any());
+
+        List<ILoggingEvent> erros = capturarErros(() -> estado.encerrarManual(e, bruno));
+
+        assertThat(flags()).containsEntry("manutencao_manual", false).containsEntry("em_manutencao", false);
+        assertThat(sessoes().get(0).get("encerrada_por_id")).isEqualTo(bruno);
+        assertThat(contar("MANUTENCAO_MANUAL_ENCERRADA")).isEqualTo(1);
+        assertThat(mensagem("MANUTENCAO_MANUAL_ENCERRADA")).isEqualTo(reserva("SW-CORE"));
+        assertThat(statusDe("MANUTENCAO_MANUAL_INICIADA")).isEqualTo("CANCELADA");
+        assertThat(erros).anySatisfy(ev -> {
+            assertThat(ev.getFormattedMessage()).contains("reserva");
+            assertThat(ev.getThrowableProxy()).isNotNull();
+        });
+    }
+
+    /** Coleta quebrada antes do nome: o equipamento aparece pelo id. */
+    @Test
+    void encerrarManualComColetaQuebradaUsaReservaComId() {
+        estado.iniciarManual(e, ana);
+        doThrow(new IllegalStateException("coleta quebrada")).when(sessoesSpy).dados(anyLong());
+
+        List<ILoggingEvent> erros = capturarErros(() -> estado.encerrarManual(e, bruno));
+
+        assertThat(flags()).containsEntry("manutencao_manual", false).containsEntry("em_manutencao", false);
+        assertThat(mensagem("MANUTENCAO_MANUAL_ENCERRADA")).isEqualTo(reserva("#" + e));
+        assertThat(statusDe("MANUTENCAO_MANUAL_INICIADA")).isEqualTo("CANCELADA");
+        assertThat(erros).anySatisfy(ev -> assertThat(ev.getFormattedMessage()).contains("equipamento " + e)
+                .contains("reserva"));
     }
 
     @Test
@@ -293,6 +349,33 @@ class ManutencaoManualAnuncioPostgresIntegrationTest {
 
     private String mensagem(String tipoEvento) {
         return jdbc.queryForObject("select mensagem from notificacao where tipo_evento = ?", String.class, tipoEvento);
+    }
+
+    private String statusDe(String tipoEvento) {
+        return jdbc.queryForObject("select status from notificacao where tipo_evento = ?", String.class, tipoEvento);
+    }
+
+    /** Rodape no fuso padrao (America/Sao_Paulo, sem horario de verao): sempre UTC-03:00. */
+    private static String reserva(String equipamento) {
+        return """
+                ✅ MANUTENÇÃO MANUAL ENCERRADA — alertas retomados
+
+                Equipamento: %s
+                Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).
+                Horários: UTC-03:00 (America/Sao_Paulo)""".formatted(equipamento);
+    }
+
+    private List<ILoggingEvent> capturarErros(Runnable acao) {
+        Logger logger = (Logger) LoggerFactory.getLogger("br.com.inframonitor");
+        ListAppender<ILoggingEvent> registros = new ListAppender<>();
+        registros.start();
+        logger.addAppender(registros);
+        try {
+            acao.run();
+        } finally {
+            logger.detachAppender(registros);
+        }
+        return registros.list.stream().filter(ev -> ev.getLevel() == Level.ERROR).toList();
     }
 
     private long insert(String sql, Object... args) {

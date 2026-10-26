@@ -19,6 +19,8 @@ import br.com.inframonitor.notificacao.entity.StatusNotificacao;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import br.com.inframonitor.notificacao.repository.InicioAnuncioRepository;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -31,11 +33,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
 public class NotificacaoService {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificacaoService.class);
 
     private final NotificacaoRepository notificacaoRepository;
     private final NotificacaoMessageBuilder messageBuilder;
@@ -144,15 +150,49 @@ public class NotificacaoService {
     @Transactional
     public void criarParaManutencaoEncerrada(DadosAnuncio.Janela j, Instant ativadaEm, Instant encerradaEm,
                                              DadosAnuncio.Termino t, List<DadosAnuncio.Seguinte> seguem) {
+        encerrarJanela(j.id(), encerradaEm,
+                entrega -> messageBuilder.construirFimJanela(j, ativadaEm, encerradaEm, t, seguem, entrega),
+                () -> messageBuilder.construirFimJanelaReserva(j.id(), encerradaEm));
+    }
+
+    /**
+     * Fim da janela cujos dados nao puderam ser reunidos (o chamador ja logou o ERROR): mesmas regras de
+     * fila (cancela o inicio e as alteracoes pendentes, unico por janela), com o texto de reserva.
+     */
+    @Transactional
+    public void criarParaManutencaoEncerradaReserva(long janelaId, Instant encerradaEm) {
+        Supplier<String> reserva = () -> messageBuilder.construirFimJanelaReserva(janelaId, encerradaEm);
+        encerrarJanela(janelaId, encerradaEm, entrega -> reserva.get(), reserva);
+    }
+
+    private void encerrarJanela(long janelaId, Instant encerradaEm, Function<DadosAnuncio.EntregaInicio, String> texto,
+                                Supplier<String> reserva) {
         // A ORDEM IMPORTA (A4): primeiro o UPDATE que cancela o inicio PENDENTE, e so se ele nao
         // cancelou nada se le o FALHA. Decidir por uma leitura anterior ao UPDATE deixaria o
         // dispatcher reservar e enviar o inicio entre a leitura e o cancelamento, e o fim sairia
         // sem o "registro completo" mesmo com o inicio nunca entregue (ou o contrario).
         DadosAnuncio.EntregaInicio entrega = resolverEntrega(
-                inicioAnuncioRepository.cancelarInicioDaJanela(j.id(), encerradaEm),
-                () -> inicioAnuncioRepository.inicioEmFalhaDaJanela(j.id()));
-        inserirDaJanela(j.id(), TipoEventoNotificacao.MANUTENCAO_ENCERRADA,
-                messageBuilder.construirFimJanela(j, ativadaEm, encerradaEm, t, seguem, entrega), encerradaEm);
+                inicioAnuncioRepository.cancelarInicioDaJanela(janelaId, encerradaEm),
+                () -> inicioAnuncioRepository.inicioEmFalhaDaJanela(janelaId));
+        // MA33: prorrogacao ainda PENDENTE nao sai depois do fim. Fora da decisao de entrega acima.
+        inicioAnuncioRepository.cancelarFimAlteradoDaJanela(janelaId, encerradaEm);
+        inserirDaJanela(janelaId, TipoEventoNotificacao.MANUTENCAO_ENCERRADA,
+                textoOuReserva(texto, entrega, reserva, "da janela " + janelaId), encerradaEm);
+    }
+
+    /**
+     * MA31, correcao de 2026-10-26: so nos FINS. O texto que nao monta nao pode desfazer a transicao (a
+     * janela ficaria ATIVA e o equipamento em manutencao, com os alertas suprimidos para sempre): loga o
+     * ERROR e usa o texto de reserva. So o texto e protegido; cancelamento e INSERT seguem estourando.
+     */
+    private String textoOuReserva(Function<DadosAnuncio.EntregaInicio, String> texto, DadosAnuncio.EntregaInicio entrega,
+                                  Supplier<String> reserva, String ancora) {
+        try {
+            return texto.apply(entrega);
+        } catch (RuntimeException e) {
+            log.error("Falha ao montar o anuncio de fim {}; gravado o texto de reserva", ancora, e);
+            return reserva.get();
+        }
     }
 
     /** Sem unicidade: o indice parcial exclui este tipo, cada alteracao de fim gera uma linha. */
@@ -160,7 +200,7 @@ public class NotificacaoService {
     public void criarParaManutencaoFimAlterado(DadosAnuncio.Janela j, Instant fimAnterior, Instant fimNovo,
                                                String autorNome, Instant agora) {
         inserirDaJanela(j.id(), TipoEventoNotificacao.MANUTENCAO_FIM_ALTERADO,
-                messageBuilder.construirFimAlterado(j, fimAnterior, fimNovo, autorNome), agora);
+                messageBuilder.construirFimAlterado(j, fimAnterior, fimNovo, autorNome, agora), agora);
     }
 
     @Transactional
@@ -171,15 +211,30 @@ public class NotificacaoService {
     }
 
     @Transactional
-    public void criarParaManualEncerrada(DadosAnuncio.Manual m, Instant encerradaEm, String encerradaPorNome,
-                                         boolean segue, DadosAnuncio.JanelaVigente janela) {
-        // Mesma ordem protegida de criarParaManutencaoEncerrada: cancelar primeiro, ler FALHA depois.
+    public void criarParaManualEncerrada(DadosAnuncio.Manual m, long equipamentoId, Instant encerradaEm,
+                                         String encerradaPorNome, boolean segue, DadosAnuncio.JanelaVigente janela) {
+        encerrarSessao(m.sessaoId(), encerradaEm,
+                entrega -> messageBuilder.construirManualEncerrada(m, encerradaEm, encerradaPorNome, segue, janela, entrega),
+                () -> messageBuilder.construirManualEncerradaReserva(m.equipamentoNome(), equipamentoId, encerradaEm));
+    }
+
+    /** Fim do botao cujos dados nao puderam ser reunidos (o chamador ja logou o ERROR). Nome nulo: sai o id. */
+    @Transactional
+    public void criarParaManualEncerradaReserva(long sessaoId, String equipamentoNome, long equipamentoId,
+                                                Instant encerradaEm) {
+        Supplier<String> reserva =
+                () -> messageBuilder.construirManualEncerradaReserva(equipamentoNome, equipamentoId, encerradaEm);
+        encerrarSessao(sessaoId, encerradaEm, entrega -> reserva.get(), reserva);
+    }
+
+    private void encerrarSessao(long sessaoId, Instant encerradaEm, Function<DadosAnuncio.EntregaInicio, String> texto,
+                                Supplier<String> reserva) {
+        // Mesma ordem protegida de encerrarJanela: cancelar primeiro, ler FALHA depois.
         DadosAnuncio.EntregaInicio entrega = resolverEntrega(
-                inicioAnuncioRepository.cancelarInicioDaSessao(m.sessaoId(), encerradaEm),
-                () -> inicioAnuncioRepository.inicioEmFalhaDaSessao(m.sessaoId()));
-        inserirDaSessao(m.sessaoId(), TipoEventoNotificacao.MANUTENCAO_MANUAL_ENCERRADA,
-                messageBuilder.construirManualEncerrada(m, encerradaEm, encerradaPorNome, segue, janela, entrega),
-                encerradaEm);
+                inicioAnuncioRepository.cancelarInicioDaSessao(sessaoId, encerradaEm),
+                () -> inicioAnuncioRepository.inicioEmFalhaDaSessao(sessaoId));
+        inserirDaSessao(sessaoId, TipoEventoNotificacao.MANUTENCAO_MANUAL_ENCERRADA,
+                textoOuReserva(texto, entrega, reserva, "da sessao manual " + sessaoId), encerradaEm);
     }
 
     /**

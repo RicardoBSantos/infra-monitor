@@ -78,8 +78,13 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
             + "and n.tentativas < :maxAttempts and (n.proximaTentativaEm is null or n.proximaTentativaEm <= :agora) "
             // MA33: o fim de uma ancora so fica pronto depois que o inicio dela saiu da fila (PENDENTE/ENVIANDO).
             // O proprio inicio nunca se bloqueia: p.id <> n.id e o tipo dele e o de inicio.
-            + "and not exists (select 1 from Notificacao p where p.tipoEvento in "
+            // Correcao de 2026-10-26: o ENCERRADA da janela tambem espera o FIM_ALTERADO dela (depois de uma
+            // queda do Telegram a prorrogacao nao pode chegar depois do "alertas retomados"). O FIM_ALTERADO
+            // continua preso so pelo inicio.
+            + "and not exists (select 1 from Notificacao p where (p.tipoEvento in "
             + "(br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.MANUTENCAO_INICIADA, br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.MANUTENCAO_MANUAL_INICIADA) "
+            + "or (n.tipoEvento = br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.MANUTENCAO_ENCERRADA "
+            + "and p.tipoEvento = br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.MANUTENCAO_FIM_ALTERADO)) "
             + "and p.status in (br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE, br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIANDO) and p.id <> n.id "
             + "and ((n.manutencaoAgendada is not null and p.manutencaoAgendada = n.manutencaoAgendada) "
             + "or (n.manutencaoManual is not null and p.manutencaoManual = n.manutencaoManual))) "

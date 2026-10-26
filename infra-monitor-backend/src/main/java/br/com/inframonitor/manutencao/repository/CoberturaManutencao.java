@@ -127,15 +127,7 @@ public class CoberturaManutencao {
     // Todas incrementam versao (MA26): uma edicao preparada sobre a versao anterior muda zero linhas.
     // ---------------------------------------------------------------------------
 
-    /** CAS AGENDADA -> ATIVA das devidas. Devolve as ativadas, com previsto e real (log de atraso). */
-    public List<Transicao> ativarDevidas(Instant agora) {
-        return jdbc.query("""
-                UPDATE manutencao_agendada SET versao = versao + 1, status = 'ATIVA', ativada_em = :agora, updated_at = :agora
-                 WHERE status = 'AGENDADA' AND inicio_previsto <= :agora AND fim_previsto > :agora
-                RETURNING id, inicio_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
-    }
-
-    /** Mesmo CAS, restrito a uma janela (ativacao imediata na criacao). */
+    /** CAS AGENDADA -> ATIVA de uma janela (reconciliador e ativacao imediata na criacao). */
     public boolean ativarSeDevida(long id, Instant agora) {
         return jdbc.update("""
                 UPDATE manutencao_agendada SET versao = versao + 1, status = 'ATIVA', ativada_em = :agora, updated_at = :agora
@@ -148,14 +140,6 @@ public class CoberturaManutencao {
         return jdbc.query("""
                 UPDATE manutencao_agendada SET versao = versao + 1, status = 'EXPIRADA', updated_at = :agora
                  WHERE status = 'AGENDADA' AND fim_previsto <= :agora
-                RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
-    }
-
-    /** CAS ATIVA -> CONCLUIDA no instante REAL, nunca no fim previsto (MA08). */
-    public List<Transicao> concluirVencidas(Instant agora) {
-        return jdbc.query("""
-                UPDATE manutencao_agendada SET versao = versao + 1, status = 'CONCLUIDA', encerrada_em = :agora, updated_at = :agora
-                 WHERE status = 'ATIVA' AND fim_previsto <= :agora
                 RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
     }
 
@@ -179,7 +163,7 @@ public class CoberturaManutencao {
                 Map.of("agora", ts(agora)), Long.class);
     }
 
-    /** CAS de {@link #concluirVencidas} restrito a uma janela. */
+    /** CAS ATIVA -> CONCLUIDA de uma janela, no instante REAL, nunca no fim previsto (MA08). */
     public Optional<Transicao> concluirSeVencida(long id, Instant agora) {
         return jdbc.query("""
                 UPDATE manutencao_agendada SET versao = versao + 1, status = 'CONCLUIDA', encerrada_em = :agora, updated_at = :agora

@@ -9,6 +9,7 @@ import br.com.inframonitor.manutencao.entity.EscopoManutencao;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
 import br.com.inframonitor.manutencao.service.ManutencaoAgendadaService;
 import br.com.inframonitor.manutencao.service.ReconciliadorManutencao;
+import br.com.inframonitor.notificacao.service.NotificacaoMessageBuilder;
 import br.com.inframonitor.notificacao.service.NotificacaoService;
 import br.com.inframonitor.testsupport.RequerDocker;
 import ch.qos.logback.classic.Level;
@@ -40,6 +41,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 
@@ -83,6 +86,9 @@ class ManutencaoAnuncioPostgresIntegrationTest {
     @Autowired private ManutencaoAgendadaProperties props;
     // Spy so para injetar falha na montagem do anuncio; nos demais testes delega ao bean real.
     @MockitoSpyBean private NotificacaoService notificacoes;
+    // Spies so para quebrar o texto (builder) ou a coleta de dados (cobertura) do fim; senao delegam.
+    @MockitoSpyBean private NotificacaoMessageBuilder builder;
+    @MockitoSpyBean private CoberturaManutencao cobertura;
 
     // Precisao de microssegundo do TIMESTAMPTZ: comparar o instante gravado com o enviado.
     private final Instant agora = Instant.now().truncatedTo(ChronoUnit.MILLIS);
@@ -99,7 +105,7 @@ class ManutencaoAnuncioPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        reset(notificacoes);
+        reset(notificacoes, builder, cobertura);
         jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, "
                 + "janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, incidente, monitor, "
                 + "manutencao_manual, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
@@ -383,6 +389,112 @@ class ManutencaoAnuncioPostgresIntegrationTest {
         assertThat(status(quebrada)).isEqualTo("ATIVA");
         assertThat(jdbc.queryForObject("select count(*) from notificacao where tipo_evento = 'MANUTENCAO_INICIADA' "
                 + "and manutencao_agendada_id = ?", Integer.class, quebrada)).isEqualTo(1);
+    }
+
+    // --- fim com texto quebrado: reserva (MA31, correcao de 2026-10-26) ------------------------
+
+    /**
+     * O fim nunca desfaz a conclusao por causa do texto: ATIVA para sempre suprimiria os alertas. Com o
+     * builder quebrado a janela conclui, o equipamento sai da manutencao, o inicio pendente e cancelado e o
+     * fim entra com o texto de reserva; o ERROR fica no log com o id.
+     */
+    @Test
+    void fimDeJanelaComTextoQuebradoConcluiComTextoDeReserva() {
+        doThrow(new IllegalStateException("texto quebrado")).when(builder)
+                .construirFimJanela(any(), any(), any(), any(), any(), any());
+
+        conclusaoPeloJobUsaReserva();
+    }
+
+    @Test
+    void fimDeJanelaComColetaQuebradaConcluiComTextoDeReserva() {
+        doThrow(new IllegalStateException("coleta quebrada")).when(cobertura).seguemEmManutencao(anyLong(), any());
+
+        conclusaoPeloJobUsaReserva();
+    }
+
+    /**
+     * Erro de SQL na coleta aborta a transacao no Postgres: sem o savepoint em volta da coleta, o
+     * cancelamento e o INSERT seguintes falhariam e a conclusao voltaria.
+     */
+    @Test
+    void fimDeJanelaComErroDeSqlNaColetaConcluiComTextoDeReserva() {
+        doAnswer(inv -> jdbc.queryForObject("select 1 / 0", Integer.class)).when(cobertura)
+                .seguemEmManutencao(anyLong(), any());
+
+        conclusaoPeloJobUsaReserva();
+    }
+
+    /** "Encerrar agora" com o texto quebrado: antes 500 e janela ATIVA; agora conclui com a reserva. */
+    @Test
+    void encerrarAgoraComTextoQuebradoConcluiComTextoDeReserva() {
+        long j = janela("AGENDADA", EscopoManutencao.EQUIPAMENTOS, centro, agora.minusSeconds(30),
+                agora.plus(3, HOURS), ana, sw);
+        reconciliador.reconciliar(agora);
+        doThrow(new IllegalStateException("texto quebrado")).when(builder)
+                .construirFimJanela(any(), any(), any(), any(), any(), any());
+
+        List<ILoggingEvent> erros = capturarErros(() -> service.encerrar(j, bruno));
+
+        assertThat(status(j)).isEqualTo("CONCLUIDA");
+        assertThat(emManutencao(sw)).isFalse();
+        assertThat(contar("MANUTENCAO_ENCERRADA")).isEqualTo(1);
+        assertThat(mensagem("MANUTENCAO_ENCERRADA")).isEqualTo(reserva(j, encerradaEm(j)));
+        assertThat(statusDe("MANUTENCAO_INICIADA")).isEqualTo("CANCELADA");
+        assertThat(erros).anySatisfy(e -> assertThat(e.getFormattedMessage()).contains("janela " + j)
+                .contains("reserva"));
+    }
+
+    private void conclusaoPeloJobUsaReserva() {
+        long j = janela("AGENDADA", EscopoManutencao.EQUIPAMENTOS, centro, agora.minusSeconds(30),
+                agora.plus(1, HOURS), ana, sw);
+        reconciliador.reconciliar(agora);
+        assertThat(status(j)).isEqualTo("ATIVA");
+        assertThat(emManutencao(sw)).isTrue();
+        assertThat(statusDe("MANUTENCAO_INICIADA")).isEqualTo("PENDENTE");
+        Instant depois = agora.plus(2, HOURS);
+
+        List<ILoggingEvent> erros = capturarErros(() -> {
+            var r = reconciliador.reconciliar(depois);
+            assertThat(r.concluidas()).extracting(CoberturaManutencao.Transicao::manutencaoId).containsExactly(j);
+        });
+
+        assertThat(status(j)).isEqualTo("CONCLUIDA");
+        assertThat(emManutencao(sw)).isFalse();
+        assertThat(contar("MANUTENCAO_ENCERRADA")).isEqualTo(1);
+        assertThat(mensagem("MANUTENCAO_ENCERRADA")).isEqualTo(reserva(j, depois));
+        assertThat(statusDe("MANUTENCAO_INICIADA")).isEqualTo("CANCELADA");
+        assertThat(erros).anySatisfy(e -> {
+            assertThat(e.getFormattedMessage()).contains("janela " + j).contains("reserva");
+            assertThat(e.getThrowableProxy()).isNotNull();
+        });
+        assertThat(erros).noneSatisfy(e -> assertThat(e.getLoggerName()).isEqualTo(ReconciliadorManutencao.class.getName()));
+    }
+
+    private List<ILoggingEvent> capturarErros(Runnable acao) {
+        Logger logger = (Logger) LoggerFactory.getLogger("br.com.inframonitor");
+        ListAppender<ILoggingEvent> registros = new ListAppender<>();
+        registros.start();
+        logger.addAppender(registros);
+        try {
+            acao.run();
+        } finally {
+            logger.detachAppender(registros);
+        }
+        return registros.list.stream().filter(e -> e.getLevel() == Level.ERROR).toList();
+    }
+
+    private boolean emManutencao(long equipamento) {
+        return jdbc.queryForObject("select em_manutencao from equipamento where id = ?", Boolean.class, equipamento);
+    }
+
+    private static String reserva(long janela, Instant referencia) {
+        return """
+                ✅ MANUTENÇÃO ENCERRADA — alertas retomados
+
+                Janela: #%d
+                Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).
+                %s""".formatted(janela, rodape(referencia));
     }
 
     /**
