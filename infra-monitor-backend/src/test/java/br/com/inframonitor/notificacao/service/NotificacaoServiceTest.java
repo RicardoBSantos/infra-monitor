@@ -42,6 +42,7 @@ class NotificacaoServiceTest {
 
     @Mock private NotificacaoRepository notificacaoRepository;
     @Mock private NotificacaoMessageBuilder messageBuilder;
+    @Mock private br.com.inframonitor.notificacao.repository.InicioAnuncioRepository inicioAnuncioRepository;
     @InjectMocks private NotificacaoService notificacaoService;
 
     @Test
@@ -55,6 +56,7 @@ class NotificacaoServiceTest {
         ArgumentCaptor<String> tipoEvento = ArgumentCaptor.forClass(String.class);
         verify(notificacaoRepository, org.mockito.Mockito.times(2)).inserirPendenteSeAusente(
                 org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.eq(CanalNotificacao.TELEGRAM.name()), tipoEvento.capture(),
                 org.mockito.ArgumentMatchers.eq("snapshot"), any(Instant.class));
         assertThat(tipoEvento.getAllValues()).containsExactly(
@@ -72,6 +74,7 @@ class NotificacaoServiceTest {
         ArgumentCaptor<String> tipoEvento = ArgumentCaptor.forClass(String.class);
         verify(notificacaoRepository, org.mockito.Mockito.times(2)).inserirPendenteSeAusente(
                 org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(77L),
+                org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.eq(CanalNotificacao.TELEGRAM.name()), tipoEvento.capture(),
                 org.mockito.ArgumentMatchers.eq("latencia"), any(Instant.class));
         assertThat(tipoEvento.getAllValues()).containsExactly(

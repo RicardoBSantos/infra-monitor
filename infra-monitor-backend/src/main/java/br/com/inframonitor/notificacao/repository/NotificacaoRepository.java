@@ -22,13 +22,12 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
      * unicidade inteiramente para o banco: nao ha SELECT previo, nao ha excecao a
      * absorver, e duas transacoes concorrentes convergem para uma unica linha.
      *
-     * <p>Sem alvo de conflito, de proposito. As duas constraints unicas
-     * (uq_notificacao_incidente_canal_evento e uq_notificacao_episodio_canal_evento) sao
+     * <p>Sem alvo de conflito, de proposito. As constraints unicas, uma por ancora, sao
      * mutuamente exclusivas por linha, entao nomear uma obrigaria a bifurcar o SQL por
      * ancora. CHECK e FK continuam estourando normalmente: DO NOTHING so ignora conflito
      * de indice unico, e o unico outro indice unico e a PK, inalcancavel com id IDENTITY.
      *
-     * <p>Os CAST existem porque uma das duas ancoras e sempre nula e o driver nao infere
+     * <p>Os CAST existem porque tres das quatro ancoras sao sempre nulas e o driver nao infere
      * o tipo de um parametro nulo em query nativa.
      *
      * <p>created_at/updated_at vem da aplicacao, e nao do DEFAULT CURRENT_TIMESTAMP, para
@@ -39,14 +38,18 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
      */
     @Modifying
     @Query(value = """
-            INSERT INTO notificacao (incidente_id, episodio_latencia_id, canal, tipo_evento, status,
+            INSERT INTO notificacao (incidente_id, episodio_latencia_id, manutencao_agendada_id,
+                                     manutencao_manual_id, canal, tipo_evento, status,
                                      tentativas, mensagem, created_at, updated_at)
-            VALUES (CAST(:incidenteId AS BIGINT), CAST(:episodioLatenciaId AS BIGINT), :canal, :tipoEvento,
+            VALUES (CAST(:incidenteId AS BIGINT), CAST(:episodioLatenciaId AS BIGINT),
+                    CAST(:manutencaoAgendadaId AS BIGINT), CAST(:manutencaoManualId AS BIGINT), :canal, :tipoEvento,
                     'PENDENTE', 0, :mensagem, :agora, :agora)
             ON CONFLICT DO NOTHING
             """, nativeQuery = true)
     int inserirPendenteSeAusente(@Param("incidenteId") Long incidenteId,
                                  @Param("episodioLatenciaId") Long episodioLatenciaId,
+                                 @Param("manutencaoAgendadaId") Long manutencaoAgendadaId,
+                                 @Param("manutencaoManualId") Long manutencaoManualId,
                                  @Param("canal") String canal,
                                  @Param("tipoEvento") String tipoEvento,
                                  @Param("mensagem") String mensagem,
@@ -58,17 +61,28 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long>,
     @Override
     @EntityGraph(attributePaths = {"incidente", "incidente.monitor", "incidente.monitor.equipamento",
             "incidente.monitor.equipamento.unidade", "episodioLatencia", "episodioLatencia.monitor",
-            "episodioLatencia.monitor.equipamento", "episodioLatencia.monitor.equipamento.unidade"})
+            "episodioLatencia.monitor.equipamento", "episodioLatencia.monitor.equipamento.unidade",
+            "manutencaoAgendada", "manutencaoAgendada.unidade", "manutencaoManual",
+            "manutencaoManual.equipamento", "manutencaoManual.equipamento.unidade"})
     Optional<Notificacao> findById(Long id);
 
     @Override
     @EntityGraph(attributePaths = {"incidente", "incidente.monitor", "incidente.monitor.equipamento",
             "incidente.monitor.equipamento.unidade", "episodioLatencia", "episodioLatencia.monitor",
-            "episodioLatencia.monitor.equipamento", "episodioLatencia.monitor.equipamento.unidade"})
+            "episodioLatencia.monitor.equipamento", "episodioLatencia.monitor.equipamento.unidade",
+            "manutencaoAgendada", "manutencaoAgendada.unidade", "manutencaoManual",
+            "manutencaoManual.equipamento", "manutencaoManual.equipamento.unidade"})
     Page<Notificacao> findAll(Specification<Notificacao> specification, Pageable pageable);
 
     @Query("select n.id from Notificacao n where n.canal = :canal and n.status = :status "
             + "and n.tentativas < :maxAttempts and (n.proximaTentativaEm is null or n.proximaTentativaEm <= :agora) "
+            // MA33: o fim de uma ancora so fica pronto depois que o inicio dela saiu da fila (PENDENTE/ENVIANDO).
+            // O proprio inicio nunca se bloqueia: p.id <> n.id e o tipo dele e o de inicio.
+            + "and not exists (select 1 from Notificacao p where p.tipoEvento in "
+            + "(br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.MANUTENCAO_INICIADA, br.com.inframonitor.notificacao.entity.TipoEventoNotificacao.MANUTENCAO_MANUAL_INICIADA) "
+            + "and p.status in (br.com.inframonitor.notificacao.entity.StatusNotificacao.PENDENTE, br.com.inframonitor.notificacao.entity.StatusNotificacao.ENVIANDO) and p.id <> n.id "
+            + "and ((n.manutencaoAgendada is not null and p.manutencaoAgendada = n.manutencaoAgendada) "
+            + "or (n.manutencaoManual is not null and p.manutencaoManual = n.manutencaoManual))) "
             + "order by n.proximaTentativaEm asc, n.createdAt asc")
     List<Long> findIdsReadyForDispatch(@Param("canal") CanalNotificacao canal,
                                        @Param("status") br.com.inframonitor.notificacao.entity.StatusNotificacao status,
