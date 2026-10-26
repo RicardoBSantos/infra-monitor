@@ -168,6 +168,13 @@ commit) — mostra a intenção, que é o que a reavaliação vai aplicar.
 "como previsto, após prorrogação de HH:MM para HH:MM por X" (primeiro fim → fim final; autor da última alteração);
 nulo e houve só ANTECIPACAO → "como previsto, após antecipação ..."; nenhum → "como previsto".
 
+**Correção de 2026-10-26 (revisão da Task 7):** o reconciliador não anuncia em lote. Para cada janela devida ele abre
+uma transação **própria** com o CAS (`ativarSeDevida` / `concluirSeVencida`) **e** o anúncio; falha ao montar ou inserir
+o anúncio desfaz só a transição daquela janela (log ERROR com o id; a próxima passada tenta de novo) e não trava as
+demais. `expirarPerdidas` segue em lote, sem anúncio. O "sistema esteve fora" (`atrasado`) só existe quando a ativação
+vem do job: criar ou editar com início "agora" passam `atrasado = false` (a pessoa que ativa não é o sistema fora do ar).
+Registrada em `Docs/manutencao-agendada-architecture/manutencao-agendada-decisoes.md` (MA31 e MA28).
+
 ### 2.4 MA32 / MA33 no repositório
 
 - `cancelarInicioPendenteDaManutencao(id, agora)` e `...DaSessaoManual(id, agora)`: `UPDATE ... SET status =
@@ -187,6 +194,15 @@ nulo e houve só ANTECIPACAO → "como previsto, após antecipação ..."; nenhu
         or (n.manutencaoManual is not null and p.manutencaoManual = n.manutencaoManual)))
   ```
   (a notificação de início nunca se bloqueia: `p.id <> n.id` e o tipo dela é o de início.)
+
+**Correção de 2026-10-26 (revisão da Task 5):** a premissa acima, "ENVIANDO vencido devolvido por `releaseStaleSending`
+volta com `tentativas > 0`", é falsa: a reserva não gasta tentativa, então a linha volta com `tentativas = 0`,
+indistinguível de "nunca tentou", e o fim afirmaria com falsa certeza que o início não foi entregue.
+`releaseStaleSending` agora grava `erro = 'Reserva vencida devolvida a fila: o envio pode ter ocorrido'` (sem tocar em
+`tentativas`). O cancelamento do início devolve `RETURNING tentativas, erro` e o desfecho é `NAO_ENTREGUE` **somente**
+quando `tentativas = 0 AND erro IS NULL`; `tentativas > 0` **ou** `erro IS NOT NULL` dá `TALVEZ_ENTREGUE`. O resto da
+lista vale como escrito. A marca não some de uma linha devolvida e depois enviada (`marcarEnviada` limpa `erro`): só
+permanece em CANCELADA/FALHA. Registrada no MA32.
 
 ### 2.5 Dispatcher (ajuste 3)
 

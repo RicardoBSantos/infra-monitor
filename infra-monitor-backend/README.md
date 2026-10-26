@@ -76,6 +76,29 @@ Janelas **ativas não terminam sozinhas** com o agendamento desligado (só o rec
 o equipamento fica fora do monitoramento além do fim previsto, e a lista marca a linha com "fim
 previsto já passou". Encerre-as pela tela, em "Encerrar agora".
 
+Telegram da manutenção (F3, V23):
+
+- A janela (início, fim, alteração do fim) e o botão manual (ligar, desligar) passam a gerar **uma mensagem por evento**
+  no canal de alertas. Cancelar ou editar janela AGENDADA, e janela EXPIRADA, não geram nada. Os avisos individuais
+  `INCIDENTE_ENCERRADO_MANUTENCAO` / `LATENCIA_ENCERRADA_MANUTENCAO` continuam como antes. Só saem se Telegram **e**
+  dispatcher estiverem ligados (ver "Telegram Dispatcher"); com eles desligados as linhas ficam PENDENTE.
+- **`REPORT_TIMEZONE` (padrão `America/Sao_Paulo`) passou a afetar os textos do Telegram.** Todas as mensagens, as novas e as
+  antigas de incidente e latência, saem em horário local `dd/MM/yyyy HH:mm` com a linha final
+  `Horários: UTC-03:00 (America/Sao_Paulo)`. Antes as antigas saíam em UTC. Mudar a variável muda o texto das próximas
+  mensagens; as já gravadas não são reescritas.
+- `GET /api/v1/equipamentos/{id}/manutencoes-manuais?page&size`: histórico das sessões do botão manual do equipamento
+  (`size` padrão 5, máximo 50; mais recente primeiro; mesmos papéis do `GET /equipamentos/**`). Cada item traz `id`,
+  `iniciadaEm`, `iniciadaPor {id, nome}`, `encerradaEm`, `encerradaPor` e `duracaoSegundos`. A sessão anterior à V23
+  vem com início, autor e duração `null` ("início não registrado"). 404 se o equipamento não existe.
+- **Contrato do encerrar mudou (só no backend):** `PATCH /api/v1/equipamentos/{id}/manutencao/encerrar` agora recebe o
+  usuário autenticado (`@AuthenticationPrincipal UsuarioPrincipal`) e grava `encerrada_por_id` na sessão. O corpo
+  continua vazio e o frontend não muda. `EquipamentoService.sairDeManutencao` e `EstadoManutencaoEquipamento.encerrarManual`
+  ganharam o parâmetro `usuarioId`.
+- `DELETE /api/v1/equipamentos/{id}` de equipamento com histórico de manutenção manual é recusado com 409
+  ("Nao e possivel excluir o equipamento porque ele tem historico de manutencao manual").
+- `GET /api/v1/notificacoes` aceita `manutencaoId` e `manutencaoManualId` (no máximo uma âncora por consulta, senão 400); o
+  histórico e o CSV de notificações ganham `manutencao_id` e `manutencao_manual_id` no fim.
+
 ### Produção: o gerenciador do serviço injeta as variáveis
 
 Guarde as variáveis num arquivo **fora do repositório e fora do diretório da
@@ -204,6 +227,35 @@ em manutenção e o código antigo volta a controlar o flag. Ao reinstalar a ver
 A **V22** (F2) é aditiva: coluna com default e tabela nova de alterações. O código da F1 roda normalmente
 sobre um banco em V22, e voltar o jar para a F1 deixa a V22 no lugar, sem efeito.
 
+### V23 (F3, Telegram da manutenção) e rollback
+
+A **V23** é aditiva: tabela `manutencao_manual` (sessões do botão; backfill de uma sessão aberta, sem início e sem autor, para
+cada equipamento que já está no botão), duas colunas-âncora em `notificacao` (`manutencao_agendada_id`,
+`manutencao_manual_id`) e os `CHECK` de âncora e de tipo de evento recriados com cinco valores novos
+(`MANUTENCAO_INICIADA`, `MANUTENCAO_ENCERRADA`, `MANUTENCAO_FIM_ALTERADO`, `MANUTENCAO_MANUAL_INICIADA`,
+`MANUTENCAO_MANUAL_ENCERRADA`).
+
+**Risco de rollback: código da V22 sobre um banco com linhas da F3 quebra o dispatcher antigo ao ler o enum.** O `tipo_evento`
+é lido como `@Enumerated(STRING)`; o código anterior não conhece os cinco valores e falha ao carregar (erro a cada ciclo, a linha não sai de PENDENTE) qualquer linha de
+manutenção. O schema em si é compatível (nada foi removido), então o jar da F2 sobe, mas essas linhas não andam enquanto
+houver linha F3. Antes de voltar o jar para o código da V22 sobre um banco que já recebeu a F3:
+
+```sql
+-- Linhas que o código antigo não consegue ler (PENDENTE/ENVIANDO ficam presas e dão erro a cada ciclo).
+select id, tipo_evento, status from notificacao
+ where tipo_evento in ('MANUTENCAO_INICIADA','MANUTENCAO_ENCERRADA','MANUTENCAO_FIM_ALTERADO',
+                       'MANUTENCAO_MANUAL_INICIADA','MANUTENCAO_MANUAL_ENCERRADA')
+   and status in ('PENDENTE','ENVIANDO');
+```
+
+Cancele essas linhas (`status = 'CANCELADA'`) antes de subir o código antigo, ou deixe a F3 no ar. As já ENVIADA/FALHA/CANCELADA
+não são carregadas pela fila, mas listagens que as devolvam (`GET /api/v1/notificacoes`, relatórios) no código antigo
+também falham ao ler o enum.
+
+O banco da carga real (`inframonitor-carga`) **não recebeu a V23**: a 8080 roda código da V22 com dispatcher e Telegram
+reais, e uma linha F3 iria ao grupo e quebraria o enum do código antigo. Aplicar a V23 lá e trocar a 8080 para a F3 é decisão
+do usuário, depois de conferido o formato das mensagens.
+
 Atenção: o banco da carga real (`inframonitor-carga`) **já está em V21**, enquanto a pilha do dia a
 dia pode estar rodando código anterior à F1. Não aponte um jar antigo para ele sem o `UPDATE` acima.
 
@@ -278,6 +330,7 @@ externo.
 | `PATCH /api/v1/incidentes/{id}/fechar` | Fecha um incidente e cria a notificação de recovery. |
 | `GET /api/v1/notificacoes` | Lista notificações paginadas; filtros `incidenteId`, `status`, `canal`, `tipoEvento`, `inicio`, `fim`. |
 | `GET /api/v1/notificacoes/{id}` | Consulta uma notificação. |
+| `GET /api/v1/equipamentos/{id}/manutencoes-manuais` | Histórico paginado das sessões do botão de manutenção manual do equipamento (F3); `size` padrão 5, máximo 50. |
 | `GET /api/v1/dashboard/resumo` | Cards globais de inventário, monitoramento e incidentes abertos. |
 | `GET /api/v1/dashboard/unidades` | Resumo operacional das unidades ativas, por nome. |
 | `GET /api/v1/dashboard/unidades/{id}` | Detalhe operacional agregado de uma unidade. |

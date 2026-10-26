@@ -119,3 +119,103 @@ Com a correção passam (5/5 na classe) e o log traz `ancora=episodioLatencia=3`
 | `aplicarEntrada`, passo 5: `tratarEncerramentoPorManutencao(incidente\|episodio, agora)` | cancela abertura pendente e avisa `INCIDENTE_ENCERRADO_MANUTENCAO` / `LATENCIA_ENCERRADA_MANUTENCAO` | não muda | Os dois eventos têm âncora de monitor e seguem por `inserirPendenteSeAusente(incidenteId, episodioId, null, null, ...)`. O aviso novo da F3 (`MANUTENCAO_MANUAL_INICIADA`) é criado por `AnuncioManutencaoManual.anunciarInicio`, chamado em `EstadoManutencaoEquipamento`, **fora** deste método e na transação do chamador (lock do equipamento, MA31). |
 | `aplicarSaida` | `cicloJanela.abrirEquipamento` | não muda | Sem notificação. |
 | Releitura por id e filtro `MotivoEncerramento == MANUTENCAO` | evita notificar o que o motor fechou | não muda | Regra de incidente/episódio; independe das âncoras novas. |
+
+## `NotificacaoMessageBuilder`
+
+| Ponto | O que faz com tipo/âncora | Classificação | Por quê |
+|---|---|---|---|
+| `construir(Incidente, TipoEventoNotificacao)` | cabeçalho por tipo (`INCIDENTE_ABERTO`, `INCIDENTE_ENCERRADO_MANUTENCAO`, fechamento manual, `INCIDENTE_FECHADO`); lê `incidente.getMonitor()` | **muda (fuso)** | O enum de entrada continua sendo só o de incidente; os cinco valores novos nunca chegam aqui (têm métodos próprios). Muda porque `Inicio:`/`Fim:` passam por `hora(...)` (local, `dd/MM/yyyy HH:mm`) e a última linha vira `rodape(incidente.getIniciadoEm())` (MA34). Testes de conteúdo para os quatro tipos de incidente. |
+| `construirParaEpisodio(MonitorEpisodioLatencia, TipoEventoNotificacao)` | idem para `LATENCIA_*` | **muda (fuso)** | Mesmo motivo; `rodape(episodio.getIniciadoEm())`. |
+| `construirInicioJanela`, `construirFimJanela`, `construirFimAlterado` | tipos novos da janela | **muda (novo)** | Métodos próprios, uma assinatura por evento, recebem `DadosAnuncio` (o texto não relê o banco). Testes de igualdade do texto inteiro para início e fim. |
+| `construirManualIniciada`, `construirManualEncerrada` | tipos novos do botão | **muda (novo)** | Idem; a variante "Já estava na janela #N" vem do estado travado, não de leitura posterior (MA31). |
+| `hora`, `rodape`, `formatarDuracao`, `horaRelativa` | formatação | **muda (novo)** | Formatador único (MA34). `rodape` usa o offset do instante de referência da mensagem, não o de "agora". Ponto conhecido: nas mensagens antigas o instante de referência é o início do incidente/episódio; num fuso com horário de verão e um incidente que atravessa a virada, `Fim:` e o rodapé teriam offsets diferentes. Em `America/Sao_Paulo` não há horário de verão, então não ocorre. |
+
+## `NotificacaoService` (criação e transições)
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `criarParaIncidenteAberto/Fechado`, `criarPendente(Incidente, ...)` | `inserirPendenteSeAusente(incidenteId, null, null, null, ...)` | não muda (assinatura do repositório: 2 argumentos a mais, `null`) | Âncora de incidente. Testes de inserção antigos seguem verdes com os dois `null` novos. |
+| `criarParaLatenciaAlta/Normalizada`, `criarPendente(MonitorEpisodioLatencia, ...)` | `inserirPendenteSeAusente(null, episodioId, null, null, ...)` | não muda | Idem para episódio. |
+| `tratarEncerramentoPorManutencao(Incidente\|Episodio, agora)` | `existeAberturaJaDespachada*` + `cancelarPendentesDo*` + `INCIDENTE_ENCERRADO_MANUTENCAO` / `LATENCIA_ENCERRADA_MANUTENCAO` | não muda | Raciocina sobre a abertura da **mesma** âncora de monitor. Os avisos individuais continuam como antes (MA28); o aviso da janela é uma linha à parte, por âncora de janela. |
+| `criarParaManutencaoIniciada`, `criarParaManutencaoFimAlterado`, `criarParaManualIniciada` | `inserirPendenteSeAusente(null, null, janelaId\|null, sessaoId\|null, ...)` | **muda (novo)** | `ON CONFLICT DO NOTHING` sem alvo cobre `uq_notificacao_manutencao_evento` (índice parcial) e `uq_notificacao_manual_canal_evento`. `FIM_ALTERADO` fica fora do índice parcial de propósito: a guarda dele é o CAS de versão na mesma transação. |
+| `criarParaManutencaoEncerrada`, `criarParaManualEncerrada` | cancela o início PENDENTE (`UPDATE ... RETURNING tentativas, erro`), só depois lê FALHA, e escolhe `EntregaInicio` | **muda (novo)** | MA32; `resolverEntrega` é a única função que decide o texto. Cada ramo tem teste e a decisão por leitura anterior ao UPDATE foi provada vermelha (corrida 3). |
+| `listar`, `paraResposta`, `buscarPorId` | — | ver "Listagem de notificações" | Auditado acima. |
+
+## `NotificacaoRepository` e `InicioAnuncioRepository`
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `inserirPendenteSeAusente` | insert nativo idempotente com `CAST(:x AS BIGINT)` | **muda** | Ganha `manutencaoAgendadaId` e `manutencaoManualId`. Os `CAST` são necessários porque três das quatro âncoras são sempre nulas e o driver não infere o tipo de parâmetro nulo. |
+| `findByIncidenteId` | `@EntityGraph("incidente")` | não muda | Âncora de incidente apenas. |
+| `findById`, `findAll(Specification, Pageable)` (graphs) | joins das âncoras | **muda** | Graphs ganham `manutencaoAgendada(.unidade)` e `manutencaoManual(.equipamento(.unidade))` para `paraResposta` não estourar `LazyInitializationException` fora de transação (provado em `NotificacaoListagemManutencaoPostgresIntegrationTest`). |
+| `findIdsReadyForDispatch` | fila do dispatcher | **muda** | `NOT EXISTS` de MA33: o fim da âncora só fica pronto sem início PENDENTE/ENVIANDO da mesma âncora. Reversão vermelha em `FilaAnuncioManutencaoPostgresIntegrationTest`. |
+| `reserveForDispatch` | CAS PENDENTE→ENVIANDO | não muda | Não olha tipo nem âncora. É o outro lado da corrida 3. |
+| `releaseStaleSending` | ENVIANDO vencido → PENDENTE | **muda (Task 5, fix)** | Passa a gravar `erro = 'Reserva vencida devolvida a fila: o envio pode ter ocorrido'` sem tocar em `tentativas`. Sem isso o fim afirma "não foi entregue" sobre um início que o Telegram pode ter recebido (spec §2.4, correção de 2026-10-26). |
+| `cancelarPendentesDoIncidente`, `cancelarPendentesDoEpisodio` | cancela PENDENTE por âncora de monitor | não muda | Escopo por âncora, não por tipo (comentário do método). O cancelamento do início de janela/sessão é outro método (`InicioAnuncioRepository`), para o retorno `tentativas, erro` não vazar para estes. |
+| `existeAberturaJaDespachada`, `existeAberturaJaDespachadaDoEpisodio` | olha `INCIDENTE_ABERTO` / `LATENCIA_ALTA` ENVIANDO/ENVIADA | não muda | Específicos de abertura de incidente/episódio. O equivalente para janela é o `RETURNING` de MA32, deliberadamente **não** uma pergunta prévia (A4). |
+| `InicioAnuncioRepository.cancelar*` / `inicioEmFalha*` | `UPDATE ... RETURNING tentativas, erro`; `SELECT` de FALHA | **muda (novo)** | Colunas `manutencao_agendada_id`/`manutencao_manual_id` e tipo de início escolhidos por constante interna, nunca por entrada externa. |
+
+## Entidade, enum e produtores
+
+| Ponto | O que faz | Classificação | Por quê |
+|---|---|---|---|
+| `TipoEventoNotificacao` | enum de 6 valores | **muda** | Cinco valores novos, espelhados em `ck_notificacao_tipo_evento` (V23). `@Enumerated(STRING)`: **código que não conhece o valor falha ao ler a linha** (ver rollback no README). |
+| `Notificacao` (entidade) | `incidente`, `episodioLatencia`, e agora `manutencaoAgendada`, `manutencaoManual` | **muda** | Dois `@ManyToOne(LAZY)` só de leitura (inserção é pelo SQL nativo); `descreverAncora()` para log. Sem construtores para as âncoras novas: ninguém cria essas linhas por JPA. |
+| `descreverAncora()` | `incidente=` / `episodioLatencia=` / `manutencao=` / `manutencaoManual=` | **muda** | Último ramo assume a quarta âncora sem guarda de nulo: `ck_notificacao_ancora_exclusiva` garante exatamente uma, então uma linha sem âncora nem existe; uma entidade montada na mão sem âncora estouraria NPE (pendência registrada). |
+| `IncidenteService` (`criarParaIncidenteAberto/Fechado`) | produtor | não muda | Chama métodos do serviço que seguem com a mesma assinatura. |
+| `LatencyEpisodeProcessor` | produtor | não muda | Idem. |
+| `AnuncioManutencao` (janela), `AnuncioManutencaoManual` (botão) | produtores novos | **muda (novo)** | Chamam `criarParaManutencao*` / `criarParaManual*` dentro da transação do CAS ou do lock do equipamento (MA31). |
+| `V23` | DDL | **muda** | Sem edição de migration anterior; recria `ck_notificacao_ancora_exclusiva`, `ck_notificacao_tipo_evento` e `ck_notificacao_evento_coerente` com os dois primeiros ramos da V19 literalmente. |
+| Resposta de `NotificacaoController`/`NotificacaoResponse` | contrato | **muda** | Ver "Listagem de notificações". |
+
+## Auditoria front
+
+(Feita na Task 10 e incorporada aqui; ver a Task 10 do plano da F3 para o código.)
+
+| Arquivo | Classificação | Por quê |
+|---|---|---|
+| `core/models/api-enums.ts` | MUDA | 5 valores novos em `NotificationEventType`. |
+| `core/models/rotulos-notificacao.ts` (novo) | MUDA (novo) | `ROTULOS_EVENTO_NOTIFICACAO` é um `Record` exaustivo: o compilador recusa valor de enum sem rótulo. Substitui os rótulos duplicados de lista e detalhe e alimenta o select de Relatórios (`OPCOES_EVENTO_NOTIFICACAO`, ordem do enum, 11 opções). |
+| `core/models/notificacao.ts` | MUDA | âncoras `manutencao` e `manutencaoManual` em `NotificacaoResponse`. `NotificacaoListQuery` NÃO muda: o filtro `manutencaoId`/`manutencaoManualId` do backend não é usado por nenhuma tela; sem tela, sem campo. |
+| `core/models/relatorio.ts` | MUDA | `incidenteId` nulável + `manutencaoId` e `manutencaoManualId` no histórico. `HistoricoNotificacoesQuery.incidenteId` não muda (filtro de entrada). |
+| `core/services/relatorio-api.service.ts` | NÃO MUDA | Repassa `tipoEvento`/`incidenteId` como string/número; não interpreta o enum. |
+| `core/services/notificacao-api.service.ts` | NÃO MUDA | Idem, repassa a query. |
+| `core/models/equipamento.ts` + `equipamento-api.service.ts` | MUDA | `ManutencaoManualResponse` e `historicoManutencaoManual(id, size = 5)` (`GET /equipamentos/{id}/manutencoes-manuais`). |
+| `incidentes/timeline/timeline.ts` | MUDA | Cinco `case` novos e `default` removido (o compilador exige decisão a cada valor novo). A timeline só recebe notificações de incidente, então os cinco rótulos nunca aparecem lá. |
+| `notificacoes/notificacao-list.component.{ts,html}` | MUDA | Rótulos/opções do módulo; coluna de origem ("Janela #41" com link para `/manutencoes`, ou "Manutenção manual · equipamento"). |
+| `notificacoes/notificacao-detail.component.{ts,html}` | MUDA | Rótulos do módulo; origem como linha do `dl`. O cabeçalho "Ver incidente" já era condicional ao `incidente`: NÃO muda. |
+| `relatorios/relatorios.component.{ts,html}` | MUDA | Select por opções; a tabela mostra o rótulo (antes mostrava o código cru) e coluna Origem (incidente / "Janela #N" com link / "Manutenção manual #N": o histórico só traz o id da sessão, não o nome do equipamento). Export CSV/PDF é do backend: o front só baixa o arquivo. |
+| `shared/status-badge/status-badge.component.ts` | NÃO MUDA | Mapeia `NotificationStatus` (PENDENTE/ENVIANDO/...), não o tipo de evento; nenhum status novo. |
+| `features/equipamentos/origem-manutencao.ts`, `manutencoes/*` | NÃO MUDA | Não leem `NotificationEventType`. |
+| Specs de `notificacao-api` / `relatorio-api` | NÃO MUDAM | Usam o enum só como valor de parâmetro. |
+| Drawer do equipamento (Equipamentos e Mapa) | MUDA | Seção "Manutenção manual — histórico" (MA36). Não lê o enum de notificação, mas é a única tela que consome o endpoint novo. |
+
+## Cobertura da lista do spec §6, ponto a ponto
+
+Conferido em 2026-10-26 contra o código. Backend:
+
+| Item do §6 | Onde está neste documento |
+|---|---|
+| `NotificacaoMessageBuilder` | "`NotificacaoMessageBuilder`" |
+| `NotificacaoService` (criação, listagem, `paraResposta`) | "`NotificacaoService` (criação e transições)" e "Listagem de notificações" |
+| `NotificacaoRepository` (insert, graphs, fila, `existeAbertura*`, `cancelarPendentes*`) | "`NotificacaoRepository` e `InicioAnuncioRepository`" |
+| `NotificationDispatcher` | "Dispatcher, sender, telegram" |
+| `NotificacaoController` | "Dispatcher, sender, telegram" e "Listagem de notificações" |
+| `RelatorioService.notificacoes` | "Relatório de histórico" |
+| `RelatorioExportService` (CSV) | "Export CSV de notificações" |
+| `HistoricoNotificacaoResponse` | "Relatório de histórico" |
+| `VisaoGeralPdfRepository.KPIS` | "PDF Visão Geral e indicadores" |
+| `DashboardIncidenteReadRepository` | "Dashboard" |
+| `EfeitosManutencao` | "`EfeitosManutencao`" |
+
+Front: `api-enums`, `notificacao.ts`, `relatorio.ts`, `relatorio-api.service`, `timeline.ts`, lista e detalhe de
+notificações, `relatorios.component`, `StatusBadgeComponent` estão todos em "Auditoria front". Linhas que faltavam depois
+das Tasks 2 e 9 (builder, serviço de criação, repositório, entidade/enum, produtores) foram acrescentadas por este
+fechamento, depois de ler o código de cada uma.
+
+## Ponto de atenção do dispatcher: fechado
+
+A seção do dispatcher registrou que o proxy lazy das âncoras novas não tinha prova com banco real. Fechado na Task 5:
+`FilaAnuncioManutencaoPostgresIntegrationTest.dispatcherLogaAncoraDeJanelaComEntidadeReal` e os graphs de
+`findById`/`findAll`. O ramo `manutencaoManual=` de `descreverAncora()` segue sem teste próprio no dispatcher (pendência
+menor).

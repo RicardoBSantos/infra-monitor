@@ -49,3 +49,18 @@ Decisões da F2: MA19 a MA26. Dívidas encontradas, nenhuma bloqueia:
 - **"Os dois desfechos" de C1 a C3** é garantido pela evidência, não afirmado pelo teste (idioma da F1).
 - **Exercício no banco da carga** com motor e Telegram ligados em outro processo notifica o grupo de verdade:
   escolher equipamento online e sem incidente aberto (ver "Efeito colateral" na evidência).
+
+## F3 (entregue em 2026-10-26)
+
+- **P-02 fechada** (MA27 a MA36): uma mensagem por janela no início, no fim e na alteração do fim; o botão manual
+  avisa ao ligar e ao desligar; os avisos individuais `INCIDENTE_ENCERRADO_MANUTENCAO` / `LATENCIA_ENCERRADA_MANUTENCAO`
+  foram **mantidos** e o ruído será medido (consulta no spec da F3, §8, após duas semanas em produção).
+- **P-03 atendida em parte**: o botão manual ganhou histórico (`manutencao_manual`, MA30 e MA36), sem motivo digitado
+  (fora de escopo). Continua sem "por quê".
+- **V23 não está no banco da carga** (`inframonitor-carga`): a 8080 roda código da V22 com dispatcher e Telegram reais, e
+  linha F3 lá iria ao grupo e quebraria o enum do código antigo. Aplicar a V23 e trocar a 8080 para a F3 é decisão do
+  usuário, depois do formato conferido. Ver "Rollback" no README do backend.
+- Dívidas menores e pontos de atenção da F3 estão em "Pendências conhecidas" de
+  `Docs/validacao-producao/manutencao-agendada-f3.md`. Nenhuma bloqueia.
+- **Fora de escopo, continua aberto**: silenciar avisos por janela; aviso de "agendada"; motivo no botão manual;
+  relatório de manutenção (F4, P-07).
