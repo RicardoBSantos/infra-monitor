@@ -25,6 +25,7 @@
     "e2e:overflow": "node e2e/overflow-telas.cjs",
     "e2e:manutencao-interface": "node e2e/manutencao-interface.cjs",
     "e2e:manutencao-agendada": "node e2e/manutencao-agendada.cjs",
+    "e2e:manutencao-agendada-f2": "node e2e/manutencao-agendada-f2.cjs",
     "perf:mapa": "node e2e/perf-mapa/perf-mapa-animacoes.cjs",
     "perf:mapa-app": "node e2e/perf-mapa/perf-mapa-app.cjs"
   },

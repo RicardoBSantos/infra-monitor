@@ -1,0 +1,485 @@
+{
+  "quando": "2026-10-26T11:08:25.335Z",
+  "base": "http://127.0.0.1:4201",
+  "apiPort": "8081",
+  "unidade": "Sesc Itabaiana",
+  "equipamento": "Swtich CPD",
+  "janelaId": 7,
+  "continuacaoId": 8,
+  "instantes": {
+    "inicioExercicio": "2026-10-26T11:03:50.931Z",
+    "agendada": {
+      "inicioLocal": "2026-10-26T08:07",
+      "fimLocal": "2026-10-26T08:27"
+    },
+    "editada": {
+      "inicioLocal": "2026-10-26T08:06"
+    },
+    "ativaVistaEm": "2026-10-26T11:06:06.814Z",
+    "segundoOperador": {
+      "em": "2026-10-26T11:06:07.440Z",
+      "status": 200,
+      "versaoAntes": 2,
+      "fimApi": "2026-10-26T11:37:00.000Z"
+    },
+    "antecipadoPara": "2026-10-26T11:08:00.000Z",
+    "dialogoAbertoEm": "2026-10-26T11:06:08.844Z",
+    "esperaComDialogoMs": 131156,
+    "concluida": {
+      "situacao": "CONCLUIDA",
+      "encerradaEm": "2026-10-26T11:08:03.816842Z"
+    },
+    "continuacaoClique": "2026-10-26T11:08:20.598Z",
+    "continuacao": {
+      "id": 8,
+      "situacao": "ATIVA",
+      "ativadaEm": "2026-10-26T11:08:20.728441Z",
+      "inicioPrevisto": "2026-10-26T11:08:00Z"
+    },
+    "lacunaContinuacaoS": 16.912,
+    "limpeza": [
+      "#8 Ativa → 200"
+    ]
+  },
+  "capturas": [
+    "01-modal-da-linha.png",
+    "02-linha-agendada-aviso.png",
+    "03-modal-do-drawer.png",
+    "04-unidade-banner.png",
+    "05-unidade-todos-marcados.png",
+    "06-editar-carregada.png",
+    "07-editada.png",
+    "08-linha-ativa.png",
+    "09-alterar-fim-409.png",
+    "10-prorrogada.png",
+    "11-continuacao.png",
+    "12-continuacao-modal.png",
+    "13-continuacao-agendada.png",
+    "14-mapa-gaveta.png",
+    "15-vigentes-limpo.png"
+  ],
+  "falhas": 0,
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4201/dashboard (API_PORT=8081)"
+    },
+    {
+      "caso": "1-unidade-travada",
+      "nome": "modal da linha: unidade pré-selecionada e travada",
+      "ok": true,
+      "detalhe": "{\"texto\":\"Sesc Itabaiana\",\"disabled\":true}"
+    },
+    {
+      "caso": "1-equipamento-marcado",
+      "nome": "modal da linha: equipamento marcado",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "1-escape-foco",
+      "nome": "Escape fecha e o foco volta ao gatilho \"…\" da linha",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"…\",\"rotulo\":\"Ações de Swtich CPD\",\"classe\":\"menu-acoes__gatilho\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "1-post",
+      "nome": "POST /manutencoes 201",
+      "ok": true,
+      "detalhe": "201"
+    },
+    {
+      "caso": "1-aviso",
+      "nome": "aviso \"Janela #N agendada.\" em Equipamentos",
+      "ok": true,
+      "detalhe": "Janela #7 agendada."
+    },
+    {
+      "caso": "2-preset",
+      "nome": "modal do drawer: unidade travada e equipamento marcado",
+      "ok": true,
+      "detalhe": "{\"texto\":\"Sesc Itabaiana\",\"disabled\":true}"
+    },
+    {
+      "caso": "2-escape-foco",
+      "nome": "Escape fecha o modal e o foco volta ao botão do drawer",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"Agendar manutenção\",\"rotulo\":null,\"classe\":\"botao\",\"naGaveta\":true,\"ehBody\":false}"
+    },
+    {
+      "caso": "2-drawer-aberto",
+      "nome": "drawer continua aberto depois do Escape do modal",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "3-banner",
+      "nome": "banner \"Próxima: #7\"",
+      "ok": true,
+      "detalhe": "Próxima: #7 em 26/10/2026 08:07 · E2E F2 linha Ver janelas"
+    },
+    {
+      "caso": "3-unidade-travada",
+      "nome": "modal da unidade: unidade travada",
+      "ok": true,
+      "detalhe": "{\"texto\":\"Sesc Itabaiana\",\"disabled\":true}"
+    },
+    {
+      "caso": "3-todos-marcados",
+      "nome": "marcar os 3 mostra a dica \"Todos marcados…\"",
+      "ok": true,
+      "detalhe": "Todos marcados. Para incluir também os equipamentos criados durante a janela, use Unidade inteira."
+    },
+    {
+      "caso": "3-cancelar",
+      "nome": "Cancelar não cria janela",
+      "ok": true,
+      "detalhe": "1 → 1"
+    },
+    {
+      "caso": "3-cancelar-foco",
+      "nome": "foco volta ao \"Agendar manutenção\" da unidade",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"Agendar manutenção\",\"rotulo\":null,\"classe\":\"botao\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "4-carregada",
+      "nome": "edição abre com os valores da janela",
+      "ok": true,
+      "detalhe": "Editar janela #7 | E2E F2 linha | 2026-10-26T08:07"
+    },
+    {
+      "caso": "4-escape-foco",
+      "nome": "Escape no Editar devolve o foco ao gatilho da linha",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"…\",\"rotulo\":\"Ações de janela #7\",\"classe\":\"menu-acoes__gatilho\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "4-put",
+      "nome": "PUT /manutencoes/{id} 200",
+      "ok": true,
+      "detalhe": "200"
+    },
+    {
+      "caso": "4-aviso",
+      "nome": "aviso \"Janela #7 atualizada.\"",
+      "ok": true,
+      "detalhe": "Janela #7 atualizada."
+    },
+    {
+      "caso": "4-editada-por",
+      "nome": "linha mostra \"editada por … às …\"",
+      "ok": true,
+      "detalhe": "editada por F2 Manutencao às 26/10/2026 08:03"
+    },
+    {
+      "caso": "4-motivo",
+      "nome": "motivo novo na linha",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "4-salvar-foco",
+      "nome": "depois de salvar, o foco está no gatilho da linha",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"…\",\"rotulo\":\"Ações de janela #7\",\"classe\":\"menu-acoes__gatilho\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "5-ativa",
+      "nome": "o job ativou a janela (linha ATIVA)",
+      "ok": true,
+      "detalhe": "Ativa após 25 recargas"
+    },
+    {
+      "caso": "5-titulo",
+      "nome": "diálogo \"Alterar fim da janela #N\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "5-escape-foco",
+      "nome": "Escape no Alterar fim devolve o foco ao gatilho da linha",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"…\",\"rotulo\":\"Ações de janela #7\",\"classe\":\"menu-acoes__gatilho\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "5-segundo-operador",
+      "nome": "PATCH do segundo operador pela API 200",
+      "ok": true,
+      "detalhe": "200 versao 2"
+    },
+    {
+      "caso": "5-409",
+      "nome": "envio com versão velha → 409",
+      "ok": true,
+      "detalhe": "409"
+    },
+    {
+      "caso": "5-409-mensagem",
+      "nome": "mensagem \"Fim atual atualizado; confira e envie de novo.\"",
+      "ok": true,
+      "detalhe": "Fim atual atualizado; confira e envie de novo. | fim atual: 26/10/2026 08:37"
+    },
+    {
+      "caso": "5-reenvio",
+      "nome": "segundo envio passa (200)",
+      "ok": true,
+      "detalhe": "200"
+    },
+    {
+      "caso": "5-aviso",
+      "nome": "aviso \"Fim da janela #N alterado para …\"",
+      "ok": true,
+      "detalhe": "Fim da janela #7 alterado para 26/10/2026 08:42."
+    },
+    {
+      "caso": "5-prorrogada-por",
+      "nome": "linha mostra \"prorrogada por …\"",
+      "ok": true,
+      "detalhe": "prorrogada por F2 Manutencao às 26/10/2026 08:06"
+    },
+    {
+      "caso": "5-foco",
+      "nome": "depois do Alterar fim, o foco está no gatilho da linha",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"…\",\"rotulo\":\"Ações de janela #7\",\"classe\":\"menu-acoes__gatilho\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "6-antecipar",
+      "nome": "antecipar o fim → 200",
+      "ok": true,
+      "detalhe": "200"
+    },
+    {
+      "caso": "6-antecipado-por",
+      "nome": "linha mostra \"fim antecipado por …\"",
+      "ok": true,
+      "detalhe": "fim antecipado por F2 Manutencao às 26/10/2026 08:06"
+    },
+    {
+      "caso": "6-409-concluida",
+      "nome": "enviar depois da conclusão → 409",
+      "ok": true,
+      "detalhe": "409"
+    },
+    {
+      "caso": "6-texto",
+      "nome": "tela \"concluiu às … pingados por alguns segundos\"",
+      "ok": true,
+      "detalhe": "A janela #7 concluiu às 08:08. Os equipamentos voltaram a ser verificados: até a nova janela ativar, eles são pingados por alguns segundos."
+    },
+    {
+      "caso": "6-titulo",
+      "nome": "título \"Janela #7 concluída\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "6-foco-continuar",
+      "nome": "foco no botão \"Agendar continuação\"",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"Agendar continuação\",\"rotulo\":null,\"classe\":\"botao botao--primario\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "6-preset",
+      "nome": "modal de continuação pré-preenchido (unidade travada, equipamento marcado, motivo, fim pedido)",
+      "ok": true,
+      "detalhe": "{\"texto\":\"Sesc Itabaiana\",\"disabled\":true} | E2E F2 editada | fim 2026-10-26T08:39"
+    },
+    {
+      "caso": "6-post",
+      "nome": "POST da continuação 201",
+      "ok": true,
+      "detalhe": "201"
+    },
+    {
+      "caso": "6-aviso",
+      "nome": "aviso \"Janela #8 agendada.\"",
+      "ok": true,
+      "detalhe": "Janela #8 agendada."
+    },
+    {
+      "caso": "6-foco-final",
+      "nome": "depois da continuação o foco não cai no body (gatilho da linha, \"+ Agendar manutenção\" ou h1)",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"+ Agendar manutenção\",\"rotulo\":null,\"classe\":\"botao botao--primario\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "7-afetado",
+      "nome": "\"Swtich CPD\" aparece entre os afetados do painel da unidade",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "7-sem-agendar",
+      "nome": "gaveta no Mapa sem \"Agendar manutenção\"",
+      "ok": true,
+      "detalhe": "Swtich CPD: [\"Abrir histórico\"]"
+    },
+    {
+      "caso": "8-foco-encerrar",
+      "nome": "linha saiu de Vigentes: foco em \"+ Agendar manutenção\" ou h1, nunca no body",
+      "ok": true,
+      "detalhe": "{\"tag\":\"BUTTON\",\"texto\":\"+ Agendar manutenção\",\"rotulo\":null,\"classe\":\"botao botao--primario\",\"naGaveta\":false,\"ehBody\":false}"
+    },
+    {
+      "caso": "8-limpeza",
+      "nome": "nenhuma janela \"E2E F2\" em Vigentes",
+      "ok": true,
+      "detalhe": "#8 Ativa → 200"
+    },
+    {
+      "caso": "sem-erros",
+      "nome": "nenhum erro de página/console além dos 2 409 provocados",
+      "ok": true,
+      "detalhe": "2 registros, todos 409 esperados"
+    }
+  ],
+  "rede": [
+    "2026-10-26T11:03:50.913Z POST 200 /auth/login",
+    "2026-10-26T11:03:50.993Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:51.000Z GET 200 /tipos-equipamento",
+    "2026-10-26T11:03:51.006Z GET 200 /equipamentos?size=500&sort=nome,asc",
+    "2026-10-26T11:03:51.026Z GET 200 /dashboard/resumo",
+    "2026-10-26T11:03:51.075Z GET 200 /dashboard/unidades",
+    "2026-10-26T11:03:51.075Z GET 200 /relatorios/latencia/unidades?inicio=2026-09-26T11:03:50.941Z&fim=2026-10-26T11:03:50.941Z&size=500",
+    "2026-10-26T11:03:51.075Z GET 200 /relatorios/disponibilidade/unidades?inicio=2026-09-26T11:03:50.941Z&fim=2026-10-26T11:03:50.941Z&size=200",
+    "2026-10-26T11:03:51.094Z GET 200 /manutencoes/parametros",
+    "2026-10-26T11:03:51.098Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:51.098Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-26T11:03:51.152Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:51.389Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:51.449Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:51.974Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:52.015Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:52.275Z POST 201 /manutencoes",
+    "2026-10-26T11:03:52.354Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:52.509Z GET 200 /manutencoes/parametros",
+    "2026-10-26T11:03:52.510Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-26T11:03:52.510Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:52.534Z GET 200 /monitores?equipamentoId=8&size=100&sort=id,asc",
+    "2026-10-26T11:03:52.534Z GET 200 /equipamentos/8",
+    "2026-10-26T11:03:52.535Z GET 200 /incidentes?equipamentoId=8&size=3&sort=iniciadoEm,desc",
+    "2026-10-26T11:03:52.538Z GET 200 /relatorios/medicoes?inicio=2026-10-26T10:37:52.494Z&fim=2026-10-26T11:03:52.494Z&size=60&sort=executadoEm,asc&equipamentoId=8",
+    "2026-10-26T11:03:52.550Z GET 200 /relatorios/latencia?inicio=2026-09-26T11:03:52.494Z&fim=2026-10-26T11:03:52.494Z&size=1&equipamentoId=8",
+    "2026-10-26T11:03:52.562Z GET 200 /relatorios/disponibilidade/equipamentos?inicio=2026-09-26T11:03:52.493Z&fim=2026-10-26T11:03:52.493Z&size=1&equipamentoId=8",
+    "2026-10-26T11:03:52.568Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:52.914Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:52.978Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:53.651Z GET 200 /manutencoes/parametros",
+    "2026-10-26T11:03:53.652Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:53.652Z GET 200 /tipos-equipamento?ativo=true",
+    "2026-10-26T11:03:53.702Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:53.834Z GET 200 /manutencoes/parametros",
+    "2026-10-26T11:03:53.845Z GET 200 /unidades/2",
+    "2026-10-26T11:03:53.860Z GET 200 /relatorios/latencia/unidades?inicio=2026-09-26T11:03:53.810Z&fim=2026-10-26T11:03:53.810Z&size=1&unidadeId=2",
+    "2026-10-26T11:03:53.860Z GET 200 /dashboard/unidades/2/equipamentos?size=200&sort=nome",
+    "2026-10-26T11:03:53.862Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=5&unidadeId=2",
+    "2026-10-26T11:03:53.863Z GET 200 /relatorios/disponibilidade/unidades?inicio=2026-09-26T11:03:53.810Z&fim=2026-10-26T11:03:53.810Z&size=1&unidadeId=2",
+    "2026-10-26T11:03:53.870Z GET 200 /relatorios/disponibilidade/equipamentos?inicio=2026-09-26T11:03:53.810Z&fim=2026-10-26T11:03:53.810Z&size=200&unidadeId=2",
+    "2026-10-26T11:03:53.896Z GET 200 /dashboard/unidades/2",
+    "2026-10-26T11:03:53.933Z GET 200 /incidentes?unidadeId=2&size=5&sort=iniciadoEm,desc",
+    "2026-10-26T11:03:54.281Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:54.355Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:55.230Z GET 200 /manutencoes/parametros",
+    "2026-10-26T11:03:55.243Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:03:55.400Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:55.411Z GET 200 /manutencoes/7",
+    "2026-10-26T11:03:55.456Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:55.893Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:03:55.900Z GET 200 /manutencoes/7",
+    "2026-10-26T11:03:55.941Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:03:56.247Z PUT 200 /manutencoes/7",
+    "2026-10-26T11:03:56.267Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:01.739Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:01.812Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:06.882Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:06.963Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:12.039Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:12.100Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:17.190Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:17.253Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:22.711Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:22.802Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:27.882Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:27.932Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:33.010Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:33.069Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:38.144Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:38.193Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:43.265Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:43.312Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:48.507Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:48.558Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:53.922Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:54.488Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:04:59.576Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:04:59.911Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:05.097Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:05.425Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:10.476Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:10.526Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:15.580Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:15.627Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:20.696Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:20.749Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:25.816Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:25.866Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:30.925Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:30.976Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:36.056Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:36.125Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:41.191Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:41.241Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:46.292Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:46.344Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:51.410Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:51.458Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:05:56.533Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:05:56.580Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:06:01.644Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:06:01.698Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:06:06.759Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:06:06.809Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:06:07.013Z GET 200 /manutencoes/7",
+    "2026-10-26T11:06:07.392Z GET 200 /manutencoes/7",
+    "2026-10-26T11:06:07.711Z PATCH 409 /manutencoes/7/fim",
+    "2026-10-26T11:06:07.724Z GET 200 /manutencoes/7",
+    "2026-10-26T11:06:07.868Z PATCH 200 /manutencoes/7/fim",
+    "2026-10-26T11:06:07.887Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:06:08.409Z GET 200 /manutencoes/7",
+    "2026-10-26T11:06:08.680Z PATCH 200 /manutencoes/7/fim",
+    "2026-10-26T11:06:08.696Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:06:08.843Z GET 200 /manutencoes/7",
+    "2026-10-26T11:08:20.060Z PATCH 409 /manutencoes/7/fim",
+    "2026-10-26T11:08:20.071Z GET 200 /manutencoes/7",
+    "2026-10-26T11:08:20.412Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:08:20.422Z GET 200 /unidades?ativo=true",
+    "2026-10-26T11:08:20.462Z GET 200 /dashboard/equipamentos",
+    "2026-10-26T11:08:20.754Z POST 201 /manutencoes",
+    "2026-10-26T11:08:20.771Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:08:21.373Z GET 200 /dashboard/unidades",
+    "2026-10-26T11:08:23.104Z GET 200 /dashboard/unidades/4/equipamentos?size=200&sort=nome",
+    "2026-10-26T11:08:23.133Z GET 200 /dashboard/unidades/1/equipamentos?size=200&sort=nome",
+    "2026-10-26T11:08:23.162Z GET 200 /dashboard/unidades/5/equipamentos?size=200&sort=nome",
+    "2026-10-26T11:08:23.195Z GET 200 /dashboard/unidades/2/equipamentos?size=200&sort=nome",
+    "2026-10-26T11:08:23.283Z GET 200 /equipamentos/8",
+    "2026-10-26T11:08:23.294Z GET 200 /relatorios/medicoes?inicio=2026-10-26T10:42:23.262Z&fim=2026-10-26T11:08:23.262Z&size=60&sort=executadoEm,asc&equipamentoId=8",
+    "2026-10-26T11:08:23.295Z GET 200 /relatorios/disponibilidade/equipamentos?inicio=2026-09-26T11:08:23.261Z&fim=2026-10-26T11:08:23.261Z&size=1&equipamentoId=8",
+    "2026-10-26T11:08:23.295Z GET 200 /relatorios/latencia?inicio=2026-09-26T11:08:23.262Z&fim=2026-10-26T11:08:23.262Z&size=1&equipamentoId=8",
+    "2026-10-26T11:08:23.299Z GET 200 /monitores?equipamentoId=8&size=100&sort=id,asc",
+    "2026-10-26T11:08:23.306Z GET 200 /incidentes?equipamentoId=8&size=3&sort=iniciadoEm,desc",
+    "2026-10-26T11:08:24.298Z GET 200 /manutencoes/parametros",
+    "2026-10-26T11:08:24.302Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:08:24.538Z PATCH 200 /manutencoes/8/encerrar",
+    "2026-10-26T11:08:24.547Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20",
+    "2026-10-26T11:08:24.915Z GET 200 /manutencoes?situacao=HISTORICO&page=0&size=20",
+    "2026-10-26T11:08:24.958Z GET 200 /manutencoes?situacao=VIGENTES&page=0&size=20"
+  ],
+  "erros": [
+    "console: Failed to load resource: the server responded with a status of 409 (Conflict)",
+    "console: Failed to load resource: the server responded with a status of 409 (Conflict)"
+  ]
+}
