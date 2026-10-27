@@ -114,6 +114,12 @@ public class MonitorService {
 
     @Transactional
     public void excluir(Long id) {
+        // Trava o monitor ANTES das guardas e do DELETE da janela. Sem isso, com o gatilho da V24
+        // (INSERT de medicao atualiza a janela), a exclusao apagava a janela, o motor inseria a
+        // primeira medicao (FK: FOR KEY SHARE no monitor, depois espera a janela apagada) e o
+        // DELETE do monitor esperava o KEY SHARE: deadlock, 500. Com a trava primeiro, quem chega
+        // depois espera: medicao antes vira 409 aqui; medicao depois estoura a FK no motor.
+        monitorRepository.travarParaExclusao(id);
         Monitor monitor = obterMonitor(id);
         if (medicaoRepository.existsByMonitorId(id)) {
             throw new ConflitoException("Nao e possivel excluir o monitor porque existem medicoes associadas");
@@ -121,8 +127,8 @@ public class MonitorService {
         if (incidenteRepository.existsByMonitorId(id)) {
             throw new ConflitoException("Nao e possivel excluir o monitor porque existem incidentes associados");
         }
-        // Mesma transacao: se o motor gravar uma medicao entre a guarda e o DELETE, a FK
-        // de medicao estoura, tudo volta (janelas inclusive) e a API responde 409.
+        // Mesma transacao: com a trava acima, nenhuma medicao entra entre a guarda e o DELETE;
+        // a do motor que chegar agora espera e, depois do commit, estoura a FK la.
         if (cicloJanela != null) cicloJanela.apagarDoMonitor(id);
         monitorRepository.delete(monitor);
     }

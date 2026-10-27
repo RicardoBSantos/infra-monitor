@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.Collection;
@@ -47,4 +48,12 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long>, JpaSpec
 
     @EntityGraph(attributePaths = "equipamento")
     java.util.List<Monitor> findByEquipamentoIdIn(Collection<Long> equipamentoIds);
+
+    /**
+     * FOR UPDATE de verdade, nativo: o PESSIMISTIC_WRITE do Hibernate vira FOR NO KEY UPDATE, que
+     * nao conflita com o FOR KEY SHARE que a FK de medicao toma no INSERT, e a trava nao serviria.
+     * O motivo esta em MonitorService.excluir.
+     */
+    @Query(value = "select id from monitor where id = :id for update", nativeQuery = true)
+    Optional<Long> travarParaExclusao(@Param("id") Long id);
 }

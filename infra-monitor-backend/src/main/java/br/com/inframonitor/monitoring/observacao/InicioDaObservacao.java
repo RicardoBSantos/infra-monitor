@@ -15,7 +15,7 @@ import java.util.Optional;
  *
  * <p>Nao e a janela_monitoramento sozinha: o fechamento manual nao pode fechar e reabrir
  * janela, porque o SQL de disponibilidade comeca cada janela na primeira medicao dentro dela
- * (greatest(j.inicio_em, min(md.executado_em))) e cada fechamento encolheria o denominador
+ * (greatest(j.inicio_em, j.primeira_medicao_em)) e cada fechamento encolheria o denominador
  * do SLA por um periodo que continuou observado.
  */
 @Component

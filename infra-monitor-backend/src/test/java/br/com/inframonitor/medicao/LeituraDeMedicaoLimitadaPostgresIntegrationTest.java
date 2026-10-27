@@ -3,6 +3,7 @@ package br.com.inframonitor.medicao;
 import br.com.inframonitor.dashboard.DashboardReadRepository;
 import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.relatorio.service.DisponibilidadeSqlRepository;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -18,6 +21,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -63,6 +67,10 @@ class LeituraDeMedicaoLimitadaPostgresIntegrationTest {
     @Autowired private MonitorRepository monitorRepository;
     @Autowired private MedicaoRepository medicaoRepository;
     @Autowired private DashboardReadRepository dashboard;
+    @Autowired private DisponibilidadeSqlRepository disponibilidade;
+    @Autowired private NamedParameterJdbcTemplate named;
+
+    private long unidadeId;
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -78,6 +86,7 @@ class LeituraDeMedicaoLimitadaPostgresIntegrationTest {
                 + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
         long tipo = jdbc.queryForObject("insert into tipo_equipamento (nome) values ('Switch') returning id", Long.class);
         long unidade = jdbc.queryForObject("insert into unidade (nome, sigla) values ('Sede', 'SEDE') returning id", Long.class);
+        unidadeId = unidade;
         for (int i = 1; i <= MONITORES; i++) {
             boolean ativo = i != MONITORES;
             long equipamento = jdbc.queryForObject("insert into equipamento (unidade_id, tipo_equipamento_id, nome, "
@@ -90,6 +99,9 @@ class LeituraDeMedicaoLimitadaPostgresIntegrationTest {
                         monitor, Timestamp.from(INICIO));
             }
         }
+        // Janela fechada e vazia antes de todo o historico: no LATERAL com "=" ela varria o resto do monitor.
+        jdbc.update("insert into janela_monitoramento (monitor_id, inicio_em, fim_em, origem) values (1, ?, ?, 'PRECISA')",
+                Timestamp.from(INICIO.minusSeconds(10 * 86_400)), Timestamp.from(INICIO.minusSeconds(9 * 86_400)));
         // O inativo tem uma medicao so, anterior a todo o historico; o penultimo nao tem nenhuma.
         jdbc.update("insert into medicao (monitor_id, status, latencia_ms, executado_em) values (?, 'SUCESSO', 10, ?)",
                 MONITORES, Timestamp.from(INICIO.minusSeconds(86_400)));
@@ -138,6 +150,27 @@ class LeituraDeMedicaoLimitadaPostgresIntegrationTest {
         assertThat(lidoPeloOraculo).as("oraculo").isGreaterThan(TETO);
         assertThat(linhasDeMedicaoLidas(() -> medicaoRepository.findLatestByMonitorIds(todos)))
                 .as("findLatestByMonitorIds").isLessThanOrEqualTo(TETO);
+    }
+
+    /** Desde a V24 o SLA le a primeira medicao da propria janela: zero linhas da medicao. */
+    @Test
+    void slaNaoLeAMedicao() {
+        // Periodo de um dia no fim do historico: o custo antigo nao dependia do periodo pedido.
+        Instant fim = INICIO.plus(Duration.ofMinutes(MEDICOES_POR_MONITOR));
+        Instant inicio = fim.minus(Duration.ofDays(1));
+        MapSqlParameterSource p = new MapSqlParameterSource().addValue("inicio", Timestamp.from(inicio))
+                .addValue("fim", Timestamp.from(fim)).addValue("unidadeId", null).addValue("equipamentoId", null)
+                .addValue("monitorId", null).addValue("tipoId", null);
+        long oraculo = linhasDeMedicaoLidas(() ->
+                named.queryForList(oraculo("sla-base-original.sql") + " select * from linhas", p));
+
+        assertThat(oraculo).as("oraculo precisa estourar o teto, senao o teste nao detecta reversao").isGreaterThanOrEqualTo(MEDICOES);
+        assertThat(linhasDeMedicaoLidas(() -> disponibilidade.unidades(inicio, fim, null, 0, 20, "unidade_nome ASC")))
+                .as("unidades").isZero();
+        assertThat(linhasDeMedicaoLidas(() -> disponibilidade.equipamentos(inicio, fim, null, null, null, null, 0, 20,
+                "equipamento_nome ASC"))).as("equipamentos").isZero();
+        assertThat(linhasDeMedicaoLidas(() -> disponibilidade.diariaPorUnidade(inicio, fim, unidadeId)))
+                .as("diaria").isZero();
     }
 
     @FunctionalInterface
