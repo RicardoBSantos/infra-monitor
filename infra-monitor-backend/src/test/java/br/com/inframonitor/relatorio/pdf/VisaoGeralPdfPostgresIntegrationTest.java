@@ -124,6 +124,33 @@ class VisaoGeralPdfPostgresIntegrationTest {
         }
     }
 
+    /**
+     * Falha de anuncio de manutencao (janela ou botao manual) e falha de entrega no canal, igual a
+     * de incidente: o KPI nao filtra por ancora, entao as novas contam sem mudanca de SQL.
+     */
+    @Test
+    void falhaDeAnuncioDeManutencaoContaEmNotificacoesFalha() throws Exception {
+        String token = login("admin@pdf.test");
+        Long usuarioId = jdbc.queryForObject("select id from usuarios where email='admin@pdf.test'", Long.class);
+        Long unidadeId = jdbc.queryForObject("select min(id) from unidade", Long.class);
+        Long equipamentoId = jdbc.queryForObject("select min(id) from equipamento", Long.class);
+        Long janelaId = jdbc.queryForObject("insert into manutencao_agendada(unidade_id,escopo,inicio_previsto,fim_previsto,motivo,status,criado_por_id) values (?,'UNIDADE',?,?,'Teste','AGENDADA',?) returning id",
+                Long.class, unidadeId, Timestamp.from(INICIO.plusSeconds(3600)), Timestamp.from(INICIO.plusSeconds(7200)), usuarioId);
+        Long sessaoId = jdbc.queryForObject("insert into manutencao_manual(equipamento_id,iniciada_em,iniciada_por_id) values (?,?,?) returning id",
+                Long.class, equipamentoId, Timestamp.from(INICIO.plusSeconds(200)), usuarioId);
+        jdbc.update("insert into notificacao(manutencao_agendada_id,canal,tipo_evento,status,tentativas,mensagem,erro,created_at,updated_at) values (?,'TELEGRAM','MANUTENCAO_INICIADA','FALHA',3,'m','erro seguro',?,?)",
+                janelaId, Timestamp.from(INICIO.plusSeconds(300)), Timestamp.from(INICIO.plusSeconds(300)));
+        jdbc.update("insert into notificacao(manutencao_manual_id,canal,tipo_evento,status,tentativas,mensagem,erro,created_at,updated_at) values (?,'TELEGRAM','MANUTENCAO_MANUAL_INICIADA','FALHA',3,'m','erro seguro',?,?)",
+                sessaoId, Timestamp.from(INICIO.plusSeconds(310)), Timestamp.from(INICIO.plusSeconds(310)));
+
+        HttpResponse<byte[]> indicadores = getPath("/api/v1/relatorios/visao-geral/indicadores", periodPath(INICIO, FIM), token);
+
+        assertThat(body(indicadores)).contains("\"notificacoesComFalha\":27");
+        try (PDDocument document = Loader.loadPDF(get(periodPath(INICIO, FIM), token).body())) {
+            assertThat(new PDFTextStripper().getText(document)).contains("Notificações com falha");
+        }
+    }
+
     @Test
     void rbacCompletoEContaInativa() throws Exception {
         for (String email : new String[]{"admin@pdf.test", "operador@pdf.test", "visualizador@pdf.test"})

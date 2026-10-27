@@ -106,7 +106,7 @@ class EntradaEmManutencaoTest {
         // com "Fim: null" (o objeto Java carregado no passo 2 continua com
         // encerradoEm nulo em memoria, mesmo o banco ja tendo a data).
         String mensagem = mensagemDe(incidenteId, TipoEventoNotificacao.INCIDENTE_ENCERRADO_MANUTENCAO);
-        assertThat(mensagem).contains("Fim: " + fechado.getEncerradoEm());
+        assertThat(mensagem).contains("Fim: " + java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(fechado.getEncerradoEm()));
         assertThat(mensagem).contains("Duracao:");
         assertThat(mensagem).doesNotContain("null");
     }
@@ -145,7 +145,7 @@ class EntradaEmManutencaoTest {
 
         // Mesma prova de conteudo que o incidente: Fim real, nunca "null".
         String mensagem = mensagemDoEpisodio(episodioId, TipoEventoNotificacao.LATENCIA_ENCERRADA_MANUTENCAO);
-        assertThat(mensagem).contains("Fim: " + encerrado.getEncerradoEm());
+        assertThat(mensagem).contains("Fim: " + java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(encerrado.getEncerradoEm()));
         assertThat(mensagem).contains("Duracao:");
         assertThat(mensagem).doesNotContain("null");
     }
@@ -153,7 +153,7 @@ class EntradaEmManutencaoTest {
     @Test
     void sairDeManutencaoReabreJanelaReavaliandoOPredicado() {
         equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
-        equipamentoService.sairDeManutencao(equipamentoId);
+        equipamentoService.sairDeManutencao(equipamentoId, operadorId);
 
         assertThat(janelaRepository.aberta(monitorId)).isPresent();
     }
@@ -163,7 +163,7 @@ class EntradaEmManutencaoTest {
         jdbc.update("update equipamento set ativo = false where id = ?", equipamentoId);
 
         equipamentoService.entrarEmManutencao(equipamentoId, operadorId);
-        equipamentoService.sairDeManutencao(equipamentoId);
+        equipamentoService.sairDeManutencao(equipamentoId, operadorId);
 
         assertThat(janelaRepository.aberta(monitorId)).isEmpty();
     }

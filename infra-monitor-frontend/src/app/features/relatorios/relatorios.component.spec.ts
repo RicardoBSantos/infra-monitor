@@ -279,7 +279,7 @@ describe('RelatoriosComponent', () => {
     const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges(); clickTab(fixture, 'Notificações'); const query = http.expectOne(r => r.url.endsWith('/relatorios/notificacoes'));
     expect(fixture.nativeElement.textContent).toContain('Carregando relatório'); expect(query.request.params.get('sort')).toBe('createdAt,desc');
     query.flush(page([notification(), notification({ notificacaoId: 11, tipoEvento: 'INCIDENTE_FECHADO', status: 'ENVIADA', tentativas: 1, enviadoEm: '2026-08-25T10:01:00Z' }), notification({ notificacaoId: 12, status: 'FALHA', tentativas: 3 })])); fixture.detectChanges();
-    const rows = fixture.nativeElement.querySelectorAll('tbody tr'); expect(rows[0].textContent).toContain('Aguardando'); expect(rows[0].textContent).toContain('0'); expect(rows[0].textContent).toContain('—'); expect(rows[1].textContent).toContain('Enviada'); expect(rows[2].textContent).toContain('Falha'); expect(rows[2].textContent).toContain('3'); expect(fixture.nativeElement.textContent).toContain('TELEGRAM'); expect(fixture.nativeElement.textContent).toContain('INCIDENTE_ABERTO');
+    const rows = fixture.nativeElement.querySelectorAll('tbody tr'); expect(rows[0].textContent).toContain('Aguardando'); expect(rows[0].textContent).toContain('0'); expect(rows[0].textContent).toContain('—'); expect(rows[1].textContent).toContain('Enviada'); expect(rows[2].textContent).toContain('Falha'); expect(rows[2].textContent).toContain('3'); expect(fixture.nativeElement.textContent).toContain('TELEGRAM'); expect(fixture.nativeElement.textContent).toContain('Incidente aberto');
   });
 
   it('covers notifications empty, 400, 404 and 500 states', () => {
@@ -503,4 +503,23 @@ describe('RelatoriosComponent', () => {
     http.expectNone(r => r.url.includes('/relatorios/disponibilidade/equipamentos'));
     expect(fixture.nativeElement.textContent).toContain('Router A');
   });
+
+  it('monta o select de evento com as 11 opções do módulo e mostra a origem quando não há incidente', () => {
+    const { fixture, request, report } = create(); request.flush(report); fixture.detectChanges(); clickTab(fixture, 'Notificações');
+    http.expectOne(r => r.url.endsWith('/relatorios/notificacoes')).flush(page([
+      notification({ notificacaoId: 20, incidenteId: null, manutencaoId: 41, manutencaoManualId: null, tipoEvento: 'MANUTENCAO_INICIADA' }),
+      notification({ notificacaoId: 21, incidenteId: null, manutencaoId: null, manutencaoManualId: 7, tipoEvento: 'MANUTENCAO_MANUAL_ENCERRADA' }),
+    ]));
+    fixture.detectChanges();
+    const select = fixture.nativeElement.querySelector('select[formControlName="tipoEvento"]') as HTMLSelectElement;
+    expect(select.options.length).toBe(12);
+    expect(Array.from(select.options).map(o => o.textContent)).toContain('Manutenção manual iniciada');
+    const linhas = fixture.nativeElement.querySelectorAll('tbody tr');
+    expect(linhas[0].textContent).toContain('Manutenção iniciada');
+    expect(linhas[0].textContent).toContain('Janela #41');
+    expect(linhas[0].querySelector('a')!.getAttribute('href')).toBe('/manutencoes');
+    expect(linhas[1].textContent).toContain('Manutenção manual #7');
+    expect(linhas[1].textContent).toContain('Manutenção manual encerrada');
+  });
+
 });

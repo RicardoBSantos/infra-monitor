@@ -2,16 +2,25 @@ package br.com.inframonitor.notificacao.service;
 
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.equipamento.entity.Equipamento;
+import br.com.inframonitor.equipamento.entity.ManutencaoManual;
+import br.com.inframonitor.manutencao.entity.ManutencaoAgendada;
 import br.com.inframonitor.monitor.entity.Monitor;
+import br.com.inframonitor.unidade.entity.Unidade;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import br.com.inframonitor.notificacao.dto.EpisodioLatenciaNotificacaoResponse;
 import br.com.inframonitor.notificacao.dto.IncidenteNotificacaoResponse;
+import br.com.inframonitor.notificacao.dto.ManutencaoManualNotificacaoResponse;
+import br.com.inframonitor.notificacao.dto.ManutencaoNotificacaoResponse;
 import br.com.inframonitor.notificacao.dto.NotificacaoResponse;
 import br.com.inframonitor.notificacao.entity.CanalNotificacao;
 import br.com.inframonitor.notificacao.entity.Notificacao;
 import br.com.inframonitor.notificacao.entity.StatusNotificacao;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
+import br.com.inframonitor.notificacao.repository.InicioAnuncioRepository;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -21,17 +30,28 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
 public class NotificacaoService {
 
+    private static final Logger log = LoggerFactory.getLogger(NotificacaoService.class);
+
     private final NotificacaoRepository notificacaoRepository;
     private final NotificacaoMessageBuilder messageBuilder;
+    private final InicioAnuncioRepository inicioAnuncioRepository;
 
-    public NotificacaoService(NotificacaoRepository notificacaoRepository, NotificacaoMessageBuilder messageBuilder) {
+    public NotificacaoService(NotificacaoRepository notificacaoRepository, NotificacaoMessageBuilder messageBuilder,
+                              InicioAnuncioRepository inicioAnuncioRepository) {
         this.notificacaoRepository = notificacaoRepository;
         this.messageBuilder = messageBuilder;
+        this.inicioAnuncioRepository = inicioAnuncioRepository;
     }
 
     @Transactional
@@ -104,7 +124,7 @@ public class NotificacaoService {
 
     private void criarPendente(Incidente incidente, TipoEventoNotificacao tipoEvento, Instant agora) {
         CanalNotificacao canal = CanalNotificacao.TELEGRAM;
-        notificacaoRepository.inserirPendenteSeAusente(incidente.getId(), null, canal.name(), tipoEvento.name(),
+        notificacaoRepository.inserirPendenteSeAusente(incidente.getId(), null, null, null, canal.name(), tipoEvento.name(),
                 messageBuilder.construir(incidente, tipoEvento), agora);
     }
 
@@ -114,8 +134,132 @@ public class NotificacaoService {
 
     private void criarPendente(MonitorEpisodioLatencia episodio, TipoEventoNotificacao tipoEvento, Instant agora) {
         CanalNotificacao canal = CanalNotificacao.TELEGRAM;
-        notificacaoRepository.inserirPendenteSeAusente(null, episodio.getId(), canal.name(), tipoEvento.name(),
+        notificacaoRepository.inserirPendenteSeAusente(null, episodio.getId(), null, null, canal.name(), tipoEvento.name(),
                 messageBuilder.construirParaEpisodio(episodio, tipoEvento), agora);
+    }
+
+    // Anuncios de manutencao (F3). Todos entram na transacao do chamador (CAS da janela ou lock do
+    // equipamento, MA31) e usam o ON CONFLICT DO NOTHING: repetir o evento nao gera segunda linha.
+
+    @Transactional
+    public void criarParaManutencaoIniciada(DadosAnuncio.Janela j, Instant ativadaEm, boolean atrasado) {
+        inserirDaJanela(j.id(), TipoEventoNotificacao.MANUTENCAO_INICIADA,
+                messageBuilder.construirInicioJanela(j, ativadaEm, atrasado), ativadaEm);
+    }
+
+    @Transactional
+    public void criarParaManutencaoEncerrada(DadosAnuncio.Janela j, Instant ativadaEm, Instant encerradaEm,
+                                             DadosAnuncio.Termino t, List<DadosAnuncio.Seguinte> seguem) {
+        encerrarJanela(j.id(), encerradaEm,
+                entrega -> messageBuilder.construirFimJanela(j, ativadaEm, encerradaEm, t, seguem, entrega),
+                () -> messageBuilder.construirFimJanelaReserva(j.id(), encerradaEm));
+    }
+
+    /**
+     * Fim da janela cujos dados nao puderam ser reunidos (o chamador ja logou o ERROR): mesmas regras de
+     * fila (cancela o inicio e as alteracoes pendentes, unico por janela), com o texto de reserva.
+     */
+    @Transactional
+    public void criarParaManutencaoEncerradaReserva(long janelaId, Instant encerradaEm) {
+        Supplier<String> reserva = () -> messageBuilder.construirFimJanelaReserva(janelaId, encerradaEm);
+        encerrarJanela(janelaId, encerradaEm, entrega -> reserva.get(), reserva);
+    }
+
+    private void encerrarJanela(long janelaId, Instant encerradaEm, Function<DadosAnuncio.EntregaInicio, String> texto,
+                                Supplier<String> reserva) {
+        // A ORDEM IMPORTA (A4): primeiro o UPDATE que cancela o inicio PENDENTE, e so se ele nao
+        // cancelou nada se le o FALHA. Decidir por uma leitura anterior ao UPDATE deixaria o
+        // dispatcher reservar e enviar o inicio entre a leitura e o cancelamento, e o fim sairia
+        // sem o "registro completo" mesmo com o inicio nunca entregue (ou o contrario).
+        DadosAnuncio.EntregaInicio entrega = resolverEntrega(
+                inicioAnuncioRepository.cancelarInicioDaJanela(janelaId, encerradaEm),
+                () -> inicioAnuncioRepository.inicioEmFalhaDaJanela(janelaId));
+        // MA33: prorrogacao ainda PENDENTE nao sai depois do fim. Fora da decisao de entrega acima.
+        inicioAnuncioRepository.cancelarFimAlteradoDaJanela(janelaId, encerradaEm);
+        inserirDaJanela(janelaId, TipoEventoNotificacao.MANUTENCAO_ENCERRADA,
+                textoOuReserva(texto, entrega, reserva, "da janela " + janelaId), encerradaEm);
+    }
+
+    /**
+     * MA31, correcao de 2026-10-26: so nos FINS. O texto que nao monta nao pode desfazer a transicao (a
+     * janela ficaria ATIVA e o equipamento em manutencao, com os alertas suprimidos para sempre): loga o
+     * ERROR e usa o texto de reserva. So o texto e protegido; cancelamento e INSERT seguem estourando.
+     */
+    private String textoOuReserva(Function<DadosAnuncio.EntregaInicio, String> texto, DadosAnuncio.EntregaInicio entrega,
+                                  Supplier<String> reserva, String ancora) {
+        try {
+            return texto.apply(entrega);
+        } catch (RuntimeException e) {
+            log.error("Falha ao montar o anuncio de fim {}; gravado o texto de reserva", ancora, e);
+            return reserva.get();
+        }
+    }
+
+    /** Sem unicidade: o indice parcial exclui este tipo, cada alteracao de fim gera uma linha. */
+    @Transactional
+    public void criarParaManutencaoFimAlterado(DadosAnuncio.Janela j, Instant fimAnterior, Instant fimNovo,
+                                               String autorNome, Instant agora) {
+        inserirDaJanela(j.id(), TipoEventoNotificacao.MANUTENCAO_FIM_ALTERADO,
+                messageBuilder.construirFimAlterado(j, fimAnterior, fimNovo, autorNome, agora), agora);
+    }
+
+    @Transactional
+    public void criarParaManualIniciada(DadosAnuncio.Manual m, boolean jaEmManutencao,
+                                        DadosAnuncio.JanelaVigente janela, Instant agora) {
+        inserirDaSessao(m.sessaoId(), TipoEventoNotificacao.MANUTENCAO_MANUAL_INICIADA,
+                messageBuilder.construirManualIniciada(m, jaEmManutencao, janela), agora);
+    }
+
+    @Transactional
+    public void criarParaManualEncerrada(DadosAnuncio.Manual m, long equipamentoId, Instant encerradaEm,
+                                         String encerradaPorNome, boolean segue, DadosAnuncio.JanelaVigente janela) {
+        encerrarSessao(m.sessaoId(), encerradaEm,
+                entrega -> messageBuilder.construirManualEncerrada(m, encerradaEm, encerradaPorNome, segue, janela, entrega),
+                () -> messageBuilder.construirManualEncerradaReserva(m.equipamentoNome(), equipamentoId, encerradaEm));
+    }
+
+    /** Fim do botao cujos dados nao puderam ser reunidos (o chamador ja logou o ERROR). Nome nulo: sai o id. */
+    @Transactional
+    public void criarParaManualEncerradaReserva(long sessaoId, String equipamentoNome, long equipamentoId,
+                                                Instant encerradaEm) {
+        Supplier<String> reserva =
+                () -> messageBuilder.construirManualEncerradaReserva(equipamentoNome, equipamentoId, encerradaEm);
+        encerrarSessao(sessaoId, encerradaEm, entrega -> reserva.get(), reserva);
+    }
+
+    private void encerrarSessao(long sessaoId, Instant encerradaEm, Function<DadosAnuncio.EntregaInicio, String> texto,
+                                Supplier<String> reserva) {
+        // Mesma ordem protegida de encerrarJanela: cancelar primeiro, ler FALHA depois.
+        DadosAnuncio.EntregaInicio entrega = resolverEntrega(
+                inicioAnuncioRepository.cancelarInicioDaSessao(sessaoId, encerradaEm),
+                () -> inicioAnuncioRepository.inicioEmFalhaDaSessao(sessaoId));
+        inserirDaSessao(sessaoId, TipoEventoNotificacao.MANUTENCAO_MANUAL_ENCERRADA,
+                textoOuReserva(texto, entrega, reserva, "da sessao manual " + sessaoId), encerradaEm);
+    }
+
+    /**
+     * Cancelou sem tentativas e sem marca de erro: o inicio nunca saiu. Cancelou com tentativas (retry) ou
+     * com marca de erro (ENVIANDO vencido devolvido a PENDENTE): o Telegram pode ter recebido. Nao cancelou: FALHA tambem e ambigua
+     * (timeout); ENVIANDO, ENVIADA ou inexistente seguem como fim normal.
+     */
+    private DadosAnuncio.EntregaInicio resolverEntrega(Optional<InicioAnuncioRepository.InicioCancelado> cancelado,
+                                                       BooleanSupplier inicioEmFalha) {
+        if (cancelado.isPresent()) {
+            return cancelado.get().certamenteNaoEntregue()
+                    ? DadosAnuncio.EntregaInicio.NAO_ENTREGUE : DadosAnuncio.EntregaInicio.TALVEZ_ENTREGUE;
+        }
+        return inicioEmFalha.getAsBoolean()
+                ? DadosAnuncio.EntregaInicio.TALVEZ_ENTREGUE : DadosAnuncio.EntregaInicio.ENTREGUE;
+    }
+
+    private void inserirDaJanela(long janelaId, TipoEventoNotificacao tipo, String mensagem, Instant agora) {
+        notificacaoRepository.inserirPendenteSeAusente(null, null, janelaId, null,
+                CanalNotificacao.TELEGRAM.name(), tipo.name(), mensagem, agora);
+    }
+
+    private void inserirDaSessao(long sessaoId, TipoEventoNotificacao tipo, String mensagem, Instant agora) {
+        notificacaoRepository.inserirPendenteSeAusente(null, null, null, sessaoId,
+                CanalNotificacao.TELEGRAM.name(), tipo.name(), mensagem, agora);
     }
 
     public NotificacaoResponse buscarPorId(Long id) {
@@ -123,18 +267,23 @@ public class NotificacaoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Notificacao nao encontrada")));
     }
 
-    public Page<NotificacaoResponse> listar(Long incidenteId, Long episodioLatenciaId, StatusNotificacao status, CanalNotificacao canal,
+    public Page<NotificacaoResponse> listar(Long incidenteId, Long episodioLatenciaId, Long manutencaoId,
+                                             Long manutencaoManualId, StatusNotificacao status, CanalNotificacao canal,
                                              TipoEventoNotificacao tipoEvento, Instant inicio, Instant fim,
                                              Pageable pageable) {
         validarPeriodo(inicio, fim);
-        // As duas ancoras sao mutuamente exclusivas por ck_notificacao_ancora_exclusiva:
-        // filtrar pelas duas juntas nunca casaria e mascararia um erro de chamada.
-        if (incidenteId != null && episodioLatenciaId != null) {
-            throw new IllegalArgumentException("informe incidenteId ou episodioLatenciaId, nunca os dois");
+        // As ancoras sao mutuamente exclusivas por ck_notificacao_ancora_exclusiva:
+        // filtrar por duas juntas nunca casaria e mascararia um erro de chamada.
+        if (Stream.of(incidenteId, episodioLatenciaId, manutencaoId, manutencaoManualId)
+                .filter(Objects::nonNull).count() > 1) {
+            throw new IllegalArgumentException(
+                    "informe apenas uma ancora: incidenteId, episodioLatenciaId, manutencaoId ou manutencaoManualId");
         }
         List<Specification<Notificacao>> filtros = new ArrayList<>();
         if (incidenteId != null) filtros.add((root, query, cb) -> cb.equal(root.get("incidente").get("id"), incidenteId));
         if (episodioLatenciaId != null) filtros.add((root, query, cb) -> cb.equal(root.get("episodioLatencia").get("id"), episodioLatenciaId));
+        if (manutencaoId != null) filtros.add((root, query, cb) -> cb.equal(root.get("manutencaoAgendada").get("id"), manutencaoId));
+        if (manutencaoManualId != null) filtros.add((root, query, cb) -> cb.equal(root.get("manutencaoManual").get("id"), manutencaoManualId));
         if (status != null) filtros.add((root, query, cb) -> cb.equal(root.get("status"), status));
         if (canal != null) filtros.add((root, query, cb) -> cb.equal(root.get("canal"), canal));
         if (tipoEvento != null) filtros.add((root, query, cb) -> cb.equal(root.get("tipoEvento"), tipoEvento));
@@ -153,18 +302,28 @@ public class NotificacaoService {
     private NotificacaoResponse paraResposta(Notificacao notificacao) {
         Incidente incidente = notificacao.getIncidente();
         MonitorEpisodioLatencia episodio = notificacao.getEpisodioLatencia();
-        // O monitor vem da ancora que estiver preenchida; a listagem nao precisa saber qual.
+        ManutencaoAgendada janela = notificacao.getManutencaoAgendada();
+        ManutencaoManual sessao = notificacao.getManutencaoManual();
+        // Monitor, equipamento e unidade vem da ancora preenchida; a listagem nao precisa saber qual.
+        // Janela agendada nao tem monitor nem equipamento (so a unidade); a sessao manual tem equipamento.
         Monitor monitor = incidente != null ? incidente.getMonitor()
                 : episodio != null ? episodio.getMonitor() : null;
+        Equipamento equipamento = monitor != null ? monitor.getEquipamento()
+                : sessao != null ? sessao.getEquipamento() : null;
+        Unidade unidade = equipamento != null ? equipamento.getUnidade()
+                : janela != null ? janela.getUnidade() : null;
         return new NotificacaoResponse(notificacao.getId(), notificacao.getCanal(), notificacao.getTipoEvento(),
                 notificacao.getStatus(), notificacao.getTentativas(), notificacao.getMensagem(), notificacao.getErro(),
                 notificacao.getEnviadoEm(),
                 incidente == null ? null : new IncidenteNotificacaoResponse(incidente.getId(), incidente.getStatus()),
                 episodio == null ? null : new EpisodioLatenciaNotificacaoResponse(episodio.getId(),
                         episodio.getIniciadoEm(), episodio.getEncerradoEm(), episodio.getLimiarMs()),
+                janela == null ? null : new ManutencaoNotificacaoResponse(janela.getId(), janela.getUnidade().getNome()),
+                sessao == null ? null : new ManutencaoManualNotificacaoResponse(sessao.getId(),
+                        sessao.getEquipamento().getId(), sessao.getEquipamento().getNome()),
                 monitor == null ? null : monitor.getNome(),
-                monitor == null ? null : monitor.getEquipamento().getNome(),
-                monitor == null ? null : monitor.getEquipamento().getUnidade().getNome(),
+                equipamento == null ? null : equipamento.getNome(),
+                unidade == null ? null : unidade.getNome(),
                 notificacao.getCreatedAt(), notificacao.getUpdatedAt());
     }
 }

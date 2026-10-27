@@ -38,6 +38,11 @@ export enum NotificationEventType {
   LatencyNormalized = 'LATENCIA_NORMALIZADA',
   IncidentClosedByMaintenance = 'INCIDENTE_ENCERRADO_MANUTENCAO',
   LatencyClosedByMaintenance = 'LATENCIA_ENCERRADA_MANUTENCAO',
+  MaintenanceStarted = 'MANUTENCAO_INICIADA',
+  MaintenanceEnded = 'MANUTENCAO_ENCERRADA',
+  MaintenanceEndChanged = 'MANUTENCAO_FIM_ALTERADO',
+  ManualMaintenanceStarted = 'MANUTENCAO_MANUAL_INICIADA',
+  ManualMaintenanceEnded = 'MANUTENCAO_MANUAL_ENCERRADA',
 }
 
 /** Verificacao da identidade do bot via getMe, mantida em cache no backend. */

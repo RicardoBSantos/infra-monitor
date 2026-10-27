@@ -68,6 +68,7 @@ public class ManutencaoAgendadaService {
 
     private final ManutencaoAgendadaRepository repositorio;
     private final CoberturaManutencao cobertura;
+    private final AnuncioManutencao anuncio;
     private final EstadoManutencaoEquipamento estado;
     private final UnidadeRepository unidades;
     private final EquipamentoRepository equipamentos;
@@ -78,12 +79,13 @@ public class ManutencaoAgendadaService {
     private final TransactionTemplate leitura;
 
     public ManutencaoAgendadaService(ManutencaoAgendadaRepository repositorio, CoberturaManutencao cobertura,
-                                     EstadoManutencaoEquipamento estado, UnidadeRepository unidades,
-                                     EquipamentoRepository equipamentos, UsuarioRepository usuarios,
+                                     AnuncioManutencao anuncio, EstadoManutencaoEquipamento estado,
+                                     UnidadeRepository unidades, EquipamentoRepository equipamentos, UsuarioRepository usuarios,
                                      ManutencaoAgendadaProperties propriedades, EdicaoManutencao edicao,
                                      PlatformTransactionManager transactionManager) {
         this.repositorio = repositorio;
         this.cobertura = cobertura;
+        this.anuncio = anuncio;
         this.estado = estado;
         this.unidades = unidades;
         this.equipamentos = equipamentos;
@@ -107,9 +109,10 @@ public class ManutencaoAgendadaService {
         // A janela ja esta salva: falha daqui em diante NAO pode virar erro no POST, senao o
         // operador reenvia e duplica a janela (MA18). Falha na ativacao deixa a janela AGENDADA
         // e o tick a ativa; falha na reavaliacao deixa o flag divergente e o divergentes() do
-        // reconciliador repara na proxima passada (criar exige o agendador ligado).
+        // reconciliador repara na proxima passada (criar exige o agendador ligado). Falha ao montar o
+        // anuncio cai no mesmo ramo: desfaz a ativacao com ele (MA31) e o tick ativa e anuncia.
         try {
-            if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
+            if (ativarEAnunciar(id)) {
                 reavaliarCobertos(id);
             }
         } catch (RuntimeException e) {
@@ -129,11 +132,34 @@ public class ManutencaoAgendadaService {
 
     public ManutencaoResponse encerrar(Long id, Long usuarioId) {
         obter(id);
-        if (!Boolean.TRUE.equals(transacao.execute(s -> cobertura.encerrar(id, usuarioId, Instant.now())))) {
+        Instant agora = Instant.now();
+        Boolean encerrou = transacao.execute(s -> {
+            if (!cobertura.encerrar(id, usuarioId, agora)) {
+                return false;
+            }
+            anuncio.anunciarFim(id, agora);   // so no ramo vencedor do CAS (MA31)
+            return true;
+        });
+        if (!Boolean.TRUE.equals(encerrou)) {
             throw new ConflitoException(recusa("encerrar", situacaoAtual(id)));
         }
         reavaliarCobertos(id);
         return detalhar(id);
+    }
+
+    /**
+     * CAS AGENDADA -> ATIVA e o anuncio do inicio na mesma transacao, com o mesmo instante; os
+     * cobertos sao reavaliados pelo chamador depois do commit.
+     */
+    private boolean ativarEAnunciar(long id) {
+        Instant agora = Instant.now();
+        return Boolean.TRUE.equals(transacao.execute(s -> {
+            if (!cobertura.ativarSeDevida(id, agora)) {
+                return false;
+            }
+            anuncio.anunciarInicio(id, agora, false);   // nunca "sistema esteve fora": o servidor esta no ar
+            return true;
+        }));
     }
 
     /**
@@ -197,7 +223,7 @@ public class ManutencaoAgendadaService {
         });
         if (Boolean.TRUE.equals(mudou) && propriedades.isEnabled()) {
             try {
-                if (Boolean.TRUE.equals(transacao.execute(s -> cobertura.ativarSeDevida(id, Instant.now())))) {
+                if (ativarEAnunciar(id)) {
                     reavaliarCobertos(id);
                 }
             } catch (RuntimeException e) {
@@ -235,6 +261,7 @@ public class ManutencaoAgendadaService {
             TipoAlteracao tipo = novoFim.isAfter(antes.fimPrevisto()) ? TipoAlteracao.PRORROGACAO
                     : TipoAlteracao.ANTECIPACAO;
             edicao.registrar(id, tipo, usuarioId, agora, antes, antes.comFim(novoFim));
+            anuncio.anunciarFimAlterado(id, antes.fimPrevisto(), novoFim, usuarioId, agora);
         });
         return detalhar(id);
     }

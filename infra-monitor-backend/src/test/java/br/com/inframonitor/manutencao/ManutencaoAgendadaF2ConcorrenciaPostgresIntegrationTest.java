@@ -70,8 +70,9 @@ class ManutencaoAgendadaF2ConcorrenciaPostgresIntegrationTest {
     // 2026-10-23), nao a distribuicao final: essa fica no doc de validacao.
     // C1: medicao de calibracao — atrasar o RECONCILIADOR deu EDICAO 27/3 (0..8), 26/4 (0..4), 26/4 (0..2): o lock da
     //    edicao e a primeira instrucao e chega antes. Atrasando a EDICAO: 23/7 (0..0), 9 EDICAO / 21 JOB (0..1),
-    //    5/25 (0..2).
-    private static final long ATRASO_C1_MS = 1;
+    //    5/25 (0..2). Recalibrado em 2026-10-26 (F3: o reconciliador passou a ler as candidatas antes do CAS de
+    //    cada janela e a anunciar na transacao): 0..1 deu 30/30 EDICAO; 0..3 deu 14 EDICAO / 16 JOB; 0..6 deu 4/26.
+    private static final long ATRASO_C1_MS = 3;
     // C2: medicao de calibracao — concluirVencidas e o TERCEIRO CAS do reconciliador. Atrasar o reconciliador (0..2,
     //    0..4, 0..8) deu 30/30 PRORROGOU. Atrasando o ALTERAR FIM: 24 PRORROGOU / 6 CONCLUIU (0..2), 14/16 (0..4),
     //    9/21 (0..8).

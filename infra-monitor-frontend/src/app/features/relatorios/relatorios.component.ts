@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, Observable, take } from 'rxjs';
 
 import { ApiError, ApiErrorCode, isApiError } from '../../core/models/api-error';
+import { OPCOES_EVENTO_NOTIFICACAO, rotuloEventoNotificacao } from '../../core/models/rotulos-notificacao';
 import { IncidentStatus, MeasurementStatus, NotificationChannel, NotificationEventType, NotificationStatus } from '../../core/models/api-enums';
 import { EquipamentoResponse } from '../../core/models/equipamento';
 import { MonitorResponse } from '../../core/models/monitor';
@@ -153,7 +154,8 @@ export class RelatoriosComponent {
   protected readonly MeasurementStatus = MeasurementStatus;
   protected readonly NotificationStatus = NotificationStatus;
   protected readonly NotificationChannel = NotificationChannel;
-  protected readonly NotificationEventType = NotificationEventType;
+  protected readonly opcoesEvento = OPCOES_EVENTO_NOTIFICACAO;
+  protected readonly rotuloEvento = rotuloEventoNotificacao;
   protected readonly formatDuration = formatDurationSeconds;
 
   constructor() { this.loadBaseLookups(); if (!this.applyQueryParams()) this.search(); }

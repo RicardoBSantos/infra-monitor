@@ -41,6 +41,8 @@ class EstadoManutencaoEquipamentoTest {
     @Mock private CoberturaManutencao cobertura;
     @Mock private EfeitosManutencao efeitos;
     @Mock private UsuarioRepository usuarios;
+    @Mock private br.com.inframonitor.equipamento.repository.SessaoManutencaoManual sessoes;
+    @Mock private AnuncioManutencaoManual anuncio;
     @InjectMocks private EstadoManutencaoEquipamento estado;
 
     @Test
@@ -87,9 +89,10 @@ class EstadoManutencaoEquipamentoTest {
     @Test
     void encerrarManualFalhaAltoSeODesmarcarNaoPegaSobLock() {
         travado(true, true);
+        when(usuarios.findById(5L)).thenReturn(Optional.of(mock(Usuario.class)));
         when(equipamentos.desmarcarManual(eq(ID), any(Instant.class))).thenReturn(0);
 
-        assertThatThrownBy(() -> estado.encerrarManual(ID)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> estado.encerrarManual(ID, 5L)).isInstanceOf(IllegalStateException.class);
         verify(efeitos, never()).aplicarSaida(any());
     }
 

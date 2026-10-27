@@ -116,7 +116,7 @@ class ConvivenciaManualJanelaPostgresIntegrationTest {
         estado.iniciarManual(e, operadorId);
         janelaAtivaDoEquipamento(e, u);
 
-        EquipamentoResponse r = equipamentoService.sairDeManutencao(e);
+        EquipamentoResponse r = equipamentoService.sairDeManutencao(e, operadorId);
 
         assertThat(r.emManutencao()).isTrue();
         assertThat(r.manutencaoManual()).isFalse();
@@ -142,7 +142,7 @@ class ConvivenciaManualJanelaPostgresIntegrationTest {
         long j = janelaAtivaDoEquipamento(e, u);
         jdbc.update("update manutencao_agendada set status='CONCLUIDA', encerrada_em = now() where id = ?", j);
 
-        EquipamentoResponse r = equipamentoService.sairDeManutencao(e);
+        EquipamentoResponse r = equipamentoService.sairDeManutencao(e, operadorId);
 
         assertThat(r.emManutencao()).isFalse();
         assertThat(flags(e)).containsEntry("em_manutencao", false).containsEntry("manutencao_manual", false);
@@ -227,7 +227,9 @@ class ConvivenciaManualJanelaPostgresIntegrationTest {
     }
 
     private int contarNotificacoes() {
-        return jdbc.queryForObject("select count(*) from notificacao", Integer.class);
+        // Sem o aviso do proprio botao (F3): o que se prova e que os efeitos de entrada nao rodam de novo.
+        return jdbc.queryForObject("select count(*) from notificacao where tipo_evento <> 'MANUTENCAO_MANUAL_INICIADA'",
+                Integer.class);
     }
 
     private long insert(String sql, Object... args) {

@@ -299,3 +299,162 @@ Nas corridas C1 (editar × ativação) e C2 (alterar fim × conclusão) a guarda
 reconciliador também faz `versao = versao + 1`, então a edição preparada sobre a versão lida perde pelo
 `status` e pela `versao`, de forma independente. Remover só uma das duas deixa o teste verde; a prova de
 reversão remove as duas (`Docs/validacao-producao/manutencao-agendada-f2.md`).
+
+---
+
+# F3 — Telegram da janela e do botão manual (2026-10-26)
+
+Aprovadas em chat em 2026-10-26, com três ajustes (fuso agora, consequências da `manutencao_manual`, teste do bug do
+dispatcher). Spec: `Docs/superpowers/specs/2026-10-26-manutencao-agendada-f3-design.md`. Fecha a P-02. Evidências:
+`Docs/validacao-producao/manutencao-agendada-f3.md`. Auditoria dos call sites:
+`Docs/validacao-producao/manutencao-f3-auditoria-enums.md`.
+
+## MA27 — O que gera mensagem
+
+Geram: janela ATIVA (início, inclusive atrasado), janela CONCLUÍDA (job ou "Encerrar agora"), "Alterar fim" de
+ATIVA (prorrogar ou antecipar), botão manual ligar e desligar. **Não** geram: cancelar AGENDADA, EXPIRADA, editar
+AGENDADA. Nada foi anunciado dessas janelas; avisar seria ruído. Sem aviso de "agendada" (fora de escopo).
+
+**Descartado: avisar a criação da janela.** O grupo receberia duas mensagens por janela (criada e iniciada) e a
+primeira pode ser cancelada ou editada antes de valer; o que importa à equipe é quando os alertas foram suspensos.
+
+## MA28 — Uma mensagem por janela, qualquer que seja o número de equipamentos
+
+Escopo `UNIDADE` mostra só a contagem, lida no instante da transição; escopo `EQUIPAMENTOS` lista até 5 nomes e
+"e mais N". Os `INCIDENTE_ENCERRADO_MANUTENCAO` e `LATENCIA_ENCERRADA_MANUTENCAO` individuais continuam como hoje
+(P-02: manter e medir o ruído; consulta de volume no spec §8).
+
+O "sistema esteve fora" (`Início: 26/10/2026 08:17 (previsto 08:00 — sistema esteve fora)`) só aparece quando a
+ativação vem do **job** e o atraso passa de 2× o intervalo do reconciliador. Criar ou editar uma janela com início
+"agora" passa `atrasado = false`, mesmo se o minuto digitado já tiver mais de 60 s (correção da revisão da Task 7): a
+pessoa que ativa não é o sistema fora do ar, e a mensagem diria uma falsidade.
+
+**Descartado: uma mensagem por equipamento.** Uma janela de unidade inteira (20 equipamentos) viraria 20 mensagens e a
+equipe silenciaria o canal.
+
+## MA29 — Âncoras explícitas em `notificacao`
+
+`manutencao_agendada_id` (3ª) e `manutencao_manual_id` (4ª), FK `ON DELETE RESTRICT`
+(`fk_notificacao_manutencao_agendada`, `fk_notificacao_manutencao_manual`), e `ck_notificacao_ancora_exclusiva` passa a
+`num_nonnulls(4) = 1`. Cinco valores novos em `tipo_evento` e um ramo novo em `ck_notificacao_evento_coerente` para cada
+âncora. A V23 é aditiva.
+
+**Descartado: origem genérica (`origem_tipo` + `origem_id`).** Perde a FK: o banco deixaria de recusar uma notificação
+apontando para janela que não existe, e a exclusão da janela deixaria de ser bloqueada pelo histórico.
+
+## MA30 — Tabela `manutencao_manual`: âncora e histórico da sessão do botão
+
+Cada "Iniciar manutenção" abre uma sessão; "Encerrar" a fecha. Guarda quem iniciou, quem encerrou e a duração. Uma sessão
+aberta por equipamento (`uq_manutencao_manual_aberta`, índice único parcial `WHERE encerrada_em IS NULL`). O backfill da
+V23 cria uma sessão **aberta, sem início e sem autor** para cada equipamento que já estava no botão: NULL honesto
+(anterior à V23), porque `now()` inventaria um período. Mesmo princípio da V19. `ck_manutencao_manual_legado` impede o
+contrário (autor sem instante).
+
+**Descartado: transformar o botão em janela sem fim** (alternativa de MA01 e P-03). Mexeria no modelo de cobertura e no
+CHECK `ck_equipamento_manutencao_manual_efetiva` por um ganho que a tabela de sessões já dá.
+
+## MA31 — A notificação nasce na transação do CAS (janela) ou do lock do equipamento (manual); o Telegram nunca é chamado em transação
+
+A janela ativa com o Telegram fora; a mensagem sai quando o dispatcher conseguir. Exatamente uma vez **por janela**:
+falha ao montar ou inserir o anúncio **desfaz a transição** daquela janela (o CAS e o anúncio são uma transação).
+
+Correção da revisão da Task 7: o reconciliador faz CAS + anúncio numa transação **por janela** (ids devidos lidos antes;
+`ativarSeDevida` / `concluirSeVencida` + anúncio, `try/catch` com ERROR contendo o id da janela). Uma janela com anúncio
+quebrado fica parada e é tentada de novo a cada passada, sem impedir a ativação, a conclusão e o reparo das demais.
+`expirarPerdidas` continua em lote porque não anuncia. Custo: N transações por passada, com N pequeno.
+
+**Descartado: transição e anúncio de todas as janelas devidas numa só transação** (primeira versão da Task 7). Uma
+janela com dado corrompido repetiria a falha a cada passada e nenhuma outra ativaria nem concluiria até alguém corrigir.
+
+**Descartado: engolir a falha do anúncio e seguir.** A janela ficaria ativa sem o grupo saber, que é o problema que a F3
+resolve.
+
+**Correção de 2026-10-26 (revisão final): exceção nos FINS.** Desfazer a transição só é o lado seguro no início e na
+alteração de fim (alertas continuam ligados). No fim, uma falha determinística ao reunir os dados ou montar o texto
+desfazia ATIVA→CONCLUIDA a cada passada (e o "Encerrar agora" devolvia 500): a janela ficava ATIVA para sempre, com os
+alertas suprimidos. Agora, na conclusão pelo job, no "Encerrar agora" e no fim do botão manual, essa falha vira log ERROR
+(com o id e a exceção) e o `MANUTENCAO_ENCERRADA` / `MANUTENCAO_MANUAL_ENCERRADA` entra com um texto de reserva
+("Detalhes indisponíveis: falha ao montar a mensagem (ver o sistema).", com `Janela: #id` ou `Equipamento: nome`/`#id`),
+e a transição confirma. As regras de fila continuam: o início PENDENTE é cancelado (A4), o fim é único. A coleta roda num
+savepoint JDBC da própria transação (`ColetaDoAnuncio`): um erro de SQL nela não aborta a transação do CAS. **Não** são
+protegidos: o CAS, o cancelamento e o INSERT (falha deles continua desfazendo tudo). Início e alteração de fim seguem
+estritos. `CoberturaManutencao.ativarDevidas`/`concluirVencidas` (lote, sem chamador desde a Task 7) foram removidos.
+
+## MA32 — O texto do fim é escolhido pelo número de linhas do UPDATE que cancela o início (A4 para estas âncoras)
+
+No fim, o `MANUTENCAO_INICIADA` (ou `MANUTENCAO_MANUAL_INICIADA`) ainda PENDENTE é cancelado por
+`UPDATE ... SET status = 'CANCELADA' WHERE <âncora> = :id AND tipo_evento = <início> AND status = 'PENDENTE' RETURNING
+tentativas, erro`. O texto do fim sai desse retorno, **nunca de uma leitura anterior** ao UPDATE (o dispatcher poderia
+reservar o início entre a leitura e o cancelamento):
+
+- cancelou com `tentativas = 0` **e** `erro IS NULL`: `NAO_ENTREGUE` ("O aviso de início não foi entregue; este é o registro completo.");
+- cancelou com `tentativas > 0` **ou** `erro IS NOT NULL`: `TALVEZ_ENTREGUE` ("O aviso de início pode não ter sido entregue; ...");
+- não cancelou e o início está FALHA (lido depois do UPDATE; FALHA é terminal): `TALVEZ_ENTREGUE` (timeout também é ambíguo);
+- não cancelou e o início está ENVIANDO/ENVIADA ou não existe: `ENTREGUE`, fim normal.
+
+Correção da revisão da Task 5: a premissa do spec de que uma reserva vencida volta com `tentativas > 0` era falsa. A
+reserva não gasta tentativa; `releaseStaleSending` devolvia a linha com `tentativas = 0`, que seria lida como "nunca
+saiu", e o fim afirmaria isso com falsa certeza (o Telegram pode ter recebido). Agora `releaseStaleSending` grava
+`erro = 'Reserva vencida devolvida a fila: o envio pode ter ocorrido'` sem tocar em `tentativas`. Efeito colateral
+conhecido: a marca aparece como `erro` numa linha PENDENTE na tela (o front pode lê-la como falha); `marcarEnviada` a limpa.
+
+**Descartado: incrementar `tentativas` na devolução da reserva.** Consumiria o orçamento de retry por um envio que pode
+nem ter falhado.
+
+**Descartado: coluna nova** (`reserva_devolvida`). Schema por uma informação que o `erro` já carrega e que é útil na tela.
+
+**Descartado: decidir pelo `existe...` lido antes do UPDATE.** É o desenho que a corrida 3 do spec §5 prova ilegítimo
+(`desfecho=ILEGITIMO inicio=ENVIANDO ... naoEntregue=true`, 2/30 na reversão).
+
+## MA33 — Ordem na fila: o fim não passa na frente do início da mesma âncora
+
+`findIdsReadyForDispatch` ganha um `NOT EXISTS`: `MANUTENCAO_ENCERRADA`, `MANUTENCAO_FIM_ALTERADO` e
+`MANUTENCAO_MANUAL_ENCERRADA` só ficam prontos quando não existe notificação de início **da mesma âncora** em PENDENTE
+ou ENVIANDO. A de início nunca se bloqueia (`p.id <> n.id`, e o tipo dela é o de início). O fim fica pronto com o
+início ENVIADA, FALHA ou CANCELADA.
+
+**Descartado: ordenar só por `created_at`.** Um retry do início (backoff de 30 s) deixaria o fim chegar antes, e o grupo
+leria "encerrada" antes de "iniciada".
+
+**Correção de 2026-10-26 (revisão final): a prorrogação também segura o fim.** Depois de uma queda do Telegram, um
+`MANUTENCAO_FIM_ALTERADO` podia sair depois do `MANUTENCAO_ENCERRADA`, ou sair mesmo com o fim dizendo "este é o
+registro completo". Duas regras novas: (a) ao concluir a janela, na mesma transação, os `MANUTENCAO_FIM_ALTERADO`
+PENDENTE dela são cancelados — fora da decisão de entrega do início (MA32), que continua só no retorno do cancelamento do
+início; (b) no `NOT EXISTS`, o `MANUTENCAO_ENCERRADA` também não fica pronto enquanto houver `MANUTENCAO_FIM_ALTERADO` da
+mesma janela em PENDENTE/ENVIANDO (na prática o ENVIANDO, já que o PENDENTE foi cancelado). O `FIM_ALTERADO` continua
+preso só pelo início. A fila ordena por `proximaTentativaEm, createdAt` com workers em paralelo: fora destas regras não há
+ordem garantida (nem entre o início e os `INCIDENTE_ENCERRADO_MANUTENCAO` do mesmo equipamento).
+
+## MA34 — Todas as mensagens em horário local do fuso configurado
+
+`app.reports.timezone` (`REPORT_TIMEZONE`, padrão `America/Sao_Paulo`), formato `dd/MM/yyyy HH:mm` e linha final
+`Horários: UTC-03:00 (America/Sao_Paulo)` (offset do instante de referência da mensagem, nome do fuso; `Z` vira
+`UTC+00:00`). Vale para as mensagens **antigas** também (incidente, latência, encerramento por manutenção), que antes
+saíam em UTC. Durações seguem `Xh Ym Zs`. Um formatador só, no `NotificacaoMessageBuilder`.
+
+Consequência operacional: `REPORT_TIMEZONE` passa a mudar o texto do Telegram (antes só afetava relatórios e baldes).
+
+**Descartado: manter UTC nas mensagens antigas.** Duas convenções no mesmo canal; a equipe leria 11:20 numa e 08:20 na outra.
+
+**Descartado: segundos no formato.** A hora exata está na tela; segundos poluem o aviso.
+
+## MA35 — `PATCH /equipamentos/{id}/manutencao/encerrar` recebe o principal autenticado
+
+Mudança de contrato só no backend: o controller injeta `@AuthenticationPrincipal UsuarioPrincipal` e o serviço grava
+`encerrada_por_id` da sessão (a rota já exigia autenticação e o front manda corpo vazio; **nenhuma mudança no front**).
+Assinaturas: `EquipamentoService.sairDeManutencao(id, usuarioId)` e `EstadoManutencaoEquipamento.encerrarManual(id, usuarioId)`.
+Exclusão de equipamento com histórico manual é recusada (409) com mensagem própria:
+"Nao e possivel excluir o equipamento porque ele tem historico de manutencao manual".
+
+**Descartado: gravar o autor por heurística** (último usuário que ligou). Quem desliga nem sempre é quem ligou.
+
+## MA36 — Histórico manual no drawer do equipamento
+
+Seção "Manutenção manual — histórico", últimas 5 sessões, via `GET /api/v1/equipamentos/{id}/manutencoes-manuais?page&size`
+(`size` padrão 5, máximo 50; papéis iguais aos do `GET /equipamentos/**`). A resposta traz `id`, `iniciadaEm`,
+`iniciadaPor {id, nome}`, `encerradaEm`, `encerradaPor`, `duracaoSegundos`; a sessão do backfill vem com `iniciadaEm`,
+`iniciadaPor` e `duracaoSegundos` nulos e a tela mostra "início não registrado". Ordem por `id desc` (o backfill não
+tem `iniciada_em`); o spec dizia `iniciada_em desc, id desc`, trocado pelo brief da Task 6 por causa do NULL. 404 se o
+equipamento não existe. O drawer existe em dois pais (Equipamentos e Mapa): a seção aparece nos dois.
+
+**Descartado: página própria de histórico.** Sem demanda; o drawer já é onde o operador vê o equipamento.

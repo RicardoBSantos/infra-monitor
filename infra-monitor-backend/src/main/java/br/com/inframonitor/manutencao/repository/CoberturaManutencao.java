@@ -1,5 +1,6 @@
 package br.com.inframonitor.manutencao.repository;
 
+import br.com.inframonitor.notificacao.service.DadosAnuncio;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -9,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Repository
@@ -51,6 +53,19 @@ public class CoberturaManutencao {
         return ids.stream().findFirst();
     }
 
+    /** Janela ATIVA de menor id que cobre o equipamento (mesmo predicado e desempate de autorDaCobertura), para citar no texto. */
+    public Optional<DadosAnuncio.JanelaVigente> janelaVigente(long equipamentoId) {
+        return jdbc.query("""
+                SELECT ma.id, ma.fim_previsto FROM manutencao_agendada ma JOIN equipamento e ON e.id = :id
+                 WHERE ma.status = 'ATIVA'
+                   AND ((ma.escopo = 'UNIDADE' AND ma.unidade_id = e.unidade_id)
+                     OR (ma.escopo = 'EQUIPAMENTOS' AND EXISTS (SELECT 1 FROM manutencao_agendada_equipamento mae
+                          WHERE mae.manutencao_id = ma.id AND mae.equipamento_id = e.id)))
+                 ORDER BY ma.id LIMIT 1""", Map.of("id", equipamentoId),
+                (rs, i) -> new DadosAnuncio.JanelaVigente(rs.getLong("id"), rs.getTimestamp("fim_previsto").toInstant()))
+                .stream().findFirst();
+    }
+
     /** Equipamentos cujo efetivo diverge do desejado. Ordem por id: mesma ordem de lock em todo lugar. */
     public List<Long> divergentes() {
         return jdbc.queryForList("SELECT e.id FROM equipamento e WHERE e.em_manutencao <> (e.manutencao_manual OR "
@@ -67,6 +82,44 @@ public class CoberturaManutencao {
                  WHERE ma.id = :id ORDER BY e.id""", Map.of("id", manutencaoId), Long.class);
     }
 
+    /** Nomes dos equipamentos, em ordem de nome (desempate por id), para o texto do anuncio. */
+    public List<String> nomes(List<Long> equipamentoIds) {
+        if (equipamentoIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.queryForList("SELECT e.nome FROM equipamento e WHERE e.id IN (:ids) ORDER BY e.nome, e.id",
+                Map.of("ids", equipamentoIds), String.class);
+    }
+
+    /**
+     * Dos equipamentos dados, os que seguem em manutencao quando a janela {@code manutencaoId} termina:
+     * botao manual ligado (janela nula) ou outra janela ATIVA de menor id cobrindo (mesmo predicado de
+     * {@link #janelaVigente}). E a intencao, lida antes da reavaliacao; ordem de nome.
+     */
+    public List<DadosAnuncio.Seguinte> seguemEmManutencao(long manutencaoId, List<Long> equipamentoIds) {
+        if (equipamentoIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.query("""
+                SELECT e.nome, e.manutencao_manual,
+                       (SELECT min(ma.id) FROM manutencao_agendada ma
+                         WHERE ma.status = 'ATIVA' AND ma.id <> :janela
+                           AND ((ma.escopo = 'UNIDADE' AND ma.unidade_id = e.unidade_id)
+                             OR (ma.escopo = 'EQUIPAMENTOS' AND EXISTS (SELECT 1 FROM manutencao_agendada_equipamento mae
+                                  WHERE mae.manutencao_id = ma.id AND mae.equipamento_id = e.id)))) AS outra
+                  FROM equipamento e WHERE e.id IN (:ids) ORDER BY e.nome, e.id""",
+                Map.of("janela", manutencaoId, "ids", equipamentoIds),
+                (rs, i) -> {
+                    long outra = rs.getLong("outra");
+                    Long janela = rs.wasNull() ? null : outra;
+                    // Manual primeiro: e o que NAO volta sozinho quando a outra janela terminar.
+                    if (rs.getBoolean("manutencao_manual")) {
+                        return new DadosAnuncio.Seguinte(rs.getString("nome"), null);
+                    }
+                    return janela == null ? null : new DadosAnuncio.Seguinte(rs.getString("nome"), janela);
+                }).stream().filter(Objects::nonNull).toList();
+    }
+
     // ---------------------------------------------------------------------------
     // Transicoes de situacao. Todas sao CAS no WHERE: quem perde a corrida (tick x botao,
     // dois botoes) muda zero linhas e decide o que responder. Nenhuma toca equipamento: a
@@ -74,15 +127,7 @@ public class CoberturaManutencao {
     // Todas incrementam versao (MA26): uma edicao preparada sobre a versao anterior muda zero linhas.
     // ---------------------------------------------------------------------------
 
-    /** CAS AGENDADA -> ATIVA das devidas. Devolve as ativadas, com previsto e real (log de atraso). */
-    public List<Transicao> ativarDevidas(Instant agora) {
-        return jdbc.query("""
-                UPDATE manutencao_agendada SET versao = versao + 1, status = 'ATIVA', ativada_em = :agora, updated_at = :agora
-                 WHERE status = 'AGENDADA' AND inicio_previsto <= :agora AND fim_previsto > :agora
-                RETURNING id, inicio_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
-    }
-
-    /** Mesmo CAS, restrito a uma janela (ativacao imediata na criacao). */
+    /** CAS AGENDADA -> ATIVA de uma janela (reconciliador e ativacao imediata na criacao). */
     public boolean ativarSeDevida(long id, Instant agora) {
         return jdbc.update("""
                 UPDATE manutencao_agendada SET versao = versao + 1, status = 'ATIVA', ativada_em = :agora, updated_at = :agora
@@ -98,12 +143,33 @@ public class CoberturaManutencao {
                 RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
     }
 
-    /** CAS ATIVA -> CONCLUIDA no instante REAL, nunca no fim previsto (MA08). */
-    public List<Transicao> concluirVencidas(Instant agora) {
+    /**
+     * Candidatas a ativar, so leitura e em ordem de id: o reconciliador faz o CAS
+     * {@link #ativarSeDevida} de cada uma na sua transacao, com o anuncio (MA31), para uma janela
+     * com anuncio quebrado nao desfazer as outras. O CAS rechecka tudo; o previsto daqui so serve
+     * ao log de atraso.
+     */
+    public List<Transicao> devidasParaAtivar(Instant agora) {
+        return jdbc.query("""
+                SELECT id, inicio_previsto AS previsto FROM manutencao_agendada
+                 WHERE status = 'AGENDADA' AND inicio_previsto <= :agora AND fim_previsto > :agora
+                 ORDER BY id""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
+    }
+
+    /** Candidatas a concluir pelo job, so leitura e em ordem de id (mesmo motivo de {@link #devidasParaAtivar}). */
+    public List<Long> vencidasParaConcluir(Instant agora) {
+        return jdbc.queryForList("""
+                SELECT id FROM manutencao_agendada WHERE status = 'ATIVA' AND fim_previsto <= :agora ORDER BY id""",
+                Map.of("agora", ts(agora)), Long.class);
+    }
+
+    /** CAS ATIVA -> CONCLUIDA de uma janela, no instante REAL, nunca no fim previsto (MA08). */
+    public Optional<Transicao> concluirSeVencida(long id, Instant agora) {
         return jdbc.query("""
                 UPDATE manutencao_agendada SET versao = versao + 1, status = 'CONCLUIDA', encerrada_em = :agora, updated_at = :agora
-                 WHERE status = 'ATIVA' AND fim_previsto <= :agora
-                RETURNING id, fim_previsto AS previsto""", Map.of("agora", ts(agora)), Transicao.mapper(agora));
+                 WHERE id = :id AND status = 'ATIVA' AND fim_previsto <= :agora
+                RETURNING id, fim_previsto AS previsto""", Map.of("id", id, "agora", ts(agora)),
+                Transicao.mapper(agora)).stream().findFirst();
     }
 
     /** CAS AGENDADA -> CANCELADA. Janela ATIVA nao se cancela: se encerra. */

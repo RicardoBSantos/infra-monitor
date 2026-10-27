@@ -47,6 +47,7 @@ class EquipamentoServiceTest {
     @Mock private MonitorRepository monitorRepository;
     @Mock private EstadoManutencaoEquipamento estado;
     @Mock private ManutencaoAgendadaRepository manutencaoRepository;
+    @Mock private br.com.inframonitor.equipamento.repository.SessaoManutencaoManual sessoesManuais;
     @InjectMocks private EquipamentoService equipamentoService;
 
     @Test

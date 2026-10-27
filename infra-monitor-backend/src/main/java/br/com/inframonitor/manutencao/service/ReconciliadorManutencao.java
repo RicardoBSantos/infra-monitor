@@ -17,9 +17,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -35,17 +38,20 @@ public class ReconciliadorManutencao {
     private static final Logger log = LoggerFactory.getLogger(ReconciliadorManutencao.class);
 
     private final CoberturaManutencao cobertura;
+    private final AnuncioManutencao anuncio;
     private final EstadoManutencaoEquipamento estado;
     private final ReconciliacaoInicial inicial;
     private final ManutencaoAgendadaProperties props;
     private final TransactionTemplate transacao;
     private final Clock clock;
 
-    public ReconciliadorManutencao(CoberturaManutencao cobertura, EstadoManutencaoEquipamento estado,
+    public ReconciliadorManutencao(CoberturaManutencao cobertura, AnuncioManutencao anuncio,
+                                   EstadoManutencaoEquipamento estado,
                                    ReconciliacaoInicial inicial, ManutencaoAgendadaProperties props,
                                    PlatformTransactionManager transactionManager,
                                    @Qualifier("monitoringClock") Clock clock) {
         this.cobertura = cobertura;
+        this.anuncio = anuncio;
         this.estado = estado;
         this.inicial = inicial;
         this.props = props;
@@ -74,9 +80,30 @@ public class ReconciliadorManutencao {
      */
     public Resultado reconciliar(Instant agora) {
         try {
-            List<Transicao> ativadas = transacao.execute(s -> cobertura.ativarDevidas(agora));
+            // Uma transacao por janela, com o anuncio dentro (MA31): transicao e anuncio confirmam juntos ou
+            // nenhum, e uma janela cujo anuncio falha nao desfaz as outras nem para a passada.
+            // CAS vazio = outro caminho chegou antes (criar, cancelar, editar, "Encerrar agora", "Alterar fim").
+            List<Transicao> ativadas = new ArrayList<>();
+            for (Transicao candidata : cobertura.devidasParaAtivar(agora)) {
+                long id = candidata.manutencaoId();
+                porJanela(id, "ativar", () -> {
+                    if (!cobertura.ativarSeDevida(id, agora)) {
+                        return Optional.<Transicao>empty();
+                    }
+                    anuncio.anunciarInicio(id, agora, true);
+                    return Optional.of(candidata);
+                }).ifPresent(ativadas::add);
+            }
+            // Expirada nao anuncia (MA27): nada foi anunciado antes. Segue em lote.
             List<Transicao> expiradas = transacao.execute(s -> cobertura.expirarPerdidas(agora));
-            List<Transicao> concluidas = transacao.execute(s -> cobertura.concluirVencidas(agora));
+            List<Transicao> concluidas = new ArrayList<>();
+            for (Long id : cobertura.vencidasParaConcluir(agora)) {
+                porJanela(id, "concluir", () -> {
+                    Optional<Transicao> concluida = cobertura.concluirSeVencida(id, agora);
+                    concluida.ifPresent(t -> anuncio.anunciarFim(id, agora));
+                    return concluida;
+                }).ifPresent(concluidas::add);
+            }
             // Expirada nao entra: nunca ativou, entao nao ha efeito a aplicar nem a desfazer.
             SortedSet<Long> alvos = new TreeSet<>();
             Stream.concat(ativadas.stream(), concluidas.stream())
@@ -88,6 +115,23 @@ public class ReconciliadorManutencao {
         } finally {
             // Mesmo com falha: o motor nao pode ficar parado para sempre esperando esta passada (MA12).
             inicial.marcarPronta();
+        }
+    }
+
+    /**
+     * CAS + anuncio de UMA janela na sua transacao. Falha (anuncio de inicio que nao monta, dado
+     * corrompido, INSERT) desfaz so esta janela, fica logada com o id e a passada segue; a janela continua
+     * candidata e a passada seguinte tenta de novo. Banco fora faz todas falharem aqui, cada uma logada.
+     * Na conclusao, texto que nao monta nao chega aqui: o fim entra com o texto de reserva (MA31).
+     */
+    private Optional<Transicao> porJanela(long janelaId, String acao, Supplier<Optional<Transicao>> casEAnuncio) {
+        try {
+            Optional<Transicao> feita = transacao.execute(s -> casEAnuncio.get());
+            return feita == null ? Optional.empty() : feita;
+        } catch (RuntimeException e) {
+            log.error("Reconciliador: falha ao {} a janela {} (transicao e anuncio desfeitos); a proxima passada "
+                    + "tenta de novo", acao, janelaId, e);
+            return Optional.empty();
         }
     }
 

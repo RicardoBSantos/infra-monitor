@@ -373,7 +373,13 @@ export function rotuloDaNotificacao(tipo: NotificationEventType): string {
     case NotificationEventType.LatencyNormalized: return 'Notificação: latência normalizada';
     case NotificationEventType.IncidentClosedByMaintenance: return 'Notificação: incidente encerrado por manutenção';
     case NotificationEventType.LatencyClosedByMaintenance: return 'Notificação: latência encerrada por manutenção';
-    default: return `Notificação: ${tipo}`;
+    // A timeline só mostra notificações de incidente e de latência; os cinco de manutenção não
+    // chegam aqui, mas ficam listados para o compilador exigir decisão a cada valor novo do enum.
+    case NotificationEventType.MaintenanceStarted: return 'Notificação: manutenção iniciada';
+    case NotificationEventType.MaintenanceEnded: return 'Notificação: manutenção encerrada';
+    case NotificationEventType.MaintenanceEndChanged: return 'Notificação: fim da manutenção alterado';
+    case NotificationEventType.ManualMaintenanceStarted: return 'Notificação: manutenção manual iniciada';
+    case NotificationEventType.ManualMaintenanceEnded: return 'Notificação: manutenção manual encerrada';
   }
 }
 
