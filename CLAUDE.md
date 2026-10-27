@@ -216,9 +216,10 @@ Regras já definidas:
 ## Testes
 
 - `StatusControllerTest` (`@WebMvcTest`) e `TratadorGlobalDeErrosTest` rodam sempre.
-- As 27 classes de integração com PostgreSQL real (Testcontainers) levam `@RequerDocker`
+- As 52 classes de integração com PostgreSQL real (Testcontainers) levam `@RequerDocker`
   (`testsupport/`). Sem Docker são puladas, nunca dão erro, e `AvisoTestesSemDocker`
   imprime no fim `!! N classes puladas: Docker indisponivel.` com a lista. Suíte verde com
   esse aviso **não** testou o banco: contagem completa só com Docker. Classe nova com
-  `PostgreSQLContainer` precisa da anotação.
+  `PostgreSQLContainer` precisa da anotação. `DocumentacaoRequerDockerTest` confere a contagem
+  nas fontes contra este arquivo e o README do backend durante `./mvnw test`.
 - Não criar mock ou teste artificial só para aumentar contagem.
