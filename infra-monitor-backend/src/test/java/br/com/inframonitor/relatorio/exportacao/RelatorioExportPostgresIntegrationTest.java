@@ -117,7 +117,7 @@ class RelatorioExportPostgresIntegrationTest {
                 new Expected("/incidentes/export?monitorId="+monitorId+"&status=FECHADO","incidente_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,iniciado_em,encerrado_em,duracao_segundos_no_periodo,motivo,observacao,motivo_encerramento","incidentes_2026-08-01_2026-08-01.csv"),
                 new Expected("/medicoes/export?monitorId="+monitorId+"&status=SUCESSO&sort=executadoEm,desc","medicao_id,unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,tipo_monitor,status,latencia_ms,executado_em","medicoes_2026-08-01_2026-08-01.csv"),
                 new Expected("/latencia/export?monitorId="+monitorId,"unidade_id,unidade_nome,equipamento_id,equipamento_nome,monitor_id,monitor_nome,inicio,fim,min_latencia_ms,avg_latencia_ms,max_latencia_ms,p95_latencia_ms,amostras","latencia_2026-08-01_2026-08-01.csv"),
-                new Expected("/notificacoes/export?incidenteId="+incidenteId+"&status=PENDENTE&canal=TELEGRAM&tipoEvento=INCIDENTE_ABERTO","notificacao_id,incidente_id,tipo_evento,canal,status,tentativas,created_at,enviado_em","notificacoes_2026-08-01_2026-08-01.csv"));
+                new Expected("/notificacoes/export?incidenteId="+incidenteId+"&status=PENDENTE&canal=TELEGRAM&tipoEvento=INCIDENTE_ABERTO","notificacao_id,incidente_id,tipo_evento,canal,status,tentativas,created_at,enviado_em,manutencao_id,manutencao_manual_id","notificacoes_2026-08-01_2026-08-01.csv"));
         for(Expected expected:endpoints){
             HttpResponse<byte[]> response=get(expected.path(),token);
             assertThat(response.statusCode()).as(expected.path()).isEqualTo(200);
@@ -132,6 +132,33 @@ class RelatorioExportPostgresIntegrationTest {
             if(expected.path().startsWith("/incidentes"))assertThat(csv).contains("'=1+1", "\"linha 1\nlinha 2\"");
             if(expected.path().startsWith("/notificacoes"))assertThat(csv).doesNotContain("mensagem fora do CSV", "erro", "senha", "Bearer", "Authorization");
         }
+    }
+
+    @Test @Order(5) void csvDeNotificacoesTrazAncorasDeManutencaoNoFimEIncidenteVazio() throws Exception {
+        Long usuarioId=jdbc.queryForObject("select id from usuarios where email='admin@export.test'",Long.class);
+        Long janelaId=jdbc.queryForObject("insert into manutencao_agendada(unidade_id,escopo,inicio_previsto,fim_previsto,motivo,status,criado_por_id) values (?,'UNIDADE',?,?,'Teste','AGENDADA',?) returning id",Long.class,unidadeId,java.sql.Timestamp.from(INICIO.plusSeconds(3600)),java.sql.Timestamp.from(INICIO.plusSeconds(7200)),usuarioId);
+        Long sessaoId=jdbc.queryForObject("insert into manutencao_manual(equipamento_id,iniciada_em,iniciada_por_id) values (?,?,?) returning id",Long.class,equipamentoId,java.sql.Timestamp.from(INICIO.plusSeconds(200)),usuarioId);
+        jdbc.update("insert into notificacao(manutencao_agendada_id,canal,tipo_evento,status,tentativas,mensagem,created_at,updated_at) values (?,'TELEGRAM','MANUTENCAO_INICIADA','PENDENTE',0,'m',?,?)",janelaId,java.sql.Timestamp.from(INICIO.plusSeconds(300)),java.sql.Timestamp.from(INICIO.plusSeconds(300)));
+        jdbc.update("insert into notificacao(manutencao_manual_id,canal,tipo_evento,status,tentativas,mensagem,created_at,updated_at) values (?,'TELEGRAM','MANUTENCAO_MANUAL_INICIADA','PENDENTE',0,'m',?,?)",sessaoId,java.sql.Timestamp.from(INICIO.plusSeconds(310)),java.sql.Timestamp.from(INICIO.plusSeconds(310)));
+
+        HttpResponse<byte[]> response=get("/notificacoes/export?sort=createdAt,asc",login("admin@export.test"));
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        List<String> linhas=new String(response.body(),3,response.body().length-3,StandardCharsets.UTF_8).lines().toList();
+        assertThat(linhas.get(0)).endsWith("manutencao_id,manutencao_manual_id");
+        String[] daJanela=linhas.stream().filter(l->l.contains("MANUTENCAO_INICIADA")).findFirst().orElseThrow().split(",",-1);
+        String[] doBotao=linhas.stream().filter(l->l.contains("MANUTENCAO_MANUAL_INICIADA")).findFirst().orElseThrow().split(",",-1);
+        String[] deIncidente=linhas.stream().filter(l->l.contains("INCIDENTE_ABERTO")).findFirst().orElseThrow().split(",",-1);
+        assertThat(daJanela).hasSize(10);
+        assertThat(daJanela[1]).isEmpty();
+        assertThat(daJanela[8]).isEqualTo(String.valueOf(janelaId));
+        assertThat(daJanela[9]).isEmpty();
+        assertThat(doBotao[1]).isEmpty();
+        assertThat(doBotao[8]).isEmpty();
+        assertThat(doBotao[9]).isEqualTo(String.valueOf(sessaoId));
+        assertThat(deIncidente[1]).isEqualTo(String.valueOf(incidenteId));
+        assertThat(deIncidente[8]).isEmpty();
+        assertThat(deIncidente[9]).isEmpty();
     }
 
     @Test @Order(2) void rbacErrosJsonEParametrosDePaginacao() throws Exception {

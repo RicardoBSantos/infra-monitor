@@ -336,8 +336,9 @@ describe('EquipamentoListComponent', () => {
   /** Lista + as chamadas de composição do drawer, sem afirmar conteúdo. */
   function responderTudo(harness: RouterTestingHarness): void {
     responderLista(harness);
-    http.match(() => true).forEach((requisicao) => requisicao.flush(
-      requisicao.request.url.includes('/api/v1/equipamentos/') ? CADASTRO_COMPLETO
+    http.match(() => true).filter((requisicao) => !requisicao.cancelled).forEach((requisicao) => requisicao.flush(
+      requisicao.request.url.includes('/manutencoes-manuais') ? { content: [], page: 0, size: 5, totalElements: 0, totalPages: 0, first: true, last: true }
+      : requisicao.request.url.includes('/api/v1/equipamentos/') ? CADASTRO_COMPLETO
         : { content: [], page: 0, size: 0, totalElements: 0, totalPages: 0, first: true, last: true }));
     harness.detectChanges();
   }

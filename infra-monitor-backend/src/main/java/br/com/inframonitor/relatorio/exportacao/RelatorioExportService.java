@@ -66,7 +66,8 @@ public class RelatorioExportService {
          group by u.id,u.nome,e.id,e.nome,m.id,m.nome
         """;
     private static final String NOTIFICACOES = """
-        select id,incidente_id,canal,tipo_evento,status,tentativas,enviado_em,created_at
+        select id,incidente_id,canal,tipo_evento,status,tentativas,enviado_em,created_at,
+               manutencao_agendada_id,manutencao_manual_id
           from notificacao where created_at>=:inicio and created_at<=:fim
            and (cast(:incidenteId as bigint) is null or incidente_id=:incidenteId)
            and (cast(:status as varchar) is null or status=:status)
@@ -136,8 +137,8 @@ public class RelatorioExportService {
         String order=reports.validarExportacaoNotificacoes(inicio,fim,incidenteId,sort);
         Map<String,Object> p=period(inicio,fim);p.put("incidenteId",incidenteId);p.put("status",status);p.put("canal",canal);p.put("tipo",tipo);
         return prepare("notificacoes",inicio,fim,principal,safeFilters(p,order),definition(NOTIFICACOES,order+", id",p,
-                "notificacao_id,incidente_id,tipo_evento,canal,status,tentativas,created_at,enviado_em",
-                r->new Object[]{lng(r,"id"),lng(r,"incidente_id"),r.getString("tipo_evento"),r.getString("canal"),r.getString("status"),r.getInt("tentativas"),instant(r,"created_at"),instant(r,"enviado_em")}));
+                "notificacao_id,incidente_id,tipo_evento,canal,status,tentativas,created_at,enviado_em,manutencao_id,manutencao_manual_id",
+                r->new Object[]{lng(r,"id"),lng(r,"incidente_id"),r.getString("tipo_evento"),r.getString("canal"),r.getString("status"),r.getInt("tentativas"),instant(r,"created_at"),instant(r,"enviado_em"),lng(r,"manutencao_agendada_id"),lng(r,"manutencao_manual_id")}));
     }
 
     private ExportDownload prepare(String report,Instant inicio,Instant fim,UsuarioPrincipal principal,String filters,

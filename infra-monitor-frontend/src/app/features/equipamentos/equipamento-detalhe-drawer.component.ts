@@ -1,12 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { take } from 'rxjs';
+import { Subscription, take } from 'rxjs';
 
 import { plural } from '../../core/format/plural';
 import { formatarPercentual } from '../../core/format/numero';
 import { EquipmentOperationalStatus, MeasurementStatus } from '../../core/models/api-enums';
-import { EquipamentoResponse } from '../../core/models/equipamento';
+import { EquipamentoResponse, ManutencaoManualResponse } from '../../core/models/equipamento';
 import { IncidenteResponse } from '../../core/models/incidente';
 import { MonitorResponse } from '../../core/models/monitor';
 import { DisponibilidadeEquipamentoResponse, HistoricoMedicaoResponse, LatenciaIcmpResponse } from '../../core/models/relatorio';
@@ -18,7 +18,7 @@ import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { origemDaManutencao } from './origem-manutencao';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
-import { rotuloMotivoEncerramento } from '../incidentes/ocorrencia';
+import { formatarDuracao, rotuloMotivoEncerramento } from '../incidentes/ocorrencia';
 import { MonitorManagementComponent } from '../monitores/monitor-management.component';
 import { JANELA_DIAS } from '../unidades/detalhe/unidade-detalhe.store';
 
@@ -29,6 +29,7 @@ const JANELA_GRAFICO_MINUTOS = 26;
 const MEDICOES_NA_JANELA = 60;
 const INCIDENTES_RECENTES = 3;
 const MEDIA_MOVEL = 5;
+const SESSOES_MANUAIS_RECENTES = 5;
 
 /** Ponto já projetado no viewBox do SVG; `y` nulo em FALHA, que vira lacuna na linha. */
 interface PontoLatencia { x: number; y: number | null; }
@@ -136,6 +137,12 @@ export class EquipamentoDetalheDrawerComponent {
 
   protected readonly todosMonitores = signal(false);
 
+  protected readonly sessoesManuais = signal<ManutencaoManualResponse[]>([]);
+  protected readonly sessoesManuaisEstado = signal<Estado>('loading');
+  private cargaSessoesManuais: Subscription | null = null;
+  /** Muda quando o botão manual é acionado na lista: é o gatilho para recarregar o histórico. */
+  private readonly manualAtivo = computed(() => this.linha()?.manutencaoManual ?? null);
+
   /** Elemento que abriu a gaveta: o foco volta para ele ao fechar. */
   private readonly gatilho = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   private readonly painel = viewChild<ElementRef<HTMLElement>>('painel');
@@ -156,6 +163,13 @@ export class EquipamentoDetalheDrawerComponent {
       this.carregarMedicoes(id);
       this.carregarMonitores(id);
       this.carregarIncidentes(id);
+    });
+    // O histórico recarrega quando o equipamento troca e quando o botão manual muda de estado
+    // (a linha do pai já reflete o resultado do PATCH). Só id e flag são rastreados.
+    effect(() => {
+      const id = this.equipamentoId();
+      this.manualAtivo();
+      untracked(() => this.carregarSessoesManuais(id));
     });
   }
 
@@ -220,6 +234,15 @@ export class EquipamentoDetalheDrawerComponent {
         next: (pagina) => { this.incidentes.set(pagina.content); this.incidentesEstado.set('success'); },
         error: () => { this.incidentes.set([]); this.incidentesEstado.set('error'); },
       });
+  }
+
+  protected carregarSessoesManuais(id = this.equipamentoId()): void {
+    this.cargaSessoesManuais?.unsubscribe();
+    this.sessoesManuaisEstado.set('loading');
+    this.cargaSessoesManuais = this.api.historicoManutencaoManual(id, SESSOES_MANUAIS_RECENTES).pipe(take(1)).subscribe({
+      next: (pagina) => { this.sessoesManuais.set(pagina.content); this.sessoesManuaisEstado.set('success'); },
+      error: () => { this.sessoesManuais.set([]); this.sessoesManuaisEstado.set('error'); },
+    });
   }
 
   /** Mesma janela do KPI de disponibilidade de Unidades: 30 dias. */
@@ -427,6 +450,10 @@ export class EquipamentoDetalheDrawerComponent {
 
   protected percentual(valor: number | null | undefined): string {
     return formatarPercentual(valor);
+  }
+
+  protected duracaoDaSessao(sessao: ManutencaoManualResponse): string {
+    return sessao.duracaoSegundos === null ? '—' : formatarDuracao(sessao.duracaoSegundos);
   }
 
   protected milissegundos(valor: number | null | undefined): string { return formatarMs(valor); }

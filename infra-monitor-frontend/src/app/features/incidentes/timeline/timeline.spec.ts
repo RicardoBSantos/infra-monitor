@@ -14,7 +14,7 @@ function medicao(executadoEm: string, status: MeasurementStatus, latenciaMs: num
 const notificacao: NotificacaoResponse = {
   id: 90, canal: NotificationChannel.Telegram, tipoEvento: NotificationEventType.IncidentOpened,
   status: NotificationStatus.Sent, tentativas: 1, mensagem: 'Incidente aberto', erro: null,
-  enviadoEm: '2026-09-01T08:01:35Z', incidente: null, episodioLatencia: null,
+  enviadoEm: '2026-09-01T08:01:35Z', incidente: null, episodioLatencia: null, manutencao: null, manutencaoManual: null,
   monitorNome: null, equipamentoNome: null, unidadeNome: null,
   createdAt: '2026-09-01T08:01:31Z', updatedAt: '2026-09-01T08:01:35Z',
 };

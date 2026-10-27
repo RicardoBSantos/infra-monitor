@@ -367,7 +367,7 @@ class FechamentoManualConcorrenciaPostgresIntegrationTest {
         Timestamp encerradoEm = jdbc.queryForObject("select encerrado_em from incidente where id = ?",
                 Timestamp.class, incidenteId);
         return mensagens.size() == 1 && encerradoEm != null
-                && mensagens.get(0).contains("Fim: " + encerradoEm.toInstant());
+                && mensagens.get(0).contains("Fim: " + java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(java.time.ZoneId.of("America/Sao_Paulo")).format(encerradoEm.toInstant()));
     }
 
     private Map<String, Object> linha(long incidenteId) {

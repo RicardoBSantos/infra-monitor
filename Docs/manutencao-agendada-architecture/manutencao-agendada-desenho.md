@@ -349,6 +349,15 @@ Ruído a decidir junto (P-02): janela de unidade com 10 equipamentos fora gera h
 `INCIDENTE_ENCERRADO_MANUTENCAO` *mais* o aviso da janela. E o botão manual também não avisa ninguém
 hoje — a decisão deveria valer para os dois.
 
+
+> **Atualização de 2026-10-26: implementado na F3** (MA27–MA36, `V23__add_notificacao_manutencao_e_manutencao_manual.sql`).
+> O que o parágrafo acima propõe valeu, com três diferenças: (1) a âncora é explícita nas duas formas, `manutencao_agendada_id`
+> **e** `manutencao_manual_id` (o botão também avisa; MA29, MA30); (2) além de início e fim há `MANUTENCAO_FIM_ALTERADO`,
+> que repete a cada alteração (a unicidade `(manutencao_agendada_id, canal, tipo_evento)` exclui esse tipo); (3) os
+> `INCIDENTE_ENCERRADO_MANUTENCAO` individuais foram mantidos (P-02). O texto do fim depende de o aviso de início ter saído
+> (MA32) e a fila garante que o fim não passa na frente do início (MA33). Spec:
+> `Docs/superpowers/specs/2026-10-26-manutencao-agendada-f3-design.md`.
+
 ---
 
 ## 7. Concorrência

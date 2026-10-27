@@ -1,0 +1,121 @@
+{
+  "quando": "2026-10-26T21:41:11.962Z",
+  "base": "http://127.0.0.1:4300",
+  "apiPort": "8083",
+  "equipamento": "ServidorADATA",
+  "sessoes": 2,
+  "janela": 10,
+  "capturas": [
+    "01-drawer-historico-manual.png",
+    "02-notificacoes-filtro-manutencao-iniciada.png",
+    "03-notificacoes-filtro-manual-iniciada.png",
+    "04-notificacao-detalhe-manual.png",
+    "05-relatorios-notificacoes-manutencao-iniciada.png"
+  ],
+  "falhas": 0,
+  "resultados": [
+    {
+      "caso": "login",
+      "nome": "login concluído",
+      "ok": true,
+      "detalhe": "http://127.0.0.1:4300/dashboard (API_PORT=8083)"
+    },
+    {
+      "caso": "a-titulo",
+      "nome": "drawer tem \"Manutenção manual — histórico\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "a-quantidade",
+      "nome": "2 sessões listadas (API: 2)",
+      "ok": true,
+      "detalhe": "tela 2"
+    },
+    {
+      "caso": "a-sessao-1",
+      "nome": "sessão 1: período fechado, duração e \"Iniciada por … · encerrada por …\"",
+      "ok": true,
+      "detalhe": "26/10/2026 18:40 até 26/10/2026 18:40 | 10 s | Iniciada por Exercicio F3 · encerrada por Exercicio F3"
+    },
+    {
+      "caso": "a-sessao-2",
+      "nome": "sessão 2: período fechado, duração e \"Iniciada por … · encerrada por …\"",
+      "ok": true,
+      "detalhe": "26/10/2026 18:38 até 26/10/2026 18:39 | 11 s | Iniciada por Exercicio F3 · encerrada por Exercicio F3"
+    },
+    {
+      "caso": "b-filtro",
+      "nome": "filtro pede tipoEvento=MANUTENCAO_INICIADA",
+      "ok": true,
+      "detalhe": "/notificacoes?page=0&size=20&sort=createdAt,desc&tipoEvento=MANUTENCAO_INICIADA"
+    },
+    {
+      "caso": "b-so-iniciada",
+      "nome": "toda linha filtrada tem o rótulo \"Manutenção iniciada\"",
+      "ok": true,
+      "detalhe": "[\"Manutenção iniciada\",\"Manutenção iniciada\",\"Manutenção iniciada\"]"
+    },
+    {
+      "caso": "b-origem",
+      "nome": "linha com origem \"Janela #10\"",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "b-link",
+      "nome": "origem é link para /manutencoes",
+      "ok": true,
+      "detalhe": "/manutencoes"
+    },
+    {
+      "caso": "c-lista-origem",
+      "nome": "linhas da manual com origem \"Manutenção manual · ServidorADATA\"",
+      "ok": true,
+      "detalhe": "[\"Manutenção manual · ServidorADATA\",\"Manutenção manual · ServidorADATA\"]"
+    },
+    {
+      "caso": "c-detalhe-origem",
+      "nome": "detalhe mostra \"Manutenção manual · ServidorADATA\"",
+      "ok": true,
+      "detalhe": "Manutenção manual · ServidorADATA"
+    },
+    {
+      "caso": "c-detalhe-evento",
+      "nome": "evento \"Manutenção manual iniciada\"",
+      "ok": true,
+      "detalhe": "Manutenção manual iniciada"
+    },
+    {
+      "caso": "c-detalhe-mensagem",
+      "nome": "mensagem registrada é a do botão manual com o rodapé de fuso",
+      "ok": true,
+      "detalhe": "🔧 EQUIPAMENTO EM MANUTENÇÃO MANUAL — alertas suspensos Unidade: Hotel Atalaia E"
+    },
+    {
+      "caso": "d-resposta",
+      "nome": "relatório de notificações por evento responde 200",
+      "ok": true,
+      "detalhe": "/relatorios/notificacoes?inicio=2026-10-25T21:41:00.000Z&fim=2026-10-26T21:41:00.000Z&page=0&size=20&sort=createdAt,desc&tipoEvento=MANUTENCAO_INICIADA"
+    },
+    {
+      "caso": "d-rotulo",
+      "nome": "linhas com o rótulo novo \"Manutenção iniciada\"",
+      "ok": true,
+      "detalhe": "[\"Manutenção iniciada\",\"Manutenção iniciada\",\"Manutenção iniciada\"]"
+    },
+    {
+      "caso": "d-origem",
+      "nome": "origem \"Janela #10\" com link para /manutencoes",
+      "ok": true,
+      "detalhe": ""
+    },
+    {
+      "caso": "sem-erros",
+      "nome": "nenhum erro de página/console",
+      "ok": true,
+      "detalhe": ""
+    }
+  ],
+  "erros": []
+}

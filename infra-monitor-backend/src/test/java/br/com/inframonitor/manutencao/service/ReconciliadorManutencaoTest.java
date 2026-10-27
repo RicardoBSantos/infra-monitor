@@ -49,7 +49,8 @@ class ReconciliadorManutencaoTest {
         var props = new ManutencaoAgendadaProperties();
         props.setEnabled(true);
         inicial = new ReconciliacaoInicial(props);
-        reconciliador = new ReconciliadorManutencao(cobertura, estado, inicial, props, transacoes,
+        reconciliador = new ReconciliadorManutencao(cobertura, mock(AnuncioManutencao.class), estado, inicial, props,
+                transacoes,
                 Clock.fixed(AGORA, ZoneOffset.UTC));
     }
 
@@ -61,7 +62,7 @@ class ReconciliadorManutencaoTest {
     @Test
     void primeiraPassadaComFalhaAindaLiberaOMotor() {
         IllegalStateException falha = new IllegalStateException("banco fora");
-        when(cobertura.ativarDevidas(any())).thenThrow(falha);
+        when(cobertura.devidasParaAtivar(any())).thenThrow(falha);
         assertThat(inicial.pronta()).isFalse();
 
         // Pelo agendador: nao estoura, loga e libera.
@@ -78,7 +79,7 @@ class ReconciliadorManutencaoTest {
     @Test
     void chamadaDiretaPropagaAFalhaMasLiberaOMotor() {
         IllegalStateException falha = new IllegalStateException("banco fora");
-        when(cobertura.ativarDevidas(any())).thenThrow(falha);
+        when(cobertura.devidasParaAtivar(any())).thenThrow(falha);
 
         assertThatThrownBy(() -> reconciliador.reconciliar(AGORA)).isSameAs(falha);
 

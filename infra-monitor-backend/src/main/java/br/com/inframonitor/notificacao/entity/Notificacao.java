@@ -1,6 +1,8 @@
 package br.com.inframonitor.notificacao.entity;
 
+import br.com.inframonitor.equipamento.entity.ManutencaoManual;
 import br.com.inframonitor.incidente.entity.Incidente;
+import br.com.inframonitor.manutencao.entity.ManutencaoAgendada;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatencia;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,9 +29,10 @@ public class Notificacao {
     private Long id;
 
     /**
-     * Uma das duas ancoras da notificacao, nunca as duas: eventos de incidente usam
-     * esta, eventos de latencia usam {@link #episodioLatencia}. O banco garante a
-     * exclusividade em ck_notificacao_ancora_exclusiva.
+     * Uma das quatro ancoras da notificacao, nunca mais de uma: eventos de incidente usam
+     * esta, eventos de latencia usam {@link #episodioLatencia}, os de janela
+     * {@link #manutencaoAgendada} e os do botao {@link #manutencaoManual}. O banco garante
+     * a exclusividade em ck_notificacao_ancora_exclusiva.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "incidente_id")
@@ -38,6 +41,14 @@ public class Notificacao {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "episodio_latencia_id")
     private MonitorEpisodioLatencia episodioLatencia;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manutencao_agendada_id")
+    private ManutencaoAgendada manutencaoAgendada;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manutencao_manual_id")
+    private ManutencaoManual manutencaoManual;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -109,6 +120,8 @@ public class Notificacao {
     public Long getId() { return id; }
     public Incidente getIncidente() { return incidente; }
     public MonitorEpisodioLatencia getEpisodioLatencia() { return episodioLatencia; }
+    public ManutencaoAgendada getManutencaoAgendada() { return manutencaoAgendada; }
+    public ManutencaoManual getManutencaoManual() { return manutencaoManual; }
     public CanalNotificacao getCanal() { return canal; }
     public TipoEventoNotificacao getTipoEvento() { return tipoEvento; }
     public StatusNotificacao getStatus() { return status; }
@@ -119,6 +132,14 @@ public class Notificacao {
     public Instant getProximaTentativaEm() { return proximaTentativaEm; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    /** Ancora preenchida em forma legivel para log, ex.: {@code incidente=12}. */
+    public String descreverAncora() {
+        if (incidente != null) return "incidente=" + incidente.getId();
+        if (episodioLatencia != null) return "episodioLatencia=" + episodioLatencia.getId();
+        if (manutencaoAgendada != null) return "manutencao=" + manutencaoAgendada.getId();
+        return "manutencaoManual=" + manutencaoManual.getId();
+    }
 
     public void marcarEnviada(Instant agora) {
         status = StatusNotificacao.ENVIADA;

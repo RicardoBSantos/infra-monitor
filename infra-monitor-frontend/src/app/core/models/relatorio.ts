@@ -203,7 +203,8 @@ export interface LatenciaUnidadeResponse {
 
 export interface HistoricoNotificacaoResponse {
   notificacaoId: number;
-  incidenteId: number;
+  /** Nulo nas notificações ancoradas em janela ou manutenção manual. */
+  incidenteId: number | null;
   canal: NotificationChannel;
   tipoEvento: NotificationEventType;
   status: NotificationStatus;
@@ -211,6 +212,8 @@ export interface HistoricoNotificacaoResponse {
   enviadoEm: string | null;
   erro: string | null;
   createdAt: string;
+  manutencaoId: number | null;
+  manutencaoManualId: number | null;
 }
 
 /**

@@ -5,6 +5,7 @@ import br.com.inframonitor.equipamento.service.EstadoManutencaoEquipamento;
 import br.com.inframonitor.manutencao.config.ManutencaoAgendadaProperties;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao.Transicao;
+import br.com.inframonitor.manutencao.service.AnuncioManutencao;
 import br.com.inframonitor.manutencao.service.ReconciliacaoInicial;
 import br.com.inframonitor.manutencao.service.ReconciliadorManutencao;
 import br.com.inframonitor.testsupport.RequerDocker;
@@ -67,6 +68,7 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ReconciliadorManutencao reconciliador;
     @Autowired private CoberturaManutencao cobertura;
+    @Autowired private AnuncioManutencao anuncio;
     // Spy so para injetar falha num equipamento; nos demais testes delega ao bean real.
     @MockitoSpyBean private EstadoManutencaoEquipamento estado;
     @Autowired private ManutencaoAgendadaProperties props;
@@ -206,7 +208,8 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
     void marcaReconciliacaoInicialPronta() {
         // Instancia propria: o bean do contexto ja foi marcado pela passada da subida.
         var inicial = new ReconciliacaoInicial(props);
-        var proprio = new ReconciliadorManutencao(cobertura, estado, inicial, props, transactionManager, clock);
+        var proprio = new ReconciliadorManutencao(cobertura, anuncio, estado, inicial, props,
+                transactionManager, clock);
         assertThat(inicial.pronta()).isFalse();
 
         proprio.reconciliar(agora);

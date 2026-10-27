@@ -2,6 +2,7 @@ package br.com.inframonitor.equipamento.controller;
 
 import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.dto.EquipamentoResponse;
+import br.com.inframonitor.equipamento.dto.ManutencaoManualResponse;
 import br.com.inframonitor.equipamento.dto.UpdateEquipamentoRequest;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.common.api.PaginaResposta;
@@ -9,6 +10,7 @@ import br.com.inframonitor.common.api.Paginacao;
 import br.com.inframonitor.security.UsuarioPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +36,7 @@ import java.util.Set;
 public class EquipamentoController {
 
     private static final Set<String> CAMPOS_ORDENAVEIS = Set.of("id", "nome", "ip", "hostname", "localizacao", "ativo", "createdAt", "updatedAt");
+    private static final int TAMANHO_MAXIMO_HISTORICO = 50;
     private final EquipamentoService equipamentoService;
 
     public EquipamentoController(EquipamentoService equipamentoService) {
@@ -82,7 +85,17 @@ public class EquipamentoController {
     }
 
     @PatchMapping("/{id}/manutencao/encerrar")
-    public EquipamentoResponse encerrarManutencao(@PathVariable Long id) { return equipamentoService.sairDeManutencao(id); }
+    public EquipamentoResponse encerrarManutencao(@PathVariable Long id,
+                                                  @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return equipamentoService.sairDeManutencao(id, principal.id());
+    }
+
+    @GetMapping("/{id}/manutencoes-manuais")
+    public PaginaResposta<ManutencaoManualResponse> historicoManutencaoManual(@PathVariable Long id,
+            @PageableDefault(size = 5) Pageable pageable) {
+        return PaginaResposta.de(equipamentoService.historicoManutencaoManual(id,
+                PageRequest.of(pageable.getPageNumber(), Math.min(pageable.getPageSize(), TAMANHO_MAXIMO_HISTORICO))));
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {

@@ -64,10 +64,10 @@ public class NotificationDispatcher {
             if (notification == null) return;
             SendResult result = telegramSender.send(notification); // no transaction is active during HTTP
             stateService.complete(id, result);
-            if (result.success()) log.info("Telegram enviado: notificationId={}, incidentId={}, tipoEvento={}, tentativa={}",
-                    id, notification.getIncidente().getId(), notification.getTipoEvento(), notification.getTentativas() + 1);
-            else log.warn("Telegram falhou: notificationId={}, incidentId={}, tipoEvento={}, tentativa={}",
-                    id, notification.getIncidente().getId(), notification.getTipoEvento(), notification.getTentativas() + 1);
+            if (result.success()) log.info("Telegram enviado: notificationId={}, ancora={}, tipoEvento={}, tentativa={}",
+                    id, notification.descreverAncora(), notification.getTipoEvento(), notification.getTentativas() + 1);
+            else log.warn("Telegram falhou: notificationId={}, ancora={}, tipoEvento={}, tentativa={}",
+                    id, notification.descreverAncora(), notification.getTipoEvento(), notification.getTentativas() + 1);
         } catch (RuntimeException ex) {
             log.error("Erro interno ao processar notificacao {}: {}", id, ex.getClass().getSimpleName());
             stateService.complete(id, SendResult.failure("Erro interno do dispatcher", null));
