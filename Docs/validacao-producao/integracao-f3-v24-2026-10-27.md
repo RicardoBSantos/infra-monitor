@@ -66,8 +66,9 @@ não incluem tokens nem senhas nos relatórios. Os logs de teste usam bancos ef�
 | Main validada | Backend | Frontend | Ferramenta de carga |
 |---|---:|---:|---:|
 | F1+F2, `cd0ae4b`, PR #19 | 1.165 | 682 (61 arquivos) | 91 |
+| F3, `ff1ea34`, PR #20 | 1.426 | 698 (62 arquivos) | 91 |
 
-Primeira etapa: zero falhas, erros ou testes pulados. Backend: `mvnw.cmd test` com Docker;
+Ambas as etapas: zero falhas, erros ou testes pulados. Backend: `mvnw.cmd test` com Docker;
 frontend: `npm test -- --watch=false`; carga: `node --test tools/carga-real/test/*.test.mjs`.
 Os grupos optativos `rede-real` e `bench` continuam fora da suíte padrão conforme `pom.xml`.
 
