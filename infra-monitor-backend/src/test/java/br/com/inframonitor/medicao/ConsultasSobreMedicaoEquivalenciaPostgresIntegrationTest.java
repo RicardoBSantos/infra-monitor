@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * src/test/resources/oraculo-medicao, sobre um cenario com os casos de borda.
  *
  * <p>Os mesmos oraculos foram comparados com os bancos reais do dev e da carga (clones), registrado
- * em Docs/Back-End-Docs/medicao-crescimento-e-retencao.md; aqui fica a parte que roda em toda suite.
+ * em Docs/validacao-producao/medicao-crescimento-e-retencao.md; aqui fica a parte que roda em toda suite.
  */
 @RequerDocker
 @SpringBootTest(properties = {
