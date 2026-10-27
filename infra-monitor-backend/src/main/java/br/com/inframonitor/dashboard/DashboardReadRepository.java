@@ -14,11 +14,22 @@ public class DashboardReadRepository {
 
     public DashboardReadRepository(EntityManager entityManager) { this.entityManager = entityManager; }
 
-    private static final String ESTADOS = """
-            with ultima_medicao as (
-                select distinct on (monitor_id) monitor_id, id, latencia_ms, executado_em from medicao
-                order by monitor_id, executado_em desc, id desc
-            ), monitor_estado as (
+    /*
+     * A ultima medicao de cada monitor e um LATERAL ... LIMIT 1 sobre ix_medicao_monitor_executado_em,
+     * o mesmo desenho de MedicaoRepository.findLatestByMonitorIds (DV17): custo O(monitores). O
+     * distinct on que vivia aqui ordenava a medicao inteira a cada chamada (DV19): 0,19 s com 317 mil
+     * linhas, 36 s com 15,9 milhoes.
+     *
+     * O "between m.id and m.id" no lugar de "=" e de proposito, e o monitor_id lidera o order by: com
+     * igualdade o PostgreSQL descarta a chave monitor_id como redundante e, com poucos monitores, prefere
+     * varrer ix_medicao_executado_em para tras filtrando o monitor. Isso acerta por acaso enquanto o
+     * monitor tem medicao recente; para monitor sem medicao ou inativo ha meses, varre o indice inteiro
+     * (80 mil leituras numa tabela de 40 mil, medido). Com o intervalo, so o indice composto entrega a
+     * ordem pedida. Publico, como DisponibilidadeSqlRepository.BASE, para o teste de equivalencia com o
+     * oraculo congelado em src/test/resources/oraculo-medicao.
+     */
+    public static final String ESTADOS = """
+            with monitor_estado as (
                 select m.id, m.equipamento_id, m.ativo,
                     case when not m.ativo then 'DESABILITADO'
                          when i.id is not null and e.ativo and not e.em_manutencao then 'INDISPONIVEL'
@@ -32,7 +43,12 @@ public class DashboardReadRepository {
                     um.latencia_ms, um.executado_em, um.id as medicao_id
                 from monitor m
                 join equipamento e on e.id = m.equipamento_id
-                left join ultima_medicao um on um.monitor_id = m.id
+                left join lateral (
+                    select md.id, md.latencia_ms, md.executado_em from medicao md
+                    where md.monitor_id between m.id and m.id
+                    order by md.monitor_id, md.executado_em desc, md.id desc
+                    limit 1
+                ) um on true
                 left join incidente i on i.monitor_id = m.id and i.status in ('ABERTO', 'RECONHECIDO')
             ), equipamento_estado as (
                 select e.id, e.unidade_id, e.ativo,

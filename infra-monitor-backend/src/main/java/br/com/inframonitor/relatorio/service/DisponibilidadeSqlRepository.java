@@ -29,7 +29,15 @@ public class DisponibilidadeSqlRepository {
     public DisponibilidadeSqlRepository(NamedParameterJdbcTemplate jdbc,
             @Value("${app.reports.timezone:America/Sao_Paulo}") String timezone) { this.jdbc = jdbc; this.timezone = timezone; }
 
-    /* The range_agg/unnest pairs are the SQL equivalent of IntervaloTemporal.unir(). */
+    /*
+     * The range_agg/unnest pairs are the SQL equivalent of IntervaloTemporal.unir().
+     *
+     * A janela comeca na primeira medicao dentro dela, guardada em janela_monitoramento.primeira_medicao_em
+     * (V24, mantida por gatilho no banco). O calculo nao le a tabela medicao: a versao anterior juntava
+     * TODAS as medicoes da janela para tirar o min(), e o custo crescia com a idade da janela, nao com o
+     * periodo pedido (SLA de 1 dia = 5,8 s com 15,9 milhoes de linhas). "primeira < fim" reproduz o
+     * descarte da janela sem medicao no periodo [inicio_em, fim_em) caso o fim seja reduzido depois.
+     */
     public static final String BASE = """
       with universo as (
         select u.id unidade_id,u.nome unidade_nome,e.id equipamento_id,e.nome equipamento_nome,
@@ -42,14 +50,12 @@ public class DisponibilidadeSqlRepository {
            and (cast(:tipoId as bigint) is null or e.tipo_equipamento_id=:tipoId)
       ), janelas as (
         select x.monitor_id,j.id janela_id,j.origem,
-               greatest(:inicio,j.inicio_em, min(md.executado_em)) inicio_em,
+               greatest(:inicio,j.inicio_em,j.primeira_medicao_em) inicio_em,
                least(:fim,coalesce(j.fim_em,:fim)) fim_em
           from universo x join janela_monitoramento j on j.monitor_id=x.monitor_id
-          join medicao md on md.monitor_id=j.monitor_id and md.executado_em>=j.inicio_em
-                         and (j.fim_em is null or md.executado_em<j.fim_em)
          where j.inicio_em<:fim and (j.fim_em is null or j.fim_em>:inicio)
-         group by x.monitor_id,j.id,j.origem,j.inicio_em,j.fim_em
-        having greatest(:inicio,j.inicio_em,min(md.executado_em)) < least(:fim,coalesce(j.fim_em,:fim))
+           and j.primeira_medicao_em < coalesce(j.fim_em,'infinity')
+           and greatest(:inicio,j.inicio_em,j.primeira_medicao_em) < least(:fim,coalesce(j.fim_em,:fim))
       ), janelas_unidas as (
         select monitor_id, range_agg(tstzrange(inicio_em,fim_em,'[)')) faixas,
                bool_or(origem='INFERIDA') inferida

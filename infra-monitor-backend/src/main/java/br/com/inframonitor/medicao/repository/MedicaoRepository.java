@@ -39,14 +39,16 @@ public interface MedicaoRepository extends JpaRepository<Medicao, Long>, JpaSpec
      * Parallel Hash Anti Join sobre a tabela inteira (606 ms com 317 mil linhas) e, com 20 chamadas
      * simultaneas, os hashes paralelos estouravam o /dev/shm de 64 MB do PostgreSQL em Docker
      * ("could not resize shared memory segment") — o 500 da DV17. O monitor volta como proxy LAZY:
-     * quem chama so le o id dele, o que nao dispara consulta.
+     * quem chama so le o id dele, o que nao dispara consulta. O "between" no lugar de "=" prende o
+     * plano ao indice composto mesmo para monitor inativo ha meses; o motivo esta em
+     * DashboardReadRepository.ESTADOS.
      */
     @Query(nativeQuery = true, value = """
             select md.* from monitor alvo
             cross join lateral (
                 select m.* from medicao m
-                where m.monitor_id = alvo.id
-                order by m.executado_em desc, m.id desc
+                where m.monitor_id between alvo.id and alvo.id
+                order by m.monitor_id, m.executado_em desc, m.id desc
                 limit 1
             ) md
             where alvo.id in (:monitorIds)

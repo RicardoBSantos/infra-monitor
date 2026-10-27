@@ -2,6 +2,11 @@ package br.com.inframonitor.relatorio.entity;
 import br.com.inframonitor.monitor.entity.Monitor;
 import jakarta.persistence.*;
 import java.time.Instant;
+/**
+ * A coluna primeira_medicao_em (V24) NAO e mapeada de proposito: e mantida por gatilho no banco, e o
+ * update de todas as colunas que o Hibernate emite em fechar() regravaria por cima o valor do gatilho.
+ * Quem precisa dela e o SQL de disponibilidade, que le direto da tabela.
+ */
 @Entity @Table(name="janela_monitoramento")
 public class JanelaMonitoramento {
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
