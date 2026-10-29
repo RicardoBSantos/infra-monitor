@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p test-results
-          npm test -- --watch=false --reporters=junit --output-file=test-results/frontend.xml
+          npm test -- --watch=false --reporters=default --reporters=junit --output-file.junit=test-results/frontend.xml
       - name: Verificar testes e sanitizar relatorio
         if: ${{ always() }}
         run: |
