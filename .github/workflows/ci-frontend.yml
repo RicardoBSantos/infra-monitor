@@ -1,0 +1,113 @@
+name: CI Frontend
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+        working-directory: infra-monitor-frontend
+    env:
+      CI: "true"
+      TZ: UTC
+      NG_CLI_ANALYTICS: "false"
+      NPM_CONFIG_ENGINE_STRICT: "true"
+    steps:
+      - name: Checkout sem credenciais persistidas
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Node.js 24 com cache npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: infra-monitor-frontend/package-lock.json
+      - name: Instalar npm e dependencias pelo lockfile
+        run: |
+          set -euo pipefail
+          npm install --global npm@11.15.0
+          npm ci --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+      - name: Executar testes Vitest
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          npm test -- --watch=false --reporters=default --reporters=junit --output-file.junit=test-results/frontend.xml
+      - name: Verificar testes e sanitizar relatorio
+        if: ${{ always() }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          source = Path("test-results/frontend.xml")
+          if not source.is_file():
+              raise SystemExit("Relatorio JUnit nao gerado")
+          cases = list(ET.parse(source).getroot().iter("testcase"))
+          if not cases:
+              raise SystemExit("Nenhum teste frontend executado")
+          safe = ET.Element("testsuite", {"name":"frontend"})
+          for case in cases:
+              item = ET.SubElement(safe,"testcase",{k:case.get(k,"") for k in ("classname","name","time")})
+              for kind in ("failure","error","skipped"):
+                  if case.find(kind) is not None:
+                      ET.SubElement(item,kind,{"message":"Verifique o job"})
+          out = Path("test-results/published")
+          out.mkdir(parents=True,exist_ok=True)
+          ET.ElementTree(safe).write(out / "frontend.xml",encoding="utf-8",xml_declaration=True)
+          if any(any(case.find(kind) is not None for kind in ("failure","error","skipped")) for case in cases):
+              raise SystemExit("Teste frontend falhou ou foi ignorado")
+          print(f"Validado: {len(cases)} testes frontend")
+          PY
+      - name: Upload dos resultados
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: infra-monitor-frontend/test-results/published/*.xml
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Build Angular de producao
+        run: |
+          set -euo pipefail
+          npm run build -- --configuration production --source-map=false
+          test -s dist/infra-monitor-frontend/browser/index.html
+          git diff --exit-code -- package.json package-lock.json
+      - name: Empacotar frontend e checksums
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, shutil
+          src = Path("dist/infra-monitor-frontend/browser")
+          if not (src / "index.html").is_file():
+              raise SystemExit("index.html ausente")
+          out = Path("ci-package")
+          static = out / "wwwroot"
+          shutil.copytree(src,static)
+          hashes = [f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(out).as_posix()}" for p in sorted(static.rglob("*")) if p.is_file()]
+          if not hashes:
+              raise SystemExit("Pacote vazio")
+          (out / "SHA256SUMS").write_text("\n".join(hashes)+"\n")
+          (out / "build-manifest.json").write_text(json.dumps({"component":"frontend","commit":os.environ["GITHUB_SHA"],"run_id":os.environ["GITHUB_RUN_ID"],"configuration":"production"},indent=2))
+          PY
+      - name: Upload do frontend
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: infra-monitor-frontend/ci-package/
+          if-no-files-found: error
+          retention-days: 14
