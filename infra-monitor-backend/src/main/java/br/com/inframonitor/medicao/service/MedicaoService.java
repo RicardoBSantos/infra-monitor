@@ -1,5 +1,6 @@
 package br.com.inframonitor.medicao.service;
 
+import br.com.inframonitor.medicao.retencao.DetailedHistoryGuard;
 import br.com.inframonitor.common.exception.RecursoNaoEncontradoException;
 import br.com.inframonitor.medicao.dto.CreateMedicaoRequest;
 import br.com.inframonitor.medicao.dto.MedicaoResponse;
@@ -77,9 +78,11 @@ public class MedicaoService {
         return paraResposta(obterMedicao(id));
     }
 
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Page<MedicaoResponse> listar(Long monitorId, StatusMedicao status, Instant inicio, Instant fim,
                                          Pageable pageable) {
         validarPeriodo(inicio, fim);
+        DetailedHistoryGuard.requireAvailable(medicaoRepository.detailedHistoryAvailableFrom(), inicio);
         Specification<Medicao> filtro = Specification.unrestricted();
         if (monitorId != null) {
             filtro = filtro.and((root, query, cb) -> cb.equal(root.get("monitor").get("id"), monitorId));

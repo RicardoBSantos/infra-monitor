@@ -168,7 +168,7 @@ public class RelatorioExportService {
         }
     }
 
-    private static RelatorioExportQueryRepository.QueryDefinition definition(String base,String order,Map<String,Object> p,String headers,RelatorioExportQueryRepository.ResultRowMapper mapper){return new RelatorioExportQueryRepository.QueryDefinition("select count(*) from ("+base+") export_count",base+" order by "+order,p,headers(headers),mapper);}
+    private static RelatorioExportQueryRepository.QueryDefinition definition(String base,String order,Map<String,Object> p,String headers,RelatorioExportQueryRepository.ResultRowMapper mapper){return new RelatorioExportQueryRepository.QueryDefinition("select count(*) from ("+base+") export_count",base+" order by "+order,p,headers(headers),mapper,base.equals(MEDICOES)||base.equals(LATENCIA));}
     private static Map<String,Object> period(Instant a,Instant b){Map<String,Object> p=new HashMap<>();p.put("inicio",a);p.put("fim",b);return p;}
     private static Map<String,Object> hierarchy(Instant a,Instant b,Long u,Long e,Long m){Map<String,Object> p=period(a,b);p.put("unidadeId",u);p.put("equipamentoId",e);p.put("monitorId",m);return p;}
     private static String[] headers(String value){return value.split(",");}

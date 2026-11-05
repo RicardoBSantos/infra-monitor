@@ -1,6 +1,7 @@
 package br.com.inframonitor.relatorio.pdf;
 
 import br.com.inframonitor.relatorio.service.DisponibilidadeSqlRepository;
+import br.com.inframonitor.medicao.retencao.DetailedHistoryGuard;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,6 +66,7 @@ public class VisaoGeralPdfRepository {
         MapSqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("inicio", Timestamp.from(inicio)).addValue("fim", Timestamp.from(fim));
         aplicarTimeout();
+        DetailedHistoryGuard.requireAvailable(jdbc.getJdbcTemplate(), inicio);
         return jdbc.queryForObject(KPIS, parameters, (row, number) ->
                 new VisaoGeralPdfModel.Kpis(row.getLong("incidentes_abertos"),
                         row.getLong("medicoes_falha"), row.getLong("notificacoes_falha")));
@@ -78,6 +80,7 @@ public class VisaoGeralPdfRepository {
                 .addValue("unidadeId", null).addValue("equipamentoId", null)
                 .addValue("monitorId", null).addValue("tipoId", null);
         aplicarTimeout();
+        DetailedHistoryGuard.requireAvailable(jdbc.getJdbcTemplate(), inicio);
 
         VisaoGeralPdfModel.Kpis kpis = coletarKpis(inicio, fim);
 

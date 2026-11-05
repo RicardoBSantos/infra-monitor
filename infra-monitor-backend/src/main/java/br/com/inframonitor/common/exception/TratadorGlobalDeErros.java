@@ -1,5 +1,6 @@
 package br.com.inframonitor.common.exception;
 
+import br.com.inframonitor.medicao.retencao.DetailedHistoryUnavailableException;
 import br.com.inframonitor.common.api.ErroResposta;
 import br.com.inframonitor.auth.AccountDisabledException;
 import br.com.inframonitor.auth.AuthenticationFailedException;
@@ -91,6 +92,11 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErroResposta> tratarRequisicaoInvalida(IllegalArgumentException ex, WebRequest request) {
         return respostaDeErro(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DetailedHistoryUnavailableException.class)
+    public ResponseEntity<ErroResposta> tratarHistoricoIndisponivel(DetailedHistoryUnavailableException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.UNPROCESSABLE_ENTITY, "DETAILED_HISTORY_UNAVAILABLE", ex.getMessage(), request);
     }
 
     @ExceptionHandler(ExportLimitExceededException.class)
