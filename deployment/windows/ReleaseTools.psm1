@@ -102,135 +102,7 @@ function Test-WindowsPrerequisites {
     if (-not (Test-Path -LiteralPath (Join-Path $java 'bin/java.exe'))) { throw 'java.exe missing' }
     if ($ServiceSid -notmatch '^S-1-5-') { throw 'Explicit service SID required' }
     $wrapper=Assert-AbsolutePath $WinSWExecutable
-    if ($WinSWSha256 -notmatch '^[0-9a-f]{64} ($module in @('RewriteModule','ApplicationRequestRouting')) {
-        if (-not (Get-WebGlobalModule | Where-Object Name -eq $module)) { throw "IIS module missing: $module" }
-    }
-    $release=Get-ItemPropertyValue -LiteralPath 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release
-    if ($release -lt 394254) { throw '.NET Framework 4.6.1+ required by WinSW 2.12' }
-    foreach ($key in @('DB_NAME','DB_USERNAME','DB_PASSWORD','JWT_SECRET')) {
-        $file=Join-Path $Root "config/secrets/$key"
-        if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) { throw 'Mandatory protected configuration missing' }
-        $acl=Get-Acl -LiteralPath $file
-        if (-not $acl.AreAccessRulesProtected) { throw 'Secret ACL inheritance must be disabled' }
-        foreach ($ace in $acl.Access) {
-            $sid=$ace.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
-            if ($ace.AccessControlType -eq 'Allow' -and $sid -notin @('S-1-5-18','S-1-5-32-544',$ServiceSid)) { throw 'Secret ACL grants unexpected identity' }
-        }
-    }
-    [pscustomobject]@{ Java=21; IISModules='present'; SecretACL='checked'; WinSWInstall='not performed' }
-}
-function Invoke-ReleaseOperation {
-    [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
-    param(
-        [ValidateSet('Inspect','Prerequisites','Verify','Space','Stage','Health','Switch','Rollback')][string]$Operation='Inspect',
-        [Parameter(Mandatory)][string]$Root,
-        [string]$PackagePath,[string]$Version,
-        [ValidateSet('Both','backend','frontend')][string]$Component='Both',
-        [string]$CompatibilityProof,[int]$SchemaVersion=0,
-        [string]$ServiceName,[string]$SiteName,[string]$JavaHome,[string]$ServiceSid,
-        [string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome,
-        [UInt64]$OperationalPeakBytes=3GB,
-        [switch]$Apply,[string]$ApprovalId
-    )
-    $rootPath=Assert-AbsolutePath $Root
-    $manifest=if ($PackagePath) { Test-PackageIntegrity $PackagePath } else { $null }
-    if ($Operation -eq 'Prerequisites') { return Test-WindowsPrerequisites $JavaHome $rootPath $ServiceSid $WinSWExecutable $WinSWSha256 $PostgreSQLHome }
-    if ($Operation -eq 'Verify') { if (-not $manifest) { throw 'Package required' }; return $manifest }
-    if ($Operation -eq 'Health') { return Test-BackendHealth }
-    if ($Operation -eq 'Inspect') { return [pscustomobject]@{ Root=$rootPath; Package=$manifest; Apply=$false } }
-    if ($Version -and $Version -notmatch '^r-[0-9a-f]{40}$') { throw 'Invalid version' }
-    if ($manifest -and $Version -and $Version -cne $manifest.version) { throw 'Version mismatch' }
-    if (-not $Version -and $manifest) { $Version=$manifest.version }
-    if (-not $Version) { throw 'Explicit version required' }
-    $volume=[IO.Path]::GetPathRoot($rootPath)
-    $free=([IO.DriveInfo]::new($volume)).AvailableFreeSpace
-    $additional=if ($Operation -in @('Stage','Space') -and $manifest) { (Get-ChildItem -LiteralPath $PackagePath -File -Recurse | Measure-Object Length -Sum).Sum + 1MB } else { 1MB }
-    $space=Test-FreeSpacePolicy $free $additional $OperationalPeakBytes
-    if ($Operation -eq 'Space') { return $space }
-    if (-not $Apply) { return [pscustomobject]@{ DryRun=$true; Operation=$Operation; Version=$Version; Space=$space } }
-    if ([string]::IsNullOrWhiteSpace($ApprovalId)) { throw 'Explicit approval ID required' }
-    if (-not $PSCmdlet.ShouldProcess($rootPath,"$Operation $Version")) { return }
-    if (-not $IsWindows) { throw 'Windows required for mutations' }
-    $stage=Join-Path $rootPath "staging/$Version"
-    $target=Join-Path $rootPath "releases/$Version"
-    Assert-AbsolutePath $stage | Out-Null
-    Assert-AbsolutePath $target | Out-Null
-    if ($Operation -eq 'Stage') {
-        if (-not $manifest) { throw 'Package required' }
-        if (Test-Path -LiteralPath $stage) { throw 'Staging already exists' }
-        $releases=Join-Path $rootPath 'releases'
-        if ((Test-Path -LiteralPath $releases) -and @(Get-ChildItem -LiteralPath $releases -Directory).Count -ge 2) { throw 'Previous release must be reviewed manually; no automatic cleanup' }
-        New-Item -ItemType Directory -Path $stage | Out-Null
-        foreach ($item in Get-ChildItem -LiteralPath $PackagePath -Force) { Copy-Item -LiteralPath $item.FullName -Destination $stage -Recurse }
-        Test-PackageIntegrity $stage | Out-Null
-        return [pscustomobject]@{ Staged=$Version; Approval=$ApprovalId }
-    }
-    if ([string]::IsNullOrWhiteSpace($ServiceName) -or [string]::IsNullOrWhiteSpace($SiteName)) { throw 'Service and IIS site names required' }
-    Test-WindowsPrerequisites $JavaHome $rootPath $ServiceSid $WinSWExecutable $WinSWSha256 $PostgreSQLHome | Out-Null
-    $proofPath=Assert-AbsolutePath $CompatibilityProof
-    $proof=Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json -AsHashtable
-    $stateFile=Join-Path $rootPath 'config/deployment-state.json'
-    $state=Get-Content -Raw -LiteralPath $stateFile | ConvertFrom-Json -AsHashtable
-    if (-not (Test-Path -LiteralPath $target)) {
-        if ($Operation -eq 'Rollback') { throw 'Rollback target missing' }
-        $package=Test-PackageIntegrity $stage
-        Test-RollbackCompatibility $proof $state $package $Component $SchemaVersion
-        New-Item -ItemType Directory -Path (Join-Path $rootPath 'releases') -Force | Out-Null
-        $source=Join-Path $stage "releases/$Version"
-        Assert-AbsolutePath $source | Out-Null
-        Move-Item -LiteralPath $source -Destination $target
-        Copy-Item -LiteralPath (Join-Path $stage 'package-manifest.json') -Destination (Join-Path $target 'release-manifest.json')
-    }
-    $release=Test-ReleaseIntegrity $target
-    Test-RollbackCompatibility $proof $state $release $Component $SchemaVersion
-    Import-Module WebAdministration
-    $components=if ($Component -eq 'Both') { @('backend','frontend') } else { @($Component) }
-    $current=Join-Path $rootPath 'current'
-    Assert-AbsolutePath $current | Out-Null
-    foreach ($part in $components) {
-        $link=Join-Path $current $part; $previous=Join-Path $current "$part.previous"
-        if (Test-Path -LiteralPath $previous) { throw 'Previous link requires manual review' }
-        if (Test-Path -LiteralPath $link) {
-            $item=Get-Item -LiteralPath $link -Force
-            $expected=Join-Path $rootPath "releases/$($state[$part])/$part"
-            if ($item.LinkType -ne 'Junction' -or [IO.Path]::GetFullPath($item.Target) -ine [IO.Path]::GetFullPath($expected)) { throw 'Unexpected current link' }
-        }
-    }
-    $logs=Join-Path $rootPath 'logs'
-    New-Item -ItemType Directory -Path $logs -Force | Out-Null
-    $evidence=Join-Path $logs 'deployment.ndjson'
-    try {
-        @{event='START';operation=$Operation;version=$Version;approval=$ApprovalId;utc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Compress | Add-Content -LiteralPath $evidence
-        Stop-Website -Name $SiteName
-        if ('backend' -in $components) {
-            Stop-Service -Name $ServiceName -ErrorAction Stop
-            (Get-Service -Name $ServiceName).WaitForStatus('Stopped',[TimeSpan]::FromSeconds(45))
-        }
-        New-Item -ItemType Directory -Path $current -Force | Out-Null
-        foreach ($part in $components) {
-            $link=Join-Path $current $part
-            if (Test-Path -LiteralPath $link) { Move-Item -LiteralPath $link -Destination (Join-Path $current "$part.previous") }
-            New-Item -ItemType Junction -Path $link -Target (Join-Path $target $part) | Out-Null
-        }
-        if ('backend' -in $components) { Start-Service -Name $ServiceName }
-        $healthy=$false
-        for ($i=0;$i -lt 12;$i++) {
-            try { Test-BackendHealth | Out-Null; $healthy=$true; break } catch { Start-Sleep -Seconds 5 }
-        }
-        if (-not $healthy) { throw 'Health failed; site remains stopped, manual recovery required' }
-        foreach ($part in $components) { $state[$part]=$Version }
-        $temporary=$stateFile+'.new'
-        $state | ConvertTo-Json | Set-Content -LiteralPath $temporary
-        Move-Item -LiteralPath $temporary -Destination $stateFile -Force
-        Start-Website -Name $SiteName
-        @{event='SUCCESS';version=$Version;utc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Compress | Add-Content -LiteralPath $evidence
-    } catch {
-        @{event='FAILED';operation=$Operation;errorType=$_.Exception.GetType().Name;utc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Compress | Add-Content -LiteralPath $evidence
-        throw 'Release operation failed; preserve stopped site and review evidence. No migration rollback was attempted.'
-    }
-}
-Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Test-RollbackCompatibility,Test-HealthResult,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation
- -or (Get-FileHash -LiteralPath $wrapper -Algorithm SHA256).Hash.ToLowerInvariant() -cne $WinSWSha256) { throw 'WinSW approved binary hash required' }
+    if ($WinSWSha256 -notmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath $wrapper -Algorithm SHA256).Hash.ToLowerInvariant() -cne $WinSWSha256) { throw 'WinSW approved binary hash required' }
     $pg=Assert-AbsolutePath $PostgreSQLHome
     if ((Get-Item -LiteralPath (Join-Path $pg 'bin/postgres.exe')).VersionInfo.FileMajorPart -ne 16) { throw 'PostgreSQL 16 required' }
     Import-Module WebAdministration
@@ -241,7 +113,9 @@ Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-Pack
     if ($release -lt 394254) { throw '.NET Framework 4.6.1+ required by WinSW 2.12' }
     foreach ($key in @('DB_NAME','DB_USERNAME','DB_PASSWORD','JWT_SECRET')) {
         $file=Join-Path $Root "config/secrets/$key"
+        Assert-AbsolutePath $file | Out-Null
         if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) { throw 'Mandatory protected configuration missing' }
+        if ($key -eq 'JWT_SECRET' -and (Get-Item -LiteralPath $file).Length -lt 32) { throw 'JWT key too short' }
         $acl=Get-Acl -LiteralPath $file
         if (-not $acl.AreAccessRulesProtected) { throw 'Secret ACL inheritance must be disabled' }
         foreach ($ace in $acl.Access) {
@@ -273,6 +147,12 @@ function Invoke-ReleaseOperation {
     if ($manifest -and $Version -and $Version -cne $manifest.version) { throw 'Version mismatch' }
     if (-not $Version -and $manifest) { $Version=$manifest.version }
     if (-not $Version) { throw 'Explicit version required' }
+    if ($Operation -eq 'Stage') {
+        if (-not $PackagePath) { throw 'Package required' }
+        $packageRoot=Assert-AbsolutePath $PackagePath
+        $sep=[IO.Path]::DirectorySeparatorChar
+        if ($packageRoot -ieq $rootPath -or $packageRoot.StartsWith($rootPath+$sep,[StringComparison]::OrdinalIgnoreCase) -or $rootPath.StartsWith($packageRoot+$sep,[StringComparison]::OrdinalIgnoreCase)) { throw 'Package and deployment root must not contain one another' }
+    }
     $volume=[IO.Path]::GetPathRoot($rootPath)
     $free=([IO.DriveInfo]::new($volume)).AvailableFreeSpace
     $additional=if ($Operation -in @('Stage','Space') -and $manifest) { (Get-ChildItem -LiteralPath $PackagePath -File -Recurse | Measure-Object Length -Sum).Sum + 1MB } else { 1MB }
@@ -282,6 +162,13 @@ function Invoke-ReleaseOperation {
     if ([string]::IsNullOrWhiteSpace($ApprovalId)) { throw 'Explicit approval ID required' }
     if (-not $PSCmdlet.ShouldProcess($rootPath,"$Operation $Version")) { return }
     if (-not $IsWindows) { throw 'Windows required for mutations' }
+    $key=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($rootPath.ToLowerInvariant())))
+    $mutex=[Threading.Mutex]::new($false,('Global\InfraMonitorDeployment-'+$key))
+    $held=$false
+    try {
+    $held=$mutex.WaitOne(0)
+    if (-not $held) { throw 'Another deployment operation is active' }
+    foreach ($directory in @('config','logs','current','staging','releases')) { Assert-AbsolutePath (Join-Path $rootPath $directory) | Out-Null }
     $stage=Join-Path $rootPath "staging/$Version"
     $target=Join-Path $rootPath "releases/$Version"
     Assert-AbsolutePath $stage | Out-Null
@@ -323,7 +210,7 @@ function Invoke-ReleaseOperation {
         if (Test-Path -LiteralPath $link) {
             $item=Get-Item -LiteralPath $link -Force
             $expected=Join-Path $rootPath "releases/$($state[$part])/$part"
-            if ($item.LinkType -ne 'Junction' -or [IO.Path]::GetFullPath($item.Target) -ine [IO.Path]::GetFullPath($expected)) { throw 'Unexpected current link' }
+            if ($item.LinkType -ne 'Junction' -or @($item.Target).Count -ne 1 -or [IO.Path]::GetFullPath([string]@($item.Target)[0]) -ine [IO.Path]::GetFullPath($expected)) { throw 'Unexpected current link' }
         }
     }
     $logs=Join-Path $rootPath 'logs'
@@ -357,6 +244,10 @@ function Invoke-ReleaseOperation {
     } catch {
         @{event='FAILED';operation=$Operation;errorType=$_.Exception.GetType().Name;utc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Compress | Add-Content -LiteralPath $evidence
         throw 'Release operation failed; preserve stopped site and review evidence. No migration rollback was attempted.'
+    }
+    } finally {
+        if ($held) { $mutex.ReleaseMutex() }
+        $mutex.Dispose()
     }
 }
 Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Test-RollbackCompatibility,Test-HealthResult,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation

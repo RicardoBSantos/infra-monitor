@@ -31,4 +31,5 @@ foreach ($file in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '..') -Rec
 foreach ($file in @('winsw.xml.template','web.config.template')) {
     [xml](Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot ".." $file)) | Out-Null
 }; $count++
+Assert-Throws { Invoke-ReleaseOperation -Operation Stage -Root $FixturePackage -PackagePath $FixturePackage }; $count++
 Write-Output "Windows packaging assertions passed: $count"
