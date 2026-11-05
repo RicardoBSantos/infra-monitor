@@ -68,7 +68,8 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
     }
 
     // Keep the real reconciler and every assertion; control only automatic timer delivery.
-    @MockitoBean(name = "taskScheduler") private TaskScheduler timer;
+    @MockitoBean(name = "taskScheduler", answers = org.mockito.Answers.CALLS_REAL_METHODS)
+    private TaskScheduler timer;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ReconciliadorManutencao reconciliador;
     @Autowired private CoberturaManutencao cobertura;
