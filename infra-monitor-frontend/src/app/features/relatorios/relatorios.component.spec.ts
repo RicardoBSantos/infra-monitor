@@ -391,8 +391,8 @@ describe('RelatoriosComponent', () => {
     expect(matches.length).toBe(1);
     const exportRequest = matches[0];
     expect(exportRequest.request.method).toBe('GET'); expect(exportRequest.request.responseType).toBe('blob');
-    expect(exportRequest.request.params.get('inicio')).toBe('2026-08-01T03:00:00.000Z');
-    expect(exportRequest.request.params.get('fim')).toBe('2026-08-25T15:30:00.000Z');
+    expect(exportRequest.request.params.get('inicio')).toBe(new Date('2026-08-01T00:00').toISOString());
+    expect(exportRequest.request.params.get('fim')).toBe(new Date('2026-08-25T12:30').toISOString());
     expect(exportRequest.request.params.has('page')).toBe(false); expect(exportRequest.request.params.has('size')).toBe(false); expect(exportRequest.request.params.has('sort')).toBe(false);
     const originalBlob = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
     exportRequest.flush(originalBlob, { headers: {

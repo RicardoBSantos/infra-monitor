@@ -1,0 +1,151 @@
+name: CI Backend
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: infra-monitor-backend
+    env:
+      CI: "true"
+      TZ: UTC
+      DB_HOST: 127.0.0.1
+      DB_PORT: "1"
+      DB_NAME: ci_no_fallback
+      DB_USERNAME: ci_dummy
+      DB_PASSWORD: ci_dummy
+      SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:1/ci_no_fallback
+      SPRING_DATASOURCE_USERNAME: ci_dummy
+      SPRING_DATASOURCE_PASSWORD: ci_dummy
+      JWT_SECRET: ci-only-placeholder-with-at-least-32-bytes
+      MONITORING_ENGINE_ENABLED: "false"
+      TELEGRAM_ENABLED: "false"
+      NOTIFICATION_TELEGRAM_ENABLED: "false"
+      NOTIFICATION_DISPATCHER_ENABLED: "false"
+      MANUTENCAO_AGENDADA_ENABLED: "false"
+      BOOTSTRAP_ADMIN_ENABLED: "false"
+      TELEGRAM_API_BASE_URL: http://127.0.0.1:1
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_CHAT_ID: ""
+    steps:
+      - name: Checkout sem credenciais persistidas
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Configurar Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: infra-monitor-backend/pom.xml
+      - name: Exigir Docker para Testcontainers
+        run: |
+          set -euo pipefail
+          docker info >/dev/null
+          test -f mvnw
+      - name: Compilar, testar e empacotar
+        run: |
+          set -euo pipefail
+          bash ./mvnw --batch-mode --no-transfer-progress \
+            -Dexcluded.groups=rede-real,bench \
+            -Dmaven.test.failure.ignore=false \
+            -DfailIfNoTests=true clean verify
+      - name: Verificar testes PostgreSQL obrigatorios
+        if: ${{ always() }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+          reports = list(Path("target/surefire-reports").glob("TEST-*.xml"))
+          if not reports:
+              raise SystemExit("Nenhum relatorio Surefire encontrado")
+          cases = [case for report in reports for case in ET.parse(report).getroot().iter("testcase")]
+          if not cases:
+              raise SystemExit("Nenhum teste executado")
+          required = set()
+          for source in Path("src/test/java").rglob("*.java"):
+              body = source.read_text(encoding="utf-8")
+              if re.search(r"(?m)^\s*@RequerDocker\b", body):
+                  package = re.search(r"(?m)^\s*package\s+([\w.]+)\s*;", body)
+                  if not package:
+                      raise SystemExit(f"Package ausente: {source}")
+                  required.add(package.group(1) + "." + source.stem)
+          if not required:
+              raise SystemExit("Nenhuma classe @RequerDocker encontrada")
+          for name in sorted(required):
+              matched = [case for case in cases if case.get("classname") == name]
+              if not matched or any(case.find("skipped") is not None for case in matched):
+                  raise SystemExit(f"Integracao ausente ou ignorada: {name}")
+          if any(case.find("failure") is not None or case.find("error") is not None for case in cases):
+              raise SystemExit("Testes com falhas")
+          print(f"Validado: {len(cases)} casos, {len(required)} classes Docker")
+          PY
+      - name: Publicar relatorios de testes sanitizados
+        if: ${{ always() }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          out = Path("target/ci-test-results")
+          out.mkdir(parents=True, exist_ok=True)
+          for src in Path("target/surefire-reports").glob("TEST-*.xml"):
+              root = ET.parse(src).getroot()
+              safe = ET.Element("testsuite", {"name": root.get("name", src.stem)})
+              for case in root.iter("testcase"):
+                  item = ET.SubElement(safe, "testcase", {k:case.get(k,"") for k in ("classname","name","time")})
+                  for kind in ("failure","error","skipped"):
+                      if case.find(kind) is not None:
+                          ET.SubElement(item,kind,{"message":"Verifique o job"})
+              ET.ElementTree(safe).write(out / src.name, encoding="utf-8", xml_declaration=True)
+          PY
+      - name: Upload de resultados
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-tests-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: infra-monitor-backend/target/ci-test-results/*.xml
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Empacotar JAR e manifesto
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, shutil, zipfile
+          jars = [p for p in Path("target").glob("*.jar") if not p.name.endswith(("-sources.jar","-javadoc.jar","-tests.jar"))]
+          if len(jars) != 1:
+              raise SystemExit(f"Esperado um JAR, encontrados {len(jars)}")
+          with zipfile.ZipFile(jars[0]) as archive:
+              if not any(n.startswith("BOOT-INF/classes/") for n in archive.namelist()):
+                  raise SystemExit("JAR nao executavel Spring Boot")
+          dest = Path("target/ci-package")
+          dest.mkdir(parents=True, exist_ok=True)
+          jar = dest / ("infra-monitor-backend-" + os.environ["GITHUB_SHA"] + ".jar")
+          shutil.copy2(jars[0], jar)
+          sha = hashlib.sha256(jar.read_bytes()).hexdigest()
+          (dest / "SHA256SUMS").write_text(f"{sha}  {jar.name}\n")
+          (dest / "build-manifest.json").write_text(json.dumps({"component":"backend","commit":os.environ["GITHUB_SHA"],"run_id":os.environ["GITHUB_RUN_ID"],"sha256":sha},indent=2))
+          PY
+      - name: Upload do backend
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: infra-monitor-backend/target/ci-package/
+          if-no-files-found: error
+          retention-days: 14
