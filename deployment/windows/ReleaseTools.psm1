@@ -207,6 +207,21 @@ function Invoke-ReleaseOperation {
         return [pscustomobject]@{ Staged=$Version; Approval=$ApprovalId }
     }
     if ([string]::IsNullOrWhiteSpace($ServiceName) -or [string]::IsNullOrWhiteSpace($SiteName)) { throw 'Service and IIS site names required' }
+    if ($ServiceName -notmatch '^[A-Za-z0-9_.-]{1,128}$' -or $SiteName -notmatch '^[A-Za-z0-9_. -]{1,100}$') { throw 'Literal service/site identities required' }
+    Import-Module WebAdministration
+    $site=Get-Website -Name $SiteName
+    $physical=[Environment]::ExpandEnvironmentVariables([string]$site.physicalPath)
+    if ([IO.Path]::GetFullPath($physical).TrimEnd('\') -ine [IO.Path]::GetFullPath((Join-Path $rootPath 'current/frontend')).TrimEnd('\')) { throw 'IIS site does not belong to this deployment root' }
+    $https=@(Get-WebBinding -Name $SiteName -Protocol https)
+    if (-not $https.Count -or @($https | Where-Object { -not $_.certificateHash -or ([string]$_.bindingInformation).Split(':')[-1] -match '^$|\*' }).Count) { throw 'Explicit HTTPS hostname/certificate binding required' }
+    if (-not (Get-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/proxy' -Name enabled).Value) { throw 'ARR proxy is not enabled' }
+    $service=Get-CimInstance Win32_Service -Filter "Name='$ServiceName'"
+    if (-not $service -or $service.StartName -in @('LocalSystem','NT AUTHORITY\SYSTEM')) { throw 'Dedicated existing service identity required' }
+    $identity=[Security.Principal.NTAccount]::new([string]$service.StartName)
+    if ($identity.Translate([Security.Principal.SecurityIdentifier]).Value -ne $ServiceSid) { throw 'Service SID mismatch' }
+    $exe=[regex]::Match([string]$service.PathName,'^(?:"([^"]+)"|(\S+))')
+    $actualExe=if ($exe.Groups[1].Success) { $exe.Groups[1].Value } else { $exe.Groups[2].Value }
+    if ([IO.Path]::GetFullPath($actualExe) -ine [IO.Path]::GetFullPath($WinSWExecutable)) { throw 'Service executable does not match approved WinSW' }
     $proofPath=Assert-AbsolutePath $CompatibilityProof
     $proof=Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json -AsHashtable
     $stateFile=Join-Path $rootPath 'config/deployment-state.json'
