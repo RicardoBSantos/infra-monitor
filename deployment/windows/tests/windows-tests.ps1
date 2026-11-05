@@ -42,4 +42,6 @@ $link=Get-Item -LiteralPath (Join-Path $junctionRoot 'current/backend')
 if ([IO.Path]::GetFullPath([string]@($link.Target)[0]) -ine [IO.Path]::GetFullPath((Join-Path $junctionRoot "releases/$v1/backend"))) { throw 'Rollback junction mismatch' }; $count++
 [xml]$model=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../winsw.xml.template')
 if (-not $model.service.arguments.Contains('--spring.datasource.password=$'+'{DB_PASSWORD}')) { throw 'Required credential placeholder missing' }; $count++
+[xml]$iis=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../web.config.template')
+if (-not @($iis.configuration.'system.webServer'.staticContent.mimeMap | Where-Object fileExtension -eq '.mjs').Count) { throw 'MapLibre module MIME missing' }; $count++
 Write-Output "Windows packaging assertions passed: $count"
