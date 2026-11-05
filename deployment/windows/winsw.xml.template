@@ -1,0 +1,28 @@
+<!-- MODEL ONLY: replace @@JAVA_EXE@@ and @@ROOT@@ with reviewed absolute paths.
+     WinSW 2.12.0 x64/.NET Framework; executable supplied separately, never downloaded here. -->
+<service>
+  <id>InfraMonitorBackend</id>
+  <name>Infra Monitor Backend</name>
+  <description>Infra Monitor V1 - Java 21</description>
+  <executable>@@JAVA_EXE@@</executable>
+  <arguments>-jar "@@ROOT@@\current\backend\app.jar" --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8080 --spring.flyway.enabled=false &quot;--spring.config.import=configtree:@@ROOT_URI@@/config/secrets/&quot; --server.shutdown=graceful --spring.lifecycle.timeout-per-shutdown-phase=30s &quot;--logging.file.name=@@ROOT_URI@@/logs/backend/application.log&quot; --logging.logback.rollingpolicy.max-file-size=20MB --logging.logback.rollingpolicy.total-size-cap=192MB --logging.logback.rollingpolicy.max-history=7</arguments>
+  <workingdirectory>@@ROOT@@\current\backend</workingdirectory>
+  <env name="DB_HOST" value="127.0.0.1"/>
+  <env name="DB_PORT" value="5432"/>
+  <startmode>Manual</startmode>
+  <serviceaccount>
+    <domain>NT SERVICE</domain>
+    <user>InfraMonitorBackend</user>
+    <allowservicelogon>true</allowservicelogon>
+  </serviceaccount>
+  <stoptimeout>45sec</stoptimeout>
+  <onfailure action="restart" delay="30sec"/>
+  <onfailure action="restart" delay="60sec"/>
+  <onfailure action="none"/>
+  <resetfailure>1hour</resetfailure>
+  <logpath>@@ROOT@@\logs\service</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>2048</sizeThreshold>
+    <keepFiles>4</keepFiles>
+  </log>
+</service>
