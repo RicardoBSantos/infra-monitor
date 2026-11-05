@@ -1,0 +1,119 @@
+name: CI Windows Packaging
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Approved main commit SHA (40 lowercase hex characters)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-packaging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Python integrity and rejection tests
+        shell: pwsh
+        run: python -m unittest discover -s deployment/windows/tests -p test_package.py -v
+      - name: Build a synthetic fixture (not an application release)
+        shell: pwsh
+        run: python deployment/windows/tests/test_package.py --fixture "$env:RUNNER_TEMP/packaging-fixture"
+      - name: PowerShell syntax, space, health, rollback and dry-run tests
+        shell: pwsh
+        run: ./deployment/windows/tests/windows-tests.ps1 -FixturePackage "$env:RUNNER_TEMP/packaging-fixture/package"
+
+  assemble:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact: ${{ steps.identity.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Resolve explicit application commit
+        id: identity
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_COMMIT: ${{ inputs.commit }}
+          BASE_COMMIT: ${{ github.event.pull_request.base.sha }}
+          BUILD_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import os,re
+          c=os.environ["INPUT_COMMIT"] if os.environ["EVENT"]=="workflow_dispatch" else (os.environ["BASE_COMMIT"] if os.environ["EVENT"]=="pull_request" else os.environ["BUILD_COMMIT"])
+          if not re.fullmatch("[0-9a-f]{40}",c): raise SystemExit("Invalid target commit")
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              f.write("commit="+c+"\n")
+              f.write("artifact=windows-homologation-"+c+"-"+os.environ["GITHUB_RUN_ID"]+"-"+os.environ["GITHUB_RUN_ATTEMPT"]+"\n")
+          PY
+      - name: Require successful main CI and exact artifact identities
+        id: approved
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ steps.identity.outputs.commit }}
+        run: python deployment/windows/package.py resolve --repo "$REPOSITORY" --commit "$COMMIT" --output provenance.json
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ steps.approved.outputs.backend_artifact }}
+          run-id: ${{ steps.approved.outputs.backend_run }}
+          github-token: ${{ github.token }}
+          path: approved/backend
+          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ steps.approved.outputs.frontend_artifact }}
+          run-id: ${{ steps.approved.outputs.frontend_run }}
+          github-token: ${{ github.token }}
+          path: approved/frontend
+          merge-multiple: true
+      - name: Assemble without executing JAR, frontend or deployment scripts
+        env:
+          COMMIT: ${{ steps.identity.outputs.commit }}
+        run: python deployment/windows/package.py assemble --backend approved/backend --frontend approved/frontend --commit "$COMMIT" --output out --templates deployment/windows --provenance provenance.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: ${{ steps.identity.outputs.artifact }}
+          path: out/
+          retention-days: 7
+          if-no-files-found: error
+
+  verify-windows:
+    needs: assemble
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: ${{ needs.assemble.outputs.artifact }}
+          path: homologation
+      - name: Verify the actual package in read-only mode
+        shell: pwsh
+        run: |
+          Import-Module "$env:GITHUB_WORKSPACE/homologation/ReleaseTools.psm1" -Force
+          Test-PackageIntegrity -PackagePath "$env:GITHUB_WORKSPACE/homologation" | Select-Object version,commit,schemaVersion
