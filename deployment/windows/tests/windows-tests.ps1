@@ -32,4 +32,14 @@ foreach ($file in @('winsw.xml.template','web.config.template')) {
     [xml](Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot ".." $file)) | Out-Null
 }; $count++
 Assert-Throws { Invoke-ReleaseOperation -Operation Stage -Root $FixturePackage -PackagePath $FixturePackage }; $count++
+$junctionRoot=Join-Path $env:RUNNER_TEMP ('junction-test-'+[guid]::NewGuid())
+$v1='r-'+('1'*40); $v2='r-'+('2'*40)
+foreach ($path in @('current',"releases/$v1/backend","releases/$v2/backend")) { New-Item -ItemType Directory -Path (Join-Path $junctionRoot $path) -Force | Out-Null }
+& (Get-Module ReleaseTools) { param($r,$v) Invoke-JunctionTransition $r $v 'backend' $false } $junctionRoot $v1
+& (Get-Module ReleaseTools) { param($r,$v) Invoke-JunctionTransition $r $v 'backend' $false } $junctionRoot $v2
+& (Get-Module ReleaseTools) { param($r,$v) Invoke-JunctionTransition $r $v 'backend' $true } $junctionRoot $v1
+$link=Get-Item -LiteralPath (Join-Path $junctionRoot 'current/backend')
+if ([IO.Path]::GetFullPath([string]@($link.Target)[0]) -ine [IO.Path]::GetFullPath((Join-Path $junctionRoot "releases/$v1/backend"))) { throw 'Rollback junction mismatch' }; $count++
+[xml]$model=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../winsw.xml.template')
+if (-not $model.service.arguments.Contains('--spring.datasource.password=$'+'{DB_PASSWORD}')) { throw 'Required credential placeholder missing' }; $count++
 Write-Output "Windows packaging assertions passed: $count"

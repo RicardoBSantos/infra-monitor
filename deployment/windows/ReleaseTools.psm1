@@ -125,6 +125,29 @@ function Test-WindowsPrerequisites {
     }
     [pscustomobject]@{ Java=21; IISModules='present'; SecretACL='checked'; WinSWInstall='not performed' }
 }
+function Invoke-JunctionTransition([string]$Root,[string]$Version,[string]$Part,[bool]$Rollback) {
+    if ($Version -notmatch '^r-[0-9a-f]{40}$' -or $Part -notin @('backend','frontend')) { throw 'Invalid junction identity' }
+    $current=Join-Path $Root 'current'
+    Assert-AbsolutePath $current | Out-Null
+    $link=Join-Path $current $Part
+    $previous=Join-Path $current "$Part.previous"
+    $temporary=Join-Path $current "$Part.swap"
+    $target=Join-Path $Root "releases/$Version/$Part"
+    Assert-AbsolutePath $target | Out-Null
+    if (-not (Test-Path -LiteralPath $target -PathType Container)) { throw 'Junction target missing' }
+    if (Test-Path -LiteralPath $temporary) { throw 'Interrupted transition requires review' }
+    if (Test-Path -LiteralPath $previous) {
+        $old=Get-Item -LiteralPath $previous -Force
+        if (-not $Rollback -or $old.LinkType -ne 'Junction' -or @($old.Target).Count -ne 1 -or [IO.Path]::GetFullPath([string]@($old.Target)[0]) -ine [IO.Path]::GetFullPath($target)) { throw 'Previous junction is not the approved rollback target' }
+        # Rename pointers only. Never recursively delete a link or its target.
+        Move-Item -LiteralPath $link -Destination $temporary
+        Move-Item -LiteralPath $previous -Destination $link
+        Move-Item -LiteralPath $temporary -Destination $previous
+    } else {
+        if (Test-Path -LiteralPath $link) { Move-Item -LiteralPath $link -Destination $previous }
+        New-Item -ItemType Junction -Path $link -Target $target | Out-Null
+    }
+}
 function Invoke-ReleaseOperation {
     [CmdletBinding(SupportsShouldProcess,ConfirmImpact='High')]
     param(
@@ -206,7 +229,11 @@ function Invoke-ReleaseOperation {
     Assert-AbsolutePath $current | Out-Null
     foreach ($part in $components) {
         $link=Join-Path $current $part; $previous=Join-Path $current "$part.previous"
-        if (Test-Path -LiteralPath $previous) { throw 'Previous link requires manual review' }
+        if (Test-Path -LiteralPath (Join-Path $current "$part.swap")) { throw 'Interrupted junction swap requires review' }
+        if (Test-Path -LiteralPath $previous) {
+            $old=Get-Item -LiteralPath $previous -Force
+            if ($Operation -ne 'Rollback' -or $old.LinkType -ne 'Junction' -or @($old.Target).Count -ne 1 -or [IO.Path]::GetFullPath([string]@($old.Target)[0]) -ine [IO.Path]::GetFullPath((Join-Path $target $part))) { throw 'Previous link is not the approved rollback target' }
+        }
         if (Test-Path -LiteralPath $link) {
             $item=Get-Item -LiteralPath $link -Force
             $expected=Join-Path $rootPath "releases/$($state[$part])/$part"
@@ -225,9 +252,7 @@ function Invoke-ReleaseOperation {
         }
         New-Item -ItemType Directory -Path $current -Force | Out-Null
         foreach ($part in $components) {
-            $link=Join-Path $current $part
-            if (Test-Path -LiteralPath $link) { Move-Item -LiteralPath $link -Destination (Join-Path $current "$part.previous") }
-            New-Item -ItemType Junction -Path $link -Target (Join-Path $target $part) | Out-Null
+            Invoke-JunctionTransition $rootPath $Version $part ($Operation -eq 'Rollback')
         }
         if ('backend' -in $components) { Start-Service -Name $ServiceName }
         $healthy=$false

@@ -5,7 +5,7 @@
   <name>Infra Monitor Backend</name>
   <description>Infra Monitor V1 - Java 21</description>
   <executable>@@JAVA_EXE@@</executable>
-  <arguments>-jar "@@ROOT@@\current\backend\app.jar" --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8080 --spring.flyway.enabled=false &quot;--spring.config.import=configtree:@@ROOT_URI@@/config/secrets/&quot; --server.shutdown=graceful --spring.lifecycle.timeout-per-shutdown-phase=30s &quot;--logging.file.name=@@ROOT_URI@@/logs/backend/application.log&quot; --logging.logback.rollingpolicy.max-file-size=20MB --logging.logback.rollingpolicy.total-size-cap=192MB --logging.logback.rollingpolicy.max-history=7</arguments>
+  <arguments>-jar "@@ROOT@@\current\backend\app.jar" --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8080 --spring.flyway.enabled=false &quot;--spring.config.import=configtree:@@ROOT_URI@@/config/secrets/&quot; --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/${DB_NAME} --spring.datasource.username=${DB_USERNAME} --spring.datasource.password=${DB_PASSWORD} --app.auth.jwt.secret=${JWT_SECRET} --server.shutdown=graceful --spring.lifecycle.timeout-per-shutdown-phase=30s &quot;--logging.file.name=@@ROOT_URI@@/logs/backend/application.log&quot; --logging.logback.rollingpolicy.max-file-size=20MB --logging.logback.rollingpolicy.total-size-cap=192MB --logging.logback.rollingpolicy.max-history=7</arguments>
   <workingdirectory>@@ROOT@@\current\backend</workingdirectory>
   <env name="DB_HOST" value="127.0.0.1"/>
   <env name="DB_PORT" value="5432"/>
