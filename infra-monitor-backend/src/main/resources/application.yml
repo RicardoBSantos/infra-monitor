@@ -78,6 +78,20 @@ management:
       enabled: true
 
 monitoring:
+  retention:
+    enabled: ${RETENTION_ENABLED:false}
+    dry-run: ${RETENTION_DRY_RUN:true}
+    deletion-approved: ${RETENTION_DELETION_APPROVED:false}
+    days: ${RETENTION_DAYS:30}
+    batch-size: ${RETENTION_BATCH_SIZE:1000}
+    max-batches: ${RETENTION_MAX_BATCHES:50}
+    max-rows-per-run: ${RETENTION_MAX_ROWS_PER_RUN:50000}
+    max-operational-tail: ${RETENTION_MAX_OPERATIONAL_TAIL:1000}
+    max-run-time: ${RETENTION_MAX_RUN_TIME:30s}
+    batch-timeout: ${RETENTION_BATCH_TIMEOUT:3s}
+    lock-timeout: ${RETENTION_LOCK_TIMEOUT:200ms}
+    interval: ${RETENTION_INTERVAL:15m}
+    initial-delay: ${RETENTION_INITIAL_DELAY:15m}
   # Acima deste tempo de resposta ICMP a leitura operacional vira DEGRADADO.
   latencia-degradada-ms: ${MONITORING_LATENCIA_DEGRADADA_MS:250}
   # Ciclos consecutivos acima (ou abaixo) do limiar para abrir e fechar um episodio de latencia.

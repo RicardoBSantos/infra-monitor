@@ -16,6 +16,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface MedicaoRepository extends JpaRepository<Medicao, Long>, JpaSpecificationExecutor<Medicao> {
 
+    @Query(value = "select historico_detalhado_desde from medicao_retencao_estado where id=1", nativeQuery = true)
+    java.time.Instant detailedHistoryAvailableFrom();
+
     boolean existsByMonitorId(Long monitorId);
 
     @Override

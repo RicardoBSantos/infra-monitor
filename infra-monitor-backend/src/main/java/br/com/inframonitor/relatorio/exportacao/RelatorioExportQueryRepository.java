@@ -1,5 +1,6 @@
 package br.com.inframonitor.relatorio.exportacao;
 
+import br.com.inframonitor.medicao.retencao.DetailedHistoryGuard;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -43,6 +44,8 @@ public class RelatorioExportQueryRepository {
             connection.setReadOnly(true);
             connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             Instant deadline = Instant.now().plusSeconds(timeoutSeconds);
+            if (definition.detailedHistory())
+                DetailedHistoryGuard.requireAvailable(connection, (Instant) definition.parameters().get("inicio"));
             long count = count(connection, definition.countSql(), definition.parameters(), deadline);
             if (count > limit) {
                 throw new ExportLimitExceededException(limit, count);
@@ -120,7 +123,12 @@ public class RelatorioExportQueryRepository {
     }
 
     public record QueryDefinition(String countSql, String dataSql, Map<String, Object> parameters,
-                                  String[] headers, ResultRowMapper mapper) { }
+                                  String[] headers, ResultRowMapper mapper, boolean detailedHistory) {
+        public QueryDefinition(String countSql, String dataSql, Map<String,Object> parameters,
+                               String[] headers, ResultRowMapper mapper) {
+            this(countSql, dataSql, parameters, headers, mapper, false);
+        }
+    }
     @FunctionalInterface public interface ResultRowMapper { Object[] map(ResultSet row) throws SQLException; }
     private record Parameter(String name, Object value) { }
     private record ParsedQuery(String sql, List<Parameter> parameters) { }
