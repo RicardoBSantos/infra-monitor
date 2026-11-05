@@ -60,6 +60,34 @@ class RetentionPolicyTest {
         assertThatThrownBy(() -> DetailedHistoryGuard.requireAvailable(available,null))
                 .isInstanceOf(DetailedHistoryUnavailableException.class);
     }
+    @Test void unavailableHistoryUsesStableHttpContract() {
+        var request = mock(org.springframework.web.context.request.WebRequest.class);
+        when(request.getDescription(false)).thenReturn("/api/v1/relatorios/medicoes");
+        var response = new br.com.inframonitor.common.exception.TratadorGlobalDeErros()
+                .tratarHistoricoIndisponivel(new DetailedHistoryUnavailableException(Instant.EPOCH),request);
+        assertThat(response.getStatusCode().value()).isEqualTo(422);
+        assertThat(response.getBody().code()).isEqualTo("DETAILED_HISTORY_UNAVAILABLE");
+    }
+    @Test void cleanupFailureAbortsPhysicalSessionBeforeClosing() throws Exception {
+        var ds = mock(javax.sql.DataSource.class);
+        var connection = mock(java.sql.Connection.class);
+        var statement = mock(java.sql.PreparedStatement.class);
+        var rows = mock(java.sql.ResultSet.class);
+        when(ds.getConnection()).thenReturn(connection);
+        when(connection.getAutoCommit()).thenReturn(true);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        when(statement.executeQuery()).thenReturn(rows);
+        when(rows.next()).thenReturn(true);
+        when(rows.getBoolean(1)).thenReturn(true);
+        when(connection.createStatement()).thenThrow(new java.sql.SQLException("test"));
+        when(connection.prepareStatement(startsWith("select pg_advisory_unlock")))
+                .thenThrow(new java.sql.SQLException("test"));
+        assertThat(new RetentionService(ds,props(true,false,true),Clock.systemUTC(),2)
+                .runOnce().status()).isEqualTo("FAILED");
+        var order = inOrder(connection);
+        order.verify(connection).abort(any(java.util.concurrent.Executor.class));
+        order.verify(connection).close();
+    }
     private RetentionProperties props(boolean enabled, boolean dry, boolean approved) {
         return new RetentionProperties(enabled,dry,approved,30,1000,50,50000,1000,
                 Duration.ofSeconds(30),Duration.ofSeconds(3),Duration.ofMillis(200),

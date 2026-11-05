@@ -219,6 +219,36 @@ class RetentionPostgresIntegrationTest {
         assertThat(ids()).hasSize(8);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+        "2026-03-01T01:00:00Z,2026-01-30T00:00:00Z,America/Sao_Paulo",
+        "2027-01-01T01:00:00Z,2026-12-02T00:00:00Z,Pacific/Honolulu",
+        "2028-03-01T12:00:00Z,2028-01-31T00:00:00Z,Europe/Berlin"
+    })
+    void postgresHonorsCalendarAndUtcPolicy(String nowText,String cutoffText,String zone) {
+        Instant now=Instant.parse(nowText), cutoff=Instant.parse(cutoffText);
+        long m=monitor();
+        sample(m,cutoff.minusSeconds(1));
+        long edge=sample(m,cutoff);
+        long day=sample(m,now.truncatedTo(java.time.temporal.ChronoUnit.DAYS));
+        long current=sample(m,now);
+        var run=new RetentionService(ds,props(false,true,1000,50),
+                Clock.fixed(now,ZoneId.of(zone)),2);
+        assertThat(run.runOnce().deleted()).isEqualTo(1);
+        assertThat(ids()).containsExactly(edge,day,current);
+        assertThat(watermark()).isEqualTo(cutoff);
+    }
+    @Test void csvChecksCoverageBeforeReturningPreparedDownload() {
+        seedDeletable();
+        service(false,true,1000,50).runOnce();
+        var export=new br.com.inframonitor.relatorio.exportacao.RelatorioExportQueryRepository(ds,100000,500,60);
+        var definition=new br.com.inframonitor.relatorio.exportacao.RelatorioExportQueryRepository.QueryDefinition(
+                "select count(*) from medicao","select id from medicao",
+                Map.of("inicio",CUT.minusSeconds(1)),new String[]{"id"},
+                row->new Object[]{row.getLong(1)},true);
+        assertThatThrownBy(()->export.prepare(definition))
+                .isInstanceOf(DetailedHistoryUnavailableException.class);
+    }
     private RetentionProperties props(boolean dry,boolean approved,int batch,int maxBatches) {
         return new RetentionProperties(true,dry,approved,30,batch,maxBatches,50000,1000,
                 Duration.ofSeconds(30),Duration.ofSeconds(3),Duration.ofMillis(200),
