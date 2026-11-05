@@ -18,6 +18,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
@@ -37,8 +39,8 @@ import static org.mockito.Mockito.doThrow;
 /**
  * Reconciliador contra PostgreSQL real, com foco no "sistema parado" (MA08): janelas cujos
  * horarios ja passaram sem nenhum tick ate agora. O teste chama {@code reconciliar(agora)}
- * direto; o intervalo de uma hora deixa o {@code @Scheduled} fora do caminho (ele dispara uma
- * vez na subida do contexto, antes do truncate de cada teste, entao nao ve as linhas daqui).
+ * direto. O transporte de agendamento e controlado pelo teste: nenhum tick automatico pode
+ * disputar o TRUNCATE de preparacao. Atrasar somente o fixedDelay nao impede o primeiro tick.
  *
  * <p>Requer Docker. Sem Docker disponivel o teste e ignorado, nunca falha.
  */
@@ -65,6 +67,8 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
     }
 
+    // Keep the real reconciler and every assertion; control only automatic timer delivery.
+    @MockitoBean(name = "taskScheduler") private TaskScheduler timer;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ReconciliadorManutencao reconciliador;
     @Autowired private CoberturaManutencao cobertura;
