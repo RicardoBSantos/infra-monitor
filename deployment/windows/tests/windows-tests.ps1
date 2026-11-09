@@ -44,4 +44,21 @@ if ([IO.Path]::GetFullPath([string]@($link.Target)[0]) -ine [IO.Path]::GetFullPa
 if (-not $model.service.arguments.Contains('--spring.datasource.password=$'+'{DB_PASSWORD}')) { throw 'Required credential placeholder missing' }; $count++
 [xml]$iis=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../web.config.template')
 if (-not @($iis.configuration.'system.webServer'.staticContent.mimeMap | Where-Object fileExtension -eq '.mjs').Count) { throw 'MapLibre module MIME missing' }; $count++
+# Prerequisites must forward WinSW and PostgreSQL inputs; with a valid JDK and WinSW it must reach the PostgreSQL check.
+$prereq=Join-Path $env:RUNNER_TEMP ('prereq-'+[guid]::NewGuid())
+foreach ($path in @('jdk/bin','winsw','pghome/bin')) { New-Item -ItemType Directory -Path (Join-Path $prereq $path) -Force | Out-Null }
+Set-Content -LiteralPath (Join-Path $prereq 'jdk/release') -Value 'JAVA_VERSION="21.0.13"'
+New-Item -ItemType File -Path (Join-Path $prereq 'jdk/bin/java.exe') | Out-Null
+$wrapper=Join-Path $prereq 'winsw/InfraMonitorBackend.exe'
+Set-Content -LiteralPath $wrapper -Value 'fixture'
+$prereqArgs=@{
+    Operation='Prerequisites'; Root=$prereq; JavaHome=(Join-Path $prereq 'jdk'); ServiceSid='S-1-5-80-0'
+    WinSWExecutable=$wrapper; WinSWSha256=(Get-FileHash -LiteralPath $wrapper -Algorithm SHA256).Hash.ToLowerInvariant()
+    PostgreSQLHome=(Join-Path $prereq 'pghome')
+}
+foreach ($invoke in @({ Invoke-ReleaseOperation @prereqArgs }, { & (Join-Path $PSScriptRoot '../Invoke-WindowsRelease.ps1') @prereqArgs })) {
+    $message=$null
+    try { & $invoke | Out-Null } catch { $message=$_.Exception.Message }
+    if ($message -notmatch 'postgres\.exe') { throw "Prerequisites did not reach the PostgreSQL check: $message" }
+}; $count++
 Write-Output "Windows packaging assertions passed: $count"

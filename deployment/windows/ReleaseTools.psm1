@@ -157,12 +157,13 @@ function Invoke-ReleaseOperation {
         [ValidateSet('Both','backend','frontend')][string]$Component='Both',
         [string]$CompatibilityProof,[int]$SchemaVersion=0,
         [string]$ServiceName,[string]$SiteName,[string]$JavaHome,[string]$ServiceSid,
+        [string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome,
         [UInt64]$OperationalPeakBytes=3GB,
         [switch]$Apply,[string]$ApprovalId
     )
     $rootPath=Assert-AbsolutePath $Root
     $manifest=if ($PackagePath) { Test-PackageIntegrity $PackagePath } else { $null }
-    if ($Operation -eq 'Prerequisites') { return Test-WindowsPrerequisites $JavaHome $rootPath $ServiceSid }
+    if ($Operation -eq 'Prerequisites') { return Test-WindowsPrerequisites -JavaHome $JavaHome -Root $rootPath -ServiceSid $ServiceSid -WinSWExecutable $WinSWExecutable -WinSWSha256 $WinSWSha256 -PostgreSQLHome $PostgreSQLHome }
     if ($Operation -eq 'Verify') { if (-not $manifest) { throw 'Package required' }; return $manifest }
     if ($Operation -eq 'Health') { return Test-BackendHealth }
     if ($Operation -eq 'Inspect') { return [pscustomobject]@{ Root=$rootPath; Package=$manifest; Apply=$false } }
