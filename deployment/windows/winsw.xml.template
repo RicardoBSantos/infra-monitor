@@ -5,7 +5,9 @@
   <name>Infra Monitor Backend</name>
   <description>Infra Monitor V1 - Java 21</description>
   <executable>@@JAVA_EXE@@</executable>
-  <arguments>-jar "@@ROOT@@\current\backend\app.jar" --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8080 --spring.flyway.enabled=false &quot;--spring.config.import=configtree:@@ROOT_URI@@/config/secrets/&quot; --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/${DB_NAME} --spring.datasource.username=${DB_USERNAME} --spring.datasource.password=${DB_PASSWORD} --app.auth.jwt.secret=${JWT_SECRET} --server.shutdown=graceful --spring.lifecycle.timeout-per-shutdown-phase=30s &quot;--logging.file.name=@@ROOT_URI@@/logs/backend/application.log&quot; --logging.logback.rollingpolicy.max-file-size=20MB --logging.logback.rollingpolicy.total-size-cap=192MB --logging.logback.rollingpolicy.max-history=7</arguments>
+  <!-- Short tmpdir: on Windows, JDK 21 creates the NIO wakeup pipe as an AF_UNIX socket in tmpdir;
+       a long TEMP path makes Tomcat fail with "Unable to establish loopback connection". -->
+  <arguments>-Djava.io.tmpdir=@@ROOT@@\tmp\backend -Djdk.net.unixdomain.tmpdir=@@ROOT@@\tmp\backend -jar "@@ROOT@@\current\backend\app.jar" --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=8080 --spring.flyway.enabled=false &quot;--spring.config.import=configtree:@@ROOT_URI@@/config/secrets/&quot; --spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/${DB_NAME} --spring.datasource.username=${DB_USERNAME} --spring.datasource.password=${DB_PASSWORD} --app.auth.jwt.secret=${JWT_SECRET} --server.shutdown=graceful --spring.lifecycle.timeout-per-shutdown-phase=30s &quot;--logging.file.name=@@ROOT_URI@@/logs/backend/application.log&quot; --logging.logback.rollingpolicy.max-file-size=20MB --logging.logback.rollingpolicy.total-size-cap=192MB --logging.logback.rollingpolicy.max-history=7</arguments>
   <workingdirectory>@@ROOT@@\current\backend</workingdirectory>
   <env name="DB_HOST" value="127.0.0.1"/>
   <env name="DB_PORT" value="5432"/>
@@ -13,7 +15,9 @@
   <serviceaccount>
     <domain>NT SERVICE</domain>
     <user>InfraMonitorBackend</user>
-    <allowservicelogon>true</allowservicelogon>
+    <!-- false: WinSW 2.12 resolves the account before CreateService and fails (1332) for a virtual
+         account that only exists once the service does; virtual accounts get the logon right implicitly. -->
+    <allowservicelogon>false</allowservicelogon>
   </serviceaccount>
   <stoptimeout>45sec</stoptimeout>
   <onfailure action="restart" delay="30sec"/>
