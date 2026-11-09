@@ -90,10 +90,17 @@ function Test-HealthResult([int]$StatusCode,[string]$Status) {
     if ($StatusCode -ne 200 -or $Status -cne 'UP') { throw 'Health check failed' }
     return $true
 }
+function ConvertFrom-HealthContent($Content) {
+    # PowerShell 7 returns Content as byte[] for application/vnd.spring-boot.actuator.v3+json.
+    $text=if ($Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($Content) } else { [string]$Content }
+    $json=$text | ConvertFrom-Json
+    if ($json -isnot [pscustomobject] -or $json.PSObject.Properties.Name -notcontains 'status') { return $null }
+    return [string]$json.status
+}
 function Test-BackendHealth {
     param([ValidateRange(1,65535)][int]$Port=8080)
     $r=Invoke-WebRequest -Uri "http://127.0.0.1:$Port/actuator/health" -TimeoutSec 10 -MaximumRedirection 0
-    Test-HealthResult ([int]$r.StatusCode) (($r.Content | ConvertFrom-Json).status)
+    Test-HealthResult ([int]$r.StatusCode) (ConvertFrom-HealthContent $r.Content)
 }
 function Test-WindowsPrerequisites {
     param([string]$JavaHome,[string]$Root,[string]$ServiceSid,[string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome)
@@ -291,4 +298,4 @@ function Invoke-ReleaseOperation {
         $mutex.Dispose()
     }
 }
-Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Test-RollbackCompatibility,Test-HealthResult,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation
+Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Test-RollbackCompatibility,Test-HealthResult,ConvertFrom-HealthContent,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation
