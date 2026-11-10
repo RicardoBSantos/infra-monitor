@@ -7,7 +7,7 @@ INSERT INTO unidade (nome, sigla, cidade, estado)
 SELECT 'Unidade bench ' || u, 'UB' || u, 'Aracaju', 'SE' FROM generate_series(1, 25) u;
 INSERT INTO equipamento (unidade_id, tipo_equipamento_id, nome, ip_address)
 SELECT un.id, (SELECT id FROM tipo_equipamento WHERE slug = 'bench'),
-       'Equipamento bench ' || un.id || '-' || e, ('10.200.' || un.id || '.' || e)::inet
+       'Equipamento bench ' || un.id || '-' || e, '10.200.' || un.id || '.' || e
 FROM unidade un CROSS JOIN generate_series(1, 10) e;
 INSERT INTO monitor (equipamento_id, tipo, nome, intervalo_segundos, timeout_ms, created_at)
 SELECT eq.id, 'ICMP', 'ICMP ' || eq.nome, 60, 2000, now() - make_interval(days => :dias + 1)
