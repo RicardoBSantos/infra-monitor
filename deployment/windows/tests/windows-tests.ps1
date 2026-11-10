@@ -47,6 +47,7 @@ if ([IO.Path]::GetFullPath([string]@($link.Target)[0]) -ine [IO.Path]::GetFullPa
 [xml]$model=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../winsw.xml.template')
 if (-not $model.service.arguments.Contains('--spring.datasource.password=$'+'{DB_PASSWORD}')) { throw 'Required credential placeholder missing' }; $count++
 if ($model.service.serviceaccount.allowservicelogon -ne 'false') { throw 'Virtual account must not request explicit service logon' }
+if (@($model.service.env | Where-Object name -eq 'CORS_ALLOWED_ORIGINS').value -ne '@@CORS_ALLOWED_ORIGINS@@') { throw 'CORS origin placeholder missing' }
 if (-not $model.service.arguments.StartsWith('-Djava.io.tmpdir=@@ROOT@@\tmp\backend -Djdk.net.unixdomain.tmpdir=@@ROOT@@\tmp\backend -jar ')) { throw 'Short JVM tmpdir must precede -jar' }; $count++
 [xml]$iis=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../web.config.template')
 if (-not @($iis.configuration.'system.webServer'.staticContent.mimeMap | Where-Object fileExtension -eq '.mjs').Count) { throw 'MapLibre module MIME missing' }; $count++
