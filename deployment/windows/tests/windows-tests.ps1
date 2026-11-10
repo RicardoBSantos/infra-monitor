@@ -14,6 +14,10 @@ Test-FreeSpacePolicy -FreeBytes 30GB -AdditionalBytes 2GB -PeakBytes 3GB | Out-N
 Assert-Throws { Test-FreeSpacePolicy -FreeBytes 25GB -AdditionalBytes 2GB -PeakBytes 3GB }; $count++
 Assert-Throws { Test-HealthResult 503 'DOWN' }; $count++
 Test-HealthResult 200 'UP' | Out-Null; $count++
+# Actuator media type arrives as byte[] in PowerShell 7; string bodies must keep working.
+if ((ConvertFrom-HealthContent ([Text.Encoding]::UTF8.GetBytes('{"status":"UP"}'))) -cne 'UP') { throw 'Byte health body not decoded' }
+if ((ConvertFrom-HealthContent '{"status":"DOWN"}') -cne 'DOWN') { throw 'String health body not decoded' }
+if ($null -ne (ConvertFrom-HealthContent '{"groups":[]}')) { throw 'Missing status must not pass' }; $count++
 $current=@{backend='old';frontend='old'}
 Assert-Throws { Test-RollbackCompatibility @{} $current $manifest 'Both' 25 }; $count++
 $proof=@{approved=$true;schemaVersion=25;current=$current;target=@{backend=$manifest.version;frontend=$manifest.version}}
