@@ -87,6 +87,21 @@ jobs:
           npm run build -- --configuration production --source-map=false
           test -s dist/infra-monitor-frontend/browser/index.html
           git diff --exit-code -- package.json package-lock.json
+      - name: Verificar compatibilidade do index.html com a CSP
+        run: |
+          set -euo pipefail
+          # A CSP do web.config usa script-src 'self': handlers inline (ex.: onload do CSS critico)
+          # e <script> sem src seriam bloqueados e a pagina perderia estilos ou scripts.
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("dist/infra-monitor-frontend/browser/index.html").read_text(encoding="utf-8")
+          handlers = re.findall(r"\son[a-z]+\s*=", html, re.I)
+          inline = [s for s in re.findall(r"<script\b[^>]*>", html, re.I) if "src=" not in s.lower()]
+          if handlers or inline:
+              raise SystemExit(f"index.html incompativel com script-src 'self': handlers={handlers} scripts={inline}")
+          print("index.html sem handlers nem scripts inline")
+          PY
       - name: Empacotar frontend e checksums
         run: |
           python3 - <<'PY'

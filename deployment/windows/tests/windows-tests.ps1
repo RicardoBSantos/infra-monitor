@@ -51,6 +51,16 @@ if (@($model.service.env | Where-Object name -eq 'CORS_ALLOWED_ORIGINS').value -
 if (-not $model.service.arguments.StartsWith('-Djava.io.tmpdir=@@ROOT@@\tmp\backend -Djdk.net.unixdomain.tmpdir=@@ROOT@@\tmp\backend -jar ')) { throw 'Short JVM tmpdir must precede -jar' }; $count++
 [xml]$iis=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../web.config.template')
 if (-not @($iis.configuration.'system.webServer'.staticContent.mimeMap | Where-Object fileExtension -eq '.mjs').Count) { throw 'MapLibre module MIME missing' }; $count++
+# D-02: security headers; CSP must stay strict for scripts and forbid framing.
+$headers=@{}; foreach ($h in $iis.configuration.'system.webServer'.httpProtocol.customHeaders.add) { $headers[$h.name]=$h.value }
+foreach ($name in 'Content-Security-Policy','Referrer-Policy','X-Frame-Options','X-Content-Type-Options','Strict-Transport-Security') { if (-not $headers[$name]) { throw "Security header missing: $name" } }
+$csp=$headers['Content-Security-Policy']
+if ($csp -notmatch "script-src 'self';" -or $csp -match 'unsafe-eval' -or $csp -notmatch "frame-ancestors 'none'" -or $csp -notmatch "object-src 'none'") { throw 'CSP too permissive' }
+if (($csp -split ';' | Where-Object { $_ -match 'script-src' }) -match 'unsafe-inline') { throw 'script-src must not allow unsafe-inline' }
+# D-04: Spring already sends these on /api; IIS must not duplicate them.
+$api=$iis.configuration.location | Where-Object path -eq 'api'
+$removed=@($api.'system.webServer'.httpProtocol.customHeaders.remove | ForEach-Object name)
+if ($removed -notcontains 'X-Content-Type-Options' -or $removed -notcontains 'X-Frame-Options') { throw 'API location must remove duplicated headers' }; $count++
 # Prerequisites must forward WinSW and PostgreSQL inputs; with a valid JDK and WinSW it must reach the PostgreSQL check.
 $prereq=Join-Path $env:RUNNER_TEMP ('prereq-'+[guid]::NewGuid())
 foreach ($path in @('jdk/bin','winsw','pghome/bin')) { New-Item -ItemType Directory -Path (Join-Path $prereq $path) -Force | Out-Null }
