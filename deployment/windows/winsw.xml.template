@@ -1,5 +1,6 @@
-<!-- MODEL ONLY: replace @@JAVA_EXE@@ and @@ROOT@@ with reviewed absolute paths, and @@CORS_ALLOWED_ORIGINS@@
-     with the exact HTTPS origin(s) served by IIS (comma-separated, no wildcard), e.g. https://<hostname>.
+<!-- MODEL ONLY: replace @@JAVA_EXE@@ and @@ROOT@@ with reviewed absolute paths, @@CORS_ALLOWED_ORIGINS@@
+     with the exact HTTPS origin(s) served by IIS (comma-separated, no wildcard), e.g. https://<hostname>,
+     and @@POSTGRESQL_SERVICE@@ with the PostgreSQL Windows service name.
      WinSW 2.12.0 x64/.NET Framework; executable supplied separately, never downloaded here. -->
 <service>
   <id>InfraMonitorBackend</id>
@@ -15,7 +16,11 @@
   <!-- Browsers send Origin on POST; without the published origin the API answers 403 "Invalid CORS request"
        and login fails (the default only allows the localhost dev server). -->
   <env name="CORS_ALLOWED_ORIGINS" value="@@CORS_ALLOWED_ORIGINS@@"/>
-  <startmode>Manual</startmode>
+  <!-- D-05: must come back after a Windows restart. Delayed start plus an explicit dependency make the
+       SCM start PostgreSQL first; replace @@POSTGRESQL_SERVICE@@ with its service name (e.g. postgresql-x64-16). -->
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <depend>@@POSTGRESQL_SERVICE@@</depend>
   <serviceaccount>
     <domain>NT SERVICE</domain>
     <user>InfraMonitorBackend</user>
@@ -26,7 +31,8 @@
   <stoptimeout>45sec</stoptimeout>
   <onfailure action="restart" delay="30sec"/>
   <onfailure action="restart" delay="60sec"/>
-  <onfailure action="none"/>
+  <!-- Keeps retrying (every 5 min after the first two failures) instead of staying down until someone notices. -->
+  <onfailure action="restart" delay="300sec"/>
   <resetfailure>1hour</resetfailure>
   <logpath>@@ROOT@@\logs\service</logpath>
   <log mode="roll-by-size">

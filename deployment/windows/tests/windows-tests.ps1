@@ -48,6 +48,16 @@ if ([IO.Path]::GetFullPath([string]@($link.Target)[0]) -ine [IO.Path]::GetFullPa
 if (-not $model.service.arguments.Contains('--spring.datasource.password=$'+'{DB_PASSWORD}')) { throw 'Required credential placeholder missing' }; $count++
 if ($model.service.serviceaccount.allowservicelogon -ne 'false') { throw 'Virtual account must not request explicit service logon' }
 if (@($model.service.env | Where-Object name -eq 'CORS_ALLOWED_ORIGINS').value -ne '@@CORS_ALLOWED_ORIGINS@@') { throw 'CORS origin placeholder missing' }
+# D-05: the backend must survive a Windows restart and start after PostgreSQL.
+if ($model.service.startmode -ne 'Automatic' -or $model.service.delayedAutoStart -ne 'true' -or $model.service.depend -ne '@@POSTGRESQL_SERVICE@@') { throw 'Backend must be Automatic (Delayed Start) and depend on PostgreSQL' }
+if (@($model.service.onfailure | Where-Object action -eq 'none').Count) { throw 'Backend recovery must not end with action=none' }
+# Ops scripts must default to a read-only mode.
+foreach ($ops in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot '../ops') -Filter '*.ps1') {
+    $ast=[Management.Automation.Language.Parser]::ParseFile($ops.FullName,[ref]$null,[ref]$null)
+    $p=$ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -in 'Mode','Apply' }
+    if (-not $p) { throw "$($ops.Name) needs -Mode or -Apply" }
+    if ($p.Name.VariablePath.UserPath -eq 'Mode' -and $p.DefaultValue.Value -ne 'Inspect') { throw "$($ops.Name) must default to Inspect" }
+}; $count++
 if (-not $model.service.arguments.StartsWith('-Djava.io.tmpdir=@@ROOT@@\tmp\backend -Djdk.net.unixdomain.tmpdir=@@ROOT@@\tmp\backend -jar ')) { throw 'Short JVM tmpdir must precede -jar' }; $count++
 [xml]$iis=Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../web.config.template')
 if (-not @($iis.configuration.'system.webServer'.staticContent.mimeMap | Where-Object fileExtension -eq '.mjs').Count) { throw 'MapLibre module MIME missing' }; $count++
