@@ -33,13 +33,13 @@ describe('UsuarioListComponent', () => {
   it('renders loading, success, empty and error states', () => {
     const loading = create();
     expect(loading.nativeElement.querySelector('[aria-label="Carregando usuários"]')).not.toBeNull();
-    http.expectOne('http://localhost:8080/api/v1/usuarios').flush([user]); loading.detectChanges();
+    http.expectOne('/api/v1/usuarios').flush([user]); loading.detectChanges();
     expect(loading.nativeElement.textContent).toContain('Operador');
 
-    const empty = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([]); empty.detectChanges();
+    const empty = create(); http.expectOne('/api/v1/usuarios').flush([]); empty.detectChanges();
     expect(empty.nativeElement.textContent).toContain('Nenhum usuário encontrado');
 
-    const failed = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush(error('INTERNAL_ERROR', 'Falha de leitura'), { status: 500, statusText: 'Server error' }); failed.detectChanges();
+    const failed = create(); http.expectOne('/api/v1/usuarios').flush(error('INTERNAL_ERROR', 'Falha de leitura'), { status: 500, statusText: 'Server error' }); failed.detectChanges();
     expect(failed.nativeElement.textContent).toContain('Falha de leitura');
   });
 
@@ -48,7 +48,7 @@ describe('UsuarioListComponent', () => {
     expect(el.querySelector('.esqueleto[role="status"]')).not.toBeNull();
     expect(el.querySelector('.pagina__cabecalho p:not(.pagina__descricao)')).toBeNull();
     expect(el.querySelector('p.pagina__descricao')?.textContent).toContain('Controle de acesso e perfis da plataforma.');
-    http.expectOne('http://localhost:8080/api/v1/usuarios').flush([user, { ...user, id: 3, ativo: false }]); fixture.detectChanges();
+    http.expectOne('/api/v1/usuarios').flush([user, { ...user, id: 3, ativo: false }]); fixture.detectChanges();
     expect(el.querySelector('table.tabela')).not.toBeNull();
     const chips = el.querySelectorAll('span.chip-ativo');
     expect(chips[0].classList.contains('chip-ativo--off')).toBe(false);
@@ -57,47 +57,47 @@ describe('UsuarioListComponent', () => {
   });
 
   it('validates and creates with the real payload, including validation and conflict feedback', () => {
-    const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([]); fixture.detectChanges();
+    const fixture = create(); http.expectOne('/api/v1/usuarios').flush([]); fixture.detectChanges();
     (fixture.nativeElement.querySelector('.botao--primario') as HTMLButtonElement).click(); fixture.detectChanges();
     (fixture.componentInstance as any).submit(); fixture.detectChanges();
-    expect(http.match('http://localhost:8080/api/v1/usuarios').length).toBe(0);
+    expect(http.match('/api/v1/usuarios').length).toBe(0);
     const form = (fixture.componentInstance as any).form;
     form.setValue({ nome: 'Novo', email: 'novo@example.test', papel: 'VISUALIZADOR', senhaInicial: 'SenhaInicial123!' });
     (fixture.componentInstance as any).submit();
-    const request = http.expectOne('http://localhost:8080/api/v1/usuarios'); expect(request.request.method).toBe('POST'); expect(request.request.body).toEqual({ nome: 'Novo', email: 'novo@example.test', papel: 'VISUALIZADOR', senhaInicial: 'SenhaInicial123!' });
+    const request = http.expectOne('/api/v1/usuarios'); expect(request.request.method).toBe('POST'); expect(request.request.body).toEqual({ nome: 'Novo', email: 'novo@example.test', papel: 'VISUALIZADOR', senhaInicial: 'SenhaInicial123!' });
     request.flush({ ...user, id: 3, nome: 'Novo', email: 'novo@example.test', papel: 'VISUALIZADOR' }, { status: 201, statusText: 'Created' }); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Usuário criado com sucesso');
   });
 
   it('updates only nome, email and papel and presents a last-admin conflict', () => {
-    const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([{ ...user, papel: 'ADMIN' }]); fixture.detectChanges();
+    const fixture = create(); http.expectOne('/api/v1/usuarios').flush([{ ...user, papel: 'ADMIN' }]); fixture.detectChanges();
     acao(fixture, 'Editar');
     const form = (fixture.componentInstance as any).form; form.controls.nome.setValue('Administrador'); form.controls.email.setValue('admin2@example.test'); form.controls.papel.setValue('OPERADOR');
-    (fixture.componentInstance as any).submit(); const request = http.expectOne('http://localhost:8080/api/v1/usuarios/2'); expect(request.request.method).toBe('PUT'); expect(request.request.body).toEqual({ nome: 'Administrador', email: 'admin2@example.test', papel: 'OPERADOR' });
+    (fixture.componentInstance as any).submit(); const request = http.expectOne('/api/v1/usuarios/2'); expect(request.request.method).toBe('PUT'); expect(request.request.body).toEqual({ nome: 'Administrador', email: 'admin2@example.test', papel: 'OPERADOR' });
     request.flush(error('BUSINESS_CONFLICT', 'NÃ£o Ã© permitido rebaixar o Ãºltimo ADMIN ativo'), { status: 409, statusText: 'Conflict' }); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Ãºltimo ADMIN');
   });
 
   it('validates reset boundaries and sends the administrative reset request', () => {
-    const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([user]); fixture.detectChanges();
+    const fixture = create(); http.expectOne('/api/v1/usuarios').flush([user]); fixture.detectChanges();
     acao(fixture, 'Redefinir senha');
-    const form = (fixture.componentInstance as any).passwordForm; form.setValue({ novaSenha: 'curta', confirmacaoNovaSenha: 'curta' }); (fixture.componentInstance as any).resetPassword(); expect(http.match('http://localhost:8080/api/v1/usuarios/2/senha').length).toBe(0);
-    form.setValue({ novaSenha: 'x'.repeat(129), confirmacaoNovaSenha: 'x'.repeat(129) }); (fixture.componentInstance as any).resetPassword(); expect(http.match('http://localhost:8080/api/v1/usuarios/2/senha').length).toBe(0);
-    form.setValue({ novaSenha: 'SenhaTemporaria123!', confirmacaoNovaSenha: 'diferente' }); (fixture.componentInstance as any).resetPassword(); expect(http.match('http://localhost:8080/api/v1/usuarios/2/senha').length).toBe(0);
-    form.setValue({ novaSenha: 'SenhaTemporaria123!', confirmacaoNovaSenha: 'SenhaTemporaria123!' }); (fixture.componentInstance as any).resetPassword(); const request = http.expectOne('http://localhost:8080/api/v1/usuarios/2/senha'); expect(request.request.method).toBe('PUT'); expect(request.request.body).toEqual({ novaSenha: 'SenhaTemporaria123!' }); request.flush(user); fixture.detectChanges();
+    const form = (fixture.componentInstance as any).passwordForm; form.setValue({ novaSenha: 'curta', confirmacaoNovaSenha: 'curta' }); (fixture.componentInstance as any).resetPassword(); expect(http.match('/api/v1/usuarios/2/senha').length).toBe(0);
+    form.setValue({ novaSenha: 'x'.repeat(129), confirmacaoNovaSenha: 'x'.repeat(129) }); (fixture.componentInstance as any).resetPassword(); expect(http.match('/api/v1/usuarios/2/senha').length).toBe(0);
+    form.setValue({ novaSenha: 'SenhaTemporaria123!', confirmacaoNovaSenha: 'diferente' }); (fixture.componentInstance as any).resetPassword(); expect(http.match('/api/v1/usuarios/2/senha').length).toBe(0);
+    form.setValue({ novaSenha: 'SenhaTemporaria123!', confirmacaoNovaSenha: 'SenhaTemporaria123!' }); (fixture.componentInstance as any).resetPassword(); const request = http.expectOne('/api/v1/usuarios/2/senha'); expect(request.request.method).toBe('PUT'); expect(request.request.body).toEqual({ novaSenha: 'SenhaTemporaria123!' }); request.flush(user); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Senha temporária redefinida');
   });
 
   it('confirms deactivation, patches status, and never offers self-deactivation', () => {
-    const fixture = create(); http.expectOne('http://localhost:8080/api/v1/usuarios').flush([{ ...user, id: 1 }, user]); fixture.detectChanges();
+    const fixture = create(); http.expectOne('/api/v1/usuarios').flush([{ ...user, id: 1 }, user]); fixture.detectChanges();
     expect(rotulosDoMenu(fixture, 0)).not.toContain('Desativar');
     acao(fixture, 'Desativar', 1);
     expect(fixture.nativeElement.textContent).toContain('Desativar Operador?');
-    (fixture.componentInstance as any).changeStatus(); const request = http.expectOne('http://localhost:8080/api/v1/usuarios/2/desativar'); expect(request.request.method).toBe('PATCH'); request.flush({ ...user, ativo: false }); fixture.detectChanges();
+    (fixture.componentInstance as any).changeStatus(); const request = http.expectOne('/api/v1/usuarios/2/desativar'); expect(request.request.method).toBe('PATCH'); request.flush({ ...user, ativo: false }); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('desativado com sucesso');
   });
 
-  const URL = 'http://localhost:8080/api/v1/usuarios';
+  const URL = '/api/v1/usuarios';
   const dialog = (fixture: { nativeElement: HTMLElement }) => fixture.nativeElement.querySelector<HTMLElement>('app-modal section[role="dialog"]');
   const escape = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 

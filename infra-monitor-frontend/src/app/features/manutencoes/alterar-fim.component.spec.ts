@@ -21,7 +21,7 @@ class HostComponent {
   readonly continuar = signal<PresetAgendamento | null>(null);
 }
 
-const URL = 'http://localhost:8080/api/v1/manutencoes';
+const URL = '/api/v1/manutencoes';
 const iso = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
 const ativa = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse => ({
   id: 41, unidade: { id: 1, nome: 'Sede' }, escopo: MaintenanceScope.Equipment, equipamentos: [{ id: 7, nome: 'SW-CORE' }, { id: 8, nome: 'AP-01' }],

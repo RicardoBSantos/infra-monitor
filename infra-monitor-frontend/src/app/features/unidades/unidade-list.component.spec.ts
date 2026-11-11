@@ -10,8 +10,8 @@ import { UnidadeListComponent } from './unidade-list.component';
 
 const GEO = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: { id: '2800308', name: 'Aracaju' }, geometry: { type: 'Polygon', coordinates: [] } }] };
 
-const UNIDADES_URL = 'http://localhost:8080/api/v1/unidades';
-const DASHBOARD_URL = 'http://localhost:8080/api/v1/dashboard/unidades';
+const UNIDADES_URL = '/api/v1/unidades';
+const DASHBOARD_URL = '/api/v1/dashboard/unidades';
 
 function unidade(id: number, extra: Partial<UnidadeResponse> = {}): UnidadeResponse {
   return {
@@ -289,7 +289,7 @@ describe('UnidadeListComponent', () => {
     // O GeoJSON de municípios só é baixado quando a gaveta abre.
     http.expectOne('assets/maps/se-municipalities.geo.json').flush(GEO);
     // E os destinos possiveis de conexao, para o select "Conecta a".
-    http.expectOne('http://localhost:8080/api/v1/unidades').flush([]);
+    http.expectOne('/api/v1/unidades').flush([]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.gaveta')).not.toBeNull();

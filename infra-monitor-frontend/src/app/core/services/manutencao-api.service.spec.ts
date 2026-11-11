@@ -6,7 +6,7 @@ import { CriarManutencaoRequest } from '../models/manutencao';
 import { ManutencaoApiService } from './manutencao-api.service';
 
 describe('ManutencaoApiService', () => {
-  const base = 'http://localhost:8080/api/v1/manutencoes';
+  const base = '/api/v1/manutencoes';
   let service: ManutencaoApiService; let http: HttpTestingController;
   beforeEach(() => { TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] }); service = TestBed.inject(ManutencaoApiService); http = TestBed.inject(HttpTestingController); });
   afterEach(() => http.verify());

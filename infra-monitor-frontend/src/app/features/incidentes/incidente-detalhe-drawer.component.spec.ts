@@ -76,7 +76,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('busca o incidente na origem de incidente e monta a timeline com o N do monitor', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     responderBlocos();
 
     const texto = fixture.nativeElement.textContent;
@@ -87,7 +87,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('busca o episódio na origem de latência para o mesmo id', () => {
     montar(IncidentKind.Latency, 5);
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne('/api/v1/episodios-latencia/5').flush(episodio);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([]));
     http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
     http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
@@ -101,7 +101,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
   /** Episódio fecha sozinho quando a latência normaliza: não há o que reconhecer ou resolver. */
   it('não oferece ação nenhuma na gaveta de latência', () => {
     montar(IncidentKind.Latency, 5);
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne('/api/v1/episodios-latencia/5').flush(episodio);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([]));
     http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
     http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
@@ -115,7 +115,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
     const mudou = vi.fn();
     fixture.componentInstance.mudou.subscribe(mudou);
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     responderBlocos();
 
     botoes('Marcar como resolvido')[0].click();
@@ -124,7 +124,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
     botoes('Marcar como resolvido')[1].click();
     fixture.detectChanges();
 
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/incidentes/5/fechar');
+    const requisicao = http.expectOne('/api/v1/incidentes/5/fechar');
     expect(requisicao.request.method).toBe('PATCH');
     requisicao.flush({ ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z' });
     fixture.detectChanges();
@@ -136,12 +136,12 @@ describe('IncidenteDetalheDrawerComponent', () => {
   /** Reconhecer não encerra nada: continua aberto e ainda pode ser resolvido. */
   it('mantém a ação de resolver depois de reconhecer', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     responderBlocos();
 
     botoes('Reconhecer')[0].click();
     fixture.detectChanges();
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5/reconhecer')
+    http.expectOne('/api/v1/incidentes/5/reconhecer')
       .flush({ ...incidente, status: IncidentStatus.Acknowledged, reconhecidoEm: '2026-09-01T08:05:00Z', reconhecidoPorNome: 'Ricardo' });
     fixture.detectChanges();
 
@@ -152,7 +152,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('mantém a gaveta de pé quando um bloco de composição cai', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes'))
       .flush({ message: 'erro' }, { status: 500, statusText: 'Server Error' });
     http.expectOne(requisicao => requisicao.url.endsWith('/monitores/1')).flush(monitor);
@@ -181,7 +181,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
    */
   it('mostra "indisponível" em vez de zero nos KPIs de medição quando o bloco cai — incidente', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes'))
       .flush({ message: 'erro' }, { status: 500, statusText: 'Server Error' });
     http.expectOne(requisicao => requisicao.url.endsWith('/monitores/1')).flush(monitor);
@@ -201,7 +201,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('mostra "indisponível" em vez de zero nos KPIs de medição quando o bloco cai — latência', () => {
     montar(IncidentKind.Latency, 5);
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne('/api/v1/episodios-latencia/5').flush(episodio);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes'))
       .flush({ message: 'erro' }, { status: 500, statusText: 'Server Error' });
     http.expectOne(requisicao => requisicao.url.endsWith('/monitores/2')).flush({ ...monitor, id: 2 });
@@ -224,7 +224,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
    */
   it('pinta de vermelho as falhas na janela quando há ao menos uma', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     responderBlocos();
 
     expect(valorDo('Falhas na janela')).toBe('3');
@@ -233,7 +233,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('não pinta "Acima do limiar" com zero medições acima do limiar', () => {
     montar(IncidentKind.Latency, 5);
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne('/api/v1/episodios-latencia/5').flush(episodio);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
       { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 100, executadoEm: '2026-09-01T09:00:30Z' },
     ]));
@@ -247,7 +247,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('não pinta o pico de latência de 0 ms (RTT sub-ms gravado como zero)', () => {
     montar(IncidentKind.Latency, 5);
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne('/api/v1/episodios-latencia/5').flush(episodio);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
       { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 0, executadoEm: '2026-09-01T09:00:30Z' },
     ]));
@@ -260,7 +260,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('não pinta a contagem zero de falhas', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([]));
     http.expectOne(requisicao => requisicao.url.endsWith('/monitores/1')).flush(monitor);
     http.expectOne(requisicao => requisicao.url.endsWith('/notificacoes')).flush(pagina([]));
@@ -272,7 +272,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('escala a cor do Status e marca a duração de ocorrência em curso', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     responderBlocos();
 
     expect(kpi('Status').className).toContain('kpi--down');
@@ -280,7 +280,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
     botoes('Reconhecer')[0].click();
     fixture.detectChanges();
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5/reconhecer')
+    http.expectOne('/api/v1/incidentes/5/reconhecer')
       .flush({ ...incidente, status: IncidentStatus.Acknowledged, reconhecidoEm: '2026-09-01T08:05:00Z', reconhecidoPorNome: 'Ricardo' });
     fixture.detectChanges();
 
@@ -290,7 +290,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
   /** Latência é leitura de referência, não alarme: azul fixo, igual à gaveta de equipamento. */
   it('pinta a latência média de azul quando há medição', () => {
     montar(IncidentKind.Latency, 5);
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/5').flush(episodio);
+    http.expectOne('/api/v1/episodios-latencia/5').flush(episodio);
     http.expectOne(requisicao => requisicao.url.endsWith('/relatorios/medicoes')).flush(pagina([
       { ...medicoes[0], status: MeasurementStatus.Success, latenciaMs: 300, executadoEm: '2026-09-01T09:00:30Z' },
       { ...medicoes[1], status: MeasurementStatus.Success, latenciaMs: 500, executadoEm: '2026-09-01T09:01:30Z' },
@@ -313,7 +313,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
    */
   it('não afirma quem encerrou nem o motivo quando o incidente está aberto', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush(incidente);
+    http.expectOne('/api/v1/incidentes/5').flush(incidente);
     responderBlocos();
 
     const texto = fixture.nativeElement.textContent;
@@ -323,7 +323,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('mostra o motivo de manutenção quando o incidente foi fechado pela entrada em manutenção', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+    http.expectOne('/api/v1/incidentes/5').flush({
       ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
       fechadoPorNome: null, motivoEncerramento: IncidentClosureReason.Maintenance,
     });
@@ -335,7 +335,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('atribui ao motor de monitoramento só quando o motivo registrado é recuperação automática', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+    http.expectOne('/api/v1/incidentes/5').flush({
       ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
       fechadoPorNome: null, motivoEncerramento: IncidentClosureReason.AutomaticRecovery,
     });
@@ -352,7 +352,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
    */
   it('mostra travessão para incidente legado fechado sem autor e sem motivo', () => {
     montar(IncidentKind.Incident, 5);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/5').flush({
+    http.expectOne('/api/v1/incidentes/5').flush({
       ...incidente, status: IncidentStatus.Closed, encerradoEm: '2026-09-01T08:10:00Z',
       fechadoPorNome: null, motivoEncerramento: null,
     });
@@ -365,7 +365,7 @@ describe('IncidenteDetalheDrawerComponent', () => {
 
   it('trata id inexistente como ocorrência não encontrada, sem derrubar a tela', () => {
     montar(IncidentKind.Incident, 999);
-    http.expectOne('http://localhost:8080/api/v1/incidentes/999')
+    http.expectOne('/api/v1/incidentes/999')
       // Corpo completo de propósito: `isApiError` exige o `ErroResposta` inteiro, e um
       // payload parcial cairia no ramo de erro genérico em vez do de não encontrado.
       .flush({

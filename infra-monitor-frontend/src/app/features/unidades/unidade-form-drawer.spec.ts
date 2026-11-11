@@ -56,7 +56,7 @@ describe('UnidadeFormDrawerComponent', () => {
     fixture.detectChanges();
     http.expectOne('assets/maps/se-municipalities.geo.json').flush(GEO);
     // A gaveta tambem carrega os destinos possiveis de conexao ao abrir.
-    http.expectOne('http://localhost:8080/api/v1/unidades').flush(DESTINOS);
+    http.expectOne('/api/v1/unidades').flush(DESTINOS);
     fixture.detectChanges();
     return fixture;
   }
@@ -73,7 +73,7 @@ describe('UnidadeFormDrawerComponent', () => {
 
     submeter(fixture);
 
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/unidades/7');
+    const requisicao = http.expectOne('/api/v1/unidades/7');
     expect(requisicao.request.method).toBe('PUT');
     expect(requisicao.request.body).toEqual({
       nome: UNIDADE.nome,
@@ -99,7 +99,7 @@ describe('UnidadeFormDrawerComponent', () => {
 
     submeter(fixture);
 
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/unidades/7');
+    const requisicao = http.expectOne('/api/v1/unidades/7');
     expect(requisicao.request.body.nome).toBe('Centro Integrado');
     expect(requisicao.request.body.endereco).toBe(UNIDADE.endereco);
     expect(requisicao.request.body.cidade).toBe(UNIDADE.cidade);
@@ -116,7 +116,7 @@ describe('UnidadeFormDrawerComponent', () => {
     expect(uf.value).toBe('SE');
 
     submeter(fixture);
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/unidades/7');
+    const requisicao = http.expectOne('/api/v1/unidades/7');
     expect(requisicao.request.body.uf).toBe('SE');
     requisicao.flush(UNIDADE);
   });
@@ -147,7 +147,7 @@ describe('UnidadeFormDrawerComponent', () => {
     expect((fixture.nativeElement.querySelector('input[readonly]') as HTMLInputElement).value).toBe('SE');
 
     submeter(fixture);
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/unidades/7');
+    const requisicao = http.expectOne('/api/v1/unidades/7');
     expect(requisicao.request.body.codigoIbge).toBe('2800100');
     expect(requisicao.request.body.uf).toBe('SE');
     expect(requisicao.request.body.nome).toBe('Centro Integrado');
@@ -160,7 +160,7 @@ describe('UnidadeFormDrawerComponent', () => {
     submeter(fixture);
     fixture.detectChanges();
 
-    http.expectNone('http://localhost:8080/api/v1/unidades/7');
+    http.expectNone('/api/v1/unidades/7');
     expect(fixture.nativeElement.textContent).toContain('informadas juntas');
   });
 
@@ -176,7 +176,7 @@ describe('UnidadeFormDrawerComponent', () => {
 
     submeter(fixture);
 
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/unidades');
+    const requisicao = http.expectOne('/api/v1/unidades');
     expect(requisicao.request.method).toBe('POST');
     expect(requisicao.request.body).toEqual({
       nome: 'Nova', sigla: 'NOV', descricao: null, codigoIbge: null,
@@ -215,8 +215,8 @@ describe('UnidadeFormDrawerComponent', () => {
 
     submeter(fixture);
 
-    http.expectOne('http://localhost:8080/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: null });
-    const conexao = http.expectOne('http://localhost:8080/api/v1/unidades/7/conexao');
+    http.expectOne('/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: null });
+    const conexao = http.expectOne('/api/v1/unidades/7/conexao');
     expect(conexao.request.method).toBe('PUT');
     expect(conexao.request.body).toEqual({ conectaAUnidadeId: 1 });
     conexao.flush({ ...UNIDADE, conectaAUnidadeId: 1 });
@@ -232,8 +232,8 @@ describe('UnidadeFormDrawerComponent', () => {
 
     submeter(fixture);
 
-    http.expectOne('http://localhost:8080/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: 1 });
-    const conexao = http.expectOne('http://localhost:8080/api/v1/unidades/7/conexao');
+    http.expectOne('/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: 1 });
+    const conexao = http.expectOne('/api/v1/unidades/7/conexao');
     expect(conexao.request.method).toBe('DELETE');
     conexao.flush({ ...UNIDADE, conectaAUnidadeId: null });
   });
@@ -243,7 +243,7 @@ describe('UnidadeFormDrawerComponent', () => {
 
     submeter(fixture);
 
-    http.expectOne('http://localhost:8080/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: 1 });
-    http.expectNone('http://localhost:8080/api/v1/unidades/7/conexao');
+    http.expectOne('/api/v1/unidades/7').flush({ ...UNIDADE, conectaAUnidadeId: 1 });
+    http.expectNone('/api/v1/unidades/7/conexao');
   });
 });

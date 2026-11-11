@@ -7,7 +7,7 @@ import { ManutencaoResponse } from '../../core/models/manutencao';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { ManutencaoListComponent } from './manutencao-list.component';
 
-const URL = 'http://localhost:8080/api/v1/manutencoes';
+const URL = '/api/v1/manutencoes';
 const local = (h: number, m: number) => new Date(2026, 9, 22, h, m).toISOString();
 const janela = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse => ({
   id: 41, unidade: { id: 1, nome: 'Sede' }, escopo: MaintenanceScope.Unit, equipamentos: [],
