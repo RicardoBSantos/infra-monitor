@@ -1,7 +1,7 @@
 package br.com.inframonitor.security;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.context.properties.EnableConfigurationProperties; import org.springframework.context.annotation.*; import org.springframework.http.HttpMethod; import org.springframework.security.config.Customizer; import org.springframework.security.config.annotation.web.builders.HttpSecurity; import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity; import org.springframework.security.config.http.SessionCreationPolicy; import org.springframework.security.core.userdetails.UserDetailsService; import org.springframework.security.core.userdetails.UsernameNotFoundException; import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.security.web.*; import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-@Configuration @EnableWebSecurity @EnableConfigurationProperties(JwtProperties.class)
+@Configuration @EnableWebSecurity @EnableConfigurationProperties({JwtProperties.class, br.com.inframonitor.auth.SessaoProperties.class})
 public class SecurityConfiguration {
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder(12);}
  @Bean UserDetailsService userDetailsService(){return username->{throw new UsernameNotFoundException("Autenticacao por usuario e senha nao e utilizada");};}

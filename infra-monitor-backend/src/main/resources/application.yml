@@ -55,6 +55,9 @@ app:
       secret: ${JWT_SECRET:}
       issuer: ${JWT_ISSUER:infra-monitor}
       access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES:15}
+    sessao:
+      duracao: ${JWT_REFRESH_TOKEN_DURATION:10h}
+      cookie-secure: ${APP_AUTH_COOKIE_SECURE:true}
   bootstrap-admin:
     enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
     name: ${BOOTSTRAP_ADMIN_NAME:}

@@ -1,0 +1,17 @@
+package br.com.inframonitor.auth;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory; import org.springframework.dao.DataAccessException; import org.springframework.jdbc.core.JdbcTemplate; import org.springframework.stereotype.Service; import org.springframework.transaction.PlatformTransactionManager; import org.springframework.transaction.TransactionException; import org.springframework.transaction.TransactionDefinition; import org.springframework.transaction.support.TransactionTemplate;
+import java.nio.charset.StandardCharsets; import java.security.MessageDigest; import java.security.NoSuchAlgorithmException; import java.security.SecureRandom; import java.sql.Timestamp; import java.time.Instant; import java.util.Base64; import java.util.HexFormat; import java.util.List; import java.util.Optional; import java.util.function.Supplier;
+/** Sessao persistente (refresh token) por JDBC: sem entidade JPA, para o jar subir mesmo sem a V26. Cada operacao roda em transacao propria e falha de banco vira vazio. */
+@Service public class SessaoUsuarioService { private static final Logger log=LoggerFactory.getLogger(SessaoUsuarioService.class); private static final SecureRandom RANDOM=new SecureRandom();
+ public record SessaoCriada(String token, Instant expiraEm) {}
+ private final JdbcTemplate jdbc; private final SessaoProperties props; private final TransactionTemplate tx;
+ public SessaoUsuarioService(JdbcTemplate jdbc,SessaoProperties props,PlatformTransactionManager tm){this.jdbc=jdbc;this.props=props;this.tx=new TransactionTemplate(tm);this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);}
+ public Optional<SessaoCriada> criar(long usuarioId){ return emTransacao(Optional.empty(),()->{ byte[] b=new byte[32]; RANDOM.nextBytes(b); String token=Base64.getUrlEncoder().withoutPadding().encodeToString(b); Instant expira=Instant.now().plus(props.duracao());
+  jdbc.update("delete from sessao_usuario where expira_em < now() - interval '1 day' or revogada_em < now() - interval '1 day'");
+  jdbc.update("insert into sessao_usuario (usuario_id, token_hash, expira_em) values (?, ?, ?)",usuarioId,sha256Hex(token),Timestamp.from(expira)); return Optional.of(new SessaoCriada(token,expira)); }); }
+ public Optional<Long> validar(String token){ if(token==null||token.isEmpty())return Optional.empty(); return emTransacao(Optional.empty(),()->{ List<Long> ids=jdbc.queryForList("update sessao_usuario set ultimo_uso_em = now() where token_hash = ? and revogada_em is null and expira_em > now() returning usuario_id",Long.class,sha256Hex(token)); return ids.isEmpty()?Optional.empty():Optional.of(ids.get(0)); }); }
+ public void revogar(String token){ if(token==null||token.isEmpty())return; emTransacao(null,()->jdbc.update("update sessao_usuario set revogada_em = now() where token_hash = ? and revogada_em is null",sha256Hex(token))); }
+ public void revogarTodas(long usuarioId){ emTransacao(null,()->jdbc.update("update sessao_usuario set revogada_em = now() where usuario_id = ? and revogada_em is null",usuarioId)); }
+ public static String sha256Hex(String token){ try{ return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8))); }catch(NoSuchAlgorithmException e){ throw new IllegalStateException(e); } }
+ private <T> T emTransacao(T padrao,Supplier<T> acao){ try{ return tx.execute(s->acao.get()); }catch(DataAccessException|TransactionException e){ log.error("Sessao persistente indisponivel (V26 aplicada?)",e); return padrao; } }
+}

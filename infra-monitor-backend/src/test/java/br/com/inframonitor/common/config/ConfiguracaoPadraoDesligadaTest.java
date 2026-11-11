@@ -44,6 +44,8 @@ class ConfiguracaoPadraoDesligadaTest {
         assertThat(resolver.getProperty("monitoring.engine.enabled", Boolean.class)).isFalse();
         assertThat(resolver.getProperty("manutencao.agendada.enabled", Boolean.class)).isFalse();
         assertThat(resolver.getProperty("notification.telegram.bot-token")).isEmpty();
+        assertThat(resolver.getProperty("app.auth.sessao.cookie-secure", Boolean.class)).isTrue();
+        assertThat(resolver.getProperty("app.auth.sessao.duracao")).isEqualTo("10h");
     }
 
     private static List<PropertySource<?>> carregar(String arquivo) throws IOException {
