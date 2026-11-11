@@ -46,7 +46,7 @@ export class TopbarComponent {
 
   protected atualizar(): void { this.painel.atualizar(); }
   protected changePassword(): void { this.menuOpen.set(false); this.router.navigate(['/trocar-senha']); }
-  protected logout(): void { this.auth.logout(); this.router.navigate(['/login']); }
+  protected logout(): void { this.auth.logout().subscribe({ complete: () => this.router.navigate(['/login']) }); }
 }
 
 function iniciaisDe(nome: string): string {

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, tap, timeout } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthMeResponse, LoginRequest, LoginResponse, TrocaSenhaRequest } from '../models/auth';
 import { AuthStateService } from './auth-state.service';
@@ -14,5 +14,6 @@ export class AuthService {
   }
   me(): Observable<AuthMeResponse> { return this.http.get<AuthMeResponse>(`${environment.apiUrl}/auth/me`); }
   changeOwnPassword(request: TrocaSenhaRequest): Observable<void> { return this.http.put<void>(`${environment.apiUrl}/usuarios/me/senha`, request); }
-  logout(): void { this.state.clear(); }
+  /** Revoga a sessão do cookie (sem Bearer; ver `isProtectedApi`). Falha ignorada: o estado local é limpo sempre. */
+  logout(): Observable<void> { return this.http.post<void>(`${environment.apiUrl}/auth/logout`, {}, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).pipe(timeout(8000), map(() => undefined), catchError(() => of(undefined)), finalize(() => this.state.clear())); }
 }

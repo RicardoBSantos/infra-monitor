@@ -9,7 +9,8 @@ export class AuthStateService {
   readonly accessToken = this.accessTokenSignal.asReadonly();
   readonly expiresAt = this.expiresAtSignal.asReadonly();
   readonly usuario = this.usuarioSignal.asReadonly();
-  readonly authenticated = computed(() => this.accessTokenSignal() !== null && this.usuarioSignal() !== null && !this.isExpired());
+  /** Access token vencido não encerra a sessão: o 401 dispara o refresh (auth.interceptor). */
+  readonly authenticated = computed(() => this.accessTokenSignal() !== null && this.usuarioSignal() !== null);
   readonly papel = computed<PapelUsuario | null>(() => this.usuarioSignal()?.papel ?? null);
   readonly trocaSenhaObrigatoria = computed(() => this.usuarioSignal()?.trocaSenhaObrigatoria ?? false);
 
@@ -27,5 +28,4 @@ export class AuthStateService {
   canManageMonitors(): boolean { return this.canWriteInventory(); }
   canCloseIncident(): boolean { return this.hasAnyRole(['ADMIN', 'OPERADOR']); }
   canManageUsers(): boolean { return this.isAdmin(); }
-  private isExpired(): boolean { const expiresAt = this.expiresAtSignal(); return expiresAt !== null && expiresAt <= Date.now(); }
 }
