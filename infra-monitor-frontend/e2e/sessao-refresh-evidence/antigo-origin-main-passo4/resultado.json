@@ -1,0 +1,39 @@
+{
+  "base": "http://localhost:4311",
+  "inicio": "2026-11-11T17:32:04.009Z",
+  "config": {
+    "ACCESS_S": 60,
+    "DURACAO_S": 240,
+    "USO_S": 150,
+    "PASSOS": [
+      4
+    ],
+    "ROTA": "8083"
+  },
+  "passos": [
+    {
+      "passo": 4,
+      "descricao": "uso contínuo por 150s (> 60s do access token) não derruba a sessão",
+      "ok": false,
+      "detalhe": "caiu no login após 75s"
+    }
+  ],
+  "refresh": [],
+  "idasAoLogin": [
+    {
+      "quando": "2026-11-11T17:32:04.307Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:32:04.517Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:33:05.941Z",
+      "url": "http://localhost:4311/login?sessionExpired=1"
+    }
+  ],
+  "erros": [],
+  "fim": "2026-11-11T17:33:21.107Z",
+  "ok": false
+}

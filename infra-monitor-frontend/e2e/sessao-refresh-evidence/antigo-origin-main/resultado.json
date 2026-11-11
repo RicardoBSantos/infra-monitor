@@ -1,0 +1,80 @@
+{
+  "base": "http://localhost:4311",
+  "inicio": "2026-11-11T17:29:12.551Z",
+  "config": {
+    "ACCESS_S": 60,
+    "DURACAO_S": 240,
+    "USO_S": 150,
+    "PASSOS": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "ROTA": "8083"
+  },
+  "passos": [
+    {
+      "passo": 1,
+      "descricao": "login pela tela abre área interna e grava cookie httpOnly/Strict em /api/v1/auth",
+      "ok": true,
+      "detalhe": "url=http://localhost:4311/dashboard httpOnly=true sameSite=Strict path=/api/v1/auth secure=true"
+    },
+    {
+      "passo": 2,
+      "descricao": "page.reload() mantém a sessão na tela interna, sem passar pelo login",
+      "ok": false,
+      "detalhe": "url=http://localhost:4311/login?returnUrl=%2Fequipamentos refresh=[]"
+    },
+    {
+      "passo": 3,
+      "descricao": "page.goto(/unidades) depois do login abre a tela, sem login",
+      "ok": false,
+      "detalhe": "url=http://localhost:4311/login?returnUrl=%2Funidades"
+    }
+  ],
+  "refresh": [],
+  "idasAoLogin": [
+    {
+      "quando": "2026-11-11T17:29:12.957Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:29:13.316Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:29:14.791Z",
+      "url": "http://localhost:4311/login?returnUrl=%2Fequipamentos"
+    },
+    {
+      "quando": "2026-11-11T17:29:15.533Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:29:15.651Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:29:16.761Z",
+      "url": "http://localhost:4311/login?returnUrl=%2Funidades"
+    },
+    {
+      "quando": "2026-11-11T17:29:17.443Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:29:17.536Z",
+      "url": "http://localhost:4311/login"
+    },
+    {
+      "quando": "2026-11-11T17:30:19.072Z",
+      "url": "http://localhost:4311/login?sessionExpired=1"
+    }
+  ],
+  "erros": [
+    "fatal: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.sidebar .navigation__item').filter({ hasText: 'Manutenções' }).first()\u001b[22m\n\n    at clicarMenu (C:\\Users\\rbfilho\\Documents\\wt-sessao\\infra-monitor-frontend\\e2e\\sessao-refresh.cjs:62:81)\n    at C:\\Users\\rbfilho\\Documents\\wt-sessao\\infra-monitor-frontend\\e2e\\sessao-refresh.cjs:122:15"
+  ],
+  "fim": "2026-11-11T17:31:04.263Z",
+  "ok": false
+}
