@@ -1,5 +1,6 @@
 package br.com.inframonitor.usuario.service;
 
+import br.com.inframonitor.auth.SessaoUsuarioService;
 import br.com.inframonitor.common.exception.*;
 import br.com.inframonitor.usuario.dto.*;
 import br.com.inframonitor.usuario.entity.*;
@@ -9,10 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
+/** Desativar, resetar e trocar a propria senha revogam as sessoes persistentes; revogarTodas roda em transacao propria e tolera a tabela ausente. */
 @Service @Transactional(readOnly = true)
 public class UsuarioService {
-    private final UsuarioRepository repository; private final PasswordEncoder passwordEncoder;
-    public UsuarioService(UsuarioRepository repository, PasswordEncoder passwordEncoder) { this.repository = repository; this.passwordEncoder = passwordEncoder; }
+    private final UsuarioRepository repository; private final PasswordEncoder passwordEncoder; private final SessaoUsuarioService sessoes;
+    public UsuarioService(UsuarioRepository repository, PasswordEncoder passwordEncoder, SessaoUsuarioService sessoes) { this.repository = repository; this.passwordEncoder = passwordEncoder; this.sessoes = sessoes; }
     public List<UsuarioResponse> listar() { return repository.findAllByOrderByNomeAsc().stream().map(this::resposta).toList(); }
     public UsuarioResponse buscar(Long id) { return resposta(obter(id)); }
     @Transactional public UsuarioResponse criar(CreateUsuarioRequest r) {
@@ -31,12 +33,12 @@ public class UsuarioService {
         if (id.equals(solicitanteId)) throw new ConflitoException("ADMIN nao pode desativar a propria conta");
         repository.lockActiveAdmins(); Usuario u = repository.findByIdForUpdate(id).orElseThrow(() -> naoEncontrado());
         if (u.getPapel() == Papel.ADMIN && u.isAtivo() && ativosAdminsAposExclusao(u) == 0) throw new ConflitoException("Nao e permitido desativar o ultimo ADMIN ativo");
-        u.setAtivo(false); return resposta(u);
+        u.setAtivo(false); sessoes.revogarTodas(id); return resposta(u);
     }
-    @Transactional public UsuarioResponse resetarSenha(Long id, ResetSenhaRequest r) { Usuario u = obter(id); u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(true); return resposta(u); }
+    @Transactional public UsuarioResponse resetarSenha(Long id, ResetSenhaRequest r) { Usuario u = obter(id); u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(true); sessoes.revogarTodas(id); return resposta(u); }
     @Transactional public void trocarMinhaSenha(Long id, TrocaSenhaRequest r) {
         Usuario u = obter(id); if (!passwordEncoder.matches(r.senhaAtual(), u.getSenhaHash())) throw new IllegalArgumentException("Senha atual invalida");
-        u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(false);
+        u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(false); sessoes.revogarTodas(id);
     }
     @Transactional public void registrarLogin(Usuario u) { u.setUltimoLoginEm(java.time.Instant.now()); }
     public Usuario obter(Long id) { return repository.findById(id).orElseThrow(() -> naoEncontrado()); }

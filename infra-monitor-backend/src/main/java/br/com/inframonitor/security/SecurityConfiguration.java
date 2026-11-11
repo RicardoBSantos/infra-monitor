@@ -8,7 +8,7 @@ public class SecurityConfiguration {
  @Bean JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwt, br.com.inframonitor.usuario.repository.UsuarioRepository users, ApiAuthenticationEntryPoint entry, tools.jackson.databind.ObjectMapper mapper){return new JwtAuthenticationFilter(jwt,users,entry,mapper);}
  @Bean SecurityFilterChain securityFilterChain(HttpSecurity h,JwtAuthenticationFilter jwt,ApiAuthenticationEntryPoint unauth,ApiAccessDeniedHandler denied)throws Exception{return h.csrf(c->c.disable()).cors(Customizer.withDefaults()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).exceptionHandling(e->e.authenticationEntryPoint(unauth).accessDeniedHandler(denied)).authorizeHttpRequests(a->a
   .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-  .requestMatchers(HttpMethod.POST,"/api/v1/auth/login").permitAll().requestMatchers(HttpMethod.GET,"/actuator/health").permitAll()
+  .requestMatchers(HttpMethod.POST,"/api/v1/auth/login","/api/v1/auth/refresh","/api/v1/auth/logout").permitAll().requestMatchers(HttpMethod.GET,"/actuator/health").permitAll()
   .requestMatchers(HttpMethod.PUT,"/api/v1/usuarios/me/senha").authenticated().requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
   .requestMatchers(HttpMethod.GET,"/api/v1/**").hasAnyRole("ADMIN","OPERADOR","VISUALIZADOR")
   .requestMatchers(HttpMethod.POST,"/api/v1/unidades/**","/api/v1/tipos-equipamento/**","/api/v1/equipamentos/**","/api/v1/monitores/**","/api/v1/medicoes/**","/api/v1/manutencoes/**").hasAnyRole("ADMIN","OPERADOR")
