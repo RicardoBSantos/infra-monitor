@@ -6,6 +6,7 @@ import br.com.inframonitor.equipamento.repository.SessaoManutencaoManual;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.equipamento.service.EstadoManutencaoEquipamento;
 import br.com.inframonitor.notificacao.service.NotificacaoMessageBuilder;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -96,9 +97,7 @@ class ManutencaoManualAnuncioPostgresIntegrationTest {
     @BeforeEach
     void montarCenario() {
         reset(builder, sessoesSpy);
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
-                + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, manutencao_manual, "
-                + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         ana = usuario("Ana Operadora", "ana@manual.test");
         bruno = usuario("Bruno Operador", "bruno@manual.test");
         tipo = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");

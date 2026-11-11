@@ -13,6 +13,7 @@ import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -71,8 +72,7 @@ class IncidentesAbertosElegiveisPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, "
-                + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         long tipo = tipos.criar(new CreateTipoEquipamentoRequest("Switch", null)).id();
         long unidadeId = unidades.criar(new CreateUnidadeRequest(
                 "Unidade Teste", "UT", null, null, null, null, null, null, null)).id();

@@ -1,5 +1,6 @@
 package br.com.inframonitor.manutencao;
 
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,9 +52,7 @@ class MigracaoManutencaoAgendadaPostgresIntegrationTest {
 
     @BeforeEach
     void limparBanco() {
-        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
-                + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
-                + "tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         usuarioId = jdbc.queryForObject("insert into usuarios (nome, email, senha_hash, papel, ativo, "
                 + "troca_senha_obrigatoria) values ('Operador', 'operador@migracao.test', 'hash-irrelevante', "
                 + "'OPERADOR', true, false) returning id", Long.class);

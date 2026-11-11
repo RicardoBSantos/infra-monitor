@@ -11,6 +11,7 @@ import br.com.inframonitor.incidente.service.IncidenteService;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -92,8 +93,7 @@ class IncidenteAutoriaHttpIntegrationTest {
     private Monitor monitor;
 
     @BeforeEach void preparar() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         Long unidade = unidades.criar(new CreateUnidadeRequest("Unidade Autoria", "AUT", null, null, null, null, null, null, null)).id();
         Long tipo = tipos.criar(new CreateTipoEquipamentoRequest("Tipo Autoria", null)).id();
         Long equipamentoId = equipamentoService.criar(new CreateEquipamentoRequest(unidade, tipo, "Equipamento Autoria",

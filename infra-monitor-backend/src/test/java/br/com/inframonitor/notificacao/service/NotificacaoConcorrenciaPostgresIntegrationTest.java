@@ -3,6 +3,7 @@ package br.com.inframonitor.notificacao.service;
 import br.com.inframonitor.incidente.dto.CloseIncidenteRequest;
 import br.com.inframonitor.incidente.repository.IncidenteRepository;
 import br.com.inframonitor.incidente.service.IncidenteService;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,8 +81,7 @@ class NotificacaoConcorrenciaPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
 
         long tipo = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");
         long unidade = insert("insert into unidade (nome, sigla, ativo) values ('Centro', 'CTR', true) returning id");

@@ -21,6 +21,7 @@ import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.exportacao.RelatorioExportService;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.security.UsuarioPrincipal;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -85,7 +86,7 @@ class RelatorioMotivoEncerramentoTest {
 
     @BeforeEach
     void limpar() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, equipamento, tipo_equipamento, unidade restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
     }
 
     @Test

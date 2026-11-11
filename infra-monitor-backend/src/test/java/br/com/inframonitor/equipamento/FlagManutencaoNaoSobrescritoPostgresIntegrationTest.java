@@ -2,6 +2,7 @@ package br.com.inframonitor.equipamento;
 
 import br.com.inframonitor.equipamento.entity.Equipamento;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,8 +58,7 @@ class FlagManutencaoNaoSobrescritoPostgresIntegrationTest {
 
     @BeforeEach
     void limparBanco() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
     }
 
     @Test

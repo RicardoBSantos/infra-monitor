@@ -1,5 +1,6 @@
 package br.com.inframonitor.manutencao;
 
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.usuario.entity.Papel;
 import br.com.inframonitor.usuario.entity.Usuario;
@@ -65,8 +66,7 @@ class ManutencaoAgendadaHttpSecurityIntegrationTest {
 
     @BeforeEach
     void preparar() {
-        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, equipamento, "
-                + "tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         usuario("admin@manut.test", Papel.ADMIN);
         long operador = usuario("operador@manut.test", Papel.OPERADOR);
         usuario("visualizador@manut.test", Papel.VISUALIZADOR);

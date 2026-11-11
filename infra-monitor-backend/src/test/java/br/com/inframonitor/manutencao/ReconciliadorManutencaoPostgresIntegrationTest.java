@@ -5,21 +5,22 @@ import br.com.inframonitor.equipamento.service.EstadoManutencaoEquipamento;
 import br.com.inframonitor.manutencao.config.ManutencaoAgendadaProperties;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao;
 import br.com.inframonitor.manutencao.repository.CoberturaManutencao.Transicao;
+import br.com.inframonitor.manutencao.service.AgendadorReconciliacaoManutencao;
 import br.com.inframonitor.manutencao.service.AnuncioManutencao;
 import br.com.inframonitor.manutencao.service.ReconciliacaoInicial;
 import br.com.inframonitor.manutencao.service.ReconciliadorManutencao;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 
@@ -67,9 +68,7 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
     }
 
-    // Keep the real reconciler and every assertion; control only automatic timer delivery.
-    @MockitoBean(name = "taskScheduler", answers = org.mockito.Answers.CALLS_REAL_METHODS)
-    private TaskScheduler timer;
+    @Autowired private ApplicationContext contexto;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ReconciliadorManutencao reconciliador;
     @Autowired private CoberturaManutencao cobertura;
@@ -92,9 +91,7 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
-                + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
-                + "tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         operadorId = insert("insert into usuarios (nome, email, senha_hash, papel, ativo, troca_senha_obrigatoria) "
                 + "values ('Operador', 'operador@reconciliador.test', 'hash-irrelevante', 'OPERADOR', true, false) "
                 + "returning id");
@@ -210,8 +207,16 @@ class ReconciliadorManutencaoPostgresIntegrationTest {
     }
 
     @Test
+    void contextoDeTesteNaoAgendaPassadaConcorrenteALimpeza() {
+        // D-03: a passada da subida corria contra o TRUNCATE do @BeforeEach. O bean do
+        // reconciliador fica; o agendador sai por src/test/resources/config/application.properties.
+        assertThat(contexto.getBeansOfType(AgendadorReconciliacaoManutencao.class)).isEmpty();
+        assertThat(reconciliador).isNotNull();
+    }
+
+    @Test
     void marcaReconciliacaoInicialPronta() {
-        // Instancia propria: o bean do contexto ja foi marcado pela passada da subida.
+        // Instancia propria: nao depende de quem ja passou pelo bean do contexto.
         var inicial = new ReconciliacaoInicial(props);
         var proprio = new ReconciliadorManutencao(cobertura, anuncio, estado, inicial, props,
                 transactionManager, clock);

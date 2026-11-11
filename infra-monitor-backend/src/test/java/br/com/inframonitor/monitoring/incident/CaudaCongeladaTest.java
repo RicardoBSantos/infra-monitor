@@ -14,6 +14,7 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -73,8 +74,7 @@ class CaudaCongeladaTest {
     private Monitor monitor;
 
     @BeforeEach void preparar() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
 
         Long unidadeId = unidades.criar(new CreateUnidadeRequest("Unidade Cauda", "CAU", null, null, null, null,
                 null, null, null)).id();

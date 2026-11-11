@@ -223,3 +223,10 @@ Regras já definidas:
   `PostgreSQLContainer` precisa da anotação. `DocumentacaoRequerDockerTest` confere a contagem
   nas fontes contra este arquivo e o README do backend durante `./mvnw test`.
 - Não criar mock ou teste artificial só para aumentar contagem.
+- Limpeza entre testes de integração: `LimpezaBanco.limpar(jdbc)` (`testsupport/`), um TRUNCATE
+  derivado de `pg_tables`. Nunca copiar lista de tabelas para o teste (D-03: eram 48 cópias com
+  12 listas diferentes).
+- `src/test/resources/config/application.properties` vale para todo contexto de teste e desliga
+  `manutencao.agendada.agendador-ativo`: `@Scheduled` sem `initialDelay` dispara na subida e
+  corre contra o TRUNCATE do `@BeforeEach` (deadlock do D-03). Teste que quer uma passada chama
+  `ReconciliadorManutencao.reconciliar`; religar o agendador só onde o agendamento é o objeto.

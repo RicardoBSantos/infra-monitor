@@ -11,6 +11,7 @@ import br.com.inframonitor.manutencao.service.ManutencaoAgendadaService;
 import br.com.inframonitor.manutencao.service.ReconciliadorManutencao;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -121,9 +122,7 @@ class ManutencaoAgendadaConcorrenciaPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
-                + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
-                + "tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         agora = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         operadorId = insert("insert into usuarios (nome, email, senha_hash, papel, ativo, troca_senha_obrigatoria) "
                 + "values ('Operador', 'operador@corridas.test', 'hash-irrelevante', 'OPERADOR', true, false) "
