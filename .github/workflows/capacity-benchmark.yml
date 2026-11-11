@@ -1,0 +1,78 @@
+name: Capacity Benchmark
+# D02.11-A.1: capacity proof on a disposable runner with synthetic data. Never touches production.
+on:
+  workflow_dispatch:
+  push:
+    branches: ['perf/**']
+    paths:
+      - 'tools/capacity/**'
+      - '.github/workflows/capacity-benchmark.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capacity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: inframonitor
+          POSTGRES_USER: bench
+          POSTGRES_PASSWORD: bench-only-throwaway
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U bench -d inframonitor"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+          --shm-size 256mb
+    env:
+      TZ: UTC
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: inframonitor
+      PGUSER: bench
+      PGPASSWORD: bench-only-throwaway
+      OUT: capacity-out
+    steps:
+      - name: Checkout sem credenciais persistidas
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Configurar Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: infra-monitor-backend/pom.xml
+      - name: Conferir ferramentas
+        run: |
+          set -euo pipefail
+          psql --version; jq --version; bc --version | head -1
+          docker exec "${{ job.services.postgres.id }}" pgbench --version
+      - name: Empacotar backend (sem testes)
+        working-directory: infra-monitor-backend
+        run: bash ./mvnw --batch-mode --no-transfer-progress -DskipTests package
+      - name: Executar prova de capacidade
+        run: |
+          set -euo pipefail
+          JAR=$(ls infra-monitor-backend/target/*.jar | grep -v -- '-plain' | head -1) \
+          PG_CONTAINER="${{ job.services.postgres.id }}" bash tools/capacity/bench.sh
+      - name: Resumo
+        if: ${{ always() }}
+        run: test -f capacity-out/summary.md && cat capacity-out/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Upload dos resultados
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: capacity-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            capacity-out/
+            !capacity-out/app-*.log
+          retention-days: 30
