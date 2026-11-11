@@ -2,6 +2,7 @@ package br.com.inframonitor.manutencao;
 
 import br.com.inframonitor.manutencao.entity.TipoAlteracao;
 import br.com.inframonitor.manutencao.repository.EdicaoManutencao;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,8 +60,7 @@ class EdicaoManutencaoPostgresIntegrationTest {
 
     @BeforeEach
     void cenario() {
-        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, "
-                + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         operador = id("insert into usuarios (nome, email, senha_hash, papel, ativo, troca_senha_obrigatoria) "
                 + "values ('Ana', 'ana@edicao.test', 'h', 'OPERADOR', true, false) returning id");
         long tipo = id("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");

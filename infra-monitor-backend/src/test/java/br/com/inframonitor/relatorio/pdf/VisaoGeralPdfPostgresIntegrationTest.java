@@ -1,5 +1,6 @@
 package br.com.inframonitor.relatorio.pdf;
 
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.usuario.entity.Papel;
 import br.com.inframonitor.usuario.entity.Usuario;
@@ -64,7 +65,7 @@ class VisaoGeralPdfPostgresIntegrationTest {
 
     @BeforeEach
     void setup() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         Long tipoId = jdbc.queryForObject("insert into tipo_equipamento(nome,slug) values ('Roteador','roteador') returning id", Long.class);
         for (int index = 1; index <= 25; index++) {
             boolean unicode = index == 21;

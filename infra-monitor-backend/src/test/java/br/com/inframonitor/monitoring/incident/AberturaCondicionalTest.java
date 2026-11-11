@@ -16,6 +16,7 @@ import br.com.inframonitor.monitor.repository.MonitorRepository;
 import br.com.inframonitor.monitoring.latency.LatencyEpisodeProcessor;
 import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatenciaRepository;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -84,8 +85,7 @@ class AberturaCondicionalTest {
     private Medicao medicaoDegradada;
 
     @BeforeEach void preparar() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
 
         Long unidadeId = unidades.criar(new CreateUnidadeRequest("Unidade Corrida", "COR", null, null, null, null,
                 null, null, null)).id();

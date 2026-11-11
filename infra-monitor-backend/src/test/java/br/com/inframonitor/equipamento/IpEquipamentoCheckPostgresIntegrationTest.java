@@ -1,6 +1,7 @@
 package br.com.inframonitor.equipamento;
 
 import br.com.inframonitor.equipamento.validation.RegraIpv4;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class IpEquipamentoCheckPostgresIntegrationTest {
 
     @BeforeEach
     void limparBanco() {
-        jdbc.execute("truncate table equipamento, tipo_equipamento, unidade restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         unidadeId = jdbc.queryForObject(
                 "insert into unidade (nome, sigla) values ('Unidade IP', 'UIP') returning id", Long.class);
         tipoId = jdbc.queryForObject(

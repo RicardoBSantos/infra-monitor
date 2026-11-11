@@ -9,6 +9,7 @@ import br.com.inframonitor.monitoring.latency.MonitorEpisodioLatenciaRepository;
 import br.com.inframonitor.notificacao.entity.TipoEventoNotificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,8 +71,7 @@ class EntradaEmManutencaoTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
 
         operadorId = insert("insert into usuarios (nome, email, senha_hash, papel, troca_senha_obrigatoria) "
                 + "values ('Operador', 'operador@teste.local', 'hash', 'OPERADOR', false) returning id");

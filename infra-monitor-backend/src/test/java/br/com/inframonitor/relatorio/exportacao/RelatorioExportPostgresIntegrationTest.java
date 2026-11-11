@@ -20,6 +20,7 @@ import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
 import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -92,7 +93,7 @@ class RelatorioExportPostgresIntegrationTest {
     private Long unidadeId,equipamentoId,monitorId,tipoId,incidenteId;
 
     @BeforeEach void setup(){
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         unidadeId=unidades.criar(new CreateUnidadeRequest("Unidade São José", "SJ", null, null, null, null, null, null, null)).id();
         tipoId=tipos.criar(new CreateTipoEquipamentoRequest("Roteador",null)).id();
         equipamentoId=equipamentosService.criar(new CreateEquipamentoRequest(unidadeId,tipoId,"Equipamento, Principal",null,null,null,null, null, null, null)).id();

@@ -20,6 +20,7 @@ import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
 import br.com.inframonitor.relatorio.entity.JanelaMonitoramento;
 import br.com.inframonitor.relatorio.entity.OrigemJanelaMonitoramento;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -85,7 +86,7 @@ class RelatoriosHttpIntegrationTest {
     private Long unidadeA, unidadeB, equipamentoA, equipamentoB, monitorA, tipoA, incidenteA;
 
     @BeforeEach void preparar() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         unidadeA = unidades.criar(new CreateUnidadeRequest("Unidade HTTP A", "HA", null, null, null, null, null, null, null)).id();
         unidadeB = unidades.criar(new CreateUnidadeRequest("Unidade HTTP B", "HB", null, null, null, null, null, null, null)).id();
         tipoA = tipos.criar(new CreateTipoEquipamentoRequest("Tipo HTTP A", null)).id();

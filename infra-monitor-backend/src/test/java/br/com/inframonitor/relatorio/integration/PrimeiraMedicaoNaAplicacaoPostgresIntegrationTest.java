@@ -8,6 +8,7 @@ import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.service.MonitorService;
 import br.com.inframonitor.relatorio.dto.DisponibilidadeEquipamentoResponse;
 import br.com.inframonitor.relatorio.service.DisponibilidadeSqlRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,8 +59,7 @@ class PrimeiraMedicaoNaAplicacaoPostgresIntegrationTest {
 
     @BeforeEach
     void montarMonitorComJanelaAberta() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, "
-                + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         long tipo = jdbc.queryForObject("insert into tipo_equipamento (nome) values ('Switch') returning id", Long.class);
         long unidade = jdbc.queryForObject("insert into unidade (nome, sigla) values ('Sede', 'SEDE') returning id", Long.class);
         long equipamento = jdbc.queryForObject("insert into equipamento (unidade_id, tipo_equipamento_id, nome, ip_address) "

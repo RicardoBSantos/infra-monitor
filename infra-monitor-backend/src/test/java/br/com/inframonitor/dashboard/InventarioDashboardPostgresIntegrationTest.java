@@ -15,6 +15,7 @@ import br.com.inframonitor.medicao.repository.MedicaoRepository;
 import br.com.inframonitor.monitor.entity.Monitor;
 import br.com.inframonitor.monitor.entity.TipoMonitor;
 import br.com.inframonitor.monitor.repository.MonitorRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -93,8 +94,7 @@ class InventarioDashboardPostgresIntegrationTest {
 
     @BeforeEach
     void montarInventario() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, "
-                + "equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         unidadeIds.clear();
         operadorId = jdbc.queryForObject("insert into usuarios (nome, email, senha_hash, papel, "
                 + "troca_senha_obrigatoria) values ('Operador', 'operador@teste.local', 'hash', "

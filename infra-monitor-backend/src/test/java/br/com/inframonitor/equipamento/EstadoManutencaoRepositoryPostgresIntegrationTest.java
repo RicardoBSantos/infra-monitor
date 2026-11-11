@@ -2,6 +2,7 @@ package br.com.inframonitor.equipamento;
 
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository;
 import br.com.inframonitor.equipamento.repository.EquipamentoRepository.EstadoManutencaoTravado;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,9 +60,7 @@ class EstadoManutencaoRepositoryPostgresIntegrationTest {
 
     @BeforeEach
     void limparBanco() {
-        jdbc.execute("truncate table manutencao_agendada_equipamento, manutencao_agendada, janela_monitoramento, "
-                + "medicao, notificacao, monitor_episodio_latencia, incidente, monitor, equipamento, "
-                + "tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         tipoId = jdbc.queryForObject("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id",
                 Long.class);
         unidadeId = jdbc.queryForObject(

@@ -1,6 +1,7 @@
 package br.com.inframonitor.dashboard;
 
 import br.com.inframonitor.dashboard.dto.DashboardIncidenteResponse;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,8 +59,7 @@ class IncidenteUnificadoPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
 
         long tipo = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");
         unidadeA = insert("insert into unidade (nome, sigla, ativo) values ('Centro', 'CTR', true) returning id");

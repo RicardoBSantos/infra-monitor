@@ -20,6 +20,7 @@ import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.relatorio.service.RelatorioService;
 import br.com.inframonitor.relatorio.temporal.DisponibilidadeTemporalCalculator;
 import br.com.inframonitor.relatorio.temporal.ResultadoDisponibilidadeTemporal;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -53,7 +54,7 @@ class DisponibilidadePaginacaoSortPostgresIntegrationTest {
     @Autowired EquipamentoService equipamentoService; @Autowired EquipamentoRepository equipamentos; @Autowired MonitorRepository monitores;
     @Autowired JanelaMonitoramentoRepository janelas; @Autowired MedicaoRepository medicoes; @Autowired IncidenteRepository incidentes; @Autowired RelatorioService relatorios;
 
-    @BeforeEach void reset() { jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, equipamento, tipo_equipamento, unidade restart identity cascade"); }
+    @BeforeEach void reset() { LimpezaBanco.limpar(jdbc); }
 
     @Test void cenariosBCSqlEMotorUsamMesmosDadosELacunaNaoEntra() {
         Instant b0 = at(10), b1 = at(11); Equipamento eb = equipamento("B", "B"); Monitor mb = monitor(eb, "B", b0, b1);

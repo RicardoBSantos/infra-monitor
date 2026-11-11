@@ -18,6 +18,7 @@ import br.com.inframonitor.relatorio.dto.*;
 import br.com.inframonitor.relatorio.entity.*;
 import br.com.inframonitor.relatorio.repository.JanelaMonitoramentoRepository;
 import br.com.inframonitor.relatorio.service.RelatorioService;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
 import br.com.inframonitor.tipoequipamento.service.TipoEquipamentoService;
@@ -42,7 +43,7 @@ class RelatoriosAnaliticosPostgresIntegrationTest {
  @DynamicPropertySource static void db(DynamicPropertyRegistry r){POSTGRES.start();r.add("spring.datasource.url",POSTGRES::getJdbcUrl);r.add("spring.datasource.username",POSTGRES::getUsername);r.add("spring.datasource.password",POSTGRES::getPassword);}
  @Autowired JdbcTemplate jdbc; @Autowired UnidadeService unidades; @Autowired TipoEquipamentoService tipos; @Autowired EquipamentoService equipamentoService; @Autowired EquipamentoRepository equipamentos; @Autowired MonitorRepository monitores; @Autowired JanelaMonitoramentoRepository janelas; @Autowired MedicaoRepository medicoes; @Autowired IncidenteRepository incidentes; @Autowired NotificacaoRepository notificacoes; @Autowired RelatorioService relatorios;
  Map<String,Long> unidadesPorSigla=new HashMap<>();
- @BeforeEach void clear(){jdbc.execute("truncate table janela_monitoramento, medicao, incidente, notificacao, monitor, equipamento, tipo_equipamento, unidade restart identity cascade");unidadesPorSigla.clear();}
+ @BeforeEach void clear(){LimpezaBanco.limpar(jdbc);unidadesPorSigla.clear();}
 
  @Test void unidadeSomaTemposSemMediaSimplesEDeduplicaEquipamentos(){
   Equipamento a=eq("U2","A"), b=eq("U2","B"); Monitor ma=monitor(a,"A",INICIO,INICIO.plusSeconds(3600)), mb=monitor(b,"B",INICIO,INICIO.plusSeconds(32400)); medicao(ma,INICIO,10);medicao(mb,INICIO,10);incidente(mb,INICIO,INICIO.plusSeconds(3240),"B");
