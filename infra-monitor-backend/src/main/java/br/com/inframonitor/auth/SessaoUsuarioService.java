@@ -6,9 +6,10 @@ import java.nio.charset.StandardCharsets; import java.security.MessageDigest; im
  public record SessaoCriada(String token, Instant expiraEm) {}
  private final JdbcTemplate jdbc; private final SessaoProperties props; private final TransactionTemplate tx;
  public SessaoUsuarioService(JdbcTemplate jdbc,SessaoProperties props,PlatformTransactionManager tm){this.jdbc=jdbc;this.props=props;this.tx=new TransactionTemplate(tm);this.tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);}
- public Optional<SessaoCriada> criar(long usuarioId){ return emTransacao(Optional.empty(),()->{ byte[] b=new byte[32]; RANDOM.nextBytes(b); String token=Base64.getUrlEncoder().withoutPadding().encodeToString(b); Instant expira=Instant.now().plus(props.duracao());
-  jdbc.update("delete from sessao_usuario where expira_em < now() - interval '1 day' or revogada_em < now() - interval '1 day'");
-  jdbc.update("insert into sessao_usuario (usuario_id, token_hash, expira_em) values (?, ?, ?)",usuarioId,sha256Hex(token),Timestamp.from(expira)); return Optional.of(new SessaoCriada(token,expira)); }); }
+ /** INSERT e limpeza em transacoes separadas e curtas: a limpeza (linhas de outros usuarios) nunca fica travada enquanto o INSERT espera a FK. */
+ public Optional<SessaoCriada> criar(long usuarioId){ Optional<SessaoCriada> s=emTransacao(Optional.empty(),()->{ byte[] b=new byte[32]; RANDOM.nextBytes(b); String token=Base64.getUrlEncoder().withoutPadding().encodeToString(b); Instant expira=Instant.now().plus(props.duracao());
+  jdbc.update("insert into sessao_usuario (usuario_id, token_hash, expira_em) values (?, ?, ?)",usuarioId,sha256Hex(token),Timestamp.from(expira)); return Optional.of(new SessaoCriada(token,expira)); });
+  if(s.isPresent()) emTransacao(null,()->jdbc.update("delete from sessao_usuario where expira_em < now() - interval '1 day' or revogada_em < now() - interval '1 day'")); return s; }
  public Optional<Long> validar(String token){ if(token==null||token.isEmpty())return Optional.empty(); return emTransacao(Optional.empty(),()->{ List<Long> ids=jdbc.queryForList("update sessao_usuario set ultimo_uso_em = now() where token_hash = ? and revogada_em is null and expira_em > now() returning usuario_id",Long.class,sha256Hex(token)); return ids.isEmpty()?Optional.empty():Optional.of(ids.get(0)); }); }
  public void revogar(String token){ if(token==null||token.isEmpty())return; emTransacao(null,()->jdbc.update("update sessao_usuario set revogada_em = now() where token_hash = ? and revogada_em is null",sha256Hex(token))); }
  public void revogarTodas(long usuarioId){ emTransacao(null,()->jdbc.update("update sessao_usuario set revogada_em = now() where usuario_id = ? and revogada_em is null",usuarioId)); }

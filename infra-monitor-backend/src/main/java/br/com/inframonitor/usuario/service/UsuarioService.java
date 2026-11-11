@@ -8,11 +8,16 @@ import br.com.inframonitor.usuario.repository.UsuarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.*;
 
-/** Desativar, resetar e trocar a propria senha revogam as sessoes persistentes; revogarTodas roda em transacao propria e tolera a tabela ausente. */
+/** Desativar, resetar e trocar a propria senha revogam as sessoes persistentes, depois do commit e sem nunca falhar a operacao. */
 @Service @Transactional(readOnly = true)
 public class UsuarioService {
+    private static final Logger log = LoggerFactory.getLogger(UsuarioService.class);
     private final UsuarioRepository repository; private final PasswordEncoder passwordEncoder; private final SessaoUsuarioService sessoes;
     public UsuarioService(UsuarioRepository repository, PasswordEncoder passwordEncoder, SessaoUsuarioService sessoes) { this.repository = repository; this.passwordEncoder = passwordEncoder; this.sessoes = sessoes; }
     public List<UsuarioResponse> listar() { return repository.findAllByOrderByNomeAsc().stream().map(this::resposta).toList(); }
@@ -33,16 +38,22 @@ public class UsuarioService {
         if (id.equals(solicitanteId)) throw new ConflitoException("ADMIN nao pode desativar a propria conta");
         repository.lockActiveAdmins(); Usuario u = repository.findByIdForUpdate(id).orElseThrow(() -> naoEncontrado());
         if (u.getPapel() == Papel.ADMIN && u.isAtivo() && ativosAdminsAposExclusao(u) == 0) throw new ConflitoException("Nao e permitido desativar o ultimo ADMIN ativo");
-        u.setAtivo(false); sessoes.revogarTodas(id); return resposta(u);
+        u.setAtivo(false); revogarAposCommit(id); return resposta(u);
     }
-    @Transactional public UsuarioResponse resetarSenha(Long id, ResetSenhaRequest r) { Usuario u = obter(id); u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(true); sessoes.revogarTodas(id); return resposta(u); }
+    @Transactional public UsuarioResponse resetarSenha(Long id, ResetSenhaRequest r) { Usuario u = obter(id); u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(true); revogarAposCommit(id); return resposta(u); }
     @Transactional public void trocarMinhaSenha(Long id, TrocaSenhaRequest r) {
         Usuario u = obter(id); if (!passwordEncoder.matches(r.senhaAtual(), u.getSenhaHash())) throw new IllegalArgumentException("Senha atual invalida");
-        u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(false); sessoes.revogarTodas(id);
+        u.setSenhaHash(passwordEncoder.encode(r.novaSenha())); u.setTrocaSenhaObrigatoria(false); revogarAposCommit(id);
     }
     @Transactional public void registrarLogin(Usuario u) { u.setUltimoLoginEm(java.time.Instant.now()); }
     public Usuario obter(Long id) { return repository.findById(id).orElseThrow(() -> naoEncontrado()); }
     public UsuarioResponse resposta(Usuario u) { return new UsuarioResponse(u.getId(),u.getNome(),u.getEmail(),u.getPapel(),u.isAtivo(),u.isTrocaSenhaObrigatoria()); }
+    /** Revoga depois do commit: nenhuma transacao de sessao roda com a trava de usuarios segura, e o rollback da alteracao nao derruba sessoes. Falha so vira log. */
+    private void revogarAposCommit(long id) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) { revogarSemFalhar(id); return; }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() { @Override public void afterCommit() { revogarSemFalhar(id); } });
+    }
+    private void revogarSemFalhar(long id) { try { sessoes.revogarTodas(id); } catch (RuntimeException e) { log.error("Falha ao revogar sessoes do usuario {}", id, e); } }
     private int ativosAdminsAposExclusao(Usuario alvo) { return (int) repository.lockActiveAdmins().stream().filter(a -> !a.getId().equals(alvo.getId())).count(); }
     private String email(String value) { return value.trim().toLowerCase(Locale.ROOT); } private String nome(String value) { return value.trim(); }
     private RecursoNaoEncontradoException naoEncontrado() { return new RecursoNaoEncontradoException("Usuario nao encontrado"); }

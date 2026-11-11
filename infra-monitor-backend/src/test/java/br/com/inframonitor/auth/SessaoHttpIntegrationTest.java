@@ -237,6 +237,113 @@ class SessaoHttpIntegrationTest {
         }
     }
 
+    /**
+     * Ciclo invisivel ao PostgreSQL: um login (conexao B) ja apagou na limpeza uma sessao velha de T e ainda vai
+     * inserir sessao para T; ao mesmo tempo desativar(T) trava a linha de T. Se a revogacao rodasse com a trava
+     * segura, ela esperaria a linha apagada por B e B esperaria a trava de T: sem deteccao de deadlock, os dois para
+     * sempre. A revogacao depois do commit desfaz o ciclo. lock_timeout em B transforma a trava eterna em falha.
+     */
+    @Test
+    void loginConcorrenteComDesativarNaoTrava() throws Exception {
+        long alvo = usuario("ciclo@sessao-http.test", Papel.OPERADOR);
+        jdbc.update("insert into sessao_usuario (usuario_id, token_hash, criada_em, expira_em) values (?, ?, now() - interval '3 days', now() - interval '2 days')",
+                alvo, SessaoUsuarioService.sha256Hex("velha"));
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try (java.sql.Connection b = java.sql.DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())) {
+            b.setAutoCommit(false);
+            try (var st = b.createStatement()) {
+                st.execute("set lock_timeout = '5s'");
+                st.executeUpdate("delete from sessao_usuario where expira_em < now() - interval '1 day'");
+            }
+            Future<?> a = pool.submit(() -> usuarioService.desativar(alvo, admin));
+            long limite = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+            while (!a.isDone() && esperandoTrava() == 0 && System.nanoTime() < limite) Thread.sleep(50);
+            assertThat(esperandoTrava()).as("revogacao de T esperando a linha apagada por B").isEqualTo(1);
+            try (var ps = b.prepareStatement("insert into sessao_usuario (usuario_id, token_hash, expira_em) values (?, ?, now() + interval '1 hour')")) {
+                ps.setLong(1, alvo);
+                ps.setString(2, SessaoUsuarioService.sha256Hex("nova"));
+                ps.executeUpdate();
+            }
+            b.commit();
+            a.get(20, TimeUnit.SECONDS);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(jdbc.queryForObject("select ativo from usuarios where id = ?", Boolean.class, alvo)).isFalse();
+    }
+
+    /** Registra o modo da trava de findByIdForUpdate: hoje FOR NO KEY UPDATE, que nao conflita com o FOR KEY SHARE da FK. */
+    @Test
+    void travaDoUsuarioNaoBloqueiaChaveEstrangeira() throws Exception {
+        long alvo = usuario("modo@sessao-http.test", Papel.OPERADOR);
+        new TransactionTemplate(tm).executeWithoutResult(s -> {
+            usuarios.findByIdForUpdate(alvo).orElseThrow();
+            try (java.sql.Connection c = java.sql.DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                 var ps = c.prepareStatement("select id from usuarios where id = ? for key share nowait")) {
+                ps.setLong(1, alvo);
+                assertThat(ps.executeQuery().next()).isTrue();
+            } catch (java.sql.SQLException e) {
+                throw new AssertionError("FOR KEY SHARE bloqueado pela trava do usuario", e);
+            }
+        });
+    }
+
+    /** A revogacao so acontece se a alteracao do usuario comitar. */
+    @Test
+    void revogacaoSoDepoisDoCommit() {
+        long alvo = usuario("commit@sessao-http.test", Papel.OPERADOR);
+        String token = sessoes.criar(alvo).orElseThrow().token();
+        TransactionTemplate tx = new TransactionTemplate(tm);
+        tx.executeWithoutResult(s -> {
+            usuarioService.resetarSenha(alvo, new ResetSenhaRequest(NOVA_SENHA));
+            assertThat(revogadas(alvo)).isZero();
+            s.setRollbackOnly();
+        });
+        assertThat(revogadas(alvo)).isZero();
+        assertThat(sessoes.validar(token)).isPresent();
+        tx.executeWithoutResult(s -> {
+            usuarioService.resetarSenha(alvo, new ResetSenhaRequest(NOVA_SENHA));
+            assertThat(revogadas(alvo)).isZero();
+        });
+        assertThat(sessoes.validar(token)).isEmpty();
+    }
+
+    private long revogadas(long usuarioId) {
+        return jdbc.queryForObject("select count(*) from sessao_usuario where usuario_id = ? and revogada_em is not null", Long.class, usuarioId);
+    }
+
+    private long esperandoTrava() {
+        return jdbc.queryForObject("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and query like 'update sessao_usuario set revogada_em%'", Long.class);
+    }
+
+    @Test
+    void bearerVencidoNaoAtrapalhaRefreshNemLogout() {
+        String cookie = cookie(login("admin@sessao-http.test", SENHA).setCookie());
+        Resposta r = executar(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/refresh"))
+                .POST(HttpRequest.BodyPublishers.noBody()).header("Cookie", "inframonitor_refresh=" + cookie)
+                .header("X-Requested-With", "XMLHttpRequest").header("Authorization", "Bearer lixo.vencido.x").build());
+        assertThat(r.status()).isEqualTo(200);
+        Resposta l = executar(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/logout"))
+                .POST(HttpRequest.BodyPublishers.noBody()).header("Cookie", "inframonitor_refresh=" + cookie)
+                .header("X-Requested-With", "XMLHttpRequest").header("Authorization", "Bearer lixo.vencido.x").build());
+        assertThat(l.status()).isEqualTo(204);
+        assertThat(post("/refresh", cookie, true).status()).isEqualTo(204);
+        assertThat(get("/api/v1/auth/me", "lixo.vencido.x", null).status()).isEqualTo(401);
+    }
+
+    @Test
+    void cabecalhoEmBrancoContaComoAusente() {
+        String cookie = cookie(login("admin@sessao-http.test", SENHA).setCookie());
+        for (String caminho : List.of("/refresh", "/logout")) {
+            Resposta r = executar(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth" + caminho))
+                    .POST(HttpRequest.BodyPublishers.noBody()).header("Cookie", "inframonitor_refresh=" + cookie)
+                    .header("X-Requested-With", "").build());
+            assertThat(r.status()).isEqualTo(403);
+            assertThat(r.body()).contains("\"code\":\"FORBIDDEN\"");
+        }
+        assertThat(post("/refresh", cookie, true).status()).isEqualTo(200);
+    }
+
     @Test
     void semTabelaAlteracoesDeUsuarioSaoGravadas() {
         long desativado = usuario("d@sessao-http.test", Papel.OPERADOR);
