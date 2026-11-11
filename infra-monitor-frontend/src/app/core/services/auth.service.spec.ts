@@ -1,14 +1,19 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
+import { loginGuard } from '../guards/auth.guards';
 import { AuthService } from './auth.service';
 import { AuthStateService } from './auth-state.service';
 
 const sessao = { accessToken: 'token', tokenType: 'Bearer' as const, expiresIn: 60, usuario: { id: 1, nome: 'Admin', email: 'admin@example.test', papel: 'ADMIN' as const, trocaSenhaObrigatoria: false } };
 
+@Component({ template: '' }) class RotaVazia {}
+
 describe('AuthService', () => {
   let service: AuthService; let http: HttpTestingController; let state: AuthStateService;
-  beforeEach(() => { TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] }); service = TestBed.inject(AuthService); http = TestBed.inject(HttpTestingController); state = TestBed.inject(AuthStateService); });
+  beforeEach(() => { TestBed.configureTestingModule({ providers: [provideRouter([{ path: 'login', canActivate: [loginGuard], component: RotaVazia }, { path: 'dashboard', component: RotaVazia }]), provideHttpClient(), provideHttpClientTesting()] }); service = TestBed.inject(AuthService); http = TestBed.inject(HttpTestingController); state = TestBed.inject(AuthStateService); });
   afterEach(() => http.verify());
   it('uses the auth contracts and updates/clears only in-memory state', () => {
     service.login('admin@example.test', 'secret').subscribe(); const login = http.expectOne('/api/v1/auth/login'); expect(login.request.method).toBe('POST'); expect(login.request.body).toEqual({ email: 'admin@example.test', senha: 'secret' }); login.flush({ accessToken: 'token', tokenType: 'Bearer', expiresIn: 60, usuario: { id: 1, nome: 'Admin', email: 'admin@example.test', papel: 'ADMIN', trocaSenhaObrigatoria: false } }); expect(state.authenticated()).toBe(true);
@@ -21,6 +26,12 @@ describe('AuthService', () => {
     const logout = http.expectOne('/api/v1/auth/logout'); expect(logout.request.method).toBe('POST'); expect(logout.request.body).toEqual({}); expect(logout.request.headers.get('X-Requested-With')).toBe('XMLHttpRequest');
     logout.flush(null, { status: 204, statusText: 'No Content' });
     expect(completed).toBe(true); expect(state.authenticated()).toBe(false);
+  });
+  it('logout clears the state before completing, so "Sair" reaches /login past the real loginGuard', async () => {
+    const router = TestBed.inject(Router); state.setSession(sessao); await router.navigateByUrl('/dashboard'); let autenticadoNoComplete: boolean | null = null;
+    service.logout().subscribe({ complete: () => { autenticadoNoComplete = state.authenticated(); router.navigate(['/login']); } });
+    http.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' }); await new Promise(resolve => setTimeout(resolve));
+    expect(autenticadoNoComplete).toBe(false); expect(state.authenticated()).toBe(false); expect(router.url).toBe('/login');
   });
   it('logout ignores a 500 and still clears the state and completes', () => {
     state.setSession(sessao); let completed = false; let failed = false;

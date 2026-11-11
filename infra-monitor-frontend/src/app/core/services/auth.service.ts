@@ -14,6 +14,7 @@ export class AuthService {
   }
   me(): Observable<AuthMeResponse> { return this.http.get<AuthMeResponse>(`${environment.apiUrl}/auth/me`); }
   changeOwnPassword(request: TrocaSenhaRequest): Observable<void> { return this.http.put<void>(`${environment.apiUrl}/usuarios/me/senha`, request); }
-  /** Revoga a sessão do cookie (sem Bearer; ver `isProtectedApi`). Falha ignorada: o estado local é limpo sempre. */
-  logout(): Observable<void> { return this.http.post<void>(`${environment.apiUrl}/auth/logout`, {}, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).pipe(timeout(8000), map(() => undefined), catchError(() => of(undefined)), finalize(() => this.state.clear())); }
+  /** Revoga a sessão do cookie (sem Bearer; ver `isProtectedApi`). Falha ignorada: o estado local é limpo sempre,
+   * antes do `complete` (quem navega ao /login no complete já passa pelo loginGuard sem sessão). */
+  logout(): Observable<void> { return this.http.post<void>(`${environment.apiUrl}/auth/logout`, {}, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).pipe(timeout(8000), map(() => undefined), catchError(() => of(undefined)), tap({ complete: () => this.state.clear() }), finalize(() => this.state.clear())); }
 }

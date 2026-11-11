@@ -51,6 +51,12 @@ describe('SessaoService', () => {
     backend.expectOne(REFRESH).flush(session);
     expect(tokens).toEqual(['renovado', 'renovado', 'renovado']);
   });
+  it('um refresh 200 que chega depois do logout (clear) é descartado e não reabre a sessão', () => {
+    state.setSession({ ...session, accessToken: 'antigo' }); let token: string | null | undefined;
+    service.renovar().subscribe(valor => token = valor); const request = backend.expectOne(REFRESH);
+    state.clear(); request.flush(session);
+    expect(token).toBeNull(); expect(state.authenticated()).toBe(false); expect(state.accessToken()).toBeNull();
+  });
   it('renovar depois de um voo encerrado faz um POST novo', () => {
     const tokens: (string | null)[] = [];
     service.renovar().subscribe(token => tokens.push(token)); backend.expectOne(REFRESH).flush(null, { status: 204, statusText: 'No Content' });

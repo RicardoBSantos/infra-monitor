@@ -30,6 +30,13 @@ describe('ChangePasswordComponent', () => {
     await new Promise(resolve => setTimeout(resolve));
     expect(state.accessToken()).toBe('novo'); expect(router.url).toBe('/dashboard');
   });
+  it('usa o e-mail lido antes do PUT mesmo se o estado for limpo durante a troca', () => {
+    componente.submit(); state.clear();
+    backend.expectOne('/api/v1/usuarios/me/senha').flush(null);
+    const login = backend.expectOne('/api/v1/auth/login'); expect(login.request.body).toEqual({ email: usuario.email, senha: NOVA });
+    login.flush({ accessToken: 'novo', tokenType: 'Bearer', expiresIn: 900, usuario: { ...usuario, trocaSenhaObrigatoria: false } });
+    expect(componente.error()).toBeNull();
+  });
   it('mantém a mensagem se o servidor ainda exigir a troca', () => {
     componente.submit();
     backend.expectOne('/api/v1/usuarios/me/senha').flush(null);

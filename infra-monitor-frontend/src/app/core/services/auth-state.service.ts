@@ -6,6 +6,7 @@ export class AuthStateService {
   private readonly accessTokenSignal = signal<string | null>(null);
   private readonly expiresAtSignal = signal<number | null>(null);
   private readonly usuarioSignal = signal<AuthUser | null>(null);
+  private geracaoAtual = 0;
   readonly accessToken = this.accessTokenSignal.asReadonly();
   readonly expiresAt = this.expiresAtSignal.asReadonly();
   readonly usuario = this.usuarioSignal.asReadonly();
@@ -20,7 +21,9 @@ export class AuthStateService {
     this.usuarioSignal.set(response.usuario);
   }
   updateUser(usuario: AuthUser): void { this.usuarioSignal.set(usuario); }
-  clear(): void { this.accessTokenSignal.set(null); this.expiresAtSignal.set(null); this.usuarioSignal.set(null); }
+  /** Muda a cada `clear()`: um refresh iniciado antes de um logout não reabre a sessão (SessaoService). */
+  geracao(): number { return this.geracaoAtual; }
+  clear(): void { this.geracaoAtual++; this.accessTokenSignal.set(null); this.expiresAtSignal.set(null); this.usuarioSignal.set(null); }
   hasAnyRole(roles: readonly PapelUsuario[]): boolean { return this.papel() !== null && roles.includes(this.papel()!); }
   canWriteInventory(): boolean { return this.hasAnyRole(['ADMIN', 'OPERADOR']); }
   isAdmin(): boolean { return this.hasAnyRole(['ADMIN']); }
