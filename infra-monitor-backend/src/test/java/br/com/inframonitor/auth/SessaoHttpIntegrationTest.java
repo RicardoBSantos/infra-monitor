@@ -13,10 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.dao.QueryTimeoutException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -37,6 +40,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 
 /**
  * Refresh e logout por cookie httpOnly, por HTTP real. O cookie e extraido do Set-Cookie e reenviado
@@ -68,7 +75,8 @@ class SessaoHttpIntegrationTest {
     }
 
     @LocalServerPort int port;
-    @Autowired JdbcTemplate jdbc;
+    /** Espiao: delega ao real; os testes de falha transitoria trocam so a chamada da sessao. Reset automatico apos cada teste. */
+    @MockitoSpyBean JdbcTemplate jdbc;
     @Autowired UsuarioRepository usuarios;
     @Autowired UsuarioService usuarioService;
     @Autowired SessaoUsuarioService sessoes;
@@ -214,6 +222,36 @@ class SessaoHttpIntegrationTest {
         } finally {
             jdbc.execute("alter table sessao_usuario_off rename to sessao_usuario");
         }
+    }
+
+    /** Falha transitoria do banco no refresh: 503 com ErroResposta e sem Set-Cookie (o cookie continua valendo). */
+    @Test
+    void falhaTransitoriaNoRefreshResponde503SemTocarNoCookie() {
+        String cookie = cookie(login("admin@sessao-http.test", SENHA).setCookie());
+        doThrow(new QueryTimeoutException("simulada")).when(jdbc).queryForList(contains("ultimo_uso_em"), eq(Long.class), any(Object[].class));
+        Resposta r = post("/refresh", cookie, true);
+        assertThat(r.status()).isEqualTo(503);
+        assertThat(r.setCookie()).isNull();
+        assertThat(r.body()).contains("\"code\":\"SERVICE_UNAVAILABLE\"", "\"path\":\"/api/v1/auth/refresh\"");
+        doThrow(new CannotGetJdbcConnectionException("simulada")).when(jdbc).queryForList(contains("ultimo_uso_em"), eq(Long.class), any(Object[].class));
+        assertThat(post("/refresh", cookie, true).status()).isEqualTo(503);
+        org.mockito.Mockito.reset(jdbc);
+        assertThat(post("/refresh", cookie, true).status()).isEqualTo(200);
+    }
+
+    /** Falha transitoria no login e no logout: login 200 sem cookie; logout 204 limpando o cookie (intencao do usuario). */
+    @Test
+    void falhaTransitoriaNoLoginENoLogout() {
+        String cookie = cookie(login("admin@sessao-http.test", SENHA).setCookie());
+        doThrow(new QueryTimeoutException("simulada")).when(jdbc).update(contains("insert into sessao_usuario"), any(Object[].class));
+        doThrow(new QueryTimeoutException("simulada")).when(jdbc).update(contains("set revogada_em = now() where token_hash"), any(Object[].class));
+        Resposta r = login("admin@sessao-http.test", SENHA);
+        assertThat(r.status()).isEqualTo(200);
+        assertThat(token(r.body())).isNotBlank();
+        assertThat(r.setCookie()).isNull();
+        Resposta logout = post("/logout", cookie, true);
+        assertThat(logout.status()).isEqualTo(204);
+        assertThat(logout.setCookie()).contains("Max-Age=0", "Path=/api/v1/auth");
     }
 
     /** revogarTodas usa transacao propria: nao pode esperar a trava da linha de usuarios que a transacao de fora segura. */

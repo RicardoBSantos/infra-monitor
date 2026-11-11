@@ -177,7 +177,7 @@ O vencimento é tratado pelo 401 → refresh (1.5).
 1. `/auth/refresh`, `/auth/logout` e `/auth/login` não são "protegidas" em `isProtectedApi`: não levam
    Bearer e o 401 delas nunca dispara refresh.
 2. Uma requisição repetida que toma 401 de novo não renova outra vez: vai ao login.
-3. O refresh nunca responde 401 (só 200/204/403).
+3. O refresh nunca responde 401 (só 200/204/403, e 503 em falha transitória do banco).
 
 Sem renovação proativa por relógio: o access token de 15 min vence, a próxima chamada toma 401 e é
 repetida de forma transparente. Um 401 por 15 min de uso é custo desprezível e evita timer.
@@ -224,9 +224,11 @@ CREATE INDEX ix_sessao_usuario_usuario ON sessao_usuario (usuario_id);
   na partida (1.9). Se `sessao_usuario` fosse entidade, `ddl-auto: validate` impediria o jar novo de subir
   sem a V26 → health falha → site parado → todos fora. Com `JdbcTemplate`, o `validate` não conhece a
   tabela. A criação da sessão roda em transação própria, depois da transação do login, e qualquer
-  `DataAccessException` é registrada em `ERROR` ("sessão persistente indisponível — V26 aplicada?") e
+  `DataAccessException` é registrada (`WARN` sem stack se estrutural, `ERROR` com stack nos demais casos; "sessão persistente indisponível — V26 aplicada?") e
   engolida: o login responde 200 sem cookie. Refresh com a tabela ausente → 204. Ou seja: sem V26, o sistema
-  se comporta exatamente como hoje.
+  se comporta exatamente como hoje. Só tabela ausente ou sem privilégio (SQLState 42P01/42501, `BadSqlGrammarException`)
+  vira "sem sessão", com uma linha `WARN` sem stack; outra falha de banco no refresh responde `503` sem `Set-Cookie`, para
+  um pool esgotado ou banco reiniciando não derrubar a sessão de 10 h (revisão final).
 - **Limpeza sem tarefa agendada:** a cada login bem-sucedido, na mesma transação,
   `DELETE FROM sessao_usuario WHERE expira_em < now() - interval '1 day' OR revogada_em < now() - interval '1 day'`.
   Com poucos usuários e logins diários a tabela fica em dezenas de linhas. Nada no Windows, nada no
@@ -238,7 +240,7 @@ CREATE INDEX ix_sessao_usuario_usuario ON sessao_usuario (usuario_id);
 | Método e caminho | Autenticação | Respostas |
 |---|---|---|
 | `POST /api/v1/auth/login` | senha | `200 LoginResponse` + `Set-Cookie` (novo) |
-| `POST /api/v1/auth/refresh` | cookie + `X-Requested-With` | `200 LoginResponse` · `204` sem sessão (limpa cookie) · `403` sem header |
+| `POST /api/v1/auth/refresh` | cookie + `X-Requested-With` | `200 LoginResponse` · `204` sem sessão (limpa cookie) · `403` sem header · `503 SERVICE_UNAVAILABLE` em falha transitória do banco (cookie intacto) |
 | `POST /api/v1/auth/logout` | cookie + `X-Requested-With` | `204` sempre (revoga se houver) + cookie `Max-Age=0` · `403` sem header |
 | `GET /api/v1/auth/me` | Bearer | inalterado |
 

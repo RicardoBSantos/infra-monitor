@@ -33,6 +33,16 @@ describe('AuthService', () => {
     http.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' }); await new Promise(resolve => setTimeout(resolve));
     expect(autenticadoNoComplete).toBe(false); expect(state.authenticated()).toBe(false); expect(router.url).toBe('/login');
   });
+  it('logout cancelled before the response still clears the state, exactly once', () => {
+    state.setSession(sessao); const clear = vi.spyOn(state, 'clear');
+    const sub = service.logout().subscribe(); const logout = http.expectOne('/api/v1/auth/logout'); sub.unsubscribe();
+    expect(logout.cancelled).toBe(true); expect(clear).toHaveBeenCalledTimes(1); expect(state.authenticated()).toBe(false);
+  });
+  it('logout clears the state exactly once when it completes', () => {
+    state.setSession(sessao); const clear = vi.spyOn(state, 'clear');
+    service.logout().subscribe(); http.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
+    expect(clear).toHaveBeenCalledTimes(1); expect(state.authenticated()).toBe(false);
+  });
   it('logout ignores a 500 and still clears the state and completes', () => {
     state.setSession(sessao); let completed = false; let failed = false;
     service.logout().subscribe({ complete: () => completed = true, error: () => failed = true });

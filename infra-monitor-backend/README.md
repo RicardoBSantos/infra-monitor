@@ -63,7 +63,7 @@ Sessão com refresh token (cookie httpOnly `inframonitor_refresh`, ver a subseç
 | Variável | Padrão | Efeito |
 |---|---|---|
 | `JWT_ACCESS_TOKEN_MINUTES` | `15` | Validade do access token. Continua 15: ele é curto e vive em memória no navegador. |
-| `JWT_REFRESH_TOKEN_DURATION` | `10h` | Duração **absoluta** da sessão, contada do login, em formato `java.time.Duration` (`10h`, `8h`, `2m`). Entre 1 minuto e 24 horas. Não é estendida pelo uso. |
+| `JWT_REFRESH_TOKEN_DURATION` | `10h` | Duração **absoluta** da sessão, contada do login, em formato `java.time.Duration` (`10h`, `8h`, `2m`). Entre 1 minuto e 24 horas. Não é estendida pelo uso. **Sempre com unidade:** `10` sem unidade é lido como 10 **ms**. Valor fora de [1 min, 24 h] **impede o backend de subir** (ninguém faz login, nem por senha): só altere com a unidade e valide antes num ambiente que não seja produção. |
 | `APP_AUTH_COOKIE_SECURE` | `true` | Atributo `Secure` do cookie. `false` só para desenvolvimento por HTTP fora de `localhost`. |
 
 Manutenção agendada (janelas em `/api/v1/manutencoes`):
@@ -277,6 +277,9 @@ Não toca linha nem coluna existente e roda em milissegundos. Desenho completo e
 **A ordem importa, mas errar a ordem não tranca ninguém.** Em produção o backend sobe com `--spring.flyway.enabled=false`;
 o Flyway roda à parte com o papel `inframonitor_owner`. A aplicação acessa `sessao_usuario` por JDBC com falha tolerada
 (não é entidade JPA, então `ddl-auto: validate` não a conhece): **sem a V26 o login funciona e a sessão dura 15 min**, como antes.
+Nesse modo o log mostra uma linha `WARN Sessao persistente indisponivel (V26 aplicada?): 42P01 ...` por tentativa, sem stack.
+Falha **transitória** do banco (pool esgotado, banco reiniciando) não derruba a sessão: o refresh responde `503 SERVICE_UNAVAILABLE`
+sem mexer no cookie, e o próximo refresh ou F5 a restaura; o login responde 200 sem cookie e o logout responde 204 limpando o cookie.
 Mesmo assim, aplique a V26 antes de subir o jar novo.
 
 **Passo a passo:**
