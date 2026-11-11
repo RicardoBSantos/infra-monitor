@@ -2,6 +2,7 @@ package br.com.inframonitor.notificacao;
 
 import br.com.inframonitor.notificacao.entity.Notificacao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,9 +64,7 @@ class NotificacaoAncorasManutencaoPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_manual, manutencao_agendada_alteracao, manutencao_agendada_equipamento, "
-                + "manutencao_agendada, janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         agora = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         usuario = insert("insert into usuarios (nome, email, senha_hash, papel, ativo, troca_senha_obrigatoria) "
                 + "values ('Operador', 'operador@v23.test', 'hash-irrelevante', 'OPERADOR', true, false) returning id");

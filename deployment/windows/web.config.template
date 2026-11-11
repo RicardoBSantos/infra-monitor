@@ -16,6 +16,15 @@
         <remove name="X-Powered-By"/>
         <add name="X-Content-Type-Options" value="nosniff"/>
         <add name="Strict-Transport-Security" value="max-age=31536000"/>
+        <!-- CSP: the SPA, fonts, map GeoJSON and the MapLibre worker are all same-origin; there are no
+             CDNs, tiles or eval. style-src keeps 'unsafe-inline' because Angular injects component
+             <style> elements at runtime and static IIS cannot issue per-response nonces. The build
+             disables critical-CSS inlining, whose onload handler script-src 'self' would block.
+             img-src/worker-src allow data:/blob: used by the map and icons. -->
+        <add name="Content-Security-Policy" value="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"/>
+        <add name="Referrer-Policy" value="strict-origin-when-cross-origin"/>
+        <add name="X-Frame-Options" value="DENY"/>
+        <add name="Permissions-Policy" value="camera=(), microphone=(), geolocation=(), payment=(), usb=()"/>
       </customHeaders>
     </httpProtocol>
     <security>
@@ -70,4 +79,16 @@
       </outboundRules>
     </rewrite>
   </system.webServer>
+  <!-- Spring Security already sends X-Content-Type-Options and X-Frame-Options on proxied API
+       responses; adding them again in IIS produced "nosniff, nosniff" (D-04). -->
+  <location path="api">
+    <system.webServer>
+      <httpProtocol>
+        <customHeaders>
+          <remove name="X-Content-Type-Options"/>
+          <remove name="X-Frame-Options"/>
+        </customHeaders>
+      </httpProtocol>
+    </system.webServer>
+  </location>
 </configuration>

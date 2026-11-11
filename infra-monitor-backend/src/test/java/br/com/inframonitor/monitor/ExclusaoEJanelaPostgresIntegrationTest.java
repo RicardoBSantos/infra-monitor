@@ -3,6 +3,7 @@ package br.com.inframonitor.monitor;
 import br.com.inframonitor.common.exception.ConflitoException;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
 import br.com.inframonitor.monitor.service.MonitorService;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,8 +66,7 @@ class ExclusaoEJanelaPostgresIntegrationTest {
 
     @BeforeEach
     void limparBanco() {
-        jdbc.execute("truncate table janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, "
-                + "incidente, monitor, equipamento, tipo_equipamento, unidade restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         tipoId = insert("insert into tipo_equipamento (nome, ativo) values ('Switch', true) returning id");
         unidadeId = insert("insert into unidade (nome, sigla, ativo) values ('Centro', 'CTR', true) returning id");
     }

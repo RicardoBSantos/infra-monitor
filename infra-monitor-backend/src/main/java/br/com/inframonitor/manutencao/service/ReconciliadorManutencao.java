@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -60,10 +59,10 @@ public class ReconciliadorManutencao {
     }
 
     /**
-     * Pool de agendamento de uma thread so, dividido com motor e dispatcher: a falha e logada
-     * aqui e a passada seguinte tenta de novo; nada sobe para o agendador.
+     * Passada disparada por {@link AgendadorReconciliacaoManutencao}. Pool de agendamento de uma
+     * thread so, dividido com motor e dispatcher: a falha e logada aqui e a passada seguinte
+     * tenta de novo; nada sobe para o agendador.
      */
-    @Scheduled(fixedDelayString = "${manutencao.agendada.intervalo-ms:30000}")
     public void agendado() {
         try {
             reconciliar(Instant.now(clock));

@@ -6,6 +6,7 @@ import br.com.inframonitor.manutencao.dto.AlterarFimRequest;
 import br.com.inframonitor.manutencao.service.ManutencaoAgendadaService;
 import br.com.inframonitor.manutencao.service.ReconciliadorManutencao;
 import br.com.inframonitor.notificacao.repository.NotificacaoRepository;
+import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -111,9 +112,7 @@ class AnuncioManutencaoConcorrenciaPostgresIntegrationTest {
 
     @BeforeEach
     void montarCenario() {
-        jdbc.execute("truncate table manutencao_agendada_alteracao, manutencao_agendada_equipamento, manutencao_agendada, "
-                + "janela_monitoramento, medicao, notificacao, monitor_episodio_latencia, incidente, monitor, "
-                + "manutencao_manual, equipamento, tipo_equipamento, unidade, usuarios restart identity cascade");
+        LimpezaBanco.limpar(jdbc);
         agora = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         criadorId = usuario("Criador Janela", "criador@corridas.test");
         operadorId = usuario("Operador Botao", "operador@corridas.test");

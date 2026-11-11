@@ -9,11 +9,19 @@ public class ManutencaoAgendadaProperties {
     private boolean enabled;
     private long intervaloMs = 30_000;
     private Duration duracaoMaxima = Duration.ofHours(72);
+    /**
+     * Costura de teste, fora do application.yml de proposito: desligado, o reconciliador existe
+     * mas nada o dispara, e ReconciliacaoInicial nunca fica pronta (o motor nao pinga). Em
+     * producao fica no default.
+     */
+    private boolean agendadorAtivo = true;
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public long getIntervaloMs() { return intervaloMs; }
     public void setIntervaloMs(long intervaloMs) { this.intervaloMs = intervaloMs; }
     public Duration getDuracaoMaxima() { return duracaoMaxima; }
+    public boolean isAgendadorAtivo() { return agendadorAtivo; }
+    public void setAgendadorAtivo(boolean agendadorAtivo) { this.agendadorAtivo = agendadorAtivo; }
 
     /**
      * Horas inteiras e positivas: a mensagem de recusa e /parametros falam em horas, e 90m
