@@ -28,8 +28,14 @@ A aplicação fica disponível em `http://localhost:4200`.
 A URL base de desenvolvimento está centralizada em `src/environments/environment.ts`, na propriedade `apiUrl`:
 
 ```ts
-apiUrl: 'http://localhost:8080/api/v1'
+apiUrl: '/api/v1'
 ```
+
+O `ng serve` usa `proxy.conf.mjs`: `/api` é encaminhado para `http://localhost:${API_PORT:-8080}`
+com `changeOrigin: false`, então o desenvolvimento é mesma origem, como a produção (IIS/ARR). Para
+outro backend, suba o `ng serve` com `API_PORT` (por exemplo `API_PORT=8081 ng serve`). Para acessar
+pela LAN use `ng serve --host 0.0.0.0` em vez de uma `apiUrl` absoluta: uma URL `http://` fora de
+`localhost` faz o navegador recusar o cookie `Secure` da sessão, e ela volta a durar 15 minutos.
 
 Não coloque segredos no frontend.
 

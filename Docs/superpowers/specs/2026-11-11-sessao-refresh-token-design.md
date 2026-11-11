@@ -328,7 +328,7 @@ para voltar atrás.
 1. Backup com o script existente `ops/Backup-InfraMonitorDatabase.ps1` (já aprovado; nada novo).
 2. Aplicar a V26 com o jar **novo**, em console, com o backend antigo no ar (ele não percebe), usando o
    papel dono do schema e nada que aja sozinho ligado — comando exato, testado localmente, em
-   `infra-monitor-backend/README.md`, seção "Aplicar migration em produção".
+   `infra-monitor-backend/README.md`, subseção "V26 (sessão com refresh token) — aplicar em produção e rollback".
 3. Conferir (parada obrigatória antes do passo 4):
    `select version, success from flyway_schema_history where version='26'` → `26 | t`;
    `select has_table_privilege('inframonitor_app','sessao_usuario','SELECT,INSERT,UPDATE,DELETE')` → `t`.
@@ -352,8 +352,7 @@ troca. Ninguém fica trancado.
 **Voltar atrás se o login quebrar:**
 1. `Invoke-WindowsRelease.ps1 -Operation Rollback` para a release anterior, com as ferramentas de sempre
    (`-SchemaVersion 25`).
-2. **Não** remover a V26: o jar antigo roda com ela (a provar na verificação: jar de `origin/main` contra
-   banco migrado até V26, Flyway desligado como em produção). A tabela fica parada.
+2. **Não** remover a V26: o jar antigo roda com ela (provado em 2026-11-11 — ver README do backend, V26). A tabela fica parada.
 3. Compatibilidade cruzada, para rollback parcial:
    - front novo + backend antigo: o bootstrap chama `/auth/refresh` → backend antigo responde 401 (cai em
      `/api/**` ADMIN sem token) → tratado como "sem sessão" → login funciona como hoje; logout chama
