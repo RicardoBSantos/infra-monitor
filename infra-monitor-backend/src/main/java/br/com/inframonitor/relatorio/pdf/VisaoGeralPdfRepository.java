@@ -101,6 +101,7 @@ public class VisaoGeralPdfRepository {
                         row.getBigDecimal("disponibilidade"), row.getString("estado"), row.getString("qualidade"),
                         row.getLong("incidentes")));
 
+        planoCustom();
         List<VisaoGeralPdfModel.Latencia> latencias = jdbc.query(LATENCIA, parameters,
                 (row, number) -> new VisaoGeralPdfModel.Latencia(row.getString("monitor_nome"),
                         row.getString("equipamento_nome"), row.getString("unidade_nome"),
@@ -116,6 +117,12 @@ public class VisaoGeralPdfRepository {
     private void aplicarTimeout() {
         jdbc.queryForObject("select set_config('statement_timeout', :timeout, true)",
                 new MapSqlParameterSource("timeout", timeoutSeconds + "s"), String.class);
+    }
+
+    /** D-07: sem plano generico na consulta de latencia; local a transacao, como o timeout. */
+    private void planoCustom() {
+        jdbc.queryForObject("select set_config('plan_cache_mode', 'force_custom_plan', true)",
+                new MapSqlParameterSource(), String.class);
     }
 
     private static String estadoUnidade(ResultSet row) throws SQLException {
