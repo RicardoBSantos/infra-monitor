@@ -574,6 +574,33 @@ describe('RelatoriosComponent', () => {
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('9');
     });
 
+    it('ultimaAtualizacaoOk anda só quando os 4 widgets da rodada respondem com sucesso', () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        vi.setSystemTime(new Date('2026-11-12T12:00:00Z'));
+        const fixture = criarTv();
+        const responder = (falhaEm?: string) => {
+          for (const r of http.match(x => x.url.includes('/relatorios/'))) {
+            if (falhaEm && r.request.url.endsWith(falhaEm)) r.flush({}, { status: 502, statusText: 'Bad Gateway' });
+            else if (r.request.url.endsWith('/indicadores')) r.flush({ incidentesAbertos: 1, medicoesComFalha: 0, notificacoesComFalha: 0 });
+            else r.flush(page([]));
+          }
+        };
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()).toBeNull();
+        responder();
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+        vi.setSystemTime(new Date('2026-11-12T12:01:00Z'));
+        fixture.componentInstance.recarregarDados();
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+        responder('/relatorios/latencia'); // 3 de 4: não conta
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+        vi.setSystemTime(new Date('2026-11-12T12:02:00Z'));
+        fixture.componentInstance.recarregarDados();
+        responder();
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:02:00.000Z');
+      } finally { vi.useRealTimers(); }
+    });
+
     it('falha na rodada silenciosa mantém o dado anterior e marca falhouUltimaAtualizacao', () => {
       const fixture = criarTv();
       const primeira = http.match(r => r.url.includes('/relatorios/'));

@@ -120,6 +120,8 @@ export class DashboardComponent implements TelaTv {
   /** Lido pelo effect do resumo: a rodada do modo TV mantém o banner anterior se a busca falhar. */
   private rodadaSilenciosa = false;
 
+  /** Carimbo do modo TV: a última resposta com sucesso do resumo. */
+  readonly ultimaAtualizacaoOk = computed(() => { const iso = this.painel.ultimoSucessoResumo(); return iso ? new Date(iso) : null; });
   readonly falhouUltimaAtualizacao = computed(() => this.painel.falhaSilenciosa() || this.falhaIncidentes() || this.falhaDisponibilidade() || this.falhaLatencia());
 
   /**

@@ -520,6 +520,23 @@ describe('DashboardComponent', () => {
       expect(httpTesting.match((r) => r.url.endsWith("/api/v1/incidentes"))).toHaveLength(2);
     });
 
+    it('ultimaAtualizacaoOk anda só quando o resumo responde com sucesso', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      const inicial = fixture.componentInstance.ultimaAtualizacaoOk();
+      expect(inicial?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      vi.setSystemTime(new Date('2026-11-12T12:01:00Z'));
+      fixture.componentInstance.recarregarDados();
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()).toEqual(inicial); // em voo
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()).toEqual(inicial); // falhou
+      vi.setSystemTime(new Date('2026-11-12T12:02:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:02:00.000Z');
+    });
+
     it('falha silenciosa mantém o dado anterior e liga falhouUltimaAtualizacao', () => {
       const fixture = create();
       responderCargaSemIncidentes(fixture, semIncidentes);

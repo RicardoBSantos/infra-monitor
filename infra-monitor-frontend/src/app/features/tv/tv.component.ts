@@ -14,9 +14,8 @@ const NOMES: Record<TelaModoTv, string> = { MAPA: 'Mapa', PAINEL: 'Painel', INCI
 /** Sem configuração lida ainda (primeira leitura pendente ou falha), relê neste ritmo. */
 const INTERVALO_SEM_CONFIG_MS = 60_000;
 const PASSO_MS = 1000;
-
-/** Momento do último pedido de dados de uma tela e o do último dado tido como bom antes dele. */
-interface Recarga { em: Date; okAntes: Date; }
+/** Dado mais velho que este múltiplo do intervalo é desatualizado mesmo sem falha: cobre pedido pendurado. */
+const FATOR_VENCIMENTO = 2;
 
 /**
  * Painel de parede em `/tv` (P1): as telas configuradas ficam montadas em paralelo e empilhadas;
@@ -43,8 +42,6 @@ export class TvComponent {
 
   readonly config = signal<ConfiguracaoModoTv | null>(null);
   readonly indice = signal(0);
-  readonly ultimaAtualizacao = signal<Date | null>(null);
-  readonly desatualizadoDesde = signal<Date | null>(null);
   /** Cada leitura de configuração leva a sua; resposta de leitura anterior é descartada. */
   geracao = 0;
 
@@ -64,10 +61,22 @@ export class TvComponent {
   });
   protected readonly incluida = (tela: TelaModoTv) => this.ativo() && this.telas().some(t => t.tela === tela);
 
+  /*
+   * Carimbo da moldura, recalculado a cada passo de 1 s (fora da detecção de mudanças): ler as
+   * queries `viewChild` num computed do template re-suja a view no próprio refresh (NG0103).
+   */
+  /** "Dados de HH:MM": hora da última resposta com sucesso da tela visível — nunca a de um pedido em voo. */
+  readonly ultimaAtualizacao = signal<Date | null>(null);
+  /** Preenchido quando a tela falhou ou o último sucesso passou de 2× o intervalo (pedido pendurado não dá falha). */
+  readonly desatualizadoDesde = signal<Date | null>(null);
+  /** Vencido sem nunca ter tido dado bom: não há hora a citar. */
+  protected readonly semDados = signal(false);
+
   private timer: ReturnType<typeof setTimeout> | null = null;
   private parado = false;
   private ultimoTique = Date.now();
-  private readonly recargas = new Map<TelaModoTv, Recarga>();
+  /** Hora do último pedido de dados por tela (montagem conta como pedido): decide se a tela que entra recarrega. */
+  private readonly pedidos = new Map<TelaModoTv, number>();
 
   constructor() {
     this.lerConfig();
@@ -79,9 +88,10 @@ export class TvComponent {
   protected hora(d: Date | null): string { return d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '--:--'; }
   protected sair(): void { this.router.navigateByUrl('/dashboard'); }
 
+  /** `finally`: uma tela que lança em `recarregarDados()` não pode congelar a TV. */
   private agendar(): void {
     if (this.parado) return;
-    this.timer = setTimeout(() => { this.timer = null; this.passo(); this.agendar(); }, PASSO_MS);
+    this.timer = setTimeout(() => { this.timer = null; try { this.passo(); } finally { this.agendar(); } }, PASSO_MS);
   }
 
   private parar(): void {
@@ -98,17 +108,28 @@ export class TvComponent {
       if (atual && agora - this.inicioTela() >= atual.duracaoSegundos * 1000) {
         const proximo = (this.indice() + 1) % this.telas().length;
         this.indice.set(proximo); this.inicioTela.set(agora);
-        const nova = this.telas()[proximo].tela; const ultima = this.recargas.get(nova)?.em.getTime() ?? 0;
-        if (cfg && agora - ultima >= intervalo) this.recarregar(nova, agora);
+        const nova = this.telas()[proximo].tela;
+        if (cfg && agora - (this.pedidos.get(nova) ?? 0) >= intervalo) this.recarregar(nova, agora);
       }
     }
     if (agora - this.ultimoTique >= intervalo) {
       this.ultimoTique = agora;
       this.lerConfig();
       const visivel = this.telaAtual();
-      if (visivel && this.recargas.get(visivel)?.em.getTime() !== agora) this.recarregar(visivel, agora);
+      // A tela que acabou de entrar (troca neste passo ou há pouco) já foi recarregada na troca.
+      if (visivel && agora - (this.pedidos.get(visivel) ?? 0) >= intervalo / 2) this.recarregar(visivel, agora);
     }
-    this.sincronizarCarimbo();
+    this.sincronizarCarimbo(agora);
+  }
+
+  private sincronizarCarimbo(agora: number): void {
+    const t = this.telaAtual(); const tela = t ? this.instancia(t) : undefined; const cfg = this.config();
+    const ok = tela?.ultimaAtualizacaoOk() ?? null;
+    const vencido = !!tela && (tela.falhouUltimaAtualizacao()
+      || (ok !== null && cfg !== null && agora - ok.getTime() > FATOR_VENCIMENTO * cfg.intervaloAtualizacaoSegundos * 1000));
+    this.ultimaAtualizacao.set(ok);
+    this.desatualizadoDesde.set(vencido ? ok : null);
+    this.semDados.set(vencido && ok === null);
   }
 
   private lerConfig(): void {
@@ -128,14 +149,13 @@ export class TvComponent {
     const antes = this.telaAtual(); const estavaAtivo = this.ativo(); const agora = Date.now();
     this.falhaConfig.set(false);
     this.config.set(cfg);
-    if (!this.ativo()) { this.recargas.clear(); this.sincronizarCarimbo(); return; }
+    if (!this.ativo()) { this.pedidos.clear(); this.sincronizarCarimbo(agora); return; }
     // Tela que acabou de entrar na lista monta agora e carrega sozinha no init.
-    for (const t of this.telas()) if (!this.recargas.has(t.tela)) this.recargas.set(t.tela, { em: new Date(agora), okAntes: new Date(agora) });
-    for (const t of [...this.recargas.keys()]) if (!this.telas().some(c => c.tela === t)) this.recargas.delete(t);
+    for (const t of this.telas()) if (!this.pedidos.has(t.tela)) this.pedidos.set(t.tela, agora);
+    for (const t of [...this.pedidos.keys()]) if (!this.telas().some(c => c.tela === t)) this.pedidos.delete(t);
     const novoIndice = estavaAtivo && antes ? this.telas().findIndex(t => t.tela === antes) : -1;
     if (novoIndice >= 0) this.indice.set(novoIndice);
     else { this.indice.set(0); this.inicioTela.set(agora); }
-    this.sincronizarCarimbo();
   }
 
   private instancia(tela: TelaModoTv): TelaTv | undefined {
@@ -144,19 +164,7 @@ export class TvComponent {
 
   private recarregar(tela: TelaModoTv, agora: number): void {
     const instancia = this.instancia(tela); if (!instancia) return;
-    const anterior = this.recargas.get(tela);
-    // Se o último pedido falhou, o dado bom continua sendo o de antes dele.
-    const okAntes = anterior ? (instancia.falhouUltimaAtualizacao() ? anterior.okAntes : anterior.em) : new Date(agora);
-    this.recargas.set(tela, { em: new Date(agora), okAntes });
+    this.pedidos.set(tela, agora);
     instancia.recarregarDados();
-  }
-
-  /** "Dados de" = último pedido; com falha, "desatualizado desde" = último dado bom antes dele. */
-  private sincronizarCarimbo(): void {
-    const tela = this.telaAtual(); const recarga = tela ? this.recargas.get(tela) : undefined;
-    if (!tela || !recarga) { this.ultimaAtualizacao.set(null); this.desatualizadoDesde.set(null); return; }
-    const falhou = this.instancia(tela)?.falhouUltimaAtualizacao() ?? false;
-    this.ultimaAtualizacao.set(falhou ? recarga.okAntes : recarga.em);
-    this.desatualizadoDesde.set(falhou ? recarga.okAntes : null);
   }
 }

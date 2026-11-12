@@ -66,6 +66,10 @@ export class RelatoriosComponent implements OnInit, TelaTv {
   readonly modoTv = input(false);
   private readonly falhou = signal(false);
   readonly falhouUltimaAtualizacao = this.falhou.asReadonly();
+  private readonly okEm = signal<Date | null>(null);
+  /** Carimbo do modo TV: quando os 4 widgets da Visão geral de uma mesma rodada responderam com sucesso. */
+  readonly ultimaAtualizacaoOk = this.okEm.asReadonly();
+  private overviewSucessos = 0;
   protected readonly plural = plural;
   private readonly reportsApi = inject(RelatorioApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -386,6 +390,7 @@ export class RelatoriosComponent implements OnInit, TelaTv {
   private overviewGeneration = 0;
   private loadOverview(inicio: string, fim: string, silencioso = false) {
     const generation = ++this.overviewGeneration;
+    this.overviewSucessos = 0;
     (Object.keys(this.overviewWidgets) as OverviewTarget[]).forEach(target => this.loadOverviewWidget(target, inicio, fim, generation, silencioso));
   }
   private loadOverviewWidget(target: OverviewTarget, inicio: string, fim: string, generation: number, silencioso = false) {
@@ -407,6 +412,7 @@ export class RelatoriosComponent implements OnInit, TelaTv {
         const value = target === 'indicators' ? response as IndicadoresVisaoGeralResponse : (response as PageResponse<unknown>).content;
         widget.value.set(value as never); widget.error.set(null);
         widget.state.set(Array.isArray(value) && value.length === 0 ? 'empty' : 'success');
+        if (++this.overviewSucessos === Object.keys(this.overviewWidgets).length) this.okEm.set(new Date());
       },
       error: error => {
         if (generation !== this.overviewGeneration) return;

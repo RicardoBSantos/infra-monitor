@@ -147,6 +147,9 @@ export class IncidenteUnificadoListComponent implements TelaTv {
   private rodadaSilenciosa = false;
   private readonly falhou = signal(false);
   readonly falhouUltimaAtualizacao = this.falhou.asReadonly();
+  private readonly okEm = signal<Date | null>(null);
+  /** Carimbo do modo TV: última resposta com sucesso da lista (carga normal ou silenciosa). */
+  readonly ultimaAtualizacaoOk = this.okEm.asReadonly();
 
   constructor() {
     this.carregarUnidades();
@@ -221,6 +224,7 @@ export class IncidenteUnificadoListComponent implements TelaTv {
         this.totalElementos.set(resposta.totalElements);
         this.erro.set(null);
         this.estado.set(resposta.content.length ? 'success' : 'empty');
+        this.okEm.set(new Date());
       },
       error: (erro) => {
         // Rodada silenciosa que falha mantém a lista anterior; só marca a falha para a moldura da TV.

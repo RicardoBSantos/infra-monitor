@@ -664,6 +664,8 @@ export class MapaComponent implements OnDestroy, TelaTv {
   readonly ativa = input(true);
   /** true se a última `recarregarDados()` falhou; o mapa segue com o dado anterior. */
   readonly falhouUltimaAtualizacao = signal(false);
+  /** Carimbo do modo TV: última resposta com sucesso de `GET /dashboard/unidades` (carga inicial ou silenciosa). */
+  readonly ultimaAtualizacaoOk = signal<Date | null>(null);
   protected readonly plural = plural;
   private readonly geoMunicipio = inject(GeoMunicipioService);
   private readonly dashboardApi = inject(DashboardApiService);
@@ -755,7 +757,7 @@ export class MapaComponent implements OnDestroy, TelaTv {
     const geracao = ++this.geracao;
     this.state.set('loading'); this.error.set(null); this.foraDoEnquadramento.set(false); this.limparUnidade(); this.cartografia.set([]); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
     this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { if (geracao !== this.geracao) return; this.fonteMunicipios.set(municipios); this.resolve(); }, error: () => { if (geracao === this.geracao) this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.'); } });
-    this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { if (geracao !== this.geracao) return; this.units = units; this.resolve(); }, error: () => { if (geracao === this.geracao) this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.'); } });
+    this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { if (geracao !== this.geracao) return; this.units = units; this.ultimaAtualizacaoOk.set(new Date()); this.resolve(); }, error: () => { if (geracao === this.geracao) this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.'); } });
   }
 
   /**
@@ -773,7 +775,7 @@ export class MapaComponent implements OnDestroy, TelaTv {
     if (this.state() === 'loading' || !fonte || !this.units) return;
     const geracao = ++this.geracao;
     this.dashboardApi.getUnidades().pipe(take(1)).subscribe({
-      next: units => { if (geracao === this.geracao) this.aplicarUnidades(fonte, units); },
+      next: units => { if (geracao !== this.geracao) return; this.ultimaAtualizacaoOk.set(new Date()); this.aplicarUnidades(fonte, units); },
       error: () => { if (geracao === this.geracao) this.falhouUltimaAtualizacao.set(true); },
     });
   }
