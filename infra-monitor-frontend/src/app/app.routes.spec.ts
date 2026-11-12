@@ -2,7 +2,8 @@ import { routes } from './app.routes';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, UrlTree } from '@angular/router';
 import { AuthStateService } from './core/services/auth-state.service';
-import { passwordChangeGuard, roleGuard } from './core/guards/auth.guards';
+import { businessGuard, passwordChangeGuard, roleGuard } from './core/guards/auth.guards';
+import { TvComponent } from './features/tv/tv.component';
 
 describe('application routes', () => {
   it('lazy-loads every operational feature inside the protected application shell', async () => {
@@ -15,6 +16,19 @@ describe('application routes', () => {
       expect(route?.loadComponent).toBeTypeOf('function');
       await expect(route!.loadComponent!()).resolves.toBeDefined();
     }
+  });
+
+  it('serves /tv at the top level, outside the application shell, behind businessGuard', async () => {
+    const indiceTv = routes.findIndex(candidate => candidate.path === 'tv');
+    const indiceShell = routes.findIndex(candidate => candidate.path === '');
+    expect(indiceTv).toBeGreaterThanOrEqual(0);
+    expect(indiceTv).toBeLessThan(indiceShell);
+    expect(routes[indiceShell].children?.some(candidate => candidate.path === 'tv')).toBe(false);
+    const tv = routes[indiceTv];
+    expect(tv.canActivate).toEqual([businessGuard]);
+    expect(tv.title).toBe('Modo TV');
+    expect(tv.component).toBeUndefined();
+    expect(await tv.loadComponent!()).toBe(TvComponent);
   });
 
   for (const [papel, allowed] of [['ADMIN', true], ['OPERADOR', false], ['VISUALIZADOR', false]] as const) {

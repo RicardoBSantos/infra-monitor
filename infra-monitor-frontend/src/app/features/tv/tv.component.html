@@ -1,0 +1,56 @@
+<div class="tv">
+  <header class="tv__moldura">
+    <div class="tv__identidade">
+      <h1 class="tv__nome">{{ nomeTela() }}</h1>
+      @if (posicao()) { <span class="tv__posicao">{{ posicao() }}</span> }
+    </div>
+
+    <div class="tv__estado">
+      @if (desatualizadoDesde(); as desde) {
+        <span class="tv__dados tv__dados--alerta" role="status"><app-icon name="incident" />Desatualizado desde {{ hora(desde) }}</span>
+      } @else if (ultimaAtualizacao(); as dados) {
+        <span class="tv__dados" role="status">Dados de {{ hora(dados) }}</span>
+      }
+      <time class="tv__relogio" [attr.datetime]="agora().toISOString()">{{ hora(agora()) }}</time>
+      <button class="botao tv__sair" type="button" (click)="sair()">Sair do modo TV</button>
+    </div>
+
+    <div class="tv__progresso" [class.tv__progresso--reinicio]="progresso() === 0" role="progressbar" aria-label="Tempo da tela atual" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="progresso()">
+      <span [style.transform]="'scaleX(' + progresso() / 100 + ')'"></span>
+    </div>
+  </header>
+
+  <main class="tv__palco">
+    @if (config() === null) {
+      <div class="tv__aviso">
+        @if (falhaConfig()) {
+          <app-icon name="incident" />
+          <p class="tv__aviso-titulo">Não foi possível ler a configuração do modo TV</p>
+          <p class="tv__aviso-texto">Nova tentativa automática em instantes.</p>
+        } @else {
+          <p class="tv__aviso-texto">Carregando a configuração do modo TV…</p>
+        }
+      </div>
+    } @else if (!ativo()) {
+      <div class="tv__aviso">
+        <app-icon name="power" />
+        <p class="tv__aviso-titulo">Modo TV desativado pelo administrador</p>
+        <p class="tv__aviso-texto">Esta tela volta sozinha quando o modo for reativado.</p>
+      </div>
+    } @else {
+      <!-- Todas montadas e empilhadas; oculta = visibility:hidden (display:none zera o container do MapLibre). -->
+      @if (incluida('MAPA')) {
+        <section class="tv__tela" data-tela="MAPA" [class.tv__tela--ativa]="telaAtual() === 'MAPA'" [attr.inert]="''" [attr.aria-hidden]="telaAtual() === 'MAPA' ? null : 'true'"><app-mapa #mapa [ativa]="telaAtual() === 'MAPA'" /></section>
+      }
+      @if (incluida('PAINEL')) {
+        <section class="tv__tela" data-tela="PAINEL" [class.tv__tela--ativa]="telaAtual() === 'PAINEL'" [attr.inert]="''" [attr.aria-hidden]="telaAtual() === 'PAINEL' ? null : 'true'"><app-dashboard #painel /></section>
+      }
+      @if (incluida('INCIDENTES')) {
+        <section class="tv__tela" data-tela="INCIDENTES" [class.tv__tela--ativa]="telaAtual() === 'INCIDENTES'" [attr.inert]="''" [attr.aria-hidden]="telaAtual() === 'INCIDENTES' ? null : 'true'"><app-incidente-unificado-list #incidentes /></section>
+      }
+      @if (incluida('RELATORIOS')) {
+        <section class="tv__tela" data-tela="RELATORIOS" [class.tv__tela--ativa]="telaAtual() === 'RELATORIOS'" [attr.inert]="''" [attr.aria-hidden]="telaAtual() === 'RELATORIOS' ? null : 'true'"><app-relatorios #relatorios [modoTv]="true" /></section>
+      }
+    }
+  </main>
+</div>
