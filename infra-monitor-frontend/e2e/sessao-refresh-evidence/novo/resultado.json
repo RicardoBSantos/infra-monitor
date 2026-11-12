@@ -1,0 +1,127 @@
+{
+  "base": "http://localhost:4310",
+  "inicio": "2026-11-11T17:36:07.895Z",
+  "config": {
+    "ACCESS_S": 60,
+    "DURACAO_S": 240,
+    "USO_S": 150,
+    "PASSOS": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "ROTA": null
+  },
+  "passos": [
+    {
+      "passo": 1,
+      "descricao": "login pela tela abre área interna e grava cookie httpOnly/Strict em /api/v1/auth",
+      "ok": true,
+      "detalhe": "url=http://localhost:4310/dashboard httpOnly=true sameSite=Strict path=/api/v1/auth secure=true"
+    },
+    {
+      "passo": 2,
+      "descricao": "page.reload() mantém a sessão na tela interna, sem passar pelo login",
+      "ok": true,
+      "detalhe": "url=http://localhost:4310/equipamentos refresh=[200]"
+    },
+    {
+      "passo": 3,
+      "descricao": "page.goto(/unidades) depois do login abre a tela, sem login",
+      "ok": true,
+      "detalhe": "url=http://localhost:4310/unidades"
+    },
+    {
+      "passo": 4,
+      "descricao": "uso contínuo por 150s (> 60s do access token) não derruba a sessão",
+      "ok": true,
+      "detalhe": "cliques=10 refresh200=2"
+    },
+    {
+      "passo": 5,
+      "descricao": "cookie antigo reenviado depois do Sair é recusado (204, sem token) e F5 continua no login",
+      "ok": true,
+      "detalhe": "antes=200 depois=204 corpo=\"\" url=http://localhost:4310/login"
+    },
+    {
+      "passo": 6,
+      "descricao": "depois de 240s a próxima ação vai ao login com \"Sua sessão expirou\"",
+      "ok": true,
+      "detalhe": "url=http://localhost:4310/login?sessionExpired=1 aviso=1"
+    }
+  ],
+  "refresh": [
+    {
+      "quando": "2026-11-11T17:36:08.477Z",
+      "status": 204
+    },
+    {
+      "quando": "2026-11-11T17:36:09.941Z",
+      "status": 200
+    },
+    {
+      "quando": "2026-11-11T17:36:10.623Z",
+      "status": 200
+    },
+    {
+      "quando": "2026-11-11T17:37:11.557Z",
+      "status": 200
+    },
+    {
+      "quando": "2026-11-11T17:38:11.745Z",
+      "status": 200
+    },
+    {
+      "quando": "2026-11-11T17:38:41.979Z",
+      "status": 204
+    },
+    {
+      "quando": "2026-11-11T17:38:42.550Z",
+      "status": 204
+    },
+    {
+      "quando": "2026-11-11T17:42:53.563Z",
+      "status": 204
+    }
+  ],
+  "idasAoLogin": [
+    {
+      "quando": "2026-11-11T17:36:08.135Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:36:08.503Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:38:41.916Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:38:41.936Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:38:41.984Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:38:42.515Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:38:42.556Z",
+      "url": "http://localhost:4310/login"
+    },
+    {
+      "quando": "2026-11-11T17:42:53.563Z",
+      "url": "http://localhost:4310/login?sessionExpired=1"
+    }
+  ],
+  "erros": [],
+  "fim": "2026-11-11T17:42:53.702Z",
+  "ok": true
+}

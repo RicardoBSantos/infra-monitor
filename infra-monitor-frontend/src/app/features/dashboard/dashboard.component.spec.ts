@@ -64,8 +64,8 @@ describe('DashboardComponent', () => {
   /** Responde às chamadas disparadas na abertura da página; nenhuma delas cria endpoint novo. */
   function responderCargaSemIncidentes(fixture: ComponentFixture<DashboardComponent>, resumoBody = resumo, unidadesBody = [unidade], extras: Extras = {}) {
     responderTipos(extras.tipos);
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush(resumoBody);
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush(unidadesBody);
+    httpTesting.expectOne('/api/v1/dashboard/resumo').flush(resumoBody);
+    httpTesting.expectOne('/api/v1/dashboard/unidades').flush(unidadesBody);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([{ id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true, createdAt: '', updatedAt: '' }]);
     httpTesting.expectOne((request) => request.url.endsWith('assets/maps/se-municipalities.geo.json')).flush({ type: 'FeatureCollection', features: [] });
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/equipamentos')).flush(extras.cadastro ?? pagina([cadastro]));
@@ -162,8 +162,8 @@ describe('DashboardComponent', () => {
   it('isola a falha dos KPIs agregados sem derrubar o restante do painel', () => {
     const fixture = create();
     responderTipos();
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush(resumo);
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush([unidade]);
+    httpTesting.expectOne('/api/v1/dashboard/resumo').flush(resumo);
+    httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([]);
     httpTesting.expectOne((request) => request.url.endsWith('assets/maps/se-municipalities.geo.json')).flush({ type: 'FeatureCollection', features: [] });
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/equipamentos')).flush(pagina([cadastro]));
@@ -194,8 +194,8 @@ describe('DashboardComponent', () => {
   it('mantém os filtros e as abas quando o índice de cadastro e o catálogo falham', () => {
     const fixture = create();
     responderTipos('erro');
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush({ ...resumo, incidentes: { abertos: 0 } });
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush([unidade]);
+    httpTesting.expectOne('/api/v1/dashboard/resumo').flush({ ...resumo, incidentes: { abertos: 0 } });
+    httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([{ id: 7, nome: 'Centro Operacional', sigla: 'CIS-01', descricao: null, codigoIbge: '2800308', ativo: true, createdAt: '', updatedAt: '' }]);
     httpTesting.expectOne((request) => request.url.endsWith('assets/maps/se-municipalities.geo.json')).flush({ type: 'FeatureCollection', features: [] });
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/equipamentos')).error(new ProgressEvent('erro'), { status: 500, statusText: 'Internal Server Error' });
@@ -322,8 +322,8 @@ describe('DashboardComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')).not.toBeNull();
     TestBed.inject(DashboardStateService).atualizar();
     // Banner continua de pé pelo dispositivo offline, mas sem citar o incidente que já não está aberto.
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush({ ...resumo, incidentes: { abertos: 0 } });
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush([{ ...unidade, incidentesAbertos: 0 }]);
+    httpTesting.expectOne('/api/v1/dashboard/resumo').flush({ ...resumo, incidentes: { abertos: 0 } });
+    httpTesting.expectOne('/api/v1/dashboard/unidades').flush([{ ...unidade, incidentesAbertos: 0 }]);
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.alerta')).not.toBeNull();
     expect((fixture.nativeElement as HTMLElement).querySelector('.alerta__detalhe')).toBeNull();
@@ -454,8 +454,8 @@ describe('DashboardComponent', () => {
   it('preserva a mensagem de erro da API no resumo', () => {
     const fixture = create();
     responderTipos();
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/resumo').flush({ timestamp: '2026-08-19T12:00:00Z', status: 500, error: 'Internal Server Error', code: 'INTERNAL_ERROR', message: 'Falha no resumo', path: '/api/v1/dashboard/resumo' }, { status: 500, statusText: 'Internal Server Error' });
-    httpTesting.expectOne('http://localhost:8080/api/v1/dashboard/unidades').flush([]);
+    httpTesting.expectOne('/api/v1/dashboard/resumo').flush({ timestamp: '2026-08-19T12:00:00Z', status: 500, error: 'Internal Server Error', code: 'INTERNAL_ERROR', message: 'Falha no resumo', path: '/api/v1/dashboard/resumo' }, { status: 500, statusText: 'Internal Server Error' });
+    httpTesting.expectOne('/api/v1/dashboard/unidades').flush([]);
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/unidades')).flush([]);
     httpTesting.expectOne((request) => request.url.endsWith('assets/maps/se-municipalities.geo.json')).flush({ type: 'FeatureCollection', features: [] });
     httpTesting.expectOne((request) => request.url.endsWith('/api/v1/equipamentos')).flush(pagina([]));

@@ -23,7 +23,7 @@ class HostComponent {
   readonly salva = signal<ManutencaoResponse | null>(null);
 }
 
-const URL = 'http://localhost:8080/api/v1/manutencoes';
+const URL = '/api/v1/manutencoes';
 const unidade = (id: number, nome: string): UnidadeResponse => ({ id, nome, sigla: nome.slice(0, 3).toUpperCase(), descricao: null, codigoIbge: null, ativo: true, createdAt: '', updatedAt: '', endereco: null, cidade: null, uf: null, latitude: null, longitude: null, conectaAUnidadeId: null });
 const equipamento = (id: number, nome: string, unidadeId: number, ativo = true): DashboardEquipamentoLista => ({ id, nome, tipoNome: 'Switch', unidadeId, unidadeNome: '', hostname: null, ip: null, status: EquipmentOperationalStatus.Available, latenciaMs: null, ativo, localizacao: null, numeroSerie: null, emManutencao: false, manutencaoManual: false, janelaAtivaId: null, janelaAtivaFim: null });
 const resposta = (parcial: Partial<ManutencaoResponse> = {}): ManutencaoResponse => ({ id: 50, unidade: { id: 1, nome: 'Sede' }, escopo: MaintenanceScope.Unit, equipamentos: [], inicioPrevisto: '', fimPrevisto: '', motivo: 'x', situacao: MaintenanceWindowStatus.Scheduled, criadoPor: { id: 1, nome: 'Ana' }, ativadaEm: null, encerradaEm: null, encerradaPor: null, canceladaEm: null, canceladaPor: null, sobreposicoes: [], versao: 0, ultimaAlteracao: null, ...parcial });

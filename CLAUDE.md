@@ -216,7 +216,7 @@ Regras já definidas:
 ## Testes
 
 - `StatusControllerTest` (`@WebMvcTest`) e `TratadorGlobalDeErrosTest` rodam sempre.
-- As 53 classes de integração com PostgreSQL real (Testcontainers) levam `@RequerDocker`
+- As 55 classes de integração com PostgreSQL real (Testcontainers) levam `@RequerDocker`
   (`testsupport/`). Sem Docker são puladas, nunca dão erro, e `AvisoTestesSemDocker`
   imprime no fim `!! N classes puladas: Docker indisponivel.` com a lista. Suíte verde com
   esse aviso **não** testou o banco: contagem completa só com Docker. Classe nova com

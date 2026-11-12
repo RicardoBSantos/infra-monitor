@@ -18,7 +18,7 @@ const detalhe = {
   monitores: { ativos: 24, indisponiveis: 1 }, incidentesAbertos: 1,
 };
 
-const DIARIA = 'http://localhost:8080/api/v1/relatorios/disponibilidade/unidades/7/diaria';
+const DIARIA = '/api/v1/relatorios/disponibilidade/unidades/7/diaria';
 
 describe('Abas Histórico e Configurações', () => {
   let httpTesting: HttpTestingController;
@@ -217,7 +217,7 @@ describe('Abas Histórico e Configurações', () => {
         .find((b) => b.textContent?.includes('Excluir unidade')) as HTMLButtonElement;
       confirmar.click();
 
-      httpTesting.expectOne('http://localhost:8080/api/v1/unidades/7').flush(
+      httpTesting.expectOne('/api/v1/unidades/7').flush(
         { timestamp: '', status: 409, error: 'Conflict', code: 'BUSINESS_CONFLICT', message: 'Nao e possivel excluir a unidade porque existem equipamentos associados', path: '' },
         { status: 409, statusText: 'Conflict' });
       fixture.detectChanges();
@@ -236,7 +236,7 @@ describe('Abas Histórico e Configurações', () => {
         .find((b) => b.textContent?.includes('Excluir unidade')) as HTMLButtonElement;
       confirmar.click();
 
-      httpTesting.expectOne('http://localhost:8080/api/v1/unidades/7').flush(null);
+      httpTesting.expectOne('/api/v1/unidades/7').flush(null);
       fixture.detectChanges();
 
       expect(navegou).toHaveBeenCalledWith(['/unidades']);
@@ -249,7 +249,7 @@ describe('Abas Histórico e Configurações', () => {
         .find((b) => b.textContent?.includes('Desativar unidade')) as HTMLButtonElement;
       confirmar.click();
 
-      httpTesting.expectOne('http://localhost:8080/api/v1/unidades/7/desativar').flush({ ...cadastro, ativo: false });
+      httpTesting.expectOne('/api/v1/unidades/7/desativar').flush({ ...cadastro, ativo: false });
       fixture.detectChanges();
 
       expect(texto(fixture)).toContain('Unidade desativada.');
@@ -276,7 +276,7 @@ describe('Abas Histórico e Configurações', () => {
 
       // Nenhum diálogo: a chamada sai direto.
       expect(raiz(fixture).querySelector('.confirm-dialog')).toBeNull();
-      httpTesting.expectOne('http://localhost:8080/api/v1/unidades/7/ativar').flush(cadastro);
+      httpTesting.expectOne('/api/v1/unidades/7/ativar').flush(cadastro);
       fixture.detectChanges();
 
       httpTesting.expectOne((r) => r.url.endsWith('/dashboard/unidades/7')).flush(detalhe);

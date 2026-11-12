@@ -17,5 +17,6 @@ describe('AuthStateService', () => {
     expect(service.accessToken()).toBe('token'); expect(service.expiresAt()).toBeGreaterThan(Date.now()); expect(service.usuario()).toEqual(session.usuario); expect(service.authenticated()).toBe(true);
     expect(service.papel()).toBe('ADMIN'); expect(service.trocaSenhaObrigatoria()).toBe(true); expect(service.hasAnyRole(['OPERADOR', 'ADMIN'])).toBe(true); expect(service.canManageInventory()).toBe(true); expect(service.canManageMonitors()).toBe(true); expect(service.canCloseIncident()).toBe(true);
   });
-  it('treats an expired token as unauthenticated', () => { service.setSession({ ...session, expiresIn: -1 }); expect(service.authenticated()).toBe(false); });
+  it('clear advances the session generation (stale refresh responses are discarded by it)', () => { const antes = service.geracao(); service.clear(); expect(service.geracao()).toBe(antes + 1); });
+  it('keeps the session authenticated after the access token expires (renewal happens on 401)', () => { service.setSession({ ...session, expiresIn: -1 }); expect(service.expiresAt()).toBeLessThan(Date.now()); expect(service.authenticated()).toBe(true); });
 });

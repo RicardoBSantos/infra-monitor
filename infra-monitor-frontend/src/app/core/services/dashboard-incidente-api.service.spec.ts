@@ -16,7 +16,7 @@ describe('DashboardIncidenteApiService', () => {
 
   it('sends the unified list request without parameters', () => {
     service.list().subscribe();
-    const request = http.expectOne('http://localhost:8080/api/v1/dashboard/incidentes');
+    const request = http.expectOne('/api/v1/dashboard/incidentes');
     expect(request.request.method).toBe('GET');
     request.flush({});
   });

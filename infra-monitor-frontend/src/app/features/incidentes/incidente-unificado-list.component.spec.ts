@@ -210,7 +210,7 @@ describe('IncidenteUnificadoListComponent', () => {
     botoes('Reconhecer')[0].click();
     fixture.detectChanges();
 
-    const requisicao = http.expectOne('http://localhost:8080/api/v1/incidentes/1/reconhecer');
+    const requisicao = http.expectOne('/api/v1/incidentes/1/reconhecer');
     expect(requisicao.request.method).toBe('PATCH');
     requisicao.flush({});
 
@@ -314,7 +314,7 @@ describe('IncidenteUnificadoListComponent · rotas de detalhe', () => {
     await harness.navigateByUrl('/incidentes/1');
     harness.detectChanges();
 
-    http.expectOne('http://localhost:8080/api/v1/incidentes/1').flush({
+    http.expectOne('/api/v1/incidentes/1').flush({
       id: 1, status: IncidentStatus.Open, iniciadoEm: '2026-09-01T08:00:30Z', encerradoEm: null,
       motivo: 'Falhas consecutivas', observacao: null, reconhecidoEm: null, reconhecidoPorNome: null,
       monitor: { id: 1, nome: 'ICMP CORE', tipo: 'ICMP', equipamentoId: 31, equipamentoNome: 'SW-CORE', unidadeId: 7, unidadeNome: 'Centro' },
@@ -329,7 +329,7 @@ describe('IncidenteUnificadoListComponent · rotas de detalhe', () => {
     await harness.navigateByUrl('/incidentes/latencia/1');
     harness.detectChanges();
 
-    http.expectOne('http://localhost:8080/api/v1/episodios-latencia/1').flush({
+    http.expectOne('/api/v1/episodios-latencia/1').flush({
       id: 1, monitorId: 2, monitorNome: 'ICMP WAN', equipamentoId: 44, equipamentoNome: 'LINK-WAN',
       unidadeId: 7, unidadeNome: 'Centro',
       iniciadoEm: '2026-09-01T09:00:00Z', encerradoEm: null, limiarMs: 250,
@@ -349,7 +349,7 @@ describe('IncidenteUnificadoListComponent · rotas de detalhe', () => {
 
     await harness.navigateByUrl('/incidentes/1');
     harness.detectChanges();
-    http.expectOne('http://localhost:8080/api/v1/incidentes/1')
+    http.expectOne('/api/v1/incidentes/1')
       .flush({ message: 'x' }, { status: 500, statusText: 'Server Error' });
     harness.detectChanges();
 

@@ -19,6 +19,7 @@
     "e2e:legenda-painel": "node e2e/mapa-legenda-painel.cjs",
     "e2e:pre-carga": "node e2e/pre-carga-timeline-e-tela.cjs",
     "e2e:rodada-curta": "node e2e/rodada-curta.cjs",
+    "e2e:sessao": "node e2e/sessao-refresh.cjs",
     "contraste": "node e2e/contraste-tokens.cjs",
     "e2e:cv1": "node e2e/consistencia-visual-r1.cjs",
     "e2e:cv2": "node e2e/consistencia-visual-r2.cjs",

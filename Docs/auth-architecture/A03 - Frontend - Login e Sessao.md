@@ -991,3 +991,14 @@ Informações para A04
 Listar gaps de RBAC/administração de usuários ainda não implementados.
 
 Não implementar A04.
+
+## Atualização 2026-11-11 — sessão sobrevive a F5
+
+A sessão deixou de ser só memória. O login passa a receber também um refresh token em cookie httpOnly
+(`inframonitor_refresh`, `SameSite=Strict`, `Path=/api/v1/auth`), e a sessão agora sobrevive a F5, link direto e aba
+restaurada. Ela é restaurada em `provideAppInitializer` (`POST /api/v1/auth/refresh`), antes dos guards rodarem; sem sessão
+(204, erro de rede ou timeout) o fluxo cai no login como antes. Um 401 numa API protegida dispara um único refresh
+compartilhado (voo único) e a requisição é repetida uma vez; se o refresh falhar, vale o fluxo de sessão expirada. O "Sair"
+revoga a sessão no servidor (`POST /api/v1/auth/logout`). `authenticated()` não depende mais da validade do access token.
+
+Desenho e decisões: `Docs/superpowers/specs/2026-11-11-sessao-refresh-token-design.md`.

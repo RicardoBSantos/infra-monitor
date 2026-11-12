@@ -58,6 +58,14 @@ Ligar é sempre um ato explícito de quem sobe o processo:
 `ConfiguracaoPadraoDesligadaTest` trava esses defaults e proíbe `spring.config.import`
 nos YAML.
 
+Sessão com refresh token (cookie httpOnly `inframonitor_refresh`, ver a subseção V26 em "Migrations"):
+
+| Variável | Padrão | Efeito |
+|---|---|---|
+| `JWT_ACCESS_TOKEN_MINUTES` | `15` | Validade do access token. Continua 15: ele é curto e vive em memória no navegador. |
+| `JWT_REFRESH_TOKEN_DURATION` | `10h` | Duração **absoluta** da sessão, contada do login, em formato `java.time.Duration` (`10h`, `8h`, `2m`). Entre 1 minuto e 24 horas. Não é estendida pelo uso. **Sempre com unidade:** `10` sem unidade é lido como 10 **ms**. Valor fora de [1 min, 24 h] **impede o backend de subir** (ninguém faz login, nem por senha): só altere com a unidade e valide antes num ambiente que não seja produção. |
+| `APP_AUTH_COOKIE_SECURE` | `true` | Atributo `Secure` do cookie. `false` só para desenvolvimento por HTTP fora de `localhost`. |
+
 Manutenção agendada (janelas em `/api/v1/manutencoes`):
 
 - `GET /api/v1/manutencoes/{id}`: detalhe de uma janela.
@@ -260,6 +268,74 @@ do usuário, depois de conferido o formato das mensagens.
 Atenção: o banco da carga real (`inframonitor-carga`) **já está em V21**, enquanto a pilha do dia a
 dia pode estar rodando código anterior à F1. Não aponte um jar antigo para ele sem o `UPDATE` acima.
 
+### V26 (sessão com refresh token) — aplicar em produção e rollback
+
+A **V26** cria só a tabela `sessao_usuario` (hash SHA-256 do refresh token, validade, último uso, revogação) e um índice.
+Não toca linha nem coluna existente e roda em milissegundos. Desenho completo em
+`Docs/superpowers/specs/2026-11-11-sessao-refresh-token-design.md`.
+
+**A ordem importa, mas errar a ordem não tranca ninguém.** Em produção o backend sobe com `--spring.flyway.enabled=false`;
+o Flyway roda à parte com o papel `inframonitor_owner`. A aplicação acessa `sessao_usuario` por JDBC com falha tolerada
+(não é entidade JPA, então `ddl-auto: validate` não a conhece): **sem a V26 o login funciona e a sessão dura 15 min**, como antes.
+Nesse modo o log mostra uma linha `WARN Sessao persistente indisponivel (V26 aplicada?): 42P01 ...` por tentativa, sem stack.
+Falha **transitória** do banco (pool esgotado, banco reiniciando) não derruba a sessão: o refresh responde `503 SERVICE_UNAVAILABLE`
+sem mexer no cookie, e o próximo refresh ou F5 a restaura; o login responde 200 sem cookie e o logout responde 204 limpando o cookie.
+Mesmo assim, aplique a V26 antes de subir o jar novo.
+
+**Passo a passo:**
+
+1. Backup com o script existente `ops/Backup-InfraMonitorDatabase.ps1`.
+2. Aplicar a V26 com o jar **novo**, em console, com o backend antigo ainda no ar na 8080 (ele não percebe). Mesma abordagem da
+   D02.10-C: o jar completo sobe em loopback na 18080 com o Flyway ligado e depois é parado. Nada que aja sozinho fica ligado:
+
+```powershell
+$env:MONITORING_ENGINE_ENABLED='false'; $env:TELEGRAM_ENABLED='false'; $env:NOTIFICATION_DISPATCHER_ENABLED='false'; $env:MANUTENCAO_AGENDADA_ENABLED='false'; $env:RETENTION_ENABLED='false'; $env:BOOTSTRAP_ADMIN_ENABLED='false'
+& "$env:JAVA_HOME\bin\java.exe" "-Djava.io.tmpdir=C:\InfraMonitor\tmp\backend" "-Djdk.net.unixdomain.tmpdir=C:\InfraMonitor\tmp\backend" -jar <app.jar da release nova> --spring.profiles.active=prod --server.address=127.0.0.1 --server.port=18080 --spring.flyway.enabled=true --spring.flyway.target=26 "--spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/inframonitor" --spring.datasource.username=inframonitor_owner "--spring.datasource.password=<senha do owner, digitada no console, nunca em arquivo>" "--app.auth.jwt.secret=<qualquer valor descartável com 32+ bytes>"
+```
+
+   Espere a linha de log `Successfully applied 1 migration to schema "public", now at version v26` e depois
+   `Started InfraMonitorApplication`; então pare com Ctrl+C. **Não** use `--spring.main.web-application-type=none`: a migração
+   roda, mas o processo termina com erro por falta do bean de CORS. Por isso o jar sobe completo em loopback.
+3. Conferir (parada obrigatória antes do passo 4):
+
+```sql
+select version, success from flyway_schema_history where version = '26';   -- esperado: 26 | t
+select has_table_privilege('inframonitor_app', 'sessao_usuario', 'SELECT,INSERT,UPDATE,DELETE');   -- esperado: t
+```
+
+   Se o segundo for `f`, como dono do schema:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON sessao_usuario TO inframonitor_app;
+GRANT USAGE, SELECT ON SEQUENCE sessao_usuario_id_seq TO inframonitor_app;
+```
+
+4. Release `Both` com as ferramentas atuais, `-SchemaVersion 25`: o pacote continua "compatível com schema 25" (o jar novo funciona,
+   degradado, num banco em 25) e a V26 é um opcional aditivo aplicado à parte. Não altere as ferramentas de release.
+5. Pós-subida (operador, estação da VLAN de TI):
+   - health `UP`;
+   - login com o ADMIN funciona (é o caminho que não mudou; se falhar, rollback imediato);
+   - DevTools, Application, Cookies: `inframonitor_refresh` com HttpOnly, Secure, SameSite Strict e Path `/api/v1/auth`
+     (prova que o `Set-Cookie` atravessou o ARR; o IIS não pôde ser testado aqui);
+   - F5 numa tela interna continua logado, e o Network mostra `POST /api/v1/auth/refresh` 200;
+   - Sair, F5: volta ao login;
+   - `select count(*) from sessao_usuario` maior que 0, e nenhuma coluna com o valor do cookie.
+
+Sessões abertas na troca: abas com o JS antigo seguem até o access token vencer e então vão ao login; quem der F5 carrega o front
+novo, ainda sem cookie, e entra uma vez. Ninguém fica trancado.
+
+**Voltar atrás se o login quebrar:**
+
+1. `Invoke-WindowsRelease.ps1 -Operation Rollback` para a release anterior, com as ferramentas de sempre (`-SchemaVersion 25`).
+2. **Não** remova a V26: o jar antigo roda com ela e a tabela fica parada. Só se um dia for preciso removê-la:
+   `DROP TABLE sessao_usuario; DELETE FROM flyway_schema_history WHERE version = '26';` (não é necessário para voltar atrás).
+3. Rollback parcial: front novo com backend antigo cai em "sem sessão" e o login funciona como hoje; front antigo com backend novo
+   é idêntico a hoje (o `Set-Cookie` é ignorado).
+4. Se o problema for só o cookie (por exemplo o ARR descartando `Set-Cookie`), nada a reverter com urgência: o sistema degrada para
+   sessão de 15 min e o login funciona.
+
+Provado em 2026-11-11 em bancos descartáveis: jar novo aplicou a V26 sobre um banco em V25 (44 ms); jar de origin/main (920e4d5) com Flyway desligado subiu UP sobre o banco em V26 e o login respondeu 200; jar novo com Flyway desligado sobre banco sem V26 subiu UP, login 200 sem cookie, refresh 204.
+
 ## Executar a aplicação
 
 ```bash
@@ -286,7 +362,7 @@ java -jar target/infra-monitor-backend-0.0.1-SNAPSHOT.jar --spring.profiles.acti
 ./mvnw test
 ```
 
-As classes de integração Postgres (53 hoje) são marcadas com `@RequerDocker` e sobem
+As classes de integração Postgres (55 hoje) são marcadas com `@RequerDocker` e sobem
 um PostgreSQL real via Testcontainers. Sem Docker disponível elas são **puladas**, não
 falham, e o fim da execução imprime um aviso com a contagem e a lista
 (`!! N classes puladas: Docker indisponivel.`): uma suíte verde nesse estado **não**
