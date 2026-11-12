@@ -14,6 +14,8 @@ export enum ApiErrorCode {
   BusinessConflict = 'BUSINESS_CONFLICT',
   DataIntegrityViolation = 'DATA_INTEGRITY_VIOLATION',
   InternalError = 'INTERNAL_ERROR',
+  /** 503 do PUT de configuração do modo TV quando a tabela da V27 ainda não existe. */
+  ConfigurationUnavailable = 'CONFIGURATION_UNAVAILABLE',
 }
 
 export interface ApiError {

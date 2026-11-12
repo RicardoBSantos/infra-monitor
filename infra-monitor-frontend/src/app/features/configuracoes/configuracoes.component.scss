@@ -1,0 +1,26 @@
+/* Casca das configurações do sistema: navegação lateral de seções + rota filha.
+   Padding, largura e cabeçalho vêm de .pagina (styles/_ui.scss). */
+:host { display: block; }
+
+.configuracoes { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 18px; align-items: start; }
+.configuracoes__conteudo { min-width: 0; }
+
+/* Lista de seções: fica de pé ao rolar a seção aberta, que pode crescer com o tempo. */
+.secoes { position: sticky; top: 16px; display: grid; gap: 2px; padding: 4px; border: 1px solid var(--im-border); border-radius: var(--im-radius-lg); background: var(--im-surface); }
+
+.secao {
+  display: grid; gap: 2px; padding: 8px 10px;
+  border: 1px solid transparent; border-radius: calc(var(--im-radius-lg) - 2px);
+  color: var(--im-text-secondary); text-decoration: none;
+}
+.secao:hover { background: var(--im-surface-hover); color: var(--im-text); }
+.secao:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 1px; }
+.secao__rotulo { font-size: 12.5px; font-weight: 600; }
+.secao__resumo { color: var(--im-text-dim); font-size: 11px; }
+.secao--ativa { border-color: var(--im-border-strong); background: var(--im-surface-raised); color: var(--im-text-strong); }
+
+@media (max-width: 860px) {
+  .configuracoes { grid-template-columns: minmax(0, 1fr); }
+  .secoes { position: static; display: flex; overflow-x: auto; }
+  .secao { flex: 0 0 auto; }
+}

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { IncidentStatus, MaintenanceWindowStatus, MonitorOperationalStatus, NotificationStatus, UnitOperationalStatus } from '../../core/models/api-enums';
+import { IncidentStatus, MaintenanceWindowStatus, ModoTvStatus, MonitorOperationalStatus, NotificationStatus, UnitOperationalStatus } from '../../core/models/api-enums';
 import { StatusBadgeComponent, tomDoStatus } from './status-badge.component';
 
 @Component({ imports: [StatusBadgeComponent], template: '<app-status-badge [status]="status" />' })
@@ -65,6 +65,18 @@ describe('StatusBadgeComponent', () => {
       expect(badge.textContent.trim()).toBe(rotulo);
       expect(badge.className).toContain('badge--' + tom);
       expect(tomDoStatus(status)).toBe(tom as 'muted');
+    }
+  });
+
+  it('rotula o estado do modo TV', () => {
+    const casos: [ModoTvStatus, string, string][] = [['ATIVO', 'Ativo', 'success'], ['DESABILITADO', 'Desabilitado', 'muted']];
+    for (const [status, rotulo, tom] of casos) {
+      const fixture = TestBed.createComponent(StatusBadgeComponent);
+      fixture.componentRef.setInput('status', status);
+      fixture.detectChanges();
+      const badge = fixture.nativeElement.querySelector('.badge');
+      expect(badge.textContent.trim()).toBe(rotulo);
+      expect(badge.className).toContain('badge--' + tom);
     }
   });
 

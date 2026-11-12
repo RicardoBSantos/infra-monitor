@@ -129,3 +129,6 @@ export enum MaintenanceScope {
   Unit = 'UNIDADE',
   Equipment = 'EQUIPAMENTOS',
 }
+
+/** Estado do modo TV na tela de Configurações: espelha o `ativo` gravado. */
+export type ModoTvStatus = 'ATIVO' | 'DESABILITADO';
