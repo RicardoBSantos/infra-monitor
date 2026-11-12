@@ -464,4 +464,81 @@ describe('DashboardComponent', () => {
     fixture.detectChanges();
     expect(texto(fixture)).toContain('Falha no resumo');
   });
+
+  describe('recarregarDados() (modo TV)', () => {
+    const semIncidentes = { ...resumo, incidentes: { abertos: 0 } };
+    const casa = (trecho: string) => (request: { url: string }) => request.url.includes(trecho);
+
+    beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T12:00:00Z')); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    function responderTique(resumoBody = semIncidentes) {
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(resumoBody);
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
+    }
+
+    it('rebusca resumo e unidades sem voltar a loading e sem tocar catálogo, cadastro ou agregados dentro de 15 min', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      fixture.componentInstance.recarregarDados();
+      expect(fixture.componentInstance['resumoState']()).toBe('success');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.kpi--carregando')).toBeNull();
+      responderTique();
+      vi.setSystemTime(new Date('2026-11-12T12:14:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(httpTesting.match(casa('/relatorios/'))).toHaveLength(0);
+      expect(httpTesting.match(casa('/api/v1/tipos-equipamento'))).toHaveLength(0);
+      expect(httpTesting.match((r) => r.url.endsWith('/api/v1/equipamentos'))).toHaveLength(0);
+    });
+
+    it('rebusca os agregados de 30 d depois de 15 min + 1 ms, mantendo o valor e sem loading', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      const latencia = httpTesting.match(casa('/relatorios/latencia/unidades'));
+      const disponibilidade = httpTesting.match(casa('/relatorios/disponibilidade/unidades'));
+      expect(latencia).toHaveLength(1);
+      expect(disponibilidade).toHaveLength(1);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('99,4');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.kpi--carregando')).toBeNull();
+      latencia[0].flush(pagina([latenciaUnidade(40, 100)]));
+      disponibilidade[0].flush(pagina([]));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
+
+    it('rebusca os incidentes do banner quando o novo resumo ainda aponta abertos', () => {
+      const fixture = create();
+      responderCarga(fixture);
+      fixture.componentInstance.recarregarDados();
+      responderTique({ ...resumo });
+      fixture.detectChanges();
+      expect(httpTesting.match((r) => r.url.endsWith("/api/v1/incidentes"))).toHaveLength(2);
+    });
+
+    it('falha silenciosa mantém o dado anterior e liga falhouUltimaAtualizacao', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      fixture.componentInstance.recarregarDados();
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      expect(texto(fixture)).toContain('Centro Operacional');
+      expect(texto(fixture)).not.toContain('Não foi possível carregar');
+    });
+
+    it('o botão Atualizar manual continua pondo o resumo em loading', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      fixture.componentInstance['atualizar']();
+      expect(fixture.componentInstance['resumoState']()).toBe('loading');
+      httpTesting.match(() => true);
+    });
+  });
 });

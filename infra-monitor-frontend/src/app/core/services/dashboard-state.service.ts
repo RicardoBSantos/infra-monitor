@@ -24,6 +24,9 @@ export class DashboardStateService {
   private readonly unidadesErrorSignal = signal<ApiError | null>(null);
   private readonly ultimoFetchSignal = signal<string | null>(null);
 
+  private readonly resumoFalhouSignal = signal(false);
+  private readonly unidadesFalhouSignal = signal(false);
+
   private resumoCarregado = false;
   private unidadesCarregadas = false;
 
@@ -33,6 +36,8 @@ export class DashboardStateService {
   readonly unidadesState = this.unidadesStateSignal.asReadonly();
   readonly resumoError = this.resumoErrorSignal.asReadonly();
   readonly unidadesError = this.unidadesErrorSignal.asReadonly();
+  /** true se a última rodada silenciosa falhou em resumo ou unidades; o dado anterior continua exposto. */
+  readonly falhaSilenciosa = computed(() => this.resumoFalhouSignal() || this.unidadesFalhouSignal());
 
   /** Momento da varredura exibido na interface: o `geradoEm` da API, com o último fetch como reserva. */
   readonly ultimaVarredura = computed(() => this.resumoSignal()?.geradoEm ?? this.ultimoFetchSignal());
@@ -59,10 +64,29 @@ export class DashboardStateService {
     if (this.unidadesCarregadas) this.carregarUnidades();
   }
 
+  /**
+   * Refetch periódico do modo TV: com dado em mãos não volta a `loading` e, em erro, mantém o dado anterior
+   * (marca `falhaSilenciosa`). Sem dado ainda, cai na carga normal.
+   */
+  atualizarSilencioso(): void {
+    if (this.resumoSignal() === null) this.carregarResumo();
+    else this.api.getResumo().pipe(take(1)).subscribe({
+      next: (resumo) => { this.resumoSignal.set(resumo); this.resumoStateSignal.set('success'); this.resumoErrorSignal.set(null); this.resumoFalhouSignal.set(false); this.ultimoFetchSignal.set(new Date().toISOString()); },
+      error: () => this.resumoFalhouSignal.set(true),
+    });
+    if (!this.unidadesCarregadas) return;
+    if (this.unidadesStateSignal() === 'error') this.carregarUnidades();
+    else this.api.getUnidades().pipe(take(1)).subscribe({
+      next: (unidades) => { this.unidadesSignal.set(unidades); this.unidadesStateSignal.set(unidades.length ? 'success' : 'empty'); this.unidadesErrorSignal.set(null); this.unidadesFalhouSignal.set(false); },
+      error: () => this.unidadesFalhouSignal.set(true),
+    });
+  }
+
   private carregarResumo(): void {
     this.resumoCarregado = true;
     this.resumoStateSignal.set('loading');
     this.resumoErrorSignal.set(null);
+    this.resumoFalhouSignal.set(false);
     this.api.getResumo().pipe(take(1)).subscribe({
       next: (resumo) => { this.resumoSignal.set(resumo); this.resumoStateSignal.set('success'); this.ultimoFetchSignal.set(new Date().toISOString()); },
       error: (error: HttpErrorResponse) => { this.resumoStateSignal.set('error'); this.resumoErrorSignal.set(erroDeApi(error)); },
@@ -73,6 +97,7 @@ export class DashboardStateService {
     this.unidadesCarregadas = true;
     this.unidadesStateSignal.set('loading');
     this.unidadesErrorSignal.set(null);
+    this.unidadesFalhouSignal.set(false);
     this.api.getUnidades().pipe(take(1)).subscribe({
       next: (unidades) => { this.unidadesSignal.set(unidades); this.unidadesStateSignal.set(unidades.length ? 'success' : 'empty'); },
       error: (error: HttpErrorResponse) => { this.unidadesStateSignal.set('error'); this.unidadesErrorSignal.set(erroDeApi(error)); },

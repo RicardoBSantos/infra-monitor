@@ -9,7 +9,7 @@
       }
     </div>
     <div class="painel__acoes">
-      <button class="botao" type="button" (click)="alternarTodas()" [attr.aria-pressed]="todasExpandidas()">{{ todasExpandidas() ? 'Recolher todas' : 'Expandir todas' }}</button>
+      <button class="botao" data-tv-oculto type="button" (click)="alternarTodas()" [attr.aria-pressed]="todasExpandidas()">{{ todasExpandidas() ? 'Recolher todas' : 'Expandir todas' }}</button>
       <a class="botao" routerLink="/relatorios">Relatório de disponibilidade</a>
     </div>
   </header>
@@ -17,7 +17,7 @@
   @if (resumoState() === 'loading') {
     <div class="kpis" aria-label="Carregando indicadores">@for (card of [1,2,3,4,5,6,7,8,9]; track card) { <div class="kpi kpi--carregando"><span></span><strong></strong><small></small></div> }</div>
   } @else if (resumoState() === 'error') {
-    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar os indicadores.</strong><p>{{ resumoError()?.message }}</p></div><button class="botao" type="button" (click)="atualizar()">Tentar novamente</button></div>
+    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar os indicadores.</strong><p>{{ resumoError()?.message }}</p></div><button class="botao" data-tv-oculto type="button" (click)="atualizar()">Tentar novamente</button></div>
   } @else if (resumo(); as data) {
     <div class="kpis">
       <article class="kpi"><span>UNIDADES</span><strong>{{ data.unidades.total }}</strong><small>cadastradas e ativas</small></article>
@@ -45,7 +45,7 @@
     }
   }
 
-  <div class="filtros">
+  <div class="filtros" data-tv-oculto>
     <label class="filtros__busca"><app-icon name="search" /><input type="search" placeholder="Filtrar unidades ou equipamentos…" [value]="filtroTexto()" (input)="aoDigitar($event)" aria-label="Filtrar por nome, código, hostname ou endereço IP" /></label>
     <div class="abas" role="group" aria-label="Filtrar por tipo de equipamento">
       <button class="aba" type="button" [class.aba--ativa]="filtroTipoId() === null" (click)="selecionarTipo(null)">Todos @if (contagemTodos() !== null) { <span class="aba__contagem" title="equipamentos">{{ contagemTodos() }}</span> }</button>
@@ -69,7 +69,7 @@
   } @else if (unidadesState() === 'empty') {
     <div class="aviso"><app-icon name="unit" /><div><strong>Nenhuma unidade para exibir.</strong><p>A Dashboard API não retornou unidades ativas.</p></div></div>
   } @else if (unidadesState() === 'error') {
-    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar as unidades.</strong><p>{{ unidadesError()?.message }}</p></div><button class="botao" type="button" (click)="atualizar()">Tentar novamente</button></div>
+    <div class="aviso aviso--erro" role="alert"><app-icon name="incident" /><div><strong>Não foi possível carregar as unidades.</strong><p>{{ unidadesError()?.message }}</p></div><button class="botao" data-tv-oculto type="button" (click)="atualizar()">Tentar novamente</button></div>
   } @else {
     <div class="painel-grade">
       <div class="painel-grade__cabecalho" aria-hidden="true">

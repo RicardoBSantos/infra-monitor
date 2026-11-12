@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin, take } from 'rxjs';
 
@@ -20,6 +20,7 @@ import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
 import { AppIconComponent, AppIconName } from '../../shared/app-icon/app-icon.component';
 import { StatusBadgeComponent, TomStatus, tomDoStatus } from '../../shared/status-badge/status-badge.component';
+import { TelaTv } from '../tv/tela-tv';
 
 /** Janela usada nas colunas de disponibilidade e latência; os agregados vêm prontos da API de relatórios. */
 const JANELA_DIAS = 30;
@@ -27,6 +28,8 @@ const JANELA_DIAS = 30;
 const LOTE = 500;
 /** Quantos incidentes abertos são descritos na segunda linha do banner antes do resumo "+N". */
 const INCIDENTES_NO_BANNER = 3;
+/** Os agregados de 30 d mudam devagar: o modo TV só os rebusca depois deste intervalo. */
+const VALIDADE_AGREGADOS_MS = 15 * 60_000;
 
 const HORA = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
@@ -64,7 +67,7 @@ const PILLS: readonly { valor: FiltroStatus; rotulo: string; tom: Severidade | '
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
-export class DashboardComponent {
+export class DashboardComponent implements TelaTv {
   protected readonly plural = plural;
   private readonly api = inject(DashboardApiService);
   private readonly relatorios = inject(RelatorioApiService);
@@ -108,6 +111,14 @@ export class DashboardComponent {
   protected readonly pills = PILLS;
 
   private readonly agora = signal(Date.now());
+  /** Momento da última carga bem-sucedida dos agregados de 30 d (0 = nunca). */
+  private agregadosCarregadosEm = 0;
+  private readonly falhaIncidentes = signal(false);
+  private readonly falhaAgregados = signal(false);
+  /** Lido pelo effect do resumo: a rodada do modo TV mantém o banner anterior se a busca falhar. */
+  private rodadaSilenciosa = false;
+
+  readonly falhouUltimaAtualizacao = computed(() => this.painel.falhaSilenciosa() || this.falhaIncidentes() || this.falhaAgregados());
 
   /**
    * Visão atual sem o filtro de tipo (status e texto aplicados). Cada unidade leva as entradas do índice que
@@ -211,14 +222,30 @@ export class DashboardComponent {
       const resumo = this.painel.resumo();
       if (!resumo) return;
       // KPI zerado (ex.: depois de atualizar()) limpa a lista: o banner pode seguir de pé por offline e não pode citar incidente velho.
-      if (resumo.incidentes.abertos > 0) this.carregarIncidentes();
-      else this.incidentes.set([]);
+      if (resumo.incidentes.abertos > 0) this.carregarIncidentes(untracked(() => this.consumirRodadaSilenciosa()));
+      else { this.incidentes.set([]); this.falhaIncidentes.set(false); }
     });
     const relogio = setInterval(() => this.agora.set(Date.now()), 30_000);
     inject(DestroyRef).onDestroy(() => clearInterval(relogio));
   }
 
+  /**
+   * Atualização silenciosa do modo TV. Os incidentes do banner seguem o resumo novo (effect do construtor);
+   * agregados de 30 d só depois de VALIDADE_AGREGADOS_MS; catálogo e cadastro nunca.
+   */
+  recarregarDados(): void {
+    this.rodadaSilenciosa = true;
+    this.painel.atualizarSilencioso();
+    if (Date.now() - this.agregadosCarregadosEm > VALIDADE_AGREGADOS_MS) {
+      this.carregarDisponibilidadeUnidades(true);
+      this.carregarLatenciaUnidades(true);
+    }
+  }
+
+  private consumirRodadaSilenciosa(): boolean { const silenciosa = this.rodadaSilenciosa; this.rodadaSilenciosa = false; return silenciosa; }
+
   protected atualizar(): void {
+    this.rodadaSilenciosa = false;
     this.painel.atualizar();
     this.carregarDisponibilidadeUnidades();
     this.carregarLatenciaUnidades();
@@ -384,25 +411,32 @@ export class DashboardComponent {
     });
   }
 
-  private carregarIncidentes(): void {
+  private carregarIncidentes(silencioso = false): void {
     const consulta = (status: IncidentStatus) => this.incidentesApi.list({ status, size: INCIDENTES_NO_BANNER, sort: 'iniciadoEm,desc' });
     forkJoin([consulta(IncidentStatus.Open), consulta(IncidentStatus.Acknowledged)]).pipe(take(1)).subscribe({
-      next: ([abertos, reconhecidos]) => this.incidentes.set(
-        [...abertos.content, ...reconhecidos.content].sort((a, b) => Date.parse(b.iniciadoEm) - Date.parse(a.iniciadoEm))),
-      error: () => this.incidentes.set([]),
+      next: ([abertos, reconhecidos]) => {
+        this.falhaIncidentes.set(false);
+        this.incidentes.set([...abertos.content, ...reconhecidos.content].sort((a, b) => Date.parse(b.iniciadoEm) - Date.parse(a.iniciadoEm)));
+      },
+      error: () => {
+        if (silencioso) this.falhaIncidentes.set(true);
+        else this.incidentes.set([]);
+      },
     });
   }
 
-  private carregarDisponibilidadeUnidades(): void {
-    this.disponibilidadeGlobalState.set('loading');
+  private carregarDisponibilidadeUnidades(silencioso = false): void {
+    if (!silencioso) this.disponibilidadeGlobalState.set('loading');
     this.relatorios.getDisponibilidadeUnidades({ ...this.janela(), size: 200 }).pipe(take(1)).subscribe({
       next: (pagina) => {
         this.disponibilidadeIndisponivel.set(false);
         this.disponibilidadeUnidades.set(new Map(pagina.content.map((linha) => [linha.unidadeId, linha.disponibilidadePercentual])));
         this.disponibilidadeGlobal.set(agregarDisponibilidade(pagina.content));
         this.disponibilidadeGlobalState.set('ok');
+        this.sucessoAgregado();
       },
       error: (_: HttpErrorResponse) => {
+        if (silencioso) { this.falhaAgregados.set(true); return; }
         this.disponibilidadeIndisponivel.set(true);
         this.disponibilidadeUnidades.set(new Map());
         this.disponibilidadeGlobal.set(null);
@@ -412,8 +446,8 @@ export class DashboardComponent {
   }
 
   /** A API já entrega a média por unidade; a agregação no cliente sobrevive apenas como plano B. */
-  private carregarLatenciaUnidades(): void {
-    this.latenciaGlobalState.set('loading');
+  private carregarLatenciaUnidades(silencioso = false): void {
+    if (!silencioso) this.latenciaGlobalState.set('loading');
     this.relatorios.getLatenciaUnidades({ ...this.janela(), size: LOTE }).pipe(take(1)).subscribe({
       next: (pagina) => {
         const medias = new Map<number, number>();
@@ -427,13 +461,14 @@ export class DashboardComponent {
         this.latenciaUnidades.set(medias);
         this.latenciaGlobal.set(medicoes > 0 ? soma / medicoes : null);
         this.latenciaGlobalState.set('ok');
+        this.sucessoAgregado();
       },
-      error: () => this.agregarLatenciaNoCliente(),
+      error: () => this.agregarLatenciaNoCliente(silencioso),
     });
   }
 
   /** Fallback: backends anteriores ao agregado por unidade só respondem por monitor. */
-  private agregarLatenciaNoCliente(): void {
+  private agregarLatenciaNoCliente(silencioso = false): void {
     this.relatorios.getLatencia({ ...this.janela(), size: LOTE }).pipe(take(1)).subscribe({
       next: (pagina) => {
         const acumulado = new Map<number, { soma: number; medicoes: number }>();
@@ -448,10 +483,16 @@ export class DashboardComponent {
         this.latenciaUnidades.set(new Map([...acumulado].map(([id, { soma: total, medicoes: quantidade }]) => [id, total / quantidade])));
         this.latenciaGlobal.set(medicoes > 0 ? soma / medicoes : null);
         this.latenciaGlobalState.set('ok');
+        this.sucessoAgregado();
       },
-      error: () => { this.latenciaUnidades.set(new Map()); this.latenciaGlobal.set(null); this.latenciaGlobalState.set('erro'); },
+      error: () => {
+        if (silencioso) { this.falhaAgregados.set(true); return; }
+        this.latenciaUnidades.set(new Map()); this.latenciaGlobal.set(null); this.latenciaGlobalState.set('erro');
+      },
     });
   }
+
+  private sucessoAgregado(): void { this.agregadosCarregadosEm = Date.now(); this.falhaAgregados.set(false); }
 
   /** Lazy na primeira expansão e cacheado depois; só o botão Atualizar força nova leitura. */
   private carregarEquipamentos(unidadeId: number, forcar = false): void {
