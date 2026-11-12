@@ -40,6 +40,8 @@ export class DashboardStateService {
   readonly falhaSilenciosa = computed(() => this.resumoFalhouSignal() || this.unidadesFalhouSignal());
 
   /** Momento da varredura exibido na interface: o `geradoEm` da API, com o último fetch como reserva. */
+  /** Hora (ISO) da última resposta com sucesso do resumo, normal ou silenciosa. */
+  readonly ultimoSucessoResumo = this.ultimoFetchSignal.asReadonly();
   readonly ultimaVarredura = computed(() => this.resumoSignal()?.geradoEm ?? this.ultimoFetchSignal());
 
   readonly online = computed(() => this.resumoSignal()?.equipamentos.disponiveis ?? null);

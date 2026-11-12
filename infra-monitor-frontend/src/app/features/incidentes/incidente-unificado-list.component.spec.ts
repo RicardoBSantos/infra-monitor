@@ -294,6 +294,26 @@ describe('IncidenteUnificadoListComponent', () => {
       } finally { vi.useRealTimers(); }
     });
 
+    it('ultimaAtualizacaoOk anda só quando a lista responde com sucesso, não no pedido nem na falha', () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        vi.setSystemTime(new Date('2026-11-12T10:00:00Z'));
+        responderCargaInicial();
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T10:00:00.000Z');
+        vi.setSystemTime(new Date('2026-11-12T10:01:00Z'));
+        fixture.componentInstance.recarregarDados();
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T10:00:00.000Z');
+        http.expectOne(c => c.url.endsWith('/dashboard/incidentes')).flush({}, { status: 502, statusText: 'Bad Gateway' });
+        http.expectOne(c => c.url.endsWith('/dashboard/incidentes/contadores')).flush(contadores);
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T10:00:00.000Z');
+        vi.setSystemTime(new Date('2026-11-12T10:02:00Z'));
+        fixture.componentInstance.recarregarDados();
+        http.expectOne(c => c.url.endsWith('/dashboard/incidentes')).flush(pagina([linhaIncidente]));
+        http.expectOne(c => c.url.endsWith('/dashboard/incidentes/contadores')).flush(contadores);
+        expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T10:02:00.000Z');
+      } finally { vi.useRealTimers(); }
+    });
+
     it('falha silenciosa mantém a lista anterior e marca falhouUltimaAtualizacao; a rodada seguinte limpa', () => {
       responderCargaInicial();
       fixture.componentInstance.recarregarDados();

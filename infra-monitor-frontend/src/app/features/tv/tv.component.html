@@ -8,6 +8,8 @@
     <div class="tv__estado">
       @if (desatualizadoDesde(); as desde) {
         <span class="tv__dados tv__dados--alerta" role="status"><app-icon name="incident" />Desatualizado desde {{ hora(desde) }}</span>
+      } @else if (semDados()) {
+        <span class="tv__dados tv__dados--alerta" role="status"><app-icon name="incident" />Dados indisponíveis</span>
       } @else if (ultimaAtualizacao(); as dados) {
         <span class="tv__dados" role="status">Dados de {{ hora(dados) }}</span>
       }

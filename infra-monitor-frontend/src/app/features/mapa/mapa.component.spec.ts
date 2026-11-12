@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
@@ -574,6 +574,24 @@ describe('recarregarDados (modo TV)', () => {
 
     await recarregar(fixture);
     expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+  });
+
+  it('ultimaAtualizacaoOk anda só quando GET /dashboard/unidades responde com sucesso', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-11-12T12:00:00Z'));
+      const fixture = await montar();
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      vi.setSystemTime(new Date('2026-11-12T12:01:00Z'));
+      const emVoo = new Subject<DashboardUnidade[]>();
+      await recarregar(fixture, emVoo);
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      emVoo.error(new Error('502'));
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      vi.setSystemTime(new Date('2026-11-12T12:02:00Z'));
+      await recarregar(fixture, of([hub, filha]));
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:02:00.000Z');
+    } finally { vi.useRealTimers(); }
   });
 
   it('unidade selecionada sobrevive com dado novo; some se a unidade sumiu', async () => {

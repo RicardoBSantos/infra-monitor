@@ -13,7 +13,7 @@ import { RelatoriosComponent } from '../relatorios/relatorios.component';
 import { TvComponent } from './tv.component';
 
 /* As 4 telas reais buscam dados e montam MapLibre; aqui viram stubs com o contrato TelaTv. */
-abstract class TelaStub { recarregarDados = vi.fn(); readonly falhouUltimaAtualizacao = signal(false); }
+abstract class TelaStub { recarregarDados = vi.fn(); readonly falhouUltimaAtualizacao = signal(false); readonly ultimaAtualizacaoOk = signal<Date | null>(null); }
 @Component({ selector: 'app-mapa', template: 'mapa' }) class MapaStub extends TelaStub { readonly ativa = input(true); }
 @Component({ selector: 'app-dashboard', template: 'painel' }) class PainelStub extends TelaStub {}
 @Component({ selector: 'app-incidente-unificado-list', template: 'incidentes' }) class IncidentesStub extends TelaStub {}
@@ -121,20 +121,64 @@ describe('TvComponent', () => {
     expect(ativa()).toBe('INCIDENTES');
   });
 
-  it('falha na última atualização vira "Desatualizado desde HH:MM" com a hora do último dado bom', () => {
+  it('"Dados de HH:MM" vem da última resposta com sucesso da tela, não do pedido', () => {
     responder(0, { ...QUATRO, telas: [{ tela: 'PAINEL', ordem: 1, duracaoSegundos: 600 }] });
-    expect(texto()).toContain(`Dados de ${hhmm(inicio)}`);
+    expect(texto()).not.toContain('Dados de');
+    const sucesso = new Date(inicio.getTime() - 30_000);
+    tela('PAINEL')!.ultimaAtualizacaoOk.set(sucesso); avancar(1);
+    expect(texto()).toContain(`Dados de ${hhmm(sucesso)}`);
+    avancar(59); // pedido do tique sem resposta ainda: o carimbo não anda
+    expect(tela('PAINEL')!.recarregarDados).toHaveBeenCalledTimes(1);
+    expect(texto()).toContain(`Dados de ${hhmm(sucesso)}`);
+  });
+
+  it('falha na última atualização vira "Desatualizado desde HH:MM" com a hora do último sucesso', () => {
+    responder(0, { ...QUATRO, telas: [{ tela: 'PAINEL', ordem: 1, duracaoSegundos: 600 }] });
     avancar(60);
     const bom = new Date(inicio.getTime() + 60_000);
-    expect(texto()).toContain(`Dados de ${hhmm(bom)}`);
+    tela('PAINEL')!.ultimaAtualizacaoOk.set(bom);
     avancar(60); // novo pedido em 120 s, que falha
-    tela('PAINEL')!.falhouUltimaAtualizacao.set(true);
-    avancar(1);
+    tela('PAINEL')!.falhouUltimaAtualizacao.set(true); avancar(1);
     expect(texto()).toContain(`Desatualizado desde ${hhmm(bom)}`);
     expect((fixture.nativeElement as HTMLElement).querySelector('.tv__dados--alerta')).not.toBeNull();
-    tela('PAINEL')!.falhouUltimaAtualizacao.set(false);
-    avancar(1);
+    const novo = new Date(inicio.getTime() + 125_000);
+    tela('PAINEL')!.falhouUltimaAtualizacao.set(false); tela('PAINEL')!.ultimaAtualizacaoOk.set(novo); avancar(1);
     expect(texto()).not.toContain('Desatualizado');
+    expect(texto()).toContain(`Dados de ${hhmm(novo)}`);
+  });
+
+  it('pedido pendurado (sem falha nem sucesso) vira "Desatualizado desde" após 2× o intervalo', () => {
+    responder(0, { ...QUATRO, telas: [{ tela: 'INCIDENTES', ordem: 1, duracaoSegundos: 3600 }] });
+    tela('INCIDENTES')!.ultimaAtualizacaoOk.set(inicio);
+    // a tela real limpa a flag de falha no início de recarregarDados(): cada tique a deixa false
+    tela('INCIDENTES')!.recarregarDados.mockImplementation(() => tela('INCIDENTES')!.falhouUltimaAtualizacao.set(false));
+    avancar(120);
+    expect(tela('INCIDENTES')!.recarregarDados).toHaveBeenCalledTimes(2);
+    expect(texto()).toContain(`Dados de ${hhmm(inicio)}`);
+    avancar(1);
+    expect(texto()).toContain(`Desatualizado desde ${hhmm(inicio)}`);
+    avancar(60);
+    expect(texto()).toContain(`Desatualizado desde ${hhmm(inicio)}`);
+  });
+
+  it('falha sem nenhum sucesso anterior mostra "Dados indisponíveis", sem inventar hora', () => {
+    responder(0, { ...QUATRO, telas: [{ tela: 'MAPA', ordem: 1, duracaoSegundos: 600 }] });
+    tela('MAPA')!.falhouUltimaAtualizacao.set(true); avancar(1);
+    expect(texto()).toContain('Dados indisponíveis');
+    expect(texto()).not.toContain('Dados de');
+  });
+
+  it('tela que lança em recarregarDados() não congela a rotação', () => {
+    responder(0, QUATRO);
+    tela('PAINEL')!.recarregarDados.mockImplementation(() => { throw new Error('boom'); });
+    avancar(59);
+    // em 60 s o tique recarrega o Painel, que acabou de entrar, e ele lança
+    expect(() => vi.advanceTimersByTime(1000)).toThrow('boom');
+    fixture.detectChanges();
+    expect(ativa()).toBe('PAINEL');
+    expect(vi.getTimerCount()).toBe(1);
+    avancar(60); expect(ativa()).toBe('INCIDENTES');
+    avancar(60); expect(ativa()).toBe('RELATORIOS');
   });
 
   it('ativo=false mostra o aviso e continua relendo a configuração', () => {
