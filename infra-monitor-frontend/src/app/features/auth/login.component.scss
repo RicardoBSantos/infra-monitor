@@ -44,3 +44,7 @@
   .login-title{font-size:26px}
   .login-panel{padding:8px 20px 40px}
 }
+
+/* Faixa do modo TV: lida de longe na tela de parede, por isso maior que o card e com o tom de aviso. */
+.login-stack:has(.login-tv){width:min(560px,100%)}
+.login-tv{margin:0 0 16px;padding:18px 20px;border:1px solid var(--im-warning);border-radius:10px;background:var(--im-warning-bg-strong);color:var(--lg-heading);font-size:22px;font-weight:600;line-height:1.35;text-wrap:balance}

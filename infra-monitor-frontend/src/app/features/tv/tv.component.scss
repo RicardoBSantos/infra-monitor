@@ -1,0 +1,83 @@
+/*
+ * Moldura do modo TV: tela de parede lida a ~3 m. Faixa fina no topo (as 4 telas ficam com o
+ * resto) com tipo grande; cor só no que pede atenção (dado desatualizado). Tokens `--im-*`.
+ *
+ * `--im-topbar-height` é redefinido para a altura da moldura: o Mapa calcula a própria altura
+ * como `100dvh - topbar`, e assim cabe exato no palco sem saber que está na TV.
+ */
+:host { display: block; }
+
+.tv {
+  --tv-moldura: 64px;
+  --im-topbar-height: var(--tv-moldura);
+  display: grid;
+  grid-template-rows: var(--tv-moldura) minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--im-bg);
+  color: var(--im-text);
+}
+
+.tv__moldura {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--im-border-strong);
+  background: var(--im-surface-header);
+}
+
+.tv__identidade { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
+.tv__nome { margin: 0; overflow: hidden; color: var(--im-text-strong); font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -.01em; white-space: nowrap; text-overflow: ellipsis; }
+.tv__posicao { color: var(--im-text-muted); font: 500 16px var(--im-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.tv__estado { display: flex; flex: 0 0 auto; align-items: center; gap: 24px; }
+
+.tv__dados {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--im-text-secondary);
+  font: 500 18px var(--im-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tv__dados--alerta {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--im-warning);
+  border-radius: var(--im-radius-lg);
+  background: var(--im-warning-bg-strong);
+  color: var(--im-warning-soft);
+  font-weight: 600;
+}
+.tv__dados--alerta app-icon { width: 20px; height: 20px; }
+
+.tv__relogio { color: var(--im-text-strong); font: 600 30px var(--im-mono); font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1; }
+
+/* Único foco da página: maior que o `.botao` padrão para ser alcançável no controle da TV. */
+.botao.tv__sair { height: 40px; padding: 0 16px; font-size: 15px; }
+.botao.tv__sair:focus-visible { outline: none; border-color: var(--im-primary); box-shadow: var(--im-focus-ring); }
+
+.tv__progresso { position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; overflow: hidden; background: var(--im-border); }
+.tv__progresso span { display: block; height: 100%; background: var(--im-primary); transform-origin: left center; transition: transform 1s linear; }
+.tv__progresso--reinicio span { transition: none; }
+
+.tv__palco { position: relative; min-height: 0; overflow: hidden; }
+
+/* Empilhadas e todas montadas; nunca `display:none` (zera o container do MapLibre). */
+.tv__tela { position: absolute; inset: 0; overflow: hidden; visibility: hidden; padding: 16px 20px; }
+.tv__tela--ativa { visibility: visible; }
+/* O Mapa já traz o próprio respiro e ocupa a altura toda do palco. */
+.tv__tela[data-tela='MAPA'] { padding: 0; }
+
+.tv__aviso { display: grid; height: 100%; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; }
+.tv__aviso app-icon { width: 48px; height: 48px; color: var(--im-text-muted); }
+.tv__aviso-titulo { margin: 0; color: var(--im-text-strong); font-size: 40px; font-weight: 600; line-height: 1.2; letter-spacing: -.015em; text-wrap: balance; }
+.tv__aviso-texto { margin: 0; color: var(--im-text-secondary); font-size: 22px; line-height: 1.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tv__progresso span { transition: none; }
+}

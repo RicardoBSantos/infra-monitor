@@ -81,6 +81,8 @@ export const routes: Routes = [
   { path: 'login', canActivate: [loginGuard], loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent) },
   { path: 'trocar-senha', canActivate: [passwordChangeGuard], loadComponent: () => import('./features/auth/change-password.component').then(m => m.ChangePasswordComponent) },
   { path: 'forbidden', canActivate: [authGuard], loadComponent: () => import('./features/auth/forbidden.component').then(m => m.ForbiddenComponent) },
+  // Fora do shell (sem sidebar/topbar), qualquer papel: o painel de parede é só leitura.
+  { path: 'tv', canActivate: [businessGuard], loadComponent: () => import('./features/tv/tv.component').then(m => m.TvComponent), title: 'Modo TV' },
   { path: '', component: ApplicationShellComponent, canActivate: [businessGuard], children: businessRoutes },
   { path: '**', redirectTo: 'dashboard' },
 ];
