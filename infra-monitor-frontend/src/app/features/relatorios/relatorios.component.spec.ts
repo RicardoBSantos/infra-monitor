@@ -522,4 +522,72 @@ describe('RelatoriosComponent', () => {
     expect(linhas[1].textContent).toContain('Manutenção manual encerrada');
   });
 
+
+  describe('modo TV', () => {
+    function criarTv() {
+      const fixture = TestBed.createComponent(RelatoriosComponent);
+      fixture.componentRef.setInput('modoTv', true);
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('abre na Visão geral sem a aba de equipamentos e sem as listas de consulta', () => {
+      const fixture = criarTv();
+      const requests = {
+        indicators: http.expectOne(r => r.url.endsWith('/relatorios/visao-geral/indicadores')),
+        units: http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/unidades')),
+        equipment: http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/equipamentos')),
+        latency: http.expectOne(r => r.url.endsWith('/relatorios/latencia')),
+      };
+      http.expectNone(r => r.url.endsWith('/unidades'));
+      expect(requests.equipment.request.params.get('size')).toBe('5');
+      requests.indicators.flush({ incidentesAbertos: 1, medicoesComFalha: 2, notificacoesComFalha: 3 });
+      requests.units.flush(page([unit()])); requests.equipment.flush(page([equipment()])); requests.latency.flush(page([latency()]));
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).querySelector('#overview-title')).not.toBeNull();
+      expect((fixture.nativeElement as HTMLElement).querySelector('[data-tv-oculto][role=tablist]')).not.toBeNull();
+    });
+
+    it('recarregarDados mantém os widgets em success durante o voo, desliza a janela e troca o dado ao chegar', () => {
+      const fixture = criarTv();
+      const primeira = [
+        http.expectOne(r => r.url.endsWith('/relatorios/visao-geral/indicadores')),
+        http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/unidades')),
+        http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/equipamentos')),
+        http.expectOne(r => r.url.endsWith('/relatorios/latencia')),
+      ];
+      primeira[0].flush({ incidentesAbertos: 1, medicoesComFalha: 2, notificacoesComFalha: 3 });
+      primeira[1].flush(page([unit()])); primeira[2].flush(page([equipment()])); primeira[3].flush(page([latency()]));
+      fixture.detectChanges();
+      const widgets = (fixture.componentInstance as unknown as { overviewWidgets: Record<string, { state: () => string }> }).overviewWidgets;
+
+      fixture.componentInstance.recarregarDados();
+      fixture.detectChanges();
+      for (const widget of Object.values(widgets)) expect(widget.state()).toBe('success');
+      expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Carregando');
+      const segunda = http.match(r => r.url.includes('/relatorios/'));
+      expect(segunda.length).toBe(4);
+      segunda.find(r => r.request.url.endsWith('/indicadores'))!.flush({ incidentesAbertos: 9, medicoesComFalha: 2, notificacoesComFalha: 3 });
+      for (const r of segunda.filter(x => !x.request.url.endsWith('/indicadores'))) r.flush(page([]));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('9');
+    });
+
+    it('falha na rodada silenciosa mantém o dado anterior e marca falhouUltimaAtualizacao', () => {
+      const fixture = criarTv();
+      const primeira = http.match(r => r.url.includes('/relatorios/'));
+      primeira.find(r => r.request.url.endsWith('/indicadores'))!.flush({ incidentesAbertos: 5, medicoesComFalha: 2, notificacoesComFalha: 3 });
+      for (const r of primeira.filter(x => !x.request.url.endsWith('/indicadores'))) r.flush(page([]));
+      fixture.detectChanges();
+
+      fixture.componentInstance.recarregarDados();
+      for (const r of http.match(x => x.url.includes('/relatorios/'))) r.flush({}, { status: 502, statusText: 'Bad Gateway' });
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      const texto = (fixture.nativeElement as HTMLElement).textContent!;
+      expect(texto).toContain('5');
+      expect(texto).not.toContain('Não foi possível carregar este indicador');
+    });
+  });
 });

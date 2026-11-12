@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { vi } from 'vitest';
 import { IncidentClosureReason, IncidentStatus } from '../../core/models/api-enums';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { IncidenteUnificadoListComponent } from './incidente-unificado-list.component';
@@ -263,6 +264,51 @@ describe('IncidenteUnificadoListComponent', () => {
     const reconhecidos = abas.find(aba => aba.textContent?.includes('Reconhecidos'));
     expect(reconhecidos?.querySelector('.aba__contador')?.textContent?.trim()).toBe('0');
     expect(abas.filter(aba => aba.querySelector('.aba__contador')).length).toBe(4);
+  });
+
+  describe('atualização silenciosa (modo TV)', () => {
+    it('recarregarDados refaz lista e contadores com o fim deslizado e nunca volta a loading', () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        vi.setSystemTime(new Date('2026-11-12T10:00:00Z'));
+        responderCargaInicial();
+        expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+        const estado = (fixture.componentInstance as unknown as { estado: () => string }).estado;
+        expect(estado()).toBe('success');
+
+        vi.setSystemTime(new Date('2026-11-12T10:10:00Z'));
+        fixture.componentInstance.recarregarDados();
+        expect(estado()).toBe('success');
+        const lista = http.expectOne(c => c.url.endsWith('/dashboard/incidentes'));
+        const cont = http.expectOne(c => c.url.endsWith('/dashboard/incidentes/contadores'));
+        expect(lista.request.params.get('fim')).toBe('2026-11-12T10:10:00.000Z');
+        expect(cont.request.params.get('fim')).toBe('2026-11-12T10:10:00.000Z');
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.esqueleto')).toBeNull();
+        lista.flush(pagina([linhaIncidente]));
+        cont.flush({ ...contadores, abertos: 9 });
+        fixture.detectChanges();
+        expect(estado()).toBe('success');
+        expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(1);
+        expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      } finally { vi.useRealTimers(); }
+    });
+
+    it('falha silenciosa mantém a lista anterior e marca falhouUltimaAtualizacao; a rodada seguinte limpa', () => {
+      responderCargaInicial();
+      fixture.componentInstance.recarregarDados();
+      http.expectOne(c => c.url.endsWith('/dashboard/incidentes')).flush({}, { status: 502, statusText: 'Bad Gateway' });
+      http.expectOne(c => c.url.endsWith('/dashboard/incidentes/contadores')).flush({}, { status: 502, statusText: 'Bad Gateway' });
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      expect(fixture.nativeElement.textContent).toContain('SW-CORE');
+      expect(fixture.nativeElement.textContent).not.toContain('Não foi possível carregar as ocorrências');
+
+      fixture.componentInstance.recarregarDados();
+      http.expectOne(c => c.url.endsWith('/dashboard/incidentes')).flush(pagina([linhaIncidente]));
+      http.expectOne(c => c.url.endsWith('/dashboard/incidentes/contadores')).flush(contadores);
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
   });
 });
 

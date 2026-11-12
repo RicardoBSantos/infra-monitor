@@ -6,7 +6,7 @@
     </div>
   </header>
 
-  <nav class="abas" aria-label="Estado das ocorrências">
+  <nav class="abas" data-tv-oculto aria-label="Estado das ocorrências">
     @for (item of [
       { chave: 'abertos', rotulo: 'Abertos' },
       { chave: 'reconhecidos', rotulo: 'Reconhecidos' },
@@ -22,7 +22,7 @@
     }
   </nav>
 
-  <div class="filters" aria-label="Filtros de ocorrências">
+  <div class="filters" data-tv-oculto aria-label="Filtros de ocorrências">
     <label>UNIDADE<span class="campo-select"><select [value]="unidadeId() ?? ''" (change)="mudarUnidade($any($event.target).value)"><option value="">Todas</option>@for (item of unidades(); track item.id) { <option [value]="item.id">{{ item.nome }}</option> }</select></span></label>
     <label>SEVERIDADE<span class="campo-select"><select [value]="severidade() ?? ''" (change)="mudarSeveridade($any($event.target).value)"><option value="">Todas</option><option value="ALTA">Alta · indisponibilidade</option><option value="MEDIA">Média · latência</option></select></span></label>
     <label>ORDENAR<span class="campo-select"><select [value]="ordenacao()" (change)="mudarOrdenacao($any($event.target).value)"><option value="iniciadoEm,desc">Mais recentes</option><option value="iniciadoEm,asc">Mais antigas</option><option value="severidade,asc">Severidade</option><option value="status,asc">Status</option><option value="unidadeNome,asc">Unidade</option></select></span></label>
@@ -34,7 +34,7 @@
   @if (estado() === 'loading') {
     <div class="esqueleto" role="status" aria-label="Carregando ocorrências">@for (x of [1, 2, 3, 4]; track x) { <span></span> }</div>
   } @else if (estado() === 'error') {
-    <div class="feedback feedback--error" role="alert"><strong>Não foi possível carregar as ocorrências.</strong><span>{{ erro() }}</span><button class="botao" type="button" (click)="carregarLista()">Tentar novamente</button></div>
+    <div class="feedback feedback--error" role="alert"><strong>Não foi possível carregar as ocorrências.</strong><span>{{ erro() }}</span><button class="botao" data-tv-oculto type="button" (click)="carregarLista()">Tentar novamente</button></div>
   } @else if (estado() === 'empty') {
     <div class="feedback"><strong>Nenhuma ocorrência corresponde aos filtros.</strong><span>A infraestrutura não registrou indisponibilidade nem latência alta neste escopo.</span></div>
   } @else {
@@ -42,7 +42,7 @@
     <div class="cartao">
       <div class="incidentes__rolagem">
         <table class="tabela">
-          <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th class="numerico">DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="acoes">AÇÕES</th></tr></thead>
+          <thead><tr><th class="sev">SEV</th><th>INCIDENTE</th><th>UNIDADE</th><th>EQUIPAMENTO</th><th>EVENTO</th><th>INÍCIO</th><th class="numerico">DURAÇÃO</th><th>NOTIFICADO</th><th>STATUS</th><th>RECONHECIDO POR</th><th class="acoes" data-tv-oculto>AÇÕES</th></tr></thead>
           <tbody>
             @for (linha of linhas(); track chave(linha)) {
               <tr>
@@ -79,7 +79,7 @@
                   @if (linha.reconhecidoPorNome) { {{ linha.reconhecidoPorNome }} }
                   @else { <span class="apagado">—</span> }
                 </td>
-                <td class="acoes">
+                <td class="acoes" data-tv-oculto>
                   @if (podeReconhecer(linha)) {
                     <button class="botao botao--discreto" type="button" (click)="reconhecer(linha)" [disabled]="reconhecendo() !== null">{{ reconhecendo() === linha.id ? 'Reconhecendo…' : 'Reconhecer' }}</button>
                   }
@@ -90,7 +90,7 @@
           </tbody>
         </table>
       </div>
-      <app-paginacao [paginaAtual]="pagina() + 1" [totalPaginas]="totalPaginas()" [contagem]="contagem()" rotulo="Paginação de ocorrências" (mudarPagina)="irParaPagina($event)" />
+      <app-paginacao data-tv-oculto [paginaAtual]="pagina() + 1" [totalPaginas]="totalPaginas()" [contagem]="contagem()" rotulo="Paginação de ocorrências" (mudarPagina)="irParaPagina($event)" />
     </div>
   }
 

@@ -1,6 +1,6 @@
 <section class="reports pagina" aria-labelledby="reports-title">
-  <header class="pagina__cabecalho"><div><h1 id="reports-title">Relatórios</h1><p class="pagina__descricao">A API é a fonte de verdade para todas as métricas analíticas.</p></div><button type="button" class="botao" (click)="refresh()">Atualizar</button></header>
-  <div class="abas abas--rolagem" role="tablist" aria-label="Áreas de relatórios">
+  <header class="pagina__cabecalho"><div><h1 id="reports-title">Relatórios</h1><p class="pagina__descricao">A API é a fonte de verdade para todas as métricas analíticas.</p></div><button type="button" class="botao" data-tv-oculto (click)="refresh()">Atualizar</button></header>
+  <div class="abas abas--rolagem" data-tv-oculto role="tablist" aria-label="Áreas de relatórios">
     <button type="button" class="aba" role="tab" [class.aba--ativa]="activeTab()==='overview'" [attr.aria-selected]="activeTab()==='overview'" [attr.tabindex]="activeTab()==='overview' ? 0 : -1" (click)="selectTab('overview')" (keydown)="aoTeclarAba($event, 0)" #aba>Visão Geral</button>
     <button type="button" class="aba" role="tab" [class.aba--ativa]="activeTab()==='equipamentos'" [attr.aria-selected]="activeTab()==='equipamentos'" [attr.tabindex]="activeTab()==='equipamentos' ? 0 : -1" (click)="selectTab('equipamentos')" (keydown)="aoTeclarAba($event, 1)" #aba>Disponibilidade Equipamentos</button>
     <button type="button" class="aba" role="tab" [class.aba--ativa]="activeTab()==='unidades'" [attr.aria-selected]="activeTab()==='unidades'" [attr.tabindex]="activeTab()==='unidades' ? 0 : -1" (click)="selectTab('unidades')" (keydown)="aoTeclarAba($event, 2)" #aba>Disponibilidade Unidades</button>
@@ -11,13 +11,13 @@
   </div>
 
   @if(activeTab()==='overview') {
-    <form class="filters filters--overview" [formGroup]="overviewForm" (ngSubmit)="search()">
+    <form class="filters filters--overview" data-tv-oculto [formGroup]="overviewForm" (ngSubmit)="search()">
       <label>Início<input type="datetime-local" formControlName="inicio" required></label>
       <label>Fim<input type="datetime-local" formControlName="fim" required></label>
       <div class="filters__action filters__action--overview"><button type="submit" class="botao">Aplicar período</button><button type="button" class="botao" (click)="exportPdf()" [disabled]="pdfExporting()" [attr.aria-busy]="pdfExporting()">{{pdfExporting()?'Exportando PDF…':'Exportar PDF'}}</button></div>
     </form>
-    @if(periodError()){<p class="notice notice--error" role="alert">{{periodError()}}</p>}
-    @if(pdfExportNotice();as notice){<p class="notice" [class.notice--error]="notice.error" [attr.role]="notice.error?'alert':'status'" aria-live="polite">{{notice.message}}</p>}
+    @if(periodError()){<p class="notice notice--error" data-tv-oculto role="alert">{{periodError()}}</p>}
+    @if(pdfExportNotice();as notice){<p class="notice" data-tv-oculto [class.notice--error]="notice.error" [attr.role]="notice.error?'alert':'status'" aria-live="polite">{{notice.message}}</p>}
 
     <section class="overview" aria-labelledby="overview-title">
       <!-- As três contagens vêm prontas do endpoint de indicadores, da mesma query do PDF —
