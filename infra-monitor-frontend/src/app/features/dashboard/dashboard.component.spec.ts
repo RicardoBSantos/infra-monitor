@@ -533,6 +533,58 @@ describe('DashboardComponent', () => {
       expect(texto(fixture)).not.toContain('Não foi possível carregar');
     });
 
+    function falharLatencia() {
+      httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(null, { status: 502, statusText: 'x' });
+      httpTesting.expectOne((r) => r.url.endsWith('/relatorios/latencia')).flush(null, { status: 502, statusText: 'x' });
+    }
+
+    it('disponibilidade ok e latência falhando: mantém a flag e rebusca só a latência no tique seguinte', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(pagina([]));
+      falharLatencia();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      vi.setSystemTime(new Date('2026-11-12T12:16:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(httpTesting.match(casa('/relatorios/disponibilidade/'))).toHaveLength(0);
+      httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(40, 100)]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
+
+    it('latência falhando e disponibilidade depois ok: a flag de falha não é zerada', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      const disponibilidade = httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades'));
+      falharLatencia();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      disponibilidade.flush(pagina([]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+    });
+
+    it('disponibilidade falhando e latência ok: rebusca só a disponibilidade e mantém a flag', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(null, { status: 502, statusText: 'x' });
+      httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(40, 100)]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      vi.setSystemTime(new Date('2026-11-12T12:16:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(httpTesting.match(casa('/relatorios/latencia/'))).toHaveLength(0);
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(pagina([]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
+
     it('o botão Atualizar manual continua pondo o resumo em loading', () => {
       const fixture = create();
       responderCargaSemIncidentes(fixture, semIncidentes);

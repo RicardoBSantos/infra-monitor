@@ -112,13 +112,15 @@ export class DashboardComponent implements TelaTv {
 
   private readonly agora = signal(Date.now());
   /** Momento da última carga bem-sucedida dos agregados de 30 d (0 = nunca). */
-  private agregadosCarregadosEm = 0;
+  private disponibilidadeEm = 0;
+  private latenciaEm = 0;
   private readonly falhaIncidentes = signal(false);
-  private readonly falhaAgregados = signal(false);
+  private readonly falhaDisponibilidade = signal(false);
+  private readonly falhaLatencia = signal(false);
   /** Lido pelo effect do resumo: a rodada do modo TV mantém o banner anterior se a busca falhar. */
   private rodadaSilenciosa = false;
 
-  readonly falhouUltimaAtualizacao = computed(() => this.painel.falhaSilenciosa() || this.falhaIncidentes() || this.falhaAgregados());
+  readonly falhouUltimaAtualizacao = computed(() => this.painel.falhaSilenciosa() || this.falhaIncidentes() || this.falhaDisponibilidade() || this.falhaLatencia());
 
   /**
    * Visão atual sem o filtro de tipo (status e texto aplicados). Cada unidade leva as entradas do índice que
@@ -236,10 +238,9 @@ export class DashboardComponent implements TelaTv {
   recarregarDados(): void {
     this.rodadaSilenciosa = true;
     this.painel.atualizarSilencioso();
-    if (Date.now() - this.agregadosCarregadosEm > VALIDADE_AGREGADOS_MS) {
-      this.carregarDisponibilidadeUnidades(true);
-      this.carregarLatenciaUnidades(true);
-    }
+    const agora = Date.now();
+    if (agora - this.disponibilidadeEm > VALIDADE_AGREGADOS_MS) this.carregarDisponibilidadeUnidades(true);
+    if (agora - this.latenciaEm > VALIDADE_AGREGADOS_MS) this.carregarLatenciaUnidades(true);
   }
 
   private consumirRodadaSilenciosa(): boolean { const silenciosa = this.rodadaSilenciosa; this.rodadaSilenciosa = false; return silenciosa; }
@@ -433,10 +434,12 @@ export class DashboardComponent implements TelaTv {
         this.disponibilidadeUnidades.set(new Map(pagina.content.map((linha) => [linha.unidadeId, linha.disponibilidadePercentual])));
         this.disponibilidadeGlobal.set(agregarDisponibilidade(pagina.content));
         this.disponibilidadeGlobalState.set('ok');
-        this.sucessoAgregado();
+        this.disponibilidadeEm = Date.now();
+        this.falhaDisponibilidade.set(false);
       },
       error: (_: HttpErrorResponse) => {
-        if (silencioso) { this.falhaAgregados.set(true); return; }
+        if (silencioso) { this.falhaDisponibilidade.set(true); return; }
+        this.disponibilidadeEm = 0;
         this.disponibilidadeIndisponivel.set(true);
         this.disponibilidadeUnidades.set(new Map());
         this.disponibilidadeGlobal.set(null);
@@ -461,7 +464,7 @@ export class DashboardComponent implements TelaTv {
         this.latenciaUnidades.set(medias);
         this.latenciaGlobal.set(medicoes > 0 ? soma / medicoes : null);
         this.latenciaGlobalState.set('ok');
-        this.sucessoAgregado();
+        this.sucessoLatencia();
       },
       error: () => this.agregarLatenciaNoCliente(silencioso),
     });
@@ -483,16 +486,17 @@ export class DashboardComponent implements TelaTv {
         this.latenciaUnidades.set(new Map([...acumulado].map(([id, { soma: total, medicoes: quantidade }]) => [id, total / quantidade])));
         this.latenciaGlobal.set(medicoes > 0 ? soma / medicoes : null);
         this.latenciaGlobalState.set('ok');
-        this.sucessoAgregado();
+        this.sucessoLatencia();
       },
       error: () => {
-        if (silencioso) { this.falhaAgregados.set(true); return; }
+        if (silencioso) { this.falhaLatencia.set(true); return; }
+        this.latenciaEm = 0;
         this.latenciaUnidades.set(new Map()); this.latenciaGlobal.set(null); this.latenciaGlobalState.set('erro');
       },
     });
   }
 
-  private sucessoAgregado(): void { this.agregadosCarregadosEm = Date.now(); this.falhaAgregados.set(false); }
+  private sucessoLatencia(): void { this.latenciaEm = Date.now(); this.falhaLatencia.set(false); }
 
   /** Lazy na primeira expansão e cacheado depois; só o botão Atualizar força nova leitura. */
   private carregarEquipamentos(unidadeId: number, forcar = false): void {
