@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.HashSet;
@@ -13,7 +14,7 @@ import java.util.List;
 public record AtualizarConfiguracaoModoTvRequest(
         Boolean ativo,
         @Min(30) @Max(600) Integer intervaloAtualizacaoSegundos,
-        @Size(min = 1) @Valid List<TelaModoTvRequest> telas) {
+        @Size(min = 1) List<@NotNull @Valid TelaModoTvRequest> telas) {
 
     @AssertTrue(message = "Tela repetida na lista")
     public boolean isTelasSemDuplicata() {

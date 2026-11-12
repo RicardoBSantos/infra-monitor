@@ -185,6 +185,10 @@ class ConfiguracaoModoTvHttpIntegrationTest {
         assertThat(invalida.status()).isEqualTo(400);
         assertThat(invalida.json().get("code").asString()).isEqualTo("INVALID_ENUM");
 
+        Resposta elementoNulo = chamar("PUT", admin, "{\"telas\":[null]}");
+        assertThat(elementoNulo.status()).isEqualTo(400);
+        assertThat(elementoNulo.json().get("code").asString()).isEqualTo("VALIDATION_ERROR");
+
         assertThat(jdbc.queryForObject("select count(*) from configuracao_modo_tv", Integer.class)).isZero();
     }
 
