@@ -44,8 +44,13 @@ public class RelatorioExportQueryRepository {
             connection.setReadOnly(true);
             connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             Instant deadline = Instant.now().plusSeconds(timeoutSeconds);
-            if (definition.detailedHistory())
+            if (definition.detailedHistory()) {
                 DetailedHistoryGuard.requireAvailable(connection, (Instant) definition.parameters().get("inicio"));
+                // D-07: plano custom, local a transacao (autocommit off); vale para medicoes e latencia.
+                try (Statement plano = connection.createStatement()) {
+                    plano.execute("select set_config('plan_cache_mode', 'force_custom_plan', true)");
+                }
+            }
             long count = count(connection, definition.countSql(), definition.parameters(), deadline);
             if (count > limit) {
                 throw new ExportLimitExceededException(limit, count);
