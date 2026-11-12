@@ -4,6 +4,7 @@ import br.com.inframonitor.medicao.retencao.DetailedHistoryUnavailableException;
 import br.com.inframonitor.common.api.ErroResposta;
 import br.com.inframonitor.auth.AccountDisabledException;
 import br.com.inframonitor.auth.AuthenticationFailedException;
+import br.com.inframonitor.configuracao.service.ConfiguracaoIndisponivelException;
 import br.com.inframonitor.relatorio.exportacao.ExportLimitExceededException;
 import br.com.inframonitor.relatorio.exportacao.ExportTimeoutException;
 import tools.jackson.databind.exc.InvalidFormatException;
@@ -107,6 +108,11 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ExportTimeoutException.class)
     public ResponseEntity<ErroResposta> tratarTimeoutExportacao(ExportTimeoutException ex, WebRequest request) {
         return respostaDeErro(HttpStatus.SERVICE_UNAVAILABLE, "EXPORT_TIMEOUT", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ConfiguracaoIndisponivelException.class)
+    public ResponseEntity<ErroResposta> tratarConfiguracaoIndisponivel(ConfiguracaoIndisponivelException ex, WebRequest request) {
+        return respostaDeErro(HttpStatus.SERVICE_UNAVAILABLE, "CONFIGURATION_UNAVAILABLE", "Configuracao temporariamente indisponivel", request);
     }
 
     @ExceptionHandler(AuthenticationFailedException.class)
