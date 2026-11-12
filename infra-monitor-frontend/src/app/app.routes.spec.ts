@@ -7,7 +7,7 @@ import { TvComponent } from './features/tv/tv.component';
 
 describe('application routes', () => {
   it('lazy-loads every operational feature inside the protected application shell', async () => {
-    const paths = ['dashboard', 'mapa', 'unidades', 'tipos-equipamento', 'equipamentos', 'monitores', 'medicoes', 'incidentes', 'relatorios', 'notificacoes', 'usuarios'];
+    const paths = ['dashboard', 'mapa', 'unidades', 'tipos-equipamento', 'equipamentos', 'monitores', 'medicoes', 'incidentes', 'relatorios', 'notificacoes', 'usuarios', 'configuracoes'];
 
     for (const path of paths) {
       const shell = routes.find(candidate => candidate.path === '');
@@ -37,6 +37,28 @@ describe('application routes', () => {
       const auth = TestBed.inject(AuthStateService);
       auth.setSession({ accessToken: 'token', tokenType: 'Bearer', expiresIn: 60, usuario: { id: 1, nome: papel, email: `${papel}@example.test`, papel, trocaSenhaObrigatoria: false } });
       const route = routes.find(candidate => candidate.path === '')!.children!.find(candidate => candidate.path === 'usuarios')!;
+      const result = TestBed.runInInjectionContext(() => roleGuard(route as any, {} as any));
+      expect(result === true).toBe(allowed);
+      if (!allowed) expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/forbidden');
+    });
+  }
+
+  it('serves /configuracoes for ADMIN only, with modo-tv as the default child section', async () => {
+    const route = routes.find(candidate => candidate.path === '')!.children!.find(candidate => candidate.path === 'configuracoes')!;
+    expect(route.canActivate).toEqual([roleGuard]);
+    expect(route.data?.['roles']).toEqual(['ADMIN']);
+    expect(route.data?.['section']).toBe('Administração');
+    expect(route.children?.find(child => child.path === '')).toEqual(expect.objectContaining({ redirectTo: 'modo-tv', pathMatch: 'full' }));
+    const modoTv = route.children!.find(child => child.path === 'modo-tv')!;
+    expect(modoTv.loadComponent).toBeTypeOf('function');
+    await expect(modoTv.loadComponent!()).resolves.toBeDefined();
+  });
+
+  for (const [papel, allowed] of [['ADMIN', true], ['OPERADOR', false], ['VISUALIZADOR', false]] as const) {
+    it(`uses the real /configuracoes roleGuard for ${papel}`, () => {
+      TestBed.configureTestingModule({ providers: [provideRouter([])] });
+      TestBed.inject(AuthStateService).setSession({ accessToken: 'token', tokenType: 'Bearer', expiresIn: 60, usuario: { id: 1, nome: papel, email: `${papel}@example.test`, papel, trocaSenhaObrigatoria: false } });
+      const route = routes.find(candidate => candidate.path === '')!.children!.find(candidate => candidate.path === 'configuracoes')!;
       const result = TestBed.runInInjectionContext(() => roleGuard(route as any, {} as any));
       expect(result === true).toBe(allowed);
       if (!allowed) expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/forbidden');

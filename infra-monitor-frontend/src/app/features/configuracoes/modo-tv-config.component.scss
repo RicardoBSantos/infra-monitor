@@ -1,0 +1,71 @@
+/* Seção Modo TV das configurações do sistema.
+   Cartões, botões, avisos, .esqueleto, .campo-select e .mono vêm de styles/_ui.scss. */
+:host { display: block; }
+
+.modo-tv { display: grid; gap: 14px; }
+
+.modo-tv__cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.modo-tv__titulo { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--im-text-strong); font-size: 15px; font-weight: 600; }
+.modo-tv__descricao { max-width: 68ch; margin: 4px 0 0; color: var(--im-text-secondary); font-size: 12px; line-height: 1.5; }
+.modo-tv__cabecalho app-icon { width: 13px; height: 13px; }
+.modo-tv__esqueleto { padding-top: 14px; }
+
+.nota { margin: 0; padding: 10px 14px; border: 1px dashed var(--im-border-strong); border-radius: var(--im-radius-lg); color: var(--im-text-secondary); font-size: 12px; }
+
+.cartao__titulo { margin: 0; }
+
+/* Rótulo e ajuda à esquerda, controle à direita: lê como lista de ajustes, não como formulário de cadastro. */
+.campos { display: grid; }
+.campo { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 24px; row-gap: 3px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--im-border); }
+.campo__rotulo { grid-column: 1; color: var(--im-text); font-size: 12.5px; font-weight: 600; }
+.campo__ajuda { grid-column: 1; margin: 0; color: var(--im-text-secondary); font-size: 11.5px; line-height: 1.45; }
+.campo > .interruptor, .campo > .campo-select { grid-column: 2; grid-row: 1 / span 2; }
+.campo .campo-select { min-width: 132px; }
+
+/* Interruptor: checkbox nativo (teclado e leitor de tela de graça) com role="switch". */
+.interruptor {
+  appearance: none; width: 34px; height: 18px; margin: 0; flex: none; cursor: pointer;
+  border: 1px solid var(--im-border-strong); border-radius: var(--im-radius-pill);
+  background: var(--im-surface) radial-gradient(circle, var(--im-text-dim) 0 5px, transparent 5.5px) no-repeat 1px 50% / 16px 16px;
+  transition: background-position .16s cubic-bezier(.22, 1, .36, 1), background-color .16s ease-out, border-color .16s ease-out;
+}
+.interruptor:hover { border-color: var(--im-border-muted); }
+.interruptor:checked {
+  border-color: var(--im-primary-border); background-color: var(--im-primary-soft);
+  background-image: radial-gradient(circle, var(--im-primary) 0 5px, transparent 5.5px); background-position: calc(100% - 1px) 50%;
+}
+.interruptor:focus-visible { outline: 2px solid var(--im-info-soft); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .interruptor { transition: none; } }
+
+/* Telas do ciclo. A posição é informação (ordem de exibição), por isso fica à vista. */
+.telas { margin: 0; padding: 0; list-style: none; }
+.tela { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--im-border); }
+.tela__posicao { color: var(--im-text-dim); font: 600 12px var(--im-mono); text-align: center; }
+.tela__incluir { display: inline-flex; align-items: center; gap: 9px; min-width: 0; cursor: pointer; }
+.tela__incluir input { width: 14px; height: 14px; margin: 0; accent-color: var(--im-primary); cursor: pointer; }
+.tela__nome { color: var(--im-text); font-size: 12.5px; font-weight: 500; }
+.tela__duracao { min-width: 128px; }
+.tela__duracao select:disabled { cursor: not-allowed; opacity: .5; }
+.tela__mover { display: inline-flex; gap: 4px; }
+.tela--fora .tela__nome { color: var(--im-text-dim); }
+
+.botao--icone { justify-content: center; width: 26px; padding: 0; }
+.botao--icone app-icon { width: 14px; height: 14px; }
+.seta-cima { transform: rotate(180deg); }
+
+.telas__rodape { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 14px; border-top: 1px solid var(--im-border); color: var(--im-text-soft); font-size: 12px; }
+.telas__alerta { color: var(--im-warning); }
+
+.acoes { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.acoes__estado { flex: 1; min-width: 0; }
+.acoes__estado p { margin: 0; font-size: 12px; }
+.acoes__erro { color: var(--im-danger-text); }
+.acoes__ok { color: var(--im-success); }
+.acoes__pendente { color: var(--im-text-secondary); }
+
+@media (max-width: 600px) {
+  .tela { grid-template-columns: 22px minmax(0, 1fr) auto; }
+  .tela__duracao { grid-column: 2 / -1; grid-row: 2; }
+  .campo { grid-template-columns: minmax(0, 1fr); }
+  .campo > .interruptor, .campo > .campo-select { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 6px; }
+}
