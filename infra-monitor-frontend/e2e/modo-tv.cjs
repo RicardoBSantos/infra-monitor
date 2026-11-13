@@ -8,12 +8,24 @@
  *   3 SQL fecha o incidente aberto; depois do tique o OFFLINE do Painel e o --cor-unidade do Mapa mudam
  *     sem recarregar o documento (0 carregamentos novos, 0 beforeunload)
  *   4 o Mapa não reinicializa ao longo de >= 3 ciclos: 1 contexto WebGL, 1 GET do GeoJSON, mesmo nó de canvas
- *   5 a página B continua em /dashboard durante a rotação, sem nenhuma requisição a /configuracoes/modo-tv
- *   6 vazamento: page.clock na página A, 300 ciclos (fastForward de 1 s por passo); Nodes e JSEventListeners com inclinação < 1/ciclo
- *     entre os ciclos 10 e 300; timers vivos constantes; 1 contexto WebGL
+ *   5 D2: a página B (outro contexto) e a página B' (2ª aba no MESMO contexto da TV: mesmo perfil, cookies e
+ *     storage) continuam em /dashboard durante a rotação, sem navegação e sem requisição a /configuracoes/modo-tv
+ *   6 vazamento: page.clock na página A, 300 ciclos (fastForward de 1 s por passo); a rotação tem de avançar
+ *     (>= 90% das trocas de tela esperadas entre os ciclos 10 e 300 — TV travada não passa); Nodes e
+ *     JSEventListeners com inclinação < 1/ciclo entre os ciclos 10 e 300; timers vivos constantes; 1 contexto WebGL
  *   7 sessão cai (revogada por SQL + access token vencido): TV vai ao login com a faixa do modo TV, sem laço
  *     — rodar à parte, com o backend em JWT_ACCESS_TOKEN_MINUTES=1 (MODO_TV_PASSOS=7)
  *   Capturas (sem PASS/FAIL): cada tela da TV em 1920x1080 nos temas escuro e claro e a tela de configuração.
+ *
+ * Prova de reversão do passo 4 (manual; evidência em modo-tv-evidence/passo-8-reversao): o passo 4 tem de FALHAR
+ * se o Mapa voltar a remontar a cada atualização, como antes da Task 4 (commit 003cb55). Para reproduzir, com o
+ * ng serve rodando, em `src/app/features/mapa/mapa.component.ts`, método `recarregarDados()`, inserir como
+ * primeira linha do corpo:
+ *       if (this.geracao >= 0) { this.load(); return; }
+ * (`this.load(); return;` cru não compila: o TS acusa o resto como código inalcançável). `load()` zera a
+ * cartografia, o effect destrói o MaplibreMap e monta outro. Rodar `MODO_TV_PASSOS=4` → esperado
+ * `FAIL [4] ... contextos=4 ... canvas=null` (o GeoJSON fica em 1: o GeoMunicipioService cacheia). Restaurar
+ * com `git checkout -- src/app/features/mapa/mapa.component.ts` e rodar de novo → PASS.
  *
  * Pré-requisitos — só ambiente DESCARTÁVEL, nunca o dev (5434), a carga (5436) nem o backend 8080:
  *   - container `inframonitor-e2e-tv` (postgres:16-alpine, 5441) com e2e/modo-tv-seed.sql aplicado;
@@ -198,7 +210,18 @@ async function capturarTelas(page, prefixo) {
     await pageA.clock.install();
     await ctxA.addInitScript(INSTRUMENTO);
     await login(pageA);
-    const loadsAntesTv = loadsA;
+    // Página B': segunda aba do MESMO perfil da TV (mesmo contexto: cookies, localStorage, sessionStorage de origem).
+    // D2 tem de valer aqui também — é o caso real de alguém abrir o sistema no navegador da TV.
+    const pageB2 = await ctxA.newPage();
+    const reqB2 = []; const navB2 = [];
+    pageB2.on('pageerror', (e) => resultado.erros.push("B': " + e.message));
+    pageB2.on('request', (r) => reqB2.push({ em: Date.now(), url: r.url() }));
+    pageB2.on('framenavigated', (f) => { if (f === pageB2.mainFrame()) navB2.push({ em: Date.now(), url: f.url() }); });
+    await pageB2.goto(BASE + '/dashboard', { waitUntil: 'domcontentloaded' });
+    await pageB2.waitForSelector('.kpis .kpi strong', { timeout: 20000 });
+    const marcoB2 = Date.now(); const navB2Antes = navB2.length;
+    await pageA.bringToFront();
+    const loadsAntesTv = loadsA; const abriuTvEm = Date.now(); // pedidos anteriores são da tela pós-login, não da TV
     await pageA.goto(BASE + '/tv', { waitUntil: 'domcontentloaded' });
     await pageA.waitForSelector('.tv__tela--ativa', { timeout: 30000 });
     await pageA.evaluate(OBSERVAR_TELAS);
@@ -249,12 +272,13 @@ async function capturarTelas(page, prefixo) {
       await esperar(3000);
       const agora = await lerTv(pageA);
       const transicoes = await pageA.evaluate(() => window.__tv.transicoes);
-      const geo = reqA.filter((r) => r.url.includes('se-municipalities.geo.json')).length;
+      const geoTodos = reqA.filter((r) => r.url.includes('se-municipalities.geo.json')).map((r) => ({ em: r.em, daTv: r.em >= abriuTvEm }));
+      const geo = geoTodos.filter((r) => r.daTv).length; // só o documento da TV: a tela pós-login (Painel) também baixa o GeoJSON
       const unidadesGet = reqA.filter((r) => r.url.includes('/api/v1/dashboard/unidades') && r.em >= inicioTv).length;
-      resultado.medidas.passo4 = { agora, geo, unidadesGet, ciclos: ciclosCompletos(transicoes) };
+      resultado.medidas.passo4 = { agora, geo, geoTodos, unidadesGet, ciclos: ciclosCompletos(transicoes) };
       checar(4, 'Mapa não reinicializa em >= 3 ciclos: 1 contexto WebGL, 1 GET do GeoJSON, mesmo nó de canvas',
         agora.webglContextos === 1 && geo === 1 && agora.canvasMarcado === 'original' && agora.canvases === 1,
-        `ciclos=${ciclosCompletos(transicoes)} getContext(webgl*) chamadas=${agora.webglChamadas} contextos=${agora.webglContextos} geojson=${geo} canvas=${agora.canvasMarcado} canvases=${agora.canvases} GET dashboard/unidades desde /tv=${unidadesGet}`);
+        `ciclos=${ciclosCompletos(transicoes)} getContext(webgl*) chamadas=${agora.webglChamadas} contextos=${agora.webglContextos} geojson na TV=${geo} (página A no total=${geoTodos.length}) canvas=${agora.canvasMarcado} canvases=${agora.canvases} GET dashboard/unidades desde /tv=${unidadesGet}`);
     }
 
     // 5 ------------------------------------------------------------------------- sessão normal intacta
@@ -262,9 +286,17 @@ async function capturarTelas(page, prefixo) {
       const urlB = new URL(pageB.url()).pathname;
       const configB = reqB.filter((r) => r.em >= marcoB && r.url.includes('/configuracoes/modo-tv')).length;
       const navsB = navB.slice(navBAntes);
-      checar(5, 'página B segue em /dashboard durante a rotação, sem requisição a /configuracoes/modo-tv',
-        urlB === '/dashboard' && configB === 0 && navsB.length === 0,
-        `url=${urlB} req config=${configB} navegações=${navsB.length} durante ${Math.round((Date.now() - marcoB) / 1000)}s`);
+      // Rodado sozinho (sem 2–4), espera a TV girar ao menos 2 ciclos antes de concluir.
+      const limite5 = Date.now() + 3 * CICLO_MS + 30000;
+      while ((await pageA.evaluate(() => window.__tv.transicoes.length)) < 9 && Date.now() < limite5) await esperar(1000);
+      const urlB2 = new URL(pageB2.url()).pathname;
+      const configB2 = reqB2.filter((r) => r.em >= marcoB2 && r.url.includes('/configuracoes/modo-tv')).length;
+      const navsB2 = navB2.slice(navB2Antes);
+      const telasA = (await pageA.evaluate(() => window.__tv.transicoes.length));
+      resultado.medidas.passo5 = { contextoIsolado: { url: urlB, config: configB, navegacoes: navsB }, mesmoContexto: { url: urlB2, config: configB2, navegacoes: navsB2 }, trocasDaTv: telasA };
+      checar(5, "sessão normal intacta durante a rotação: B (outro contexto) e B' (2ª aba do mesmo perfil da TV) seguem em /dashboard, sem navegação e sem requisição a /configuracoes/modo-tv",
+        urlB === '/dashboard' && configB === 0 && navsB.length === 0 && urlB2 === '/dashboard' && configB2 === 0 && navsB2.length === 0 && telasA >= 9,
+        `B: url=${urlB} req config=${configB} navegações=${navsB.length} durante ${Math.round((Date.now() - marcoB) / 1000)}s; B' (mesmo contexto): url=${urlB2} req config=${configB2} navegações=${navsB2.length} durante ${Math.round((Date.now() - marcoB2) / 1000)}s; trocas de tela da TV no período=${telasA}`);
     }
 
     // Capturas no tema claro (contexto próprio; preferência gravada no localStorage como o ThemeService faz).
@@ -314,9 +346,13 @@ async function capturarTelas(page, prefixo) {
       resultado.medidas.passo6 = { amostras, inclinacaoNodes: inclinacao('Nodes'), inclinacaoListeners: inclinacao('JSEventListeners'), requisicoes: reqs.length, geojson: reqs.filter((r) => r.url.includes('se-municipalities.geo.json')).length, duracaoRealS: Math.round((Date.now() - t0) / 1000) };
       const timers = amostras.map((a) => a.timersVivos);
       const timersConstantes = Math.max(...timers) - Math.min(...timers) <= 2;
-      checar(6, `${CICLOS} ciclos com page.clock: Nodes e JSEventListeners com inclinação < 1/ciclo (10→${aFim.ciclo}), timers vivos constantes, 1 contexto WebGL`,
-        Math.abs(inclinacao('Nodes')) < 1 && Math.abs(inclinacao('JSEventListeners')) < 1 && timersConstantes && amostras.every((a) => a.webglContextos === 1) && aFim.url === '/tv',
-        `Nodes ${amostras.map((a) => a.Nodes).join('/')} (incl ${inclinacao('Nodes').toFixed(3)}); listeners ${amostras.map((a) => a.JSEventListeners).join('/')} (incl ${inclinacao('JSEventListeners').toFixed(3)}); timers ${timers.join('/')}; webgl ${amostras.map((a) => a.webglContextos).join('/')}; requisições ${reqs.length}; real ${resultado.medidas.passo6.duracaoRealS}s`);
+      // Sem isto uma TV travada passaria: nada cresce porque nada roda. Exige >= 90% das trocas esperadas entre as amostras.
+      const trocas = aFim.transicoes - a10.transicoes; const trocasEsperadas = (aFim.ciclo - a10.ciclo) * ORDEM.length;
+      const girou = trocas >= trocasEsperadas * 0.9;
+      resultado.medidas.passo6.trocas = { observadas: trocas, esperadas: trocasEsperadas };
+      checar(6, `${CICLOS} ciclos com page.clock: a rotação avançou (>= 90% das trocas), Nodes e JSEventListeners com inclinação < 1/ciclo (10→${aFim.ciclo}), timers vivos constantes, 1 contexto WebGL`,
+        girou && Math.abs(inclinacao('Nodes')) < 1 && Math.abs(inclinacao('JSEventListeners')) < 1 && timersConstantes && amostras.every((a) => a.webglContextos === 1) && aFim.url === '/tv',
+        `trocas de tela ${trocas}/${trocasEsperadas} (ciclo ${a10.ciclo}→${aFim.ciclo}); Nodes ${amostras.map((a) => a.Nodes).join('/')} (incl ${inclinacao('Nodes').toFixed(3)}); listeners ${amostras.map((a) => a.JSEventListeners).join('/')} (incl ${inclinacao('JSEventListeners').toFixed(3)}); timers ${timers.join('/')}; webgl ${amostras.map((a) => a.webglContextos).join('/')}; requisições ${reqs.length}; real ${resultado.medidas.passo6.duracaoRealS}s`);
     }
 
     // 7 ------------------------------------------------------------------------- sessão cai na TV

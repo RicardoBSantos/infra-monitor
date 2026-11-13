@@ -1,6 +1,6 @@
 {
   "base": "http://localhost:4311",
-  "inicio": "2026-11-13T11:48:14.634Z",
+  "inicio": "2026-11-13T12:03:37.113Z",
   "config": {
     "PASSOS": [
       "1",
@@ -26,31 +26,31 @@
       "passo": 2,
       "descricao": "ciclo completo MAPA→PAINEL→INCIDENTES→RELATORIOS→MAPA observado pelo nome da tela",
       "ok": true,
-      "detalhe": "seq=MAPA→PAINEL→INCIDENTES→RELATORIOS→MAPA nomes=Mapa→Painel→Incidentes→Relatórios→Mapa duracoes_s=10.2,10.1,10.1,10.0"
+      "detalhe": "seq=MAPA→PAINEL→INCIDENTES→RELATORIOS→MAPA nomes=Mapa→Painel→Incidentes→Relatórios→Mapa duracoes_s=10.3,10.0,10.0,10.0"
     },
     {
       "passo": 3,
       "descricao": "SQL fecha o incidente: OFFLINE do Painel e --cor-unidade de Lagarto no Mapa mudam sem recarregar o documento",
       "ok": true,
-      "detalhe": "OFFLINE 1→0 em 10.088s; INCIDENTES ABERTOS 1→0; cor Lagarto #fcb142→#35e087 em 40.4s; carregamentos do documento desde a abertura de /tv=0, beforeunload=0 (evento load desde /tv=1, só a abertura)"
+      "detalhe": "OFFLINE 1→0 em 10.063s; INCIDENTES ABERTOS 1→0; cor Lagarto #fcb142→#35e087 em 40.281s; carregamentos do documento desde a abertura de /tv=0, beforeunload=0 (evento load desde /tv=1, só a abertura)"
     },
     {
       "passo": 4,
       "descricao": "Mapa não reinicializa em >= 3 ciclos: 1 contexto WebGL, 1 GET do GeoJSON, mesmo nó de canvas",
       "ok": true,
-      "detalhe": "ciclos=3 getContext(webgl*) chamadas=1 contextos=1 geojson=1 canvas=original canvases=1 GET dashboard/unidades desde /tv=5"
+      "detalhe": "ciclos=3 getContext(webgl*) chamadas=1 contextos=1 geojson na TV=1 (página A no total=2) canvas=original canvases=1 GET dashboard/unidades desde /tv=5"
     },
     {
       "passo": 5,
-      "descricao": "página B segue em /dashboard durante a rotação, sem requisição a /configuracoes/modo-tv",
+      "descricao": "sessão normal intacta durante a rotação: B (outro contexto) e B' (2ª aba do mesmo perfil da TV) seguem em /dashboard, sem navegação e sem requisição a /configuracoes/modo-tv",
       "ok": true,
-      "detalhe": "url=/dashboard req config=0 navegações=0 durante 126s"
+      "detalhe": "B: url=/dashboard req config=0 navegações=0 durante 126s; B' (mesmo contexto): url=/dashboard req config=0 navegações=0 durante 125s; trocas de tela da TV no período=13"
     },
     {
       "passo": 6,
-      "descricao": "300 ciclos com page.clock: Nodes e JSEventListeners com inclinação < 1/ciclo (10→300), timers vivos constantes, 1 contexto WebGL",
+      "descricao": "300 ciclos com page.clock: a rotação avançou (>= 90% das trocas), Nodes e JSEventListeners com inclinação < 1/ciclo (10→300), timers vivos constantes, 1 contexto WebGL",
       "ok": true,
-      "detalhe": "Nodes 1293/1293/1293 (incl 0.000); listeners 531/531/541 (incl 0.034); timers 3/3/3; webgl 1/1/1; requisições 3127; real 158s"
+      "detalhe": "trocas de tela 1161/1160 (ciclo 10→300); Nodes 1293/1293/1293 (incl 0.000); listeners 531/531/539 (incl 0.028); timers 3/3/3; webgl 1/1/1; requisições 3127; real 186s"
     }
   ],
   "medidas": {
@@ -104,9 +104,9 @@
         "beforeunload": 1,
         "url": "/tv"
       },
-      "sqlMonitor": "7\nINSERT 0 1",
-      "painelS": 10.088,
-      "mapaS": 40.4
+      "sqlMonitor": "14\nINSERT 0 1",
+      "painelS": 10.063,
+      "mapaS": 40.281
     },
     "passo4": {
       "agora": {
@@ -126,8 +126,31 @@
         "url": "/tv"
       },
       "geo": 1,
+      "geoTodos": [
+        {
+          "em": 1794571418913,
+          "daTv": false
+        },
+        {
+          "em": 1794571419473,
+          "daTv": true
+        }
+      ],
       "unidadesGet": 5,
       "ciclos": 3
+    },
+    "passo5": {
+      "contextoIsolado": {
+        "url": "/dashboard",
+        "config": 0,
+        "navegacoes": []
+      },
+      "mesmoContexto": {
+        "url": "/dashboard",
+        "config": 0,
+        "navegacoes": []
+      },
+      "trocasDaTv": 13
     },
     "passo6": {
       "amostras": [
@@ -135,7 +158,7 @@
           "ciclo": 10,
           "Nodes": 1293,
           "JSEventListeners": 531,
-          "JSHeapUsedSize": 15733224,
+          "JSHeapUsedSize": 15885424,
           "timersVivos": 3,
           "webglContextos": 1,
           "transicoes": 56,
@@ -146,7 +169,7 @@
           "ciclo": 100,
           "Nodes": 1293,
           "JSEventListeners": 531,
-          "JSHeapUsedSize": 16593136,
+          "JSHeapUsedSize": 16756580,
           "timersVivos": 3,
           "webglContextos": 1,
           "transicoes": 416,
@@ -156,8 +179,8 @@
         {
           "ciclo": 300,
           "Nodes": 1293,
-          "JSEventListeners": 541,
-          "JSHeapUsedSize": 16725796,
+          "JSEventListeners": 539,
+          "JSHeapUsedSize": 16926488,
           "timersVivos": 3,
           "webglContextos": 1,
           "transicoes": 1217,
@@ -166,10 +189,14 @@
         }
       ],
       "inclinacaoNodes": 0,
-      "inclinacaoListeners": 0.034482758620689655,
+      "inclinacaoListeners": 0.027586206896551724,
       "requisicoes": 3127,
       "geojson": 0,
-      "duracaoRealS": 158
+      "duracaoRealS": 186,
+      "trocas": {
+        "observadas": 1161,
+        "esperadas": 1160
+      }
     }
   },
   "capturas": [
@@ -186,6 +213,6 @@
     "tv-claro-relatorios.png"
   ],
   "erros": [],
-  "fim": "2026-11-13T11:53:34.735Z",
+  "fim": "2026-11-13T12:09:24.389Z",
   "ok": true
 }
