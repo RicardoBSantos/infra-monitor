@@ -289,6 +289,19 @@ describe('DashboardComponent', () => {
     expect(detalhe).toContain('SW-CORE no Centro Operacional offline há');
   });
 
+  it('modo TV: links de navegação e a seta de expandir saem (data-tv-oculto); KPIs, banner e linhas ficam', () => {
+    const fixture = create();
+    responderCarga(fixture);
+    const raiz = fixture.nativeElement as HTMLElement;
+    const link = (rotulo: string) => [...raiz.querySelectorAll('a.botao')].find(a => a.textContent?.trim() === rotulo);
+    expect(link('Relatório de disponibilidade')?.hasAttribute('data-tv-oculto')).toBe(true);
+    expect(link('Incidentes abertos')?.hasAttribute('data-tv-oculto')).toBe(true);
+    const setas = raiz.querySelectorAll('.linha__seta');
+    expect(setas.length).toBeGreaterThan(0);
+    setas.forEach(seta => expect(seta.hasAttribute('data-tv-oculto')).toBe(true));
+    for (const visivel of ['.kpis', '.alerta__texto', '.linha__nome']) expect(raiz.querySelector(visivel)?.closest('[data-tv-oculto]')).toBeNull();
+  });
+
   it('banner usa o KPI para o "+N" e descreve abertos e reconhecidos', () => {
     const fixture = create();
     const reconhecido = { ...incidenteAberto, id: 91, status: 'RECONHECIDO', iniciadoEm: '2026-08-19T11:50:00Z' };

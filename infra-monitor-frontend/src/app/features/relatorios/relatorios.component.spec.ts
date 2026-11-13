@@ -548,6 +548,23 @@ describe('RelatoriosComponent', () => {
       expect((fixture.nativeElement as HTMLElement).querySelector('[data-tv-oculto][role=tablist]')).not.toBeNull();
     });
 
+    it('na TV saem as tabelas de detalhe dos dois rankings; ficam KPIs, barras e o top 5 de latência', () => {
+      const fixture = criarTv();
+      http.expectOne(r => r.url.endsWith('/relatorios/visao-geral/indicadores')).flush({ incidentesAbertos: 1, medicoesComFalha: 2, notificacoesComFalha: 3 });
+      http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/unidades')).flush(page([unit()]));
+      http.expectOne(r => r.url.endsWith('/relatorios/disponibilidade/equipamentos')).flush(page([equipment()]));
+      http.expectOne(r => r.url.endsWith('/relatorios/latencia')).flush(page([latency()]));
+      fixture.detectChanges();
+      const raiz = fixture.nativeElement as HTMLElement;
+      const card = (titulo: string) => raiz.querySelector(`#${titulo}`)!.closest('article')!;
+      for (const ranking of ['units-ranking-title', 'equipment-ranking-title']) {
+        expect(card(ranking).querySelector('.compact-table')?.hasAttribute('data-tv-oculto')).toBe(true);
+        expect(card(ranking).querySelector('.bar-chart')?.closest('[data-tv-oculto]')).toBeNull();
+      }
+      expect(card('latency-overview-title').querySelector('.compact-table')?.closest('[data-tv-oculto]')).toBeNull();
+      expect(raiz.querySelector('.kpi-grid')?.closest('[data-tv-oculto]')).toBeNull();
+    });
+
     it('recarregarDados mantém os widgets em success durante o voo, desliza a janela e troca o dado ao chegar', () => {
       const fixture = criarTv();
       const primeira = [
