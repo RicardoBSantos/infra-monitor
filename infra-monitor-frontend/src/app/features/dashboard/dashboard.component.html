@@ -10,7 +10,7 @@
     </div>
     <div class="painel__acoes">
       <button class="botao" data-tv-oculto type="button" (click)="alternarTodas()" [attr.aria-pressed]="todasExpandidas()">{{ todasExpandidas() ? 'Recolher todas' : 'Expandir todas' }}</button>
-      <a class="botao" routerLink="/relatorios">Relatório de disponibilidade</a>
+      <a class="botao" data-tv-oculto routerLink="/relatorios">Relatório de disponibilidade</a>
     </div>
   </header>
 
@@ -40,7 +40,7 @@
           <p class="alerta__linha">{{ plural(data.equipamentos.indisponiveis, 'dispositivo offline', 'dispositivos offline') }} em {{ plural(unidadesOffline(), 'unidade', 'unidades') }} · {{ plural(data.incidentes.abertos, 'incidente aberto', 'incidentes abertos') }}</p>
           @if (descricaoIncidentes(); as descricao) { <p class="alerta__detalhe">{{ descricao }}</p> }
         </div>
-        <a class="botao" routerLink="/incidentes">Incidentes abertos</a>
+        <a class="botao" data-tv-oculto routerLink="/incidentes">Incidentes abertos</a>
       </div>
     }
   }
@@ -106,7 +106,7 @@
             <span class="numerico mono col-disponibilidade">{{ disponibilidadeDaUnidade(unidade.id) }}</span>
             <span class="numerico mono col-latencia">{{ latenciaDaUnidade(unidade.id) }}</span>
             <span class="numerico mono" [class.down]="unidade.incidentesAbertos > 0">{{ unidade.incidentesAbertos }}</span>
-            <span class="linha__seta" [class.linha__seta--aberta]="expandida(unidade.id)"><app-icon name="chevron-down" /></span>
+            <span class="linha__seta" data-tv-oculto [class.linha__seta--aberta]="expandida(unidade.id)"><app-icon name="chevron-down" /></span>
           </button>
 
           @if (expandida(unidade.id)) {
