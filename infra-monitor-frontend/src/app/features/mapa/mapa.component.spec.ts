@@ -561,6 +561,39 @@ describe('recarregarDados (modo TV)', () => {
     expect(maplibreFalso.camera.fitBounds).not.toHaveBeenCalled();
   });
 
+  it('troca de topologia solta os ouvintes dos marcadores removidos (sem acumular por dias na TV)', async () => {
+    const sinais: AbortSignal[] = [];
+    const original = HTMLButtonElement.prototype.addEventListener;
+    const espiao = vi.spyOn(HTMLButtonElement.prototype, 'addEventListener').mockImplementation(function (this: HTMLButtonElement, tipo: string, fn: EventListenerOrEventListenerObject, opcoes?: boolean | AddEventListenerOptions) {
+      if (this.classList.contains('map__unidade') && typeof opcoes === 'object' && opcoes.signal) sinais.push(opcoes.signal);
+      return original.call(this, tipo, fn, opcoes);
+    });
+    try {
+      const fixture = await montar();
+      const raiz = fixture.nativeElement as HTMLElement;
+      const primeiro = botao(raiz, 2)!;
+      const sinaisDaMontagem = sinais.length;
+      expect(sinaisDaMontagem).toBeGreaterThan(0);
+      await recarregar(fixture, of([hub, filha, { ...filha, id: 3, nome: 'Nova', latitude: -10.7, longitude: -37.7 }]));
+      const segundo = botao(raiz, 2)!;
+      const sinaisDaSegunda = sinais.length;
+      await recarregar(fixture, of([hub, filha]));
+
+      expect(primeiro.isConnected).toBe(false);
+      expect(segundo.isConnected).toBe(false);
+      for (const sinal of sinais.slice(0, sinaisDaSegunda)) expect(sinal.aborted).toBe(true);
+      for (const sinal of sinais.slice(sinaisDaSegunda)) expect(sinal.aborted).toBe(false);
+      // Botão removido não reage mais: clicar nele não abre o painel da unidade.
+      primeiro.click(); segundo.click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('.unit-panel')).toBeNull();
+      // O botão vivo continua funcionando.
+      botao(raiz, 2)!.click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('.unit-panel__nome')?.textContent).toBe('Filha');
+    } finally { espiao.mockRestore(); }
+  });
+
   it('falha mantém marcadores e dado, e liga falhouUltimaAtualizacao', async () => {
     const fixture = await montar();
     const raiz = fixture.nativeElement as HTMLElement;

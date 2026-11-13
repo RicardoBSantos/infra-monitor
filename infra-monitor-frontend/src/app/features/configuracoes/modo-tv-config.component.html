@@ -93,7 +93,7 @@
         @if (erroSalvar()) {
           <p class="acoes__erro" role="alert">{{ erroSalvar() }}</p>
         } @else if (salvo()) {
-          <p class="acoes__ok" role="status">Configuração salva. A TV aplica na próxima troca de tela.</p>
+          <p class="acoes__ok" role="status">Configuração salva. A TV passa a usá-la na próxima atualização dos dados, quando relê a configuração.</p>
         } @else if (alterado()) {
           <p class="acoes__pendente" role="status">Alterações não salvas.</p>
         }

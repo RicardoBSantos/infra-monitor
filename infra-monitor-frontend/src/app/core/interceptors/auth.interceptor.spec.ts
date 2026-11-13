@@ -120,6 +120,25 @@ describe('authInterceptor', () => {
     expect(url.queryParams['encerradaEm']).toMatch(/^\d{2}:\d{2}$/);
   });
 
+  it('401 atrasado que chega já no login não navega de novo: a faixa da TV e o returnUrl=/tv ficam', async () => {
+    const router = TestBed.inject(Router);
+    router.resetConfig([...router.config, { path: 'tv', component: TestRouteComponent }]);
+    await router.navigateByUrl('/tv');
+    http.get('/api/v1/configuracoes/modo-tv').subscribe({ error: () => undefined });
+    http.get('/api/v1/dashboard/unidades').subscribe({ error: () => undefined });
+    backend.expectOne('/api/v1/configuracoes/modo-tv').flush(erro401, unauthorized);
+    backend.expectOne(REFRESH).flush(null, { status: 204, statusText: 'No Content' });
+    await tick();
+    const urlDaQueda = router.url;
+    expect(urlDaQueda).toContain('origem=tv');
+
+    // Pedido que estava em voo responde 401 depois que a navegação ao login terminou.
+    backend.expectOne('/api/v1/dashboard/unidades').flush(erro401, unauthorized);
+    backend.match(REFRESH).forEach(r => r.flush(null, { status: 204, statusText: 'No Content' }));
+    await tick();
+    expect(router.url).toBe(urlDaQueda);
+  });
+
   it('fora de /tv, refresh falho mantém o login como hoje', async () => {
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/dashboard');

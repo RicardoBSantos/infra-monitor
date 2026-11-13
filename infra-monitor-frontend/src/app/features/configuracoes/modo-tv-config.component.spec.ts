@@ -87,7 +87,8 @@ describe('ModoTvConfigComponent', () => {
     expect(put.request.body).toEqual({ intervaloAtualizacaoSegundos: 120 });
     put.flush(config({ intervaloAtualizacaoSegundos: 120 }));
     fixture.detectChanges();
-    expect(texto()).toContain('Configuração salva');
+    expect(texto()).toContain('Configuração salva. A TV passa a usá-la na próxima atualização dos dados, quando relê a configuração.');
+    expect(texto()).not.toContain('próxima troca de tela');
     expect(botaoSalvar().disabled).toBe(true);
   });
 

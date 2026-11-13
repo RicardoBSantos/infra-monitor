@@ -734,6 +734,12 @@ export class MapaComponent implements OnDestroy, TelaTv {
   /** Quadro de animação dos pings. Cancelado em `destruirMapa` e com a tela oculta no modo TV (`ativa`). */
   private quadroPing: number | null = null;
   private teclado: AbortController | null = null;
+  /**
+   * Ouvintes dos marcadores de unidade, um controlador por montagem: `remontarMarcadores` (modo TV,
+   * topologia nova) aborta o anterior. No `teclado`, que vive o mapa inteiro, cada troca de topologia
+   * deixaria 2 ouvintes por unidade presos a botões já removidos — por dias, numa TV.
+   */
+  private ouvintesUnidades: AbortController | null = null;
 
   constructor() {
     this.load();
@@ -997,7 +1003,7 @@ export class MapaComponent implements OnDestroy, TelaTv {
      * Ordem de Tab: os marcadores de unidade vem DEPOIS dos de municipio porque sao adicionados
      * depois, e essa e a leitura util — do geral para o particular.
      */
-    this.montarMarcadoresUnidade(map, municipios.flatMap(municipio => municipio.units), signalAbort);
+    this.montarMarcadoresUnidade(map, municipios.flatMap(municipio => municipio.units));
 
     this.montarPings(map, conexoes.features as Feature[]);
 
@@ -1005,7 +1011,10 @@ export class MapaComponent implements OnDestroy, TelaTv {
     untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
   }
 
-  private montarMarcadoresUnidade(map: MaplibreMap, unidades: DashboardUnidade[], signalAbort: AbortSignal): void {
+  private montarMarcadoresUnidade(map: MaplibreMap, unidades: DashboardUnidade[]): void {
+    this.ouvintesUnidades?.abort();
+    this.ouvintesUnidades = new AbortController();
+    const signalAbort = this.ouvintesUnidades.signal;
     for (const unidade of unidades) {
       const coordenada = coordenadaDaUnidade(unidade);
       if (!coordenada) continue;
@@ -1054,7 +1063,7 @@ export class MapaComponent implements OnDestroy, TelaTv {
     this.removerPings();
     for (const marcador of this.marcadoresUnidade.values()) marcador.remove();
     this.marcadoresUnidade.clear();
-    this.montarMarcadoresUnidade(map, unidades, this.teclado.signal);
+    this.montarMarcadoresUnidade(map, unidades);
     this.montarPings(map, this.trocarConexoes(unidades));
     const municipios = this.municipios();
     this.envoltoriaEstado = envoltoriaDoEstado(municipios);
@@ -1319,6 +1328,8 @@ export class MapaComponent implements OnDestroy, TelaTv {
   private destruirMapa(): void {
     this.teclado?.abort();
     this.teclado = null;
+    this.ouvintesUnidades?.abort();
+    this.ouvintesUnidades = null;
     this.removerPings();
     for (const marcador of this.marcadores.values()) marcador.remove();
     this.marcadores.clear();
