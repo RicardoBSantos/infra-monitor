@@ -1,6 +1,6 @@
 {
   "base": "http://localhost:4311",
-  "inicio": "2026-11-13T11:25:24.615Z",
+  "inicio": "2026-11-13T12:25:10.500Z",
   "config": {
     "PASSOS": [
       "4"
@@ -14,7 +14,7 @@
       "passo": 4,
       "descricao": "Mapa não reinicializa em >= 3 ciclos: 1 contexto WebGL, 1 GET do GeoJSON, mesmo nó de canvas",
       "ok": true,
-      "detalhe": "ciclos=3 getContext(webgl*) chamadas=1 contextos=1 geojson=1 canvas=original canvases=1 GET dashboard/unidades desde /tv=6"
+      "detalhe": "ciclos=3 getContext(webgl*) chamadas=1 contextos=1 geojson na TV=1 (página A no total=2) canvas=original canvases=1 GET dashboard/unidades desde /tv=5"
     }
   ],
   "medidas": {
@@ -52,12 +52,22 @@
         "url": "/tv"
       },
       "geo": 1,
-      "unidadesGet": 6,
+      "geoTodos": [
+        {
+          "em": 1794572711763,
+          "daTv": false
+        },
+        {
+          "em": 1794572712139,
+          "daTv": true
+        }
+      ],
+      "unidadesGet": 5,
       "ciclos": 3
     }
   },
   "capturas": [],
   "erros": [],
-  "fim": "2026-11-13T11:27:30.382Z",
+  "fim": "2026-11-13T12:27:16.364Z",
   "ok": true
 }

@@ -1,6 +1,6 @@
 {
   "base": "http://localhost:4311",
-  "inicio": "2026-11-13T11:19:58.125Z",
+  "inicio": "2026-11-13T12:27:46.066Z",
   "config": {
     "PASSOS": [
       "7"
@@ -14,7 +14,7 @@
       "passo": 7,
       "descricao": "sessão revogada + access token vencido: TV vai ao login com a faixa do modo TV, sem laço",
       "ok": true,
-      "detalhe": "sessões revogadas=4; caiu em 60s; url=http://localhost:4311/login?sessionExpired=1&origem=tv&returnUrl=%2Ftv&encerradaEm=08:21; faixa=\"Modo TV parado: a sessão encerrou às 08:21. Entre novamente para retomar.\"; idas ao /login em 30s=1 (total 1)"
+      "detalhe": "sessões revogadas=11; caiu em 60s; url=http://localhost:4311/login?sessionExpired=1&origem=tv&returnUrl=%2Ftv&encerradaEm=09:28; faixa=\"Modo TV parado: a sessão encerrou às 09:28. Entre novamente para retomar.\"; idas ao /login em 30s=1 (total 1)"
     }
   ],
   "medidas": {
@@ -28,7 +28,7 @@
       "canvases": 1,
       "webglChamadas": 1,
       "webglContextos": 1,
-      "timersVivos": 5,
+      "timersVivos": 4,
       "transicoes": 1,
       "carregamentos": 2,
       "beforeunload": 1,
@@ -37,20 +37,20 @@
     "passo7": {
       "idasAoLogin": [
         {
-          "em": 1794568860915,
-          "url": "http://localhost:4311/login?sessionExpired=1&origem=tv&returnUrl=%2Ftv&encerradaEm=08:21"
+          "em": 1794572931412,
+          "url": "http://localhost:4311/login?sessionExpired=1&origem=tv&returnUrl=%2Ftv&encerradaEm=09:28"
         }
       ],
       "caiuS": 60,
-      "url": "http://localhost:4311/login?sessionExpired=1&origem=tv&returnUrl=%2Ftv&encerradaEm=08:21",
-      "faixa": "Modo TV parado: a sessão encerrou às 08:21. Entre novamente para retomar.",
-      "revogadas": 4
+      "url": "http://localhost:4311/login?sessionExpired=1&origem=tv&returnUrl=%2Ftv&encerradaEm=09:28",
+      "faixa": "Modo TV parado: a sessão encerrou às 09:28. Entre novamente para retomar.",
+      "revogadas": 11
     }
   },
   "capturas": [
     "7-login-sessao-caiu-tv.png"
   ],
   "erros": [],
-  "fim": "2026-11-13T11:21:31.078Z",
+  "fim": "2026-11-13T12:29:21.584Z",
   "ok": true
 }
