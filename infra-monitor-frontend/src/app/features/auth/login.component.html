@@ -59,6 +59,7 @@
     </button>
 
     <div class="login-stack">
+      @if(avisoModoTv){<p class="login-tv" role="alert">{{ avisoModoTv }}</p>}
       <form class="login-card" [formGroup]="form" (ngSubmit)="submit()">
         <h2 class="login-card__title">Acesso ao monitoramento</h2>
 

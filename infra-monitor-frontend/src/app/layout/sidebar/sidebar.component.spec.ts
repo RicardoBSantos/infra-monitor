@@ -53,4 +53,17 @@ describe('SidebarComponent', () => {
       expect(userLink !== null).toBe(expected);
     });
   }
+
+  for (const [papel, expected] of [['ADMIN', true], ['OPERADOR', false], ['VISUALIZADOR', false]] as const) {
+    it(`renders Configurações in the actual DOM only for ${papel}`, async () => {
+      await TestBed.configureTestingModule({ imports: [SidebarComponent], providers: [provideRouter([])] }).compileComponents();
+      TestBed.inject(AuthStateService).setSession(session(papel));
+      const fixture = TestBed.createComponent(SidebarComponent);
+      fixture.detectChanges();
+
+      const link = (fixture.nativeElement as HTMLElement).querySelector('.navigation__item[href="/configuracoes"]');
+      expect(link !== null).toBe(expected);
+      if (expected) expect(link?.textContent?.trim()).toBe('Configurações');
+    });
+  }
 });

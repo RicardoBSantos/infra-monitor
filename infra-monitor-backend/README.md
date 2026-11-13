@@ -362,7 +362,7 @@ java -jar target/infra-monitor-backend-0.0.1-SNAPSHOT.jar --spring.profiles.acti
 ./mvnw test
 ```
 
-As classes de integração Postgres (55 hoje) são marcadas com `@RequerDocker` e sobem
+As classes de integração Postgres (57 hoje) são marcadas com `@RequerDocker` e sobem
 um PostgreSQL real via Testcontainers. Sem Docker disponível elas são **puladas**, não
 falham, e o fim da execução imprime um aviso com a contagem e a lista
 (`!! N classes puladas: Docker indisponivel.`): uma suíte verde nesse estado **não**

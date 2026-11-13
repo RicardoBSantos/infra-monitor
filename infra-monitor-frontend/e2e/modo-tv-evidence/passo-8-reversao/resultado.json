@@ -1,0 +1,73 @@
+{
+  "base": "http://localhost:4311",
+  "inicio": "2026-11-13T12:22:48.695Z",
+  "config": {
+    "PASSOS": [
+      "4"
+    ],
+    "CICLOS": 300,
+    "DURACAO_S": 10,
+    "INTERVALO_S": 30
+  },
+  "passos": [
+    {
+      "passo": 4,
+      "descricao": "Mapa não reinicializa em >= 3 ciclos: 1 contexto WebGL, 1 GET do GeoJSON, mesmo nó de canvas",
+      "ok": false,
+      "detalhe": "ciclos=3 getContext(webgl*) chamadas=4 contextos=4 geojson na TV=1 (página A no total=2) canvas=null canvases=1 GET dashboard/unidades desde /tv=5"
+    }
+  ],
+  "medidas": {
+    "inicial": {
+      "ativa": "MAPA",
+      "nome": "Mapa",
+      "corLagarto": "#35e087",
+      "offline": "0",
+      "incidentesAbertos": "0",
+      "canvasMarcado": "original",
+      "canvases": 1,
+      "webglChamadas": 1,
+      "webglContextos": 1,
+      "timersVivos": 4,
+      "transicoes": 1,
+      "carregamentos": 2,
+      "beforeunload": 1,
+      "url": "/tv"
+    },
+    "passo4": {
+      "agora": {
+        "ativa": "MAPA",
+        "nome": "Mapa",
+        "corLagarto": "#35e087",
+        "offline": "0",
+        "incidentesAbertos": "0",
+        "canvasMarcado": null,
+        "canvases": 1,
+        "webglChamadas": 4,
+        "webglContextos": 4,
+        "timersVivos": 3,
+        "transicoes": 13,
+        "carregamentos": 2,
+        "beforeunload": 1,
+        "url": "/tv"
+      },
+      "geo": 1,
+      "geoTodos": [
+        {
+          "em": 1794572570188,
+          "daTv": false
+        },
+        {
+          "em": 1794572570725,
+          "daTv": true
+        }
+      ],
+      "unidadesGet": 5,
+      "ciclos": 3
+    }
+  },
+  "capturas": [],
+  "erros": [],
+  "fim": "2026-11-13T12:24:54.888Z",
+  "ok": false
+}

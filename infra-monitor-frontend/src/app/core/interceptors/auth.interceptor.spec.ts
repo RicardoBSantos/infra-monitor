@@ -104,6 +104,51 @@ describe('authInterceptor', () => {
     expect(state.authenticated()).toBe(false); expect(router.url).toContain('/login');
   });
 
+  it('em /tv, refresh falho leva ao login com origem=tv, returnUrl=/tv e a hora do encerramento', async () => {
+    const router = TestBed.inject(Router);
+    router.resetConfig([...router.config, { path: 'tv', component: TestRouteComponent }]);
+    await router.navigateByUrl('/tv');
+    http.get('/api/v1/configuracoes/modo-tv').subscribe({ error: () => undefined });
+    backend.expectOne('/api/v1/configuracoes/modo-tv').flush(erro401, unauthorized);
+    backend.expectOne(REFRESH).flush(null, { status: 204, statusText: 'No Content' });
+    await tick();
+    const url = router.parseUrl(router.url);
+    expect(router.url).toContain('/login');
+    expect(router.url).toContain('origem=tv');
+    expect(router.url).toContain('returnUrl=%2Ftv');
+    expect(url.queryParams['sessionExpired']).toBe('1');
+    expect(url.queryParams['encerradaEm']).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  it('401 atrasado que chega já no login não navega de novo: a faixa da TV e o returnUrl=/tv ficam', async () => {
+    const router = TestBed.inject(Router);
+    router.resetConfig([...router.config, { path: 'tv', component: TestRouteComponent }]);
+    await router.navigateByUrl('/tv');
+    http.get('/api/v1/configuracoes/modo-tv').subscribe({ error: () => undefined });
+    http.get('/api/v1/dashboard/unidades').subscribe({ error: () => undefined });
+    backend.expectOne('/api/v1/configuracoes/modo-tv').flush(erro401, unauthorized);
+    backend.expectOne(REFRESH).flush(null, { status: 204, statusText: 'No Content' });
+    await tick();
+    const urlDaQueda = router.url;
+    expect(urlDaQueda).toContain('origem=tv');
+
+    // Pedido que estava em voo responde 401 depois que a navegação ao login terminou.
+    backend.expectOne('/api/v1/dashboard/unidades').flush(erro401, unauthorized);
+    backend.match(REFRESH).forEach(r => r.flush(null, { status: 204, statusText: 'No Content' }));
+    await tick();
+    expect(router.url).toBe(urlDaQueda);
+  });
+
+  it('fora de /tv, refresh falho mantém o login como hoje', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/dashboard');
+    http.get('/api/v1/dashboard/resumo').subscribe({ error: () => undefined });
+    backend.expectOne('/api/v1/dashboard/resumo').flush(erro401, unauthorized);
+    backend.expectOne(REFRESH).flush(null, { status: 204, statusText: 'No Content' });
+    await tick();
+    expect(router.url).toBe('/login?sessionExpired=1');
+  });
+
   it('refresh and logout never receive Authorization', () => {
     http.post(REFRESH, {}).subscribe(); const refresh = backend.expectOne(REFRESH); expect(refresh.request.headers.has('Authorization')).toBe(false); refresh.flush(null, { status: 204, statusText: 'No Content' });
     http.post('/api/v1/auth/logout', {}).subscribe(); const logout = backend.expectOne('/api/v1/auth/logout'); expect(logout.request.headers.has('Authorization')).toBe(false); logout.flush(null, { status: 204, statusText: 'No Content' });

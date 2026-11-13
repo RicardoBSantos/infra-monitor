@@ -289,6 +289,19 @@ describe('DashboardComponent', () => {
     expect(detalhe).toContain('SW-CORE no Centro Operacional offline há');
   });
 
+  it('modo TV: links de navegação e a seta de expandir saem (data-tv-oculto); KPIs, banner e linhas ficam', () => {
+    const fixture = create();
+    responderCarga(fixture);
+    const raiz = fixture.nativeElement as HTMLElement;
+    const link = (rotulo: string) => [...raiz.querySelectorAll('a.botao')].find(a => a.textContent?.trim() === rotulo);
+    expect(link('Relatório de disponibilidade')?.hasAttribute('data-tv-oculto')).toBe(true);
+    expect(link('Incidentes abertos')?.hasAttribute('data-tv-oculto')).toBe(true);
+    const setas = raiz.querySelectorAll('.linha__seta');
+    expect(setas.length).toBeGreaterThan(0);
+    setas.forEach(seta => expect(seta.hasAttribute('data-tv-oculto')).toBe(true));
+    for (const visivel of ['.kpis', '.alerta__texto', '.linha__nome']) expect(raiz.querySelector(visivel)?.closest('[data-tv-oculto]')).toBeNull();
+  });
+
   it('banner usa o KPI para o "+N" e descreve abertos e reconhecidos', () => {
     const fixture = create();
     const reconhecido = { ...incidenteAberto, id: 91, status: 'RECONHECIDO', iniciadoEm: '2026-08-19T11:50:00Z' };
@@ -463,5 +476,153 @@ describe('DashboardComponent', () => {
     httpTesting.expectOne((request) => request.url.includes('/relatorios/latencia/unidades')).flush(pagina([]));
     fixture.detectChanges();
     expect(texto(fixture)).toContain('Falha no resumo');
+  });
+
+  describe('recarregarDados() (modo TV)', () => {
+    const semIncidentes = { ...resumo, incidentes: { abertos: 0 } };
+    const casa = (trecho: string) => (request: { url: string }) => request.url.includes(trecho);
+
+    beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T12:00:00Z')); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    function responderTique(resumoBody = semIncidentes) {
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(resumoBody);
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
+    }
+
+    it('rebusca resumo e unidades sem voltar a loading e sem tocar catálogo, cadastro ou agregados dentro de 15 min', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      fixture.componentInstance.recarregarDados();
+      expect(fixture.componentInstance['resumoState']()).toBe('success');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.kpi--carregando')).toBeNull();
+      responderTique();
+      vi.setSystemTime(new Date('2026-11-12T12:14:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(httpTesting.match(casa('/relatorios/'))).toHaveLength(0);
+      expect(httpTesting.match(casa('/api/v1/tipos-equipamento'))).toHaveLength(0);
+      expect(httpTesting.match((r) => r.url.endsWith('/api/v1/equipamentos'))).toHaveLength(0);
+    });
+
+    it('rebusca os agregados de 30 d depois de 15 min + 1 ms, mantendo o valor e sem loading', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      const latencia = httpTesting.match(casa('/relatorios/latencia/unidades'));
+      const disponibilidade = httpTesting.match(casa('/relatorios/disponibilidade/unidades'));
+      expect(latencia).toHaveLength(1);
+      expect(disponibilidade).toHaveLength(1);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('99,4');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.kpi--carregando')).toBeNull();
+      latencia[0].flush(pagina([latenciaUnidade(40, 100)]));
+      disponibilidade[0].flush(pagina([]));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
+
+    it('rebusca os incidentes do banner quando o novo resumo ainda aponta abertos', () => {
+      const fixture = create();
+      responderCarga(fixture);
+      fixture.componentInstance.recarregarDados();
+      responderTique({ ...resumo });
+      fixture.detectChanges();
+      expect(httpTesting.match((r) => r.url.endsWith("/api/v1/incidentes"))).toHaveLength(2);
+    });
+
+    it('ultimaAtualizacaoOk anda só quando o resumo responde com sucesso', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      const inicial = fixture.componentInstance.ultimaAtualizacaoOk();
+      expect(inicial?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      vi.setSystemTime(new Date('2026-11-12T12:01:00Z'));
+      fixture.componentInstance.recarregarDados();
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()).toEqual(inicial); // em voo
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()).toEqual(inicial); // falhou
+      vi.setSystemTime(new Date('2026-11-12T12:02:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:02:00.000Z');
+    });
+
+    it('falha silenciosa mantém o dado anterior e liga falhouUltimaAtualizacao', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      fixture.componentInstance.recarregarDados();
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      fixture.detectChanges();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      expect(texto(fixture)).toContain('Centro Operacional');
+      expect(texto(fixture)).not.toContain('Não foi possível carregar');
+    });
+
+    function falharLatencia() {
+      httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(null, { status: 502, statusText: 'x' });
+      httpTesting.expectOne((r) => r.url.endsWith('/relatorios/latencia')).flush(null, { status: 502, statusText: 'x' });
+    }
+
+    it('disponibilidade ok e latência falhando: a moldura não acusa falha e só a latência é rebuscada no tique seguinte', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(pagina([]));
+      falharLatencia();
+      // Agregado de 30 d tem validade própria (15 min) e KPI próprio: não fala pela frescura do dado principal.
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('23'); // a latência anterior continua no KPI
+      vi.setSystemTime(new Date('2026-11-12T12:16:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(httpTesting.match(casa('/relatorios/disponibilidade/'))).toHaveLength(0);
+      httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(40, 100)]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
+
+    it('agregados falhando sozinhos não ligam a flag; o resumo falhando na mesma rodada liga', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(null, { status: 502, statusText: 'x' });
+      falharLatencia();
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+    });
+
+    it('disponibilidade falhando e latência ok: rebusca só a disponibilidade, sem acusar falha na moldura', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(null, { status: 502, statusText: 'x' });
+      httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(40, 100)]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      vi.setSystemTime(new Date('2026-11-12T12:16:00Z'));
+      fixture.componentInstance.recarregarDados();
+      responderTique();
+      expect(httpTesting.match(casa('/relatorios/latencia/'))).toHaveLength(0);
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(pagina([]));
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+    });
+
+    it('o botão Atualizar manual continua pondo o resumo em loading', () => {
+      const fixture = create();
+      responderCargaSemIncidentes(fixture, semIncidentes);
+      fixture.componentInstance['atualizar']();
+      expect(fixture.componentInstance['resumoState']()).toBe('loading');
+      httpTesting.match(() => true);
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith, take } from 'rxjs';
@@ -24,6 +24,7 @@ import { AppIconComponent } from '../../shared/app-icon/app-icon.component';
 import { DateRange, DateRangeComponent } from '../../shared/date-range/date-range.component';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { TelaTv } from '../tv/tela-tv';
 import { IncidenteDetalheDrawerComponent } from './incidente-detalhe-drawer.component';
 import { duracaoDe, iconeEvento, rotuloEvento } from './ocorrencia';
 
@@ -72,7 +73,7 @@ const ROTULO_SEVERIDADE: Record<IncidentSeverity, string> = {
   templateUrl: './incidente-unificado-list.component.html',
   styleUrl: './incidente-unificado-list.component.scss',
 })
-export class IncidenteUnificadoListComponent {
+export class IncidenteUnificadoListComponent implements TelaTv {
   private readonly api = inject(DashboardIncidenteApiService);
   private readonly incidentesApi = inject(IncidenteApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -141,6 +142,15 @@ export class IncidenteUnificadoListComponent {
     return total ? `${this.linhas().length} de ${plural(total, 'ocorrência', 'ocorrências')}` : '';
   });
 
+  private readonly intervalo = viewChild(DateRangeComponent);
+  /** Ligada só durante `recarregarDados`: faz o `mudarPeriodo` resultante carregar sem esqueleto. */
+  private rodadaSilenciosa = false;
+  private readonly falhou = signal(false);
+  readonly falhouUltimaAtualizacao = this.falhou.asReadonly();
+  private readonly okEm = signal<Date | null>(null);
+  /** Carimbo do modo TV: última resposta com sucesso da lista (carga normal ou silenciosa). */
+  readonly ultimaAtualizacaoOk = this.okEm.asReadonly();
+
   constructor() {
     this.carregarUnidades();
     // A lista não carrega aqui: o <app-date-range> emite o período inicial em ngOnInit e
@@ -151,7 +161,26 @@ export class IncidenteUnificadoListComponent {
 
   protected mudarPeriodo(intervalo: DateRange): void {
     this.periodo.set(intervalo);
-    this.reiniciarPagina();
+    const silencioso = this.rodadaSilenciosa;
+    this.rodadaSilenciosa = false;
+    this.reiniciarPagina(silencioso);
+  }
+
+  /**
+   * Atualização silenciosa do modo TV: desliza a janela relativa até agora (o `date-range`
+   * emite `mudar`) e recarrega lista e contadores sem esqueleto. Período personalizado não
+   * emite; nesse caso recarrega com o mesmo período. A lista de unidades não é rebuscada.
+   */
+  recarregarDados(): void {
+    this.falhou.set(false);
+    this.rodadaSilenciosa = true;
+    this.intervalo()?.renovar();
+    const semEmissao = this.rodadaSilenciosa;
+    this.rodadaSilenciosa = false;
+    if (semEmissao) {
+      this.carregarLista(true);
+      this.carregarContadores(true);
+    }
   }
 
   protected mudarAba(aba: IncidentTab): void {
@@ -167,10 +196,10 @@ export class IncidenteUnificadoListComponent {
   protected mudarOrdenacao(valor: string): void { this.ordenacao.set(valor as Ordenacao); this.reiniciarPagina(); }
 
   /** Qualquer filtro fora da aba muda a lista e os contadores juntos. */
-  private reiniciarPagina(): void {
+  private reiniciarPagina(silencioso = false): void {
     this.pagina.set(0);
-    this.carregarLista();
-    this.carregarContadores();
+    this.carregarLista(silencioso);
+    this.carregarContadores(silencioso);
   }
 
   protected irParaPagina(pagina1Based: number): void {
@@ -180,20 +209,26 @@ export class IncidenteUnificadoListComponent {
 
   // ---- Carga -------------------------------------------------------------------
 
-  protected carregarLista(): void {
+  protected carregarLista(silencioso = false): void {
     const consulta = this.consulta();
     if (!consulta) return;
-    this.estado.set('loading');
-    this.erro.set(null);
+    if (!silencioso) {
+      this.estado.set('loading');
+      this.erro.set(null);
+    }
     this.api.list(consulta).pipe(take(1)).subscribe({
       next: (resposta) => {
         this.linhas.set(resposta.content);
         this.pagina.set(resposta.page);
         this.totalPaginas.set(resposta.totalPages);
         this.totalElementos.set(resposta.totalElements);
+        this.erro.set(null);
         this.estado.set(resposta.content.length ? 'success' : 'empty');
+        this.okEm.set(new Date());
       },
       error: (erro) => {
+        // Rodada silenciosa que falha mantém a lista anterior; só marca a falha para a moldura da TV.
+        if (silencioso) { this.falhou.set(true); return; }
         this.erro.set(mensagemDe(erro, 'Não foi possível carregar as ocorrências.'));
         this.estado.set('error');
       },
@@ -201,13 +236,16 @@ export class IncidenteUnificadoListComponent {
   }
 
   /** Falha de contador não derruba a lista: as abas ficam sem número, a tabela continua. */
-  private carregarContadores(): void {
+  private carregarContadores(silencioso = false): void {
     const intervalo = this.periodo();
     if (!intervalo) return;
     this.api.counters({ unidadeId: this.unidadeId(), severidade: this.severidade(), ...intervalo })
       .pipe(take(1)).subscribe({
         next: (contadores) => this.contadores.set(contadores),
-        error: () => this.contadores.set(null),
+        error: () => {
+          if (silencioso) this.falhou.set(true);
+          else this.contadores.set(null);
+        },
       });
   }
 

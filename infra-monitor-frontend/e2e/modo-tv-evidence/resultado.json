@@ -1,0 +1,218 @@
+{
+  "base": "http://localhost:4311",
+  "inicio": "2026-11-13T12:16:24.399Z",
+  "config": {
+    "PASSOS": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "capturas"
+    ],
+    "CICLOS": 300,
+    "DURACAO_S": 10,
+    "INTERVALO_S": 30
+  },
+  "passos": [
+    {
+      "passo": 1,
+      "descricao": "admin salva pela UI 4 telas x 10 s e intervalo 30 s (gravado no banco)",
+      "ok": true,
+      "detalhe": "PUT 200; banco={\"ativo\":true,\"intervalo\":30,\"telas\":[{\"tela\":\"MAPA\",\"ordem\":1,\"duracao\":10},{\"tela\":\"PAINEL\",\"ordem\":2,\"duracao\":10},{\"tela\":\"INCIDENTES\",\"ordem\":3,\"duracao\":10},{\"tela\":\"RELATORIOS\",\"ordem\":4,\"duracao\":10}]}"
+    },
+    {
+      "passo": 2,
+      "descricao": "ciclo completo MAPA→PAINEL→INCIDENTES→RELATORIOS→MAPA observado pelo nome da tela",
+      "ok": true,
+      "detalhe": "seq=MAPA→PAINEL→INCIDENTES→RELATORIOS→MAPA nomes=Mapa→Painel→Incidentes→Relatórios→Mapa duracoes_s=10.2,10.0,10.0,10.0"
+    },
+    {
+      "passo": 3,
+      "descricao": "SQL fecha o incidente: OFFLINE do Painel e --cor-unidade de Lagarto no Mapa mudam sem recarregar o documento",
+      "ok": true,
+      "detalhe": "OFFLINE 1→0 em 10.081s; INCIDENTES ABERTOS 1→0; cor Lagarto #fcb142→#35e087 em 40.31s; carregamentos do documento desde a abertura de /tv=0, beforeunload=0 (evento load desde /tv=1, só a abertura)"
+    },
+    {
+      "passo": 4,
+      "descricao": "Mapa não reinicializa em >= 3 ciclos: 1 contexto WebGL, 1 GET do GeoJSON, mesmo nó de canvas",
+      "ok": true,
+      "detalhe": "ciclos=3 getContext(webgl*) chamadas=1 contextos=1 geojson na TV=1 (página A no total=2) canvas=original canvases=1 GET dashboard/unidades desde /tv=5"
+    },
+    {
+      "passo": 5,
+      "descricao": "sessão normal intacta durante a rotação: B (outro contexto) e B' (2ª aba do mesmo perfil da TV) seguem em /dashboard, sem navegação e sem requisição a /configuracoes/modo-tv",
+      "ok": true,
+      "detalhe": "B: url=/dashboard req config=0 navegações=0 durante 127s; B' (mesmo contexto): url=/dashboard req config=0 navegações=0 durante 125s; trocas de tela da TV no período=13"
+    },
+    {
+      "passo": 6,
+      "descricao": "300 ciclos com page.clock: a rotação avançou (>= 90% das trocas), Nodes e JSEventListeners com inclinação < 1/ciclo (10→300), timers vivos constantes, 1 contexto WebGL",
+      "ok": true,
+      "detalhe": "trocas de tela 1161/1160 (ciclo 10→300); Nodes 1293/1293/1293 (incl 0.000); listeners 531/545/537 (incl 0.021); timers 3/3/3; webgl 1/1/1; requisições 3127; real 186s"
+    }
+  ],
+  "medidas": {
+    "putStatus": 200,
+    "inicial": {
+      "ativa": "MAPA",
+      "nome": "Mapa",
+      "corLagarto": "#fcb142",
+      "offline": "1",
+      "incidentesAbertos": "1",
+      "canvasMarcado": "original",
+      "canvases": 1,
+      "webglChamadas": 1,
+      "webglContextos": 1,
+      "timersVivos": 4,
+      "transicoes": 1,
+      "carregamentos": 2,
+      "beforeunload": 1,
+      "url": "/tv"
+    },
+    "passo3": {
+      "antes": {
+        "ativa": "MAPA",
+        "nome": "Mapa",
+        "corLagarto": "#fcb142",
+        "offline": "1",
+        "incidentesAbertos": "1",
+        "canvasMarcado": "original",
+        "canvases": 1,
+        "webglChamadas": 1,
+        "webglContextos": 1,
+        "timersVivos": 3,
+        "transicoes": 5,
+        "carregamentos": 2,
+        "beforeunload": 1,
+        "url": "/tv"
+      },
+      "depois": {
+        "ativa": "MAPA",
+        "nome": "Mapa",
+        "corLagarto": "#35e087",
+        "offline": "0",
+        "incidentesAbertos": "0",
+        "canvasMarcado": "original",
+        "canvases": 1,
+        "webglChamadas": 1,
+        "webglContextos": 1,
+        "timersVivos": 3,
+        "transicoes": 9,
+        "carregamentos": 2,
+        "beforeunload": 1,
+        "url": "/tv"
+      },
+      "sqlMonitor": "7\nINSERT 0 1",
+      "painelS": 10.081,
+      "mapaS": 40.31
+    },
+    "passo4": {
+      "agora": {
+        "ativa": "MAPA",
+        "nome": "Mapa",
+        "corLagarto": "#35e087",
+        "offline": "0",
+        "incidentesAbertos": "0",
+        "canvasMarcado": "original",
+        "canvases": 1,
+        "webglChamadas": 1,
+        "webglContextos": 1,
+        "timersVivos": 3,
+        "transicoes": 13,
+        "carregamentos": 2,
+        "beforeunload": 1,
+        "url": "/tv"
+      },
+      "geo": 1,
+      "geoTodos": [
+        {
+          "em": 1794572188232,
+          "daTv": false
+        },
+        {
+          "em": 1794572189205,
+          "daTv": true
+        }
+      ],
+      "unidadesGet": 5,
+      "ciclos": 3
+    },
+    "passo5": {
+      "contextoIsolado": {
+        "url": "/dashboard",
+        "config": 0,
+        "navegacoes": []
+      },
+      "mesmoContexto": {
+        "url": "/dashboard",
+        "config": 0,
+        "navegacoes": []
+      },
+      "trocasDaTv": 13
+    },
+    "passo6": {
+      "amostras": [
+        {
+          "ciclo": 10,
+          "Nodes": 1293,
+          "JSEventListeners": 531,
+          "JSHeapUsedSize": 15892480,
+          "timersVivos": 3,
+          "webglContextos": 1,
+          "transicoes": 56,
+          "ativa": "RELATORIOS",
+          "url": "/tv"
+        },
+        {
+          "ciclo": 100,
+          "Nodes": 1293,
+          "JSEventListeners": 545,
+          "JSHeapUsedSize": 16298748,
+          "timersVivos": 3,
+          "webglContextos": 1,
+          "transicoes": 417,
+          "ativa": "MAPA",
+          "url": "/tv"
+        },
+        {
+          "ciclo": 300,
+          "Nodes": 1293,
+          "JSEventListeners": 537,
+          "JSHeapUsedSize": 16923668,
+          "timersVivos": 3,
+          "webglContextos": 1,
+          "transicoes": 1217,
+          "ativa": "MAPA",
+          "url": "/tv"
+        }
+      ],
+      "inclinacaoNodes": 0,
+      "inclinacaoListeners": 0.020689655172413793,
+      "requisicoes": 3127,
+      "geojson": 0,
+      "duracaoRealS": 186,
+      "trocas": {
+        "observadas": 1161,
+        "esperadas": 1160
+      }
+    }
+  },
+  "capturas": [
+    "1-configuracoes-modo-tv.png",
+    "2-tv-escuro-mapa.png",
+    "2-tv-escuro-painel.png",
+    "2-tv-escuro-incidentes.png",
+    "2-tv-escuro-relatorios.png",
+    "3-tv-apos-mudanca.png",
+    "configuracoes-modo-tv-claro.png",
+    "tv-claro-mapa.png",
+    "tv-claro-painel.png",
+    "tv-claro-incidentes.png",
+    "tv-claro-relatorios.png"
+  ],
+  "erros": [],
+  "fim": "2026-11-13T12:22:15.156Z",
+  "ok": true
+}

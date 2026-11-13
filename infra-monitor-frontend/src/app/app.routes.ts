@@ -75,12 +75,26 @@ const businessRoutes: Routes = [
   { path: 'notificacoes/detalhe/:id', loadComponent: () => import('./features/notificacoes/notificacao-detail.component').then(m => m.NotificacaoDetailComponent), data: { breadcrumb: 'Detalhe da notificação', title: 'Notificação', section: 'Administração' } },
   { path: 'relatorios', canActivate: [roleGuard], loadComponent: () => import('./features/relatorios/relatorios.component').then(m => m.RelatoriosComponent), data: { roles: ['ADMIN', 'OPERADOR', 'VISUALIZADOR'], breadcrumb: 'Relatórios', title: 'Relatórios', section: 'Operações' } },
   { path: 'usuarios', canActivate: [roleGuard], loadComponent: () => import('./features/usuarios/usuario-list.component').then(m => m.UsuarioListComponent), data: { roles: ['ADMIN'], breadcrumb: 'Usuários', title: 'Usuários', section: 'Administração' } },
+  // Casa das configurações do sistema: cada seção é uma rota filha com componente próprio
+  // e um item na navegação lateral da página (padrão de /notificacoes).
+  {
+    path: 'configuracoes',
+    canActivate: [roleGuard],
+    loadComponent: () => import('./features/configuracoes/configuracoes.component').then(m => m.ConfiguracoesComponent),
+    data: { roles: ['ADMIN'], breadcrumb: 'Configurações', title: 'Configurações do sistema', section: 'Administração' },
+    children: [
+      { path: '', redirectTo: 'modo-tv', pathMatch: 'full' },
+      { path: 'modo-tv', loadComponent: () => import('./features/configuracoes/modo-tv-config.component').then(m => m.ModoTvConfigComponent), data: { title: 'Configurações · Modo TV' } },
+    ],
+  },
 ];
 
 export const routes: Routes = [
   { path: 'login', canActivate: [loginGuard], loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent) },
   { path: 'trocar-senha', canActivate: [passwordChangeGuard], loadComponent: () => import('./features/auth/change-password.component').then(m => m.ChangePasswordComponent) },
   { path: 'forbidden', canActivate: [authGuard], loadComponent: () => import('./features/auth/forbidden.component').then(m => m.ForbiddenComponent) },
+  // Fora do shell (sem sidebar/topbar), qualquer papel: o painel de parede é só leitura.
+  { path: 'tv', canActivate: [businessGuard], loadComponent: () => import('./features/tv/tv.component').then(m => m.TvComponent), title: 'Modo TV' },
   { path: '', component: ApplicationShellComponent, canActivate: [businessGuard], children: businessRoutes },
   { path: '**', redirectTo: 'dashboard' },
 ];

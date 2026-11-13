@@ -23,7 +23,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const protectedRequest = isProtectedApi(request.url);
   const encerrar = (error: HttpErrorResponse): Observable<never> => {
     auth.clear();
-    if (!redirecting401) { redirecting401 = true; router.navigate(['/login'], { queryParams: { sessionExpired: '1' } }).finally(() => { redirecting401 = false; }); }
+    // 401 atrasado de um pedido que estava em voo: já no login, navegar de novo trocaria os parâmetros da
+    // queda (na TV perderia `origem=tv`, a faixa e o `returnUrl=/tv`).
+    const jaNoLogin = router.url === '/login' || router.url.startsWith('/login?') || router.url.startsWith('/login#');
+    if (!redirecting401 && !jaNoLogin) { redirecting401 = true; router.navigate(['/login'], { queryParams: parametrosDoLogin(router.url) }).finally(() => { redirecting401 = false; }); }
     return throwError(() => error);
   };
   const enviar = (req: HttpRequest<unknown>, token: string | null): Observable<HttpEvent<unknown>> => next(protectedRequest && token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req).pipe(catchError((error: unknown) => {
@@ -38,6 +41,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   }));
   return enviar(request, auth.accessToken());
 };
+/** Na TV o login mostra a faixa "Modo TV parado" com a hora do encerramento e volta para `/tv`. */
+function parametrosDoLogin(url: string): Record<string, string> {
+  const naTv = url === '/tv' || url.startsWith('/tv?') || url.startsWith('/tv#');
+  if (!naTv) return { sessionExpired: '1' };
+  const agora = new Date(); const hhmm = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+  return { sessionExpired: '1', origem: 'tv', returnUrl: '/tv', encerradaEm: hhmm };
+}
 /** Cópia do contexto com a marca: `HttpContext.set` muda o objeto do chamador, que pode ser reutilizado. */
 function repetida(context: HttpContext): HttpContext {
   const copia = new HttpContext(); for (const token of context.keys()) copia.set(token, context.get(token));

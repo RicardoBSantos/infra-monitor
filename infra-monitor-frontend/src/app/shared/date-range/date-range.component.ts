@@ -101,9 +101,23 @@ export class DateRangeComponent implements OnInit {
     if (!atalho) return;
     this.preset.set(chave);
     this.erro.set(null);
-    const fim = new Date();
-    const inicio = new Date(fim.getTime() - atalho.horas * 60 * 60 * 1000);
     this.fechar();
+    this.emitirJanelaRelativa(atalho.horas);
+  }
+
+  /**
+   * Desliza a janela do atalho vigente até agora e emite `mudar` (modo TV: o `fim` congelado
+   * na montagem deixaria a tela envelhecer). No período personalizado não faz nada: as datas
+   * foram escolhidas por uma pessoa e não andam sozinhas.
+   */
+  renovar(): void {
+    const atalho = ATALHOS.find((candidato) => candidato.chave === this.preset());
+    if (atalho) this.emitirJanelaRelativa(atalho.horas);
+  }
+
+  private emitirJanelaRelativa(horas: number): void {
+    const fim = new Date();
+    const inicio = new Date(fim.getTime() - horas * 60 * 60 * 1000);
     this.mudar.emit({ inicio: inicio.toISOString(), fim: fim.toISOString() });
   }
 

@@ -33,6 +33,6 @@ export class SidebarComponent {
   protected readonly management: readonly NavigationItem[] = [
     { label: 'Unidades', path: '/unidades', icon: 'unit' }, { label: 'Equipamentos', path: '/equipamentos', icon: 'equipment' }, { label: 'Tipos de equipamento', path: '/tipos-equipamento', icon: 'types' }, { label: 'Monitoramento', path: '/monitores', icon: 'monitor' }, { label: 'Manutenções', path: '/manutencoes', icon: 'wrench' }, { label: 'Medições', path: '/medicoes', icon: 'measurements' }, { label: 'Telegram', path: '/notificacoes', icon: 'telegram' },
   ];
-  protected readonly administration: readonly NavigationItem[] = [{ label: 'Usuários', path: '/usuarios', icon: 'equipment' }];
+  protected readonly administration: readonly NavigationItem[] = [{ label: 'Usuários', path: '/usuarios', icon: 'equipment' }, { label: 'Configurações', path: '/configuracoes', icon: 'wrench' }];
   protected close(): void { this.closeNavigation.emit(); }
 }

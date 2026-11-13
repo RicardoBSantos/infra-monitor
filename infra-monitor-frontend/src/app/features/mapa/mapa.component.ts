@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import type { Feature, FeatureCollection } from 'geojson';
-import type { LayerSpecification } from 'maplibre-gl';
+import type { GeoJSONSource, LayerSpecification } from 'maplibre-gl';
 import { LngLat, LngLatBounds, Map as MaplibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import { take } from 'rxjs';
 
@@ -13,6 +13,7 @@ import { GeoMunicipioService, Municipio, divergenciaIbge, normalizeCodigoIbge } 
 import { DashboardApiService } from '../../core/services/dashboard-api.service';
 import { LABELS as ROTULO_STATUS, StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { EquipamentoDetalheDrawerComponent, EquipamentoResumo } from '../equipamentos/equipamento-detalhe-drawer.component';
+import { TelaTv } from '../tv/tela-tv';
 
 type MapState = 'loading' | 'success' | 'empty' | 'error';
 export interface MapMunicipio extends Municipio { units: DashboardUnidade[]; }
@@ -502,6 +503,18 @@ export function conexoesDesenhaveis(unidades: DashboardUnidade[]): Feature[] {
 }
 
 /**
+ * As duas listas desenham os mesmos marcadores, conexões e pings? Compara o que posiciona ou liga
+ * alguma coisa no mapa — id, coordenada, hub e código IBGE (este decide o município da contagem) —
+ * e ignora status e números, que a atualização do modo TV pinta no lugar. Ordem não importa. Pura.
+ */
+export function mesmaTopologia(a: DashboardUnidade[], b: DashboardUnidade[]): boolean {
+  const assinatura = (lista: DashboardUnidade[]) => lista
+    .map(u => `${u.id}|${u.latitude}|${u.longitude}|${u.conectaAUnidadeId}|${normalizeCodigoIbge(u.codigoIbge)}`)
+    .sort().join(';');
+  return a.length === b.length && assinatura(a) === assinatura(b);
+}
+
+/**
  * Rotulo do marcador de unidade. Status por extenso: "DEGRADADA" cru nao e texto de leitor de tela.
  *
  * Os incidentes abertos entraram aqui junto com a dica de relance (N07): a dica aparece no hover E
@@ -555,6 +568,38 @@ function dicaDaUnidade(unidade: DashboardUnidade): HTMLElement {
     dica.appendChild(linha);
   }
   return dica;
+}
+
+/**
+ * O que do marcador de unidade depende do dado operacional: cor, rótulo e dica. Usada ao criar e
+ * pela atualização no lugar do modo TV — uma conta só, para as duas não divergirem.
+ *
+ * A cor de status vai por variavel CSS, e nao por classe: sao os mesmos hex do canvas, num unico
+ * lugar, e nao ha classe de status para criar e manter em paralelo no SCSS.
+ */
+function pintarMarcadorDeUnidade(alvo: HTMLElement, unidade: DashboardUnidade): void {
+  alvo.setAttribute('aria-label', rotuloDaUnidade(unidade));
+  alvo.style.setProperty('--cor-unidade', corDoStatus(unidade.status));
+  const dica = dicaDaUnidade(unidade);
+  const anterior = alvo.querySelector(':scope > .map__dica');
+  if (anterior) anterior.replaceWith(dica); else alvo.appendChild(dica);
+}
+
+/** Um ping em voo e a linha a que pertence (`para` = unidade filha, dona do status da linha). */
+interface Ping { marcador: Marker; origem: [number, number]; destino: [number, number]; defasagem: number; para: number; }
+
+/**
+ * Envoltória do estado para o encaixe (D22). Unidades entram: uma coordenada fora do contorno
+ * (cadastro errado) não pode cair fora do cartão.
+ */
+function envoltoriaDoEstado(municipios: MapMunicipio[]): [number, number][] {
+  const pontos: [number, number][] = [];
+  for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => { pontos.push([ponto[0], ponto[1]]); });
+  for (const unidade of municipios.flatMap(municipio => municipio.units)) {
+    const coordenada = coordenadaDaUnidade(unidade);
+    if (coordenada) pontos.push(coordenada);
+  }
+  return envoltoriaConvexa(pontos);
 }
 
 /** Varre coordenadas de Polygon/MultiPolygon sem alocar array intermediario. */
@@ -611,7 +656,16 @@ export function cliqueVeioDeMarcador(alvo: EventTarget | null): boolean {
 }
 
 @Component({ selector: 'app-mapa', imports: [StatusBadgeComponent, EquipamentoDetalheDrawerComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './mapa.component.html', styleUrl: './mapa.component.scss' })
-export class MapaComponent implements OnDestroy {
+export class MapaComponent implements OnDestroy, TelaTv {
+  /**
+   * Modo TV: false enquanto a tela está oculta (`visibility:hidden`, nunca `display:none`). Só pausa
+   * o laço de rAF dos pings; os Markers ficam, e voltar a true retoma o laço sem recriá-los.
+   */
+  readonly ativa = input(true);
+  /** true se a última `recarregarDados()` falhou; o mapa segue com o dado anterior. */
+  readonly falhouUltimaAtualizacao = signal(false);
+  /** Carimbo do modo TV: última resposta com sucesso de `GET /dashboard/unidades` (carga inicial ou silenciosa). */
+  readonly ultimaAtualizacaoOk = signal<Date | null>(null);
   protected readonly plural = plural;
   private readonly geoMunicipio = inject(GeoMunicipioService);
   private readonly dashboardApi = inject(DashboardApiService);
@@ -641,6 +695,15 @@ export class MapaComponent implements OnDestroy {
   private readonly host = viewChild<ElementRef<HTMLDivElement>>('host');
   /** Cartografia carregada. Sinal, e não campo, porque o aviso de IBGE divergente deriva dela. */
   private readonly fonteMunicipios = signal<Municipio[] | null>(null);
+  /**
+   * O que dispara a montagem do MapLibre: os municípios agrupados na resolução de `load()`. Separado
+   * de `municipios`, que alimenta legenda e contagens e que `recarregarDados()` reescreve a cada
+   * tique — se o effect de montagem lesse `municipios`, toda atualização do modo TV recriaria o
+   * mapa, a cartografia e a câmera.
+   */
+  private readonly cartografia = signal<MapMunicipio[]>([]);
+  /** Descarta resposta de uma carga anterior (manual ou silenciosa) que chegue depois da seguinte. */
+  private geracao = 0;
   /** Coordenada × código IBGE da unidade em foco. A coordenada prevalece; isto só torna a divergência visível. */
   protected readonly divergencia = computed(() => {
     const unidade = this.unidadeSelecionada();
@@ -667,30 +730,90 @@ export class MapaComponent implements OnDestroy {
    * Pings em voo. Não entram em `marcadoresUnidade`: aquele mapa é indexado por id de unidade e
    * serve ao `aria-pressed`; estes não têm identidade nem estado, são desenho em movimento.
    */
-  private pings: Marker[] = [];
-  /** Quadro de animação dos pings. Cancelado em `destruirMapa`, junto com o AbortController. */
+  private pings: Ping[] = [];
+  /** Quadro de animação dos pings. Cancelado em `destruirMapa` e com a tela oculta no modo TV (`ativa`). */
   private quadroPing: number | null = null;
   private teclado: AbortController | null = null;
+  /**
+   * Ouvintes dos marcadores de unidade, um controlador por montagem: `remontarMarcadores` (modo TV,
+   * topologia nova) aborta o anterior. No `teclado`, que vive o mapa inteiro, cada troca de topologia
+   * deixaria 2 ouvintes por unidade presos a botões já removidos — por dias, numa TV.
+   */
+  private ouvintesUnidades: AbortController | null = null;
 
   constructor() {
     this.load();
     // O container só existe quando o estado sai de loading/error; quando ele some, o mapa vai junto.
+    // Lê `cartografia`, e não `municipios`: a atualização do modo TV não pode remontar o mapa.
     effect(() => {
       const elemento = this.host()?.nativeElement;
-      const municipios = this.municipios();
-      if (!elemento || municipios.length === 0) { this.destruirMapa(); return; }
-      this.montarMapa(elemento, municipios);
+      const cartografia = this.cartografia();
+      if (!elemento || cartografia.length === 0) { this.destruirMapa(); return; }
+      this.montarMapa(elemento, untracked(() => this.municipios()));
     });
     // Estado do marcador de unidade acompanha o painel (unidadeSelecionada), que é a única seleção (D20).
     effect(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
+    // Tela oculta no modo TV: pausa o laço dos pings (os Markers ficam).
+    effect(() => { if (this.ativa()) untracked(() => this.iniciarLacoPings()); else this.pararLacoPings(); });
   }
 
   ngOnDestroy(): void { this.destruirMapa(); }
 
   protected load(): void {
-    this.state.set('loading'); this.error.set(null); this.foraDoEnquadramento.set(false); this.limparUnidade(); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
-    this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { this.fonteMunicipios.set(municipios); this.resolve(); }, error: () => this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.') });
-    this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { this.units = units; this.resolve(); }, error: () => this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.') });
+    const geracao = ++this.geracao;
+    this.state.set('loading'); this.error.set(null); this.foraDoEnquadramento.set(false); this.limparUnidade(); this.cartografia.set([]); this.municipios.set([]); this.semLocalizacao.set([]); this.semCorrespondencia.set([]); this.fonteMunicipios.set(null); this.units = null;
+    this.geoMunicipio.getMunicipios().pipe(take(1)).subscribe({ next: municipios => { if (geracao !== this.geracao) return; this.fonteMunicipios.set(municipios); this.resolve(); }, error: () => { if (geracao === this.geracao) this.fail('Erro ao carregar mapa: não foi possível carregar a cartografia de Sergipe.'); } });
+    this.dashboardApi.getUnidades().pipe(take(1)).subscribe({ next: units => { if (geracao !== this.geracao) return; this.units = units; this.ultimaAtualizacaoOk.set(new Date()); this.resolve(); }, error: () => { if (geracao === this.geracao) this.fail('Erro ao carregar dados operacionais: não foi possível consultar as unidades.'); } });
+  }
+
+  /**
+   * Atualização silenciosa do modo TV: rebusca só `GET /dashboard/unidades`. Cartografia, MapLibre
+   * e câmera ficam — nada aqui chama `enquadrarEstado`, `easeTo`, `jumpTo` ou `fitBounds`. Sem
+   * `loading`; falha mantém marcadores e painel como estão e liga `falhouUltimaAtualizacao`.
+   *
+   * Antes da primeira carga completa não há o que remendar: em `error` (cartografia ou unidades
+   * falharam ao abrir) a TV tentaria para sempre sobre uma tela de erro, então recarrega inteiro;
+   * em `loading`, a carga em curso já vai trazer o dado.
+   */
+  recarregarDados(): void {
+    if (this.state() === 'error') { this.load(); return; }
+    const fonte = this.fonteMunicipios();
+    if (this.state() === 'loading' || !fonte || !this.units) return;
+    const geracao = ++this.geracao;
+    this.dashboardApi.getUnidades().pipe(take(1)).subscribe({
+      next: units => { if (geracao !== this.geracao) return; this.ultimaAtualizacaoOk.set(new Date()); this.aplicarUnidades(fonte, units); },
+      error: () => { if (geracao === this.geracao) this.falhouUltimaAtualizacao.set(true); },
+    });
+  }
+
+  private aplicarUnidades(fonte: Municipio[], units: DashboardUnidade[]): void {
+    const anteriores = this.units ?? [];
+    this.units = units;
+    const agrupado = agruparUnidades(fonte, units);
+    this.semLocalizacao.set(agrupado.semLocalizacao);
+    this.semCorrespondencia.set(agrupado.semCorrespondencia);
+    this.municipios.set(agrupado.municipios);
+    this.state.set(units.length === 0 ? 'empty' : 'success');
+    this.falhouUltimaAtualizacao.set(false);
+    if (this.map) {
+      if (mesmaTopologia(anteriores, units)) this.aplicarStatusNoLugar(units);
+      else this.remontarMarcadores(units);
+    }
+    // Painel aberto acompanha o dado novo; unidade que sumiu fecha painel e gaveta.
+    const selecionada = this.unidadeSelecionada();
+    if (selecionada) {
+      const atual = units.find(unidade => unidade.id === selecionada.id);
+      if (atual) this.unidadeSelecionada.set(atual); else this.limparUnidade();
+    }
+  }
+
+  /** Unidade com o dado mais recente: os handlers dos marcadores sobrevivem às atualizações no lugar. */
+  private unidadeAtual(unidade: DashboardUnidade): DashboardUnidade {
+    return this.units?.find(candidata => candidata.id === unidade.id) ?? unidade;
+  }
+
+  private municipioAtual(codigoIbge: string): MapMunicipio | undefined {
+    return this.municipios().find(candidato => candidato.codigoIbge === codigoIbge);
   }
 
   protected selectUnidade(unidade: DashboardUnidade): void {
@@ -750,7 +873,9 @@ export class MapaComponent implements OnDestroy {
     this.semLocalizacao.set(agrupado.semLocalizacao);
     this.semCorrespondencia.set(agrupado.semCorrespondencia);
     this.municipios.set(agrupado.municipios);
+    this.cartografia.set(agrupado.municipios);
     this.state.set(this.units.length === 0 ? 'empty' : 'success');
+    this.falhouUltimaAtualizacao.set(false);
   }
 
 
@@ -815,15 +940,12 @@ export class MapaComponent implements OnDestroy {
     });
     this.map = map;
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
+    // Zoom e bússola são controle: somem no modo TV, como os botões do template.
+    elemento.querySelector('.maplibregl-ctrl-top-right')?.setAttribute('data-tv-oculto', '');
 
     const limites = new LngLatBounds();
-    const pontos: [number, number][] = [];
-    for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => { limites.extend(ponto as [number, number]); pontos.push([ponto[0], ponto[1]]); });
-    // Unidades entram na envoltória: uma coordenada fora do contorno (cadastro errado) não pode cair fora do cartão.
-    for (const unidade of municipios.flatMap(municipio => municipio.units)) {
-      if (unidade.latitude != null && unidade.longitude != null) pontos.push([unidade.longitude, unidade.latitude]);
-    }
-    this.envoltoriaEstado = envoltoriaConvexa(pontos);
+    for (const municipio of municipios) percorrerCoordenadas(municipio.feature.geometry, ponto => { limites.extend(ponto as [number, number]); });
+    this.envoltoriaEstado = envoltoriaDoEstado(municipios);
     this.limitesEstado = limites;
     this.enquadrarEstado(false);
 
@@ -843,7 +965,8 @@ export class MapaComponent implements OnDestroy {
       // Sem a guarda, clicar no marcador de unidade também aproximaria o município sob o pixel.
       if (cliqueVeioDeMarcador(evento.originalEvent.target)) return;
       const codigo = normalizeCodigoIbge(evento.features?.[0]?.properties?.['id'] as string);
-      const municipio = municipios.find(candidato => candidato.codigoIbge === codigo);
+      // Lista atual, e não a da montagem: as unidades do município mudam com o modo TV.
+      const municipio = codigo ? this.municipioAtual(codigo) : undefined;
       if (municipio) this.aproximarMunicipio(municipio);
     });
 
@@ -860,7 +983,7 @@ export class MapaComponent implements OnDestroy {
       botao.className = 'map__alvo';
       botao.setAttribute('aria-label', rotuloDoMunicipio(municipio));
       botao.setAttribute('data-codigo-ibge', municipio.codigoIbge);
-      botao.addEventListener('click', () => this.aproximarMunicipio(municipio), { signal: signalAbort });
+      botao.addEventListener('click', () => this.aproximarMunicipio(this.municipioAtual(municipio.codigoIbge) ?? municipio), { signal: signalAbort });
       // Alvo fora da viewport continua focavel pelo Tab: ao receber foco, traz a camera ate ele.
       botao.addEventListener('focus', () => { if (!map.getBounds().contains(centro)) map.easeTo({ center: centro, duration: 200 }); }, { signal: signalAbort });
       /*
@@ -880,31 +1003,79 @@ export class MapaComponent implements OnDestroy {
      * Ordem de Tab: os marcadores de unidade vem DEPOIS dos de municipio porque sao adicionados
      * depois, e essa e a leitura util — do geral para o particular.
      */
-    for (const unidade of municipios.flatMap(municipio => municipio.units)) {
-      const coordenada = coordenadaDaUnidade(unidade);
-      if (!coordenada) continue;
-      const alvo = document.createElement('button');
-      alvo.type = 'button';
-      alvo.className = 'map__unidade';
-      alvo.setAttribute('aria-label', rotuloDaUnidade(unidade));
-      alvo.setAttribute('data-unidade-id', String(unidade.id));
-      // A cor de status vai por variavel CSS, e nao por classe: sao os mesmos hex do canvas, num
-      // unico lugar, e nao ha classe de status para criar e manter em paralelo no SCSS.
-      alvo.style.setProperty('--cor-unidade', corDoStatus(unidade.status));
-      // Pulso em TODOS os marcadores — D19 reverteu o filtro de N07. Continua por classe e não por
-      // `:has()` ou seletor de status: o SCSS não conhece a lista de status, e não passa a conhecer.
-      alvo.classList.add('map__unidade--pulsa');
-      alvo.appendChild(dicaDaUnidade(unidade));
-      alvo.addEventListener('click', () => this.selecionarPeloMarcador(unidade), { signal: signalAbort });
-      alvo.addEventListener('focus', () => { if (!map.getBounds().contains(coordenada)) map.easeTo({ center: coordenada, duration: 200 }); }, { signal: signalAbort });
-      const marcador = new Marker({ element: alvo, pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(coordenada).addTo(map);
-      this.marcadoresUnidade.set(unidade.id, marcador);
-    }
+    this.montarMarcadoresUnidade(map, municipios.flatMap(municipio => municipio.units));
 
     this.montarPings(map, conexoes.features as Feature[]);
 
     // Marcação inicial do marcador de unidade. Sem `map.on('load')`: nada aqui depende do estilo.
     untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
+  }
+
+  private montarMarcadoresUnidade(map: MaplibreMap, unidades: DashboardUnidade[]): void {
+    this.ouvintesUnidades?.abort();
+    this.ouvintesUnidades = new AbortController();
+    const signalAbort = this.ouvintesUnidades.signal;
+    for (const unidade of unidades) {
+      const coordenada = coordenadaDaUnidade(unidade);
+      if (!coordenada) continue;
+      const alvo = document.createElement('button');
+      alvo.type = 'button';
+      alvo.className = 'map__unidade';
+      alvo.setAttribute('data-unidade-id', String(unidade.id));
+      pintarMarcadorDeUnidade(alvo, unidade);
+      // Pulso em TODOS os marcadores — D19 reverteu o filtro de N07. Continua por classe e não por
+      // `:has()` ou seletor de status: o SCSS não conhece a lista de status, e não passa a conhecer.
+      alvo.classList.add('map__unidade--pulsa');
+      // `unidadeAtual`: o marcador sobrevive às atualizações no lugar e o painel tem de abrir com o dado novo.
+      alvo.addEventListener('click', () => this.selecionarPeloMarcador(this.unidadeAtual(unidade)), { signal: signalAbort });
+      alvo.addEventListener('focus', () => { if (!map.getBounds().contains(coordenada)) map.easeTo({ center: coordenada, duration: 200 }); }, { signal: signalAbort });
+      const marcador = new Marker({ element: alvo, pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(coordenada).addTo(map);
+      this.marcadoresUnidade.set(unidade.id, marcador);
+    }
+  }
+
+  /**
+   * Modo TV, topologia igual: só status e números mudaram. Repinta os Markers existentes (cor, rótulo,
+   * dica), troca os dados da fonte `conexoes` (a cor da linha sai do `status` da feature) e a cor dos
+   * pings. Nenhum Marker é criado ou removido.
+   */
+  private aplicarStatusNoLugar(unidades: DashboardUnidade[]): void {
+    const porId = new Map(unidades.map(unidade => [unidade.id, unidade]));
+    for (const [id, marcador] of this.marcadoresUnidade) {
+      const unidade = porId.get(id);
+      if (unidade) pintarMarcadorDeUnidade(marcador.getElement(), unidade);
+    }
+    this.trocarConexoes(unidades);
+    for (const ping of this.pings) {
+      const status = porId.get(ping.para)?.status;
+      if (status) ping.marcador.getElement().style.setProperty('--cor-ping', corDoStatus(status));
+    }
+  }
+
+  /**
+   * Modo TV, topologia mudou (unidade entrou, saiu, moveu ou trocou de hub): recria marcadores de
+   * unidade, conexões e pings sobre o MESMO `map`. Câmera intocada — nem a unidade nova fora do
+   * enquadramento reenquadra; a envoltória é recalculada só para o próximo "Ver estado inteiro".
+   */
+  private remontarMarcadores(unidades: DashboardUnidade[]): void {
+    const map = this.map;
+    if (!map || !this.teclado) return;
+    this.removerPings();
+    for (const marcador of this.marcadoresUnidade.values()) marcador.remove();
+    this.marcadoresUnidade.clear();
+    this.montarMarcadoresUnidade(map, unidades);
+    this.montarPings(map, this.trocarConexoes(unidades));
+    const municipios = this.municipios();
+    this.envoltoriaEstado = envoltoriaDoEstado(municipios);
+    // A contagem do rótulo do alvo de município pode ter mudado com o IBGE da unidade.
+    for (const municipio of municipios) this.marcadores.get(municipio.codigoIbge)?.getElement().setAttribute('aria-label', rotuloDoMunicipio(municipio));
+    untracked(() => this.marcarUnidade(this.unidadeSelecionada()?.id ?? null));
+  }
+
+  private trocarConexoes(unidades: DashboardUnidade[]): Feature[] {
+    const linhas = conexoesDesenhaveis(unidades);
+    (this.map?.getSource('conexoes') as GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: linhas } as FeatureCollection);
+    return linhas;
   }
 
   /**
@@ -934,7 +1105,7 @@ export class MapaComponent implements OnDestroy {
    */
   private montarPings(map: MaplibreMap, linhas: Feature[]): void {
     if (linhas.length === 0 || animacaoReduzida()) return;
-    const trajetos = linhas.flatMap(linha => {
+    this.pings = linhas.flatMap(linha => {
       /*
        * `as unknown` no meio porque `Geometry` e uniao de sete tipos e o TS nao aceita o
        * estreitamento direto.
@@ -948,7 +1119,8 @@ export class MapaComponent implements OnDestroy {
       const origem = vertices[0];
       const destino = vertices[vertices.length - 1];
       const status = String(linha.properties?.['status'] ?? '');
-      return Array.from({ length: PINGS_POR_LINHA }, (_, indice) => {
+      const para = Number(linha.properties?.['para']);
+      return Array.from({ length: PINGS_POR_LINHA }, (_, indice): Ping => {
         const elemento = document.createElement('div');
         elemento.className = 'map__ping';
         /*
@@ -970,15 +1142,24 @@ export class MapaComponent implements OnDestroy {
         const marcador = new Marker({
           element: elemento, pitchAlignment: 'viewport', rotationAlignment: 'viewport', opacity: '0',
         }).setLngLat(origem).addTo(map);
-        this.pings.push(marcador);
-        return { marcador, origem, destino, defasagem: indice / PINGS_POR_LINHA };
+        return { marcador, origem, destino, defasagem: indice / PINGS_POR_LINHA, para };
       });
     });
+    this.iniciarLacoPings();
+  }
 
+  /**
+   * Laço de rAF dos pings, separado da criação dos Markers: o modo TV pausa o laço com o mapa
+   * oculto (`ativa` false) e o retoma sem recriar nada. A fase recomeça na retomada — invisível,
+   * porque a tela estava oculta.
+   */
+  private iniciarLacoPings(): void {
+    if (this.quadroPing !== null || this.pings.length === 0 || !untracked(() => this.ativa())) return;
+    const pings = this.pings;
     const inicio = performance.now();
     const passo = (): void => {
       const ciclos = (performance.now() - inicio) / PERIODO_PING_MS;
-      for (const { marcador, origem, destino, defasagem } of trajetos) {
+      for (const { marcador, origem, destino, defasagem } of pings) {
         const u = faseDeFluxo(ciclos + defasagem);
         // `setOpacity` escreve o inline (n07 lê `style.opacity`) e pula valor igual: no meio do arco
         // é '1' constante, e só os pings nas pontas tocam estilo.
@@ -987,6 +1168,18 @@ export class MapaComponent implements OnDestroy {
       this.quadroPing = requestAnimationFrame(passo);
     };
     this.quadroPing = requestAnimationFrame(passo);
+  }
+
+  private pararLacoPings(): void {
+    if (this.quadroPing !== null) cancelAnimationFrame(this.quadroPing);
+    this.quadroPing = null;
+  }
+
+  /** Antes de remover os Markers: o quadro pendente chamaria `setLngLat` num Marker já fora do mapa. */
+  private removerPings(): void {
+    this.pararLacoPings();
+    for (const ping of this.pings) ping.marcador.remove();
+    this.pings = [];
   }
 
   /**
@@ -1135,11 +1328,9 @@ export class MapaComponent implements OnDestroy {
   private destruirMapa(): void {
     this.teclado?.abort();
     this.teclado = null;
-    // Antes dos marcadores: o quadro pendente chamaria `setLngLat` num Marker já removido do mapa.
-    if (this.quadroPing !== null) cancelAnimationFrame(this.quadroPing);
-    this.quadroPing = null;
-    for (const ping of this.pings) ping.remove();
-    this.pings = [];
+    this.ouvintesUnidades?.abort();
+    this.ouvintesUnidades = null;
+    this.removerPings();
     for (const marcador of this.marcadores.values()) marcador.remove();
     this.marcadores.clear();
     for (const marcador of this.marcadoresUnidade.values()) marcador.remove();
@@ -1148,5 +1339,5 @@ export class MapaComponent implements OnDestroy {
     this.map = null;
   }
 
-  private fail(message: string): void { this.error.set(message); this.state.set('error'); }
+  private fail(message: string): void { this.error.set(message); this.state.set('error'); this.falhouUltimaAtualizacao.set(true); }
 }
