@@ -23,7 +23,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const protectedRequest = isProtectedApi(request.url);
   const encerrar = (error: HttpErrorResponse): Observable<never> => {
     auth.clear();
-    if (!redirecting401) { redirecting401 = true; router.navigate(['/login'], { queryParams: parametrosDoLogin(router.url) }).finally(() => { redirecting401 = false; }); }
+    // 401 atrasado de um pedido que estava em voo: já no login, navegar de novo trocaria os parâmetros da
+    // queda (na TV perderia `origem=tv`, a faixa e o `returnUrl=/tv`).
+    const jaNoLogin = router.url === '/login' || router.url.startsWith('/login?') || router.url.startsWith('/login#');
+    if (!redirecting401 && !jaNoLogin) { redirecting401 = true; router.navigate(['/login'], { queryParams: parametrosDoLogin(router.url) }).finally(() => { redirecting401 = false; }); }
     return throwError(() => error);
   };
   const enviar = (req: HttpRequest<unknown>, token: string | null): Observable<HttpEvent<unknown>> => next(protectedRequest && token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req).pipe(catchError((error: unknown) => {

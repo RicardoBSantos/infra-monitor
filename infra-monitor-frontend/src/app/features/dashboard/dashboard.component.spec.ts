@@ -568,7 +568,7 @@ describe('DashboardComponent', () => {
       httpTesting.expectOne((r) => r.url.endsWith('/relatorios/latencia')).flush(null, { status: 502, statusText: 'x' });
     }
 
-    it('disponibilidade ok e latência falhando: mantém a flag e rebusca só a latência no tique seguinte', () => {
+    it('disponibilidade ok e latência falhando: a moldura não acusa falha e só a latência é rebuscada no tique seguinte', () => {
       const fixture = create();
       responderCargaSemIncidentes(fixture, semIncidentes);
       vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
@@ -576,7 +576,10 @@ describe('DashboardComponent', () => {
       responderTique();
       httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(pagina([]));
       falharLatencia();
-      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      // Agregado de 30 d tem validade própria (15 min) e KPI próprio: não fala pela frescura do dado principal.
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+      fixture.detectChanges();
+      expect(texto(fixture)).toContain('23'); // a latência anterior continua no KPI
       vi.setSystemTime(new Date('2026-11-12T12:16:00Z'));
       fixture.componentInstance.recarregarDados();
       responderTique();
@@ -585,20 +588,19 @@ describe('DashboardComponent', () => {
       expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
     });
 
-    it('latência falhando e disponibilidade depois ok: a flag de falha não é zerada', () => {
+    it('agregados falhando sozinhos não ligam a flag; o resumo falhando na mesma rodada liga', () => {
       const fixture = create();
       responderCargaSemIncidentes(fixture, semIncidentes);
       vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
       fixture.componentInstance.recarregarDados();
-      responderTique();
-      const disponibilidade = httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades'));
+      httpTesting.expectOne('/api/v1/dashboard/resumo').flush(null, { status: 502, statusText: 'Bad Gateway' });
+      httpTesting.expectOne('/api/v1/dashboard/unidades').flush([unidade]);
+      httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(null, { status: 502, statusText: 'x' });
       falharLatencia();
-      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
-      disponibilidade.flush(pagina([]));
       expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
     });
 
-    it('disponibilidade falhando e latência ok: rebusca só a disponibilidade e mantém a flag', () => {
+    it('disponibilidade falhando e latência ok: rebusca só a disponibilidade, sem acusar falha na moldura', () => {
       const fixture = create();
       responderCargaSemIncidentes(fixture, semIncidentes);
       vi.setSystemTime(new Date('2026-11-12T12:15:00.001Z'));
@@ -606,7 +608,7 @@ describe('DashboardComponent', () => {
       responderTique();
       httpTesting.expectOne(casa('/relatorios/disponibilidade/unidades')).flush(null, { status: 502, statusText: 'x' });
       httpTesting.expectOne(casa('/relatorios/latencia/unidades')).flush(pagina([latenciaUnidade(40, 100)]));
-      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+      expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
       vi.setSystemTime(new Date('2026-11-12T12:16:00Z'));
       fixture.componentInstance.recarregarDados();
       responderTique();

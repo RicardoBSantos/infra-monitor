@@ -115,14 +115,17 @@ export class DashboardComponent implements TelaTv {
   private disponibilidadeEm = 0;
   private latenciaEm = 0;
   private readonly falhaIncidentes = signal(false);
-  private readonly falhaDisponibilidade = signal(false);
-  private readonly falhaLatencia = signal(false);
   /** Lido pelo effect do resumo: a rodada do modo TV mantém o banner anterior se a busca falhar. */
   private rodadaSilenciosa = false;
 
   /** Carimbo do modo TV: a última resposta com sucesso do resumo. */
   readonly ultimaAtualizacaoOk = computed(() => { const iso = this.painel.ultimoSucessoResumo(); return iso ? new Date(iso) : null; });
-  readonly falhouUltimaAtualizacao = computed(() => this.painel.falhaSilenciosa() || this.falhaIncidentes() || this.falhaDisponibilidade() || this.falhaLatencia());
+  /**
+   * Falha da rodada silenciosa no dado principal (resumo, unidades, incidentes do banner). Os agregados de 30 d
+   * ficam de fora: têm validade própria de 15 min, guardam o valor anterior e são rebuscados no tique seguinte —
+   * não falam pela frescura que a moldura da TV anuncia.
+   */
+  readonly falhouUltimaAtualizacao = computed(() => this.painel.falhaSilenciosa() || this.falhaIncidentes());
 
   /**
    * Visão atual sem o filtro de tipo (status e texto aplicados). Cada unidade leva as entradas do índice que
@@ -437,10 +440,9 @@ export class DashboardComponent implements TelaTv {
         this.disponibilidadeGlobal.set(agregarDisponibilidade(pagina.content));
         this.disponibilidadeGlobalState.set('ok');
         this.disponibilidadeEm = Date.now();
-        this.falhaDisponibilidade.set(false);
       },
       error: (_: HttpErrorResponse) => {
-        if (silencioso) { this.falhaDisponibilidade.set(true); return; }
+        if (silencioso) return; // mantém o valor anterior; disponibilidadeEm velho faz o próximo tique tentar de novo
         this.disponibilidadeEm = 0;
         this.disponibilidadeIndisponivel.set(true);
         this.disponibilidadeUnidades.set(new Map());
@@ -491,14 +493,14 @@ export class DashboardComponent implements TelaTv {
         this.sucessoLatencia();
       },
       error: () => {
-        if (silencioso) { this.falhaLatencia.set(true); return; }
+        if (silencioso) return; // mantém o valor anterior; latenciaEm velho faz o próximo tique tentar de novo
         this.latenciaEm = 0;
         this.latenciaUnidades.set(new Map()); this.latenciaGlobal.set(null); this.latenciaGlobalState.set('erro');
       },
     });
   }
 
-  private sucessoLatencia(): void { this.latenciaEm = Date.now(); this.falhaLatencia.set(false); }
+  private sucessoLatencia(): void { this.latenciaEm = Date.now(); }
 
   /** Lazy na primeira expansão e cacheado depois; só o botão Atualizar força nova leitura. */
   private carregarEquipamentos(unidadeId: number, forcar = false): void {
