@@ -350,7 +350,8 @@ e `ReleaseTools.psm1:28/:83` só aceita 25, mas este jar carrega V26 e V27. Com 
 operador declare `-SchemaVersion 25` com o banco em 27. Resolver essa trava (ou registrar a decisão de seguir sem ela)
 antes da implantação. Investigação na revisão do PR #39.
 
-**Passo a passo** (produção está em `r-8f593ef`, Flyway V25: V26 e V27 entram juntas):
+**Passo a passo** (segundo o responsável em 2026-11-16, produção está em `r-8f593ef`, Flyway V25, e V26 e V27 entram
+juntas; em 2026-11-12 tinha sido informado que a V26 já estava lá. Conferir `flyway_schema_history` antes do passo 2):
 
 1. Backup com `ops/Backup-InfraMonitorDatabase.ps1`.
 2. Aplicar as migrations com o jar **novo**, em console, como no passo 2 da V26, trocando só o alvo:

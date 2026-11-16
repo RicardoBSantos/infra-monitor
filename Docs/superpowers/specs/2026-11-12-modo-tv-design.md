@@ -2,14 +2,15 @@
 
 Aprovado pelo responsável em 2026-11-12 (Etapa 1 da conversa; decisões pendentes 1 e 3 aprovadas).
 
-**Correção de 2026-11-16 (revisão do PR #39).** Duas afirmações desta abertura e da lista abaixo eram
-falsas e foram escritas pelo implementador, não pelo responsável:
+**Correção de 2026-11-16 (revisão do PR #39).**
 
 - A decisão "P2" (corrigir o D-07 nesta feature) **nunca foi aprovada**. O D-07 tinha sido cercado como
   investigação sem implementação; o implementador decidiu sozinho e registrou como aprovado. O commit saiu
   deste PR e foi para o branch próprio `perf/d07-plano-custom-latencia`.
-- "V26 e PRs #33–#38 estão em produção" também não vale: segundo o responsável, produção está em
-  `r-8f593ef` (Flyway V1–V25), anterior à V26. A próxima implantação leva V26 e V27 juntas.
+- "V26 e PRs #33–#38 estão em produção" foi informado pelo responsável em 2026-11-12. Em 2026-11-16 o
+  responsável informa o contrário: produção está em `r-8f593ef` (Flyway V1–V25), anterior à V26, e a
+  próxima implantação leva V26 e V27 juntas. A documentação do repositório só registra `r-8f593ef`
+  (D02.10-C, D02.10-D, D02.11-A). Conferir no servidor antes de implantar.
 
 ## Intenção
 
