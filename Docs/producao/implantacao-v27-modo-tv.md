@@ -36,8 +36,9 @@ V27 e a declaração de schema. Motor, incidente, dispatcher, manutenção e aut
 ou alterado na raiz `C:\InfraMonitor`.
 
 **Único passo que escreve, e fora da raiz:** baixar e descompactar o pacote novo em `C:\src\packages`, como na
-D02.10-C **[E]**. O artefato do CI expira em **7 dias** (`retention-days: 7`, `ci-windows-packaging.yml`) **[P]**. Se o
-ensaio e a janela ficarem mais de 7 dias depois do push, gere de novo por `workflow_dispatch` com o mesmo commit.
+D02.10-C **[E]**. O artefato do CI expira em **7 dias** (`retention-days: 7`, `ci-windows-packaging.yml`) **[P]**. O artefato de
+`c6e3f48` expira em **2026-11-23 14:59 UTC** **[P, API do GitHub]**. Se o ensaio e a janela ficarem depois dessa data,
+gere de novo por `workflow_dispatch` com o mesmo commit.
 O pacote sai idêntico: o hash do `ReleaseTools.psm1` é o mesmo, porque o `assemble` roda em `ubuntu-24.04` sobre o
 blob do git.
 
@@ -79,8 +80,10 @@ Get-Command Get-DatabaseSchemaVersion -Module ReleaseTools
 
 - **OK:** o hash é `d5e1b3c536942ccbf4baaa90ab58c1b18539872a64712cea9ee5a9d056a38a1d` e o `SHA256SUMS` diz o mesmo.
   O `Get-Command` lista a função.
-  - Esse hash é do blob `deployment/windows/ReleaseTools.psm1` em `c6e3f48` **[P, `git show … | sha256sum`]**.
-  - Que o pacote o carregue byte a byte é **[I]**: `shutil.copy2` sobre o checkout do runner Linux.
+  - É o hash do blob `deployment/windows/ReleaseTools.psm1` em `c6e3f48` e também o do `SHA256SUMS` do artefato real
+    `windows-homologation-c6e3f482…-43890548297-1` **[P, baixado e conferido em 2026-11-16]**.
+  - O mesmo artefato declara `schemaVersion` 27 e `minSchemaVersion` 26 **[P]**. O `Invoke-WindowsRelease.ps1` tem hash
+    `84d0196f9c13790465bd7d74b27b9412a61a41133361e21e9fe4d9ed02a01b02` **[P]**.
 - **RUIM — hash `4d353534…`:** é o ferramental antigo (`921dd90` e `7060e28`). **RUIM — hash `cab5306d…`:** também antigo
   (`8f593ef`). Nos dois casos, `$Pkg` aponta para o pacote errado. Corrigir o caminho e repetir.
 - **RUIM — `Get-Command` não acha a função:** ferramental antigo. Mesma ação.
@@ -709,8 +712,8 @@ declaração honesta e aceita `25` **[P]**.
 - **Arquivo do superusuário:** existência não provada (E4); motivo para a 1.2.
 - **Jar antigo subindo sobre V27:** não provado (P3).
 - **Tempo de parada:** estimado; a subida no servidor não foi medida.
-- **Hash do `ReleaseTools.psm1` no pacote:** calculado do blob do git. O pacote de `c6e3f48` ainda estava sendo montado
-  pelo CI quando este documento foi escrito; o E1 confere no pacote real.
+- **Hash do `ReleaseTools.psm1`:** conferido no artefato baixado do CI. Que a cópia baixada no servidor seja a mesma é o
+  que o E1 confere.
 - **Mensagem de bind do script antigo** com `-DatabaseUser`: inferida da semântica do PowerShell, não reproduzida.
 - **Default privileges incluindo `flyway_schema_history`** para o papel da aplicação: inferido da contagem 16/16 da
   D02.10-C; o E8 mostra.
