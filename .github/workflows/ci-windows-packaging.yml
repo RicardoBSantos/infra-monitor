@@ -38,6 +38,19 @@ jobs:
       - name: PowerShell syntax, space, health, rollback and dry-run tests
         shell: pwsh
         run: ./deployment/windows/tests/windows-tests.ps1 -FixturePackage "$env:RUNNER_TEMP/packaging-fixture/package"
+      - name: Schema guard against a real PostgreSQL (the runner's own, disposable)
+        shell: pwsh
+        run: |
+          $pgHome = if ($env:PGROOT) { $env:PGROOT } else { Split-Path -Parent $env:PGBIN }
+          if (-not $pgHome -or -not $env:PGPASSWORD) { throw 'Runner PostgreSQL not found (PGROOT/PGBIN/PGPASSWORD)' }
+          $service = Get-Service -Name 'postgresql*' | Select-Object -First 1
+          if (-not $service) { throw 'Runner PostgreSQL service not found' }
+          Set-Service -Name $service.Name -StartupType Manual
+          Start-Service -Name $service.Name
+          $password = Join-Path $env:RUNNER_TEMP 'pg-password.txt'
+          Set-Content -LiteralPath $password -Value $env:PGPASSWORD -NoNewline
+          $user = if ($env:PGUSER) { $env:PGUSER } else { 'postgres' }
+          ./deployment/windows/tests/schema-guard-tests.ps1 -PostgreSQLHome $pgHome -PasswordFile $password -User $user
 
   assemble:
     needs: validate
@@ -116,4 +129,4 @@ jobs:
         shell: pwsh
         run: |
           Import-Module "$env:GITHUB_WORKSPACE/homologation/ReleaseTools.psm1" -Force
-          Test-PackageIntegrity -PackagePath "$env:GITHUB_WORKSPACE/homologation" | Select-Object version,commit,schemaVersion
+          Test-PackageIntegrity -PackagePath "$env:GITHUB_WORKSPACE/homologation" | Select-Object version,commit,schemaVersion,minSchemaVersion

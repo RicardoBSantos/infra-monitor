@@ -3,13 +3,16 @@ from pathlib import Path
 SPEC=importlib.util.spec_from_file_location("packaging_impl",Path(__file__).parents[1]/"package.py")
 p=importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(p)
 COMMIT="a"*40
-def fixture(base):
-    b=base/"backend"; w=base/"frontend"; b.mkdir(); (w/"wwwroot").mkdir(parents=True)
+TEMPLATES=Path(__file__).parents[1]
+def fixture(base,migrations=range(1,28),declaration=None):
+    b=base/"backend"; w=base/"frontend"; b.mkdir(parents=True); (w/"wwwroot").mkdir(parents=True)
     jar=b/f"infra-monitor-backend-{COMMIT}.jar"
     with zipfile.ZipFile(jar,"w") as z:
         z.writestr("META-INF/MANIFEST.MF","Main-Class: org.springframework.boot.loader.launch.JarLauncher\n")
         z.writestr("BOOT-INF/classes/br/com/inframonitor/medicao/retencao/DetailedHistoryGuard.class",b"fixture-not-executable")
         z.writestr("org/springframework/boot/loader/launch/JarLauncher.class",b"fixture-not-executable")
+        for v in migrations: z.writestr(f"BOOT-INF/classes/db/migration/V{v}__fixture.sql","select 1;")
+        if declaration is not None: z.writestr(p.DECLARATION,json.dumps(declaration))
     (w/"wwwroot/index.html").write_text("<html>fixture</html>")
     for root,component in ((b,"backend"),(w,"frontend")):
         files=p.inventory(root)
@@ -59,17 +62,48 @@ class PackagingTests(unittest.TestCase):
     def test_secret_assignment(self):
         with self.assertRaises(ValueError): p.scan_text("JWT_SECRET=synthetic-test-value")
     def test_assembly_version(self):
-        out=p.assemble(self.b,self.w,COMMIT,self.root/"out",Path(__file__).parents[1])
+        out=p.assemble(self.b,self.w,COMMIT,self.root/"out",TEMPLATES)
         meta=p.load(out/"package-manifest.json")
         self.assertEqual(meta["version"],"r-"+COMMIT)
         self.assertFalse(meta["schemaCompatibilityProven"])
         self.assertTrue((out/"releases"/("r-"+COMMIT)/"frontend/index.html").is_file())
     def test_output_must_be_new(self):
-        with self.assertRaises(ValueError): p.assemble(self.b,self.w,COMMIT,self.root,Path(__file__).parents[1])
+        with self.assertRaises(ValueError): p.assemble(self.b,self.w,COMMIT,self.root,TEMPLATES)
+
+    # --- schemaVersion derivado do JAR. Até 2026-11-16 o manifesto gravava a constante 25 qualquer que
+    # fosse o conteúdo: o pacote com V26 (84758be) saiu declarando 25. Estes testes falham com a constante.
+    def manifest(self,**kw):
+        base=self.root/f"alt{len(list(self.root.glob('alt*')))}"
+        b,w=fixture(base,**kw)
+        return p.load(p.assemble(b,w,COMMIT,base/"out",TEMPLATES)/"package-manifest.json")
+    def test_schema_derived_from_jar(self):
+        meta=p.load(p.assemble(self.b,self.w,COMMIT,self.root/"out",TEMPLATES)/"package-manifest.json")
+        self.assertEqual((meta["schemaVersion"],meta["minSchemaVersion"]),(27,27))
+    def test_schema_follows_highest_migration(self):
+        self.assertEqual(self.manifest(migrations=(1,25,30))["schemaVersion"],30)
+    def test_jar_without_migrations_rejected(self):
+        with self.assertRaisesRegex(ValueError,"No Flyway migration"): self.manifest(migrations=())
+    def test_schema_below_history_floor_rejected(self):
+        with self.assertRaisesRegex(ValueError,"below V25"): self.manifest(migrations=range(1,25))
+
+    # --- minSchemaVersion: declarado no JAR por quem provou a tolerância; nunca derivado.
+    def test_declared_tolerance(self):
+        meta=self.manifest(declaration={"schemaVersion":27,"minSchemaVersion":26,"evidence":"teste X"})
+        self.assertEqual((meta["schemaVersion"],meta["minSchemaVersion"],meta["schemaToleranceEvidence"]),(27,26,"teste X"))
+    def test_no_declaration_means_no_tolerance(self):
+        self.assertEqual(self.manifest()["minSchemaVersion"],27)
+    def test_declaration_must_match_migrations(self):
+        with self.assertRaisesRegex(ValueError,"does not match"): self.manifest(declaration={"schemaVersion":26,"minSchemaVersion":26})
+    def test_tolerance_without_evidence_rejected(self):
+        with self.assertRaisesRegex(ValueError,"requires evidence"): self.manifest(declaration={"schemaVersion":27,"minSchemaVersion":25})
+    def test_tolerance_outside_bounds_rejected(self):
+        for minimum in (24,28,"26",None):
+            with self.subTest(minimum=minimum), self.assertRaisesRegex(ValueError,"Invalid minSchemaVersion"):
+                self.manifest(declaration={"schemaVersion":27,"minSchemaVersion":minimum,"evidence":"x"})
 if __name__=="__main__":
     import sys
     if len(sys.argv)==3 and sys.argv[1]=="--fixture":
         root=Path(sys.argv[2]); root.mkdir()
         b,w=fixture(root)
-        p.assemble(b,w,COMMIT,root/"package",Path(__file__).parents[1])
+        p.assemble(b,w,COMMIT,root/"package",TEMPLATES)
     else: unittest.main()

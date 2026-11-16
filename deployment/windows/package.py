@@ -4,7 +4,27 @@ from pathlib import Path, PurePosixPath
 SHA=re.compile(r"[0-9a-f]{40}")
 DENIED={".env",".git","node_modules","runtime.properties","secrets","id_rsa"}
 SECRET=re.compile(r"(?im)^\s*(?:password|secret|bot-token|DB_PASSWORD|JWT_SECRET|TELEGRAM_BOT_TOKEN)\s*[:=]\s*([^\r\n]+)")
+MIGRATION=re.compile(r"BOOT-INF/classes/db/migration/V(\d+)__[^/]+\.sql")
+DECLARATION="BOOT-INF/classes/release/schema-compatibility.json"
+HISTORY_FLOOR=25
 def fail(message): raise ValueError(message)
+def schema_from_jar(jar):
+    """schemaVersion: the highest Flyway migration INSIDE the JAR (derived, never typed).
+    minSchemaVersion: the oldest database schema this JAR is declared to run on. Declared in
+    release/schema-compatibility.json by whoever proved it (never derived); absent = no tolerance."""
+    with zipfile.ZipFile(jar) as z:
+        names=z.namelist()
+        versions=[int(m[1]) for n in names if (m:=MIGRATION.fullmatch(n))]
+        if not versions: fail("No Flyway migration in JAR")
+        schema=max(versions)
+        if schema<HISTORY_FLOOR: fail("Schema below V25 history protection")
+        if DECLARATION not in names: return schema,schema,""
+        decl=json.loads(z.read(DECLARATION).decode("utf-8"))
+    if not isinstance(decl,dict) or decl.get("schemaVersion")!=schema: fail("Schema declaration does not match JAR migrations")
+    minimum=decl.get("minSchemaVersion"); evidence=decl.get("evidence")
+    if type(minimum) is not int or not HISTORY_FLOOR<=minimum<=schema: fail("Invalid minSchemaVersion")
+    if minimum<schema and (not isinstance(evidence,str) or not evidence.strip()): fail("Declared tolerance requires evidence")
+    return schema,minimum,evidence or ""
 def relative(name):
     if not isinstance(name,str) or "\\" in name or ":" in name: fail("Invalid relative path")
     p=PurePosixPath(name)
@@ -88,8 +108,10 @@ def assemble(backend,frontend,commit,output,templates,provenance=None):
     for name in ("ReleaseTools.psm1","Invoke-WindowsRelease.ps1","winsw.xml.template","web.config.template"):
         shutil.copy2(Path(templates)/name,output/name)
     shutil.copy2(Path(templates)/"web.config.template",release/"frontend"/"web.config")
+    schema,minimum,evidence=schema_from_jar(release/"backend"/"app.jar")
     hashes={n:digest(p) for n,p in inventory(output).items()}
-    manifest={"format":1,"version":version,"commit":commit,"schemaVersion":25,
+    manifest={"format":1,"version":version,"commit":commit,"schemaVersion":schema,
+              "minSchemaVersion":minimum,"schemaToleranceEvidence":evidence,
               "historyGuard":True,"schemaCompatibilityProven":False,
               "components":{"backend":bm,"frontend":fm},"files":hashes,"provenance":provenance or {}}
     (output/"package-manifest.json").write_text(json.dumps(manifest,indent=2)+"\n",encoding="utf-8")

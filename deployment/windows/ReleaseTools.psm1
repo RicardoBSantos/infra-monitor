@@ -25,7 +25,10 @@ function Test-PackageIntegrity {
     param([Parameter(Mandatory)][string]$PackagePath)
     $p=Assert-AbsolutePath $PackagePath
     $m=Get-Content -Raw -LiteralPath (Join-Path $p 'package-manifest.json') | ConvertFrom-Json -AsHashtable
-    if ($m.format -ne 1 -or $m.commit -notmatch '^[0-9a-f]{40}$' -or $m.version -cne ('r-'+$m.commit) -or $m.schemaVersion -ne 25 -or $m.historyGuard -ne $true) { throw 'Invalid package manifest' }
+    if ($m.format -ne 1 -or $m.commit -notmatch '^[0-9a-f]{40}$' -or $m.version -cne ('r-'+$m.commit) -or $m.historyGuard -ne $true) { throw 'Invalid package manifest' }
+    # schemaVersion vem das migrations do JAR (package.py); minSchemaVersion e declarado no JAR. Ate 2026-11-16 este
+    # teste exigia a constante 25, o que deixou passar o pacote com V26 (84758be) declarando 25.
+    if ($m['schemaVersion'] -isnot [long] -or $m['minSchemaVersion'] -isnot [long] -or $m['schemaVersion'] -lt 25 -or $m['minSchemaVersion'] -lt 25 -or $m['minSchemaVersion'] -gt $m['schemaVersion']) { throw 'Invalid package schema declaration' }
     if ($m.components.backend.commit -cne $m.commit -or $m.components.frontend.commit -cne $m.commit) { throw 'Divergent commits' }
     $listed=@{}
     foreach ($line in (Get-Content -LiteralPath (Join-Path $p 'SHA256SUMS'))) {
@@ -78,12 +81,46 @@ function Test-ReleaseIntegrity([string]$Path) {
     if ($seen.Count -ne $expected.Count -or -not $expected.ContainsKey('backend/app.jar') -or -not $expected.ContainsKey('frontend/index.html')) { throw 'Release incomplete' }
     return $m
 }
+function Get-DatabaseSchemaVersion {
+    # Le o schema REAL do banco (maior versao aplicada com sucesso no flyway_schema_history). A senha vem de um
+    # arquivo legivel so por Administrators/SYSTEM e fica no ambiente deste processo so durante a consulta,
+    # como no ops/Backup-InfraMonitorDatabase.ps1; nunca na linha de comando.
+    param([Parameter(Mandatory)][string]$PostgreSQLHome,[Parameter(Mandatory)][string]$PasswordFile,
+          [string]$Database='inframonitor',[string]$User='postgres',[string]$DatabaseHost='127.0.0.1',[ValidateRange(1,65535)][int]$Port=5432)
+    $pg=Assert-AbsolutePath $PostgreSQLHome
+    $psql=Join-Path $pg ('bin/psql'+$(if ($IsWindows) { '.exe' } else { '' }))
+    if (-not (Test-Path -LiteralPath $psql -PathType Leaf)) { throw 'psql not found under PostgreSQLHome' }
+    $secret=Assert-AbsolutePath $PasswordFile
+    $previous=$env:PGPASSWORD
+    try {
+        $env:PGPASSWORD=[IO.File]::ReadAllText($secret).Trim()
+        $answer=& $psql -h $DatabaseHost -p $Port -U $User -d $Database -w -At -X -v ON_ERROR_STOP=1 -c "select coalesce(max(version::int) filter (where success),0)||'|'||count(*) filter (where not success) from flyway_schema_history where version is not null"
+        if ($LASTEXITCODE -ne 0) { throw 'Could not read flyway_schema_history' }
+    } finally {
+        if ($null -eq $previous) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD=$previous }
+    }
+    $line=([string](@($answer)[0])).Trim()
+    if ($line -notmatch '^(\d+)\|(\d+)$') { throw 'Unexpected flyway_schema_history answer' }
+    if ([int]$Matches[2] -ne 0) { throw 'Failed migration recorded in flyway_schema_history; resolve before any release' }
+    if ([int]$Matches[1] -lt 1) { throw 'No applied migration in flyway_schema_history' }
+    return [int]$Matches[1]
+}
 function Test-RollbackCompatibility {
-    param([hashtable]$Proof,[hashtable]$Current,[hashtable]$Target,[string]$Component,[int]$SchemaVersion)
-    if ($SchemaVersion -ne 25 -or $Target.schemaVersion -ne 25 -or $Target.historyGuard -ne $true -or $Proof.approved -ne $true -or $Proof.schemaVersion -ne $SchemaVersion) { throw 'Schema compatibility not proven' }
+    # Tres declaracoes do schema do banco tem de coincidir: a do operador (-SchemaVersion), a lida do banco e a da
+    # prova humana aprovada. Depois, o banco tem de caber no que o release alvo suporta: de minSchemaVersion
+    # (declarado no JAR; ausente = sem tolerancia) ate schemaVersion. Banco a frente do release (rollback depois
+    # de migrar) so com databaseAheadOfRelease=true na prova.
+    param([hashtable]$Proof,[hashtable]$Current,[hashtable]$Target,[string]$Component,[int]$SchemaVersion,[int]$DatabaseSchemaVersion)
+    if ($SchemaVersion -lt 1) { throw 'Operator schema declaration required' }
+    if ($DatabaseSchemaVersion -ne $SchemaVersion) { throw 'Operator schema declaration does not match the database' }
+    if ($Proof['approved'] -ne $true -or $Proof['schemaVersion'] -ne $SchemaVersion) { throw 'Schema compatibility not proven' }
+    if ($Target['historyGuard'] -ne $true -or $Target['schemaVersion'] -isnot [long] -or $Target['schemaVersion'] -lt 25) { throw 'Release below the V25 history protection' }
+    $minimum=if ($Target.ContainsKey('minSchemaVersion')) { $Target['minSchemaVersion'] } else { $Target['schemaVersion'] }
+    if ($DatabaseSchemaVersion -lt $minimum) { throw 'Database schema older than the release supports' }
+    if ($DatabaseSchemaVersion -gt $Target['schemaVersion'] -and $Proof['databaseAheadOfRelease'] -ne $true) { throw 'Database schema ahead of the release; explicit approval required' }
     foreach ($key in @('backend','frontend')) {
-        $desired=if ($Component -eq 'Both' -or $Component -eq $key) { $Target.version } else { $Current[$key] }
-        if ($Proof.current[$key] -cne $Current[$key] -or $Proof.target[$key] -cne $desired) { throw 'Compatibility proof does not match release pair' }
+        $desired=if ($Component -eq 'Both' -or $Component -eq $key) { $Target['version'] } else { $Current[$key] }
+        if ($Proof['current'][$key] -cne $Current[$key] -or $Proof['target'][$key] -cne $desired) { throw 'Compatibility proof does not match release pair' }
     }
 }
 function Test-HealthResult([int]$StatusCode,[string]$Status) {
@@ -165,10 +202,12 @@ function Invoke-ReleaseOperation {
         [string]$CompatibilityProof,[int]$SchemaVersion=0,
         [string]$ServiceName,[string]$SiteName,[string]$JavaHome,[string]$ServiceSid,
         [string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome,
+        [string]$DatabaseName='inframonitor',[string]$DatabaseUser='postgres',[string]$DatabasePasswordFile,
         [UInt64]$OperationalPeakBytes=3GB,
         [switch]$Apply,[string]$ApprovalId
     )
     $rootPath=Assert-AbsolutePath $Root
+    if (-not $DatabasePasswordFile) { $DatabasePasswordFile=Join-Path $rootPath 'config/admin/postgres-superuser.txt' }
     $manifest=if ($PackagePath) { Test-PackageIntegrity $PackagePath } else { $null }
     if ($Operation -eq 'Prerequisites') { return Test-WindowsPrerequisites -JavaHome $JavaHome -Root $rootPath -ServiceSid $ServiceSid -WinSWExecutable $WinSWExecutable -WinSWSha256 $WinSWSha256 -PostgreSQLHome $PostgreSQLHome }
     if ($Operation -eq 'Verify') { if (-not $manifest) { throw 'Package required' }; return $manifest }
@@ -232,12 +271,14 @@ function Invoke-ReleaseOperation {
     if ([IO.Path]::GetFullPath($actualExe) -ine [IO.Path]::GetFullPath($WinSWExecutable)) { throw 'Service executable does not match approved WinSW' }
     $proofPath=Assert-AbsolutePath $CompatibilityProof
     $proof=Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json -AsHashtable
+    # O schema do banco e lido, nao digitado: o -SchemaVersion do operador so vale se coincidir com ele.
+    $databaseSchema=Get-DatabaseSchemaVersion -PostgreSQLHome $PostgreSQLHome -PasswordFile $DatabasePasswordFile -Database $DatabaseName -User $DatabaseUser
     $stateFile=Join-Path $rootPath 'config/deployment-state.json'
     $state=Get-Content -Raw -LiteralPath $stateFile | ConvertFrom-Json -AsHashtable
     if (-not (Test-Path -LiteralPath $target)) {
         if ($Operation -eq 'Rollback') { throw 'Rollback target missing' }
         $package=Test-PackageIntegrity $stage
-        Test-RollbackCompatibility $proof $state $package $Component $SchemaVersion
+        Test-RollbackCompatibility $proof $state $package $Component $SchemaVersion $databaseSchema
         New-Item -ItemType Directory -Path (Join-Path $rootPath 'releases') -Force | Out-Null
         $source=Join-Path $stage "releases/$Version"
         Assert-AbsolutePath $source | Out-Null
@@ -245,7 +286,7 @@ function Invoke-ReleaseOperation {
         Copy-Item -LiteralPath (Join-Path $stage 'package-manifest.json') -Destination (Join-Path $target 'release-manifest.json')
     }
     $release=Test-ReleaseIntegrity $target
-    Test-RollbackCompatibility $proof $state $release $Component $SchemaVersion
+    Test-RollbackCompatibility $proof $state $release $Component $SchemaVersion $databaseSchema
     Import-Module WebAdministration
     $components=if ($Component -eq 'Both') { @('backend','frontend') } else { @($Component) }
     $current=Join-Path $rootPath 'current'
@@ -298,4 +339,4 @@ function Invoke-ReleaseOperation {
         $mutex.Dispose()
     }
 }
-Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Test-RollbackCompatibility,Test-HealthResult,ConvertFrom-HealthContent,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation
+Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Get-DatabaseSchemaVersion,Test-RollbackCompatibility,Test-HealthResult,ConvertFrom-HealthContent,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation
