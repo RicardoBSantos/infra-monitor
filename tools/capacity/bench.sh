@@ -139,7 +139,8 @@ stop_app
 # conexao, e o PostgreSQL pode adotar o plano generico depois disso. Com o pool de 20 cada conexao chega la
 # sozinha com o uso; o pool de 1 poe todas as chamadas na mesma conexao. Mesmo bloco antes e depois da
 # correcao: o que muda e o jar, nao o script.
-export DB_POOL_SIZE=1
+# Flyway desligado: o schema ja foi migrado no passo 1, e com 1 conexao o lock do Flyway nao tem onde rodar.
+export DB_POOL_SIZE=1 SPRING_FLYWAY_ENABLED=false
 start_app "$OUT/app-d07.log"
 TOKEN=$(curl -fsS -H 'Content-Type: application/json' -d "{\"email\":\"$BOOTSTRAP_ADMIN_EMAIL\",\"senha\":\"$BOOTSTRAP_ADMIN_PASSWORD\"}" "$API/auth/login" | jq -r .accessToken)
 D07_EXEC=${D07_EXEC:-15}
@@ -169,7 +170,7 @@ serie 'PDF visão geral 1 d' "/relatorios/visao-geral/export/pdf?inicio=$INI1&fi
 log ""
 log "Conexões da aplicação abertas no fim (esperado 1): $(sql -c "select count(*) from pg_stat_activity where datname=current_database() and application_name like 'PostgreSQL JDBC%'")."
 stop_app
-unset DB_POOL_SIZE
+unset DB_POOL_SIZE SPRING_FLYWAY_ENABLED
 
 # 5) One real retention cycle (isolated DB only): 30 days kept, the 31st day is eligible.
 eligible=$(sql -c "select count(*) from medicao where executado_em < now() - interval '30 days'")
