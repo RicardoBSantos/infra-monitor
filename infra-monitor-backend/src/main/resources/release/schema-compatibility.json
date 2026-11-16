@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 27,
+  "minSchemaVersion": 26,
+  "evidence": "Jar com V27 roda em banco na V26 (configuracao_modo_tv ausente): GET /configuracoes/modo-tv devolve os padroes e o PUT responde 503 CONFIGURATION_UNAVAILABLE. Prova: ConfiguracaoModoTvHttpIntegrationTest.semTabelaGetPadroesPutIndisponivel (PostgreSQL real no CI Backend). Banco na V25 NAO declarado: V26 e V27 ausentes ao mesmo tempo nunca foram testadas juntas."
+}

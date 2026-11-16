@@ -310,8 +310,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON sessao_usuario TO inframonitor_app;
 GRANT USAGE, SELECT ON SEQUENCE sessao_usuario_id_seq TO inframonitor_app;
 ```
 
-4. Release `Both` com as ferramentas atuais, `-SchemaVersion 25`: o pacote continua "compatível com schema 25" (o jar novo funciona,
-   degradado, num banco em 25) e a V26 é um opcional aditivo aplicado à parte. Não altere as ferramentas de release.
+4. Release `Both` com `-SchemaVersion` igual ao schema **real** do banco (o Switch lê o `flyway_schema_history` e recusa
+   qualquer outro valor). *Substitui a instrução original, que mandava `-SchemaVersion 25`.* Ela existia porque, quando a V26
+   foi escrita, a trava das ferramentas de release só aceitava 25 (constante em `package.py`, `Test-PackageIntegrity` e
+   `Test-RollbackCompatibility`, sem ler banco nem JAR); a justificativa era "o jar novo funciona, degradado, num banco em 25".
+   Isso fez a implantação do PR #38 sair declarando schema 25 com a V26 dentro, e a trava aprovar. Mudou em 2026-11-16: o pacote
+   declara o schema derivado das migrations do JAR, a tolerância a banco anterior virou um campo próprio (`minSchemaVersion`,
+   declarado e provado) e o operador, o banco e a prova têm de dizer o mesmo número. Detalhes em
+   `Docs/validacao-producao/D02.10-empacotamento-windows.md`, "Trava de schema".
 5. Pós-subida (operador, estação da VLAN de TI):
    - health `UP`;
    - login com o ADMIN funciona (é o caminho que não mudou; se falhar, rollback imediato);
@@ -326,7 +332,9 @@ novo, ainda sem cookie, e entra uma vez. Ninguém fica trancado.
 
 **Voltar atrás se o login quebrar:**
 
-1. `Invoke-WindowsRelease.ps1 -Operation Rollback` para a release anterior, com as ferramentas de sempre (`-SchemaVersion 25`).
+1. `Invoke-WindowsRelease.ps1 -Operation Rollback` para a release anterior, com `-SchemaVersion` = schema real do banco (26).
+   *Antes dizia `-SchemaVersion 25`; ver o passo 4.* A release anterior é mais velha que a V26 e o manifesto dela não declara
+   tolerância: a prova de compatibilidade precisa de `databaseAheadOfRelease=true` (o banco fica à frente do release).
 2. **Não** remova a V26: o jar antigo roda com ela e a tabela fica parada. Só se um dia for preciso removê-la:
    `DROP TABLE sessao_usuario; DELETE FROM flyway_schema_history WHERE version = '26';` (não é necessário para voltar atrás).
 3. Rollback parcial: front novo com backend antigo cai em "sem sessão" e o login funciona como hoje; front antigo com backend novo
@@ -345,18 +353,20 @@ Mesmo princípio da V26: acesso por JDBC com falha tolerada, sem entidade JPA. *
 `GET /api/v1/configuracoes/modo-tv` devolve os padrões (`persistida:false`), a TV roda com eles e só o `PUT` responde
 `503 CONFIGURATION_UNAVAILABLE`, com uma linha `WARN Configuracao do modo TV indisponivel (V27 aplicada?)` por chamada.
 
-**Pré-condição — trava de schema das ferramentas de release.** `package.py:92` grava `"schemaVersion":25` em todo pacote
-e `ReleaseTools.psm1:28/:83` só aceita 25, mas este jar carrega V26 e V27. Com a V27 aplicada, o Switch exige que o
-operador declare `-SchemaVersion 25` com o banco em 27. Resolver essa trava (ou registrar a decisão de seguir sem ela)
-antes da implantação. Investigação na revisão do PR #39.
+**Trava de schema.** Esta seção pedia, como pré-condição, corrigir a trava das ferramentas de release, que cravava 25
+(investigação na revisão do PR #39). Corrigida em 2026-11-16: o pacote deste jar declara `schemaVersion` 27 (derivado das
+migrations) e `minSchemaVersion` 26 (`src/main/resources/release/schema-compatibility.json`: sem a V27 o GET usa padrões e o
+PUT responde 503, provado por `ConfiguracaoModoTvHttpIntegrationTest.semTabelaGetPadroesPutIndisponivel`). Com o banco em 26 o
+Switch aceita `-SchemaVersion 26`; depois do passo 2, só `-SchemaVersion 27`. Banco em 25 é recusado.
 
-**Passo a passo** (segundo o responsável em 2026-11-16, produção está em `r-8f593ef`, Flyway V25, e V26 e V27 entram
-juntas; em 2026-11-12 tinha sido informado que a V26 já estava lá. Conferir `flyway_schema_history` antes do passo 2):
+**Passo a passo** (a V26 já está em produção — confirmado pelo responsável em 2026-11-16; uma versão anterior deste
+parágrafo dizia o contrário, a partir de documentos desatualizados. Estado de produção: `Docs/producao/estado-atual.md`.
+Conferir `flyway_schema_history` antes do passo 2):
 
 1. Backup com `ops/Backup-InfraMonitorDatabase.ps1`.
 2. Aplicar as migrations com o jar **novo**, em console, como no passo 2 da V26, trocando só o alvo:
-   `--spring.flyway.target=27`. Esperar `Successfully applied 2 migrations to schema "public", now at version v27` (ou
-   `1 migration` se a V26 já estiver lá), depois `Started InfraMonitorApplication`, e parar com Ctrl+C. As mesmas
+   `--spring.flyway.target=27`. Esperar `Successfully applied 1 migration to schema "public", now at version v27` (ou
+   `2 migrations` se a V26 não estiver lá), depois `Started InfraMonitorApplication`, e parar com Ctrl+C. As mesmas
    variáveis que desligam motor, Telegram, dispatcher, agendador, retenção e bootstrap.
 3. Conferir (parada obrigatória):
 

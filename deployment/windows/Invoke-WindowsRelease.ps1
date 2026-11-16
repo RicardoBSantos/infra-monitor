@@ -5,7 +5,8 @@ param(
  [Parameter(Mandatory)][string]$Root,[string]$PackagePath,[string]$Version,
  [ValidateSet('Both','backend','frontend')][string]$Component='Both',
  [string]$CompatibilityProof,[int]$SchemaVersion=0,[string]$ServiceName,[string]$SiteName,
- [string]$JavaHome,[string]$ServiceSid,[string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome,[UInt64]$OperationalPeakBytes=3GB,
+ [string]$JavaHome,[string]$ServiceSid,[string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome,
+ [string]$DatabaseName='inframonitor',[string]$DatabaseUser='postgres',[string]$DatabasePasswordFile,[UInt64]$OperationalPeakBytes=3GB,
  [switch]$Apply,[string]$ApprovalId
 )
 $ErrorActionPreference='Stop'
