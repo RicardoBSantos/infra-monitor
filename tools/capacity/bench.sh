@@ -135,6 +135,42 @@ log ""
 log "Processo Java após as chamadas: RSS $(ps -o rss= -p "$APP_PID" | awk '{printf "%.0f MiB", $1/1024}')."
 stop_app
 
+# 4b) D-07: plano generico. O pgjdbc prepara no servidor a partir da 5a execucao do mesmo SQL na mesma
+# conexao, e o PostgreSQL pode adotar o plano generico depois disso. Com o pool de 20 cada conexao chega la
+# sozinha com o uso; o pool de 1 poe todas as chamadas na mesma conexao. Mesmo bloco antes e depois da
+# correcao: o que muda e o jar, nao o script.
+export DB_POOL_SIZE=1
+start_app "$OUT/app-d07.log"
+TOKEN=$(curl -fsS -H 'Content-Type: application/json' -d "{\"email\":\"$BOOTSTRAP_ADMIN_EMAIL\",\"senha\":\"$BOOTSTRAP_ADMIN_PASSWORD\"}" "$API/auth/login" | jq -r .accessToken)
+D07_EXEC=${D07_EXEC:-15}
+log ""
+log "## D-07 — mesma conexão (pool de 1), $D07_EXEC execuções seguidas, sem aquecimento"
+log ""
+log "| Endpoint | HTTP | média 1–5 (ms) | média $((D07_EXEC-4))–$D07_EXEC (ms) | máx (ms) | série (ms) |"
+log "|---|---|---|---|---|---|"
+serie() { # $1 label, $2 path
+  local times=() code t
+  for _ in $(seq 1 "$D07_EXEC"); do
+    read -r code t < <(curl -s -o /dev/null -w '%{http_code} %{time_total}\n' -H "Authorization: Bearer $TOKEN" "$API$2")
+    times+=("$(echo "$t*1000/1" | bc)")
+  done
+  local ini fim max
+  ini=$(printf '%s\n' "${times[@]:0:5}" | awk '{s+=$1} END {printf "%.0f", s/NR}')
+  fim=$(printf '%s\n' "${times[@]: -5}" | awk '{s+=$1} END {printf "%.0f", s/NR}')
+  max=$(printf '%s\n' "${times[@]}" | sort -n | tail -1)
+  log "| $1 | $code | $ini | $fim | $max | ${times[*]} |"
+}
+serie 'latência 1 d' "/relatorios/latencia?inicio=$INI1&fim=$FIM"
+serie 'latência por unidade 1 d' "/relatorios/latencia/unidades?inicio=$INI1&fim=$FIM"
+serie 'latência por unidade 30 d' "/relatorios/latencia/unidades?inicio=$INI30&fim=$FIM"
+serie 'CSV latência 1 d' "/relatorios/latencia/export?inicio=$INI1&fim=$FIM"
+serie 'CSV medições 1 h' "/relatorios/medicoes/export?inicio=$INI1H&fim=$FIM"
+serie 'PDF visão geral 1 d' "/relatorios/visao-geral/export/pdf?inicio=$INI1&fim=$FIM"
+log ""
+log "Conexões da aplicação abertas no fim (esperado 1): $(sql -c "select count(*) from pg_stat_activity where datname=current_database() and application_name like 'PostgreSQL JDBC%'")."
+stop_app
+unset DB_POOL_SIZE
+
 # 5) One real retention cycle (isolated DB only): 30 days kept, the 31st day is eligible.
 eligible=$(sql -c "select count(*) from medicao where executado_em < now() - interval '30 days'")
 export RETENTION_ENABLED=true RETENTION_DRY_RUN=false RETENTION_DELETION_APPROVED=true RETENTION_INITIAL_DELAY=5s RETENTION_INTERVAL=20s
