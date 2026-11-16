@@ -18,7 +18,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    restart: unless-stopped
+    # Sem reinicio automatico: o banco de dev so sobe quando alguem pede (docker compose up). Subir sozinho
+    # junto com o Docker e risco permanente; o container da carga (fora deste compose) tambem esta em "no".
+    restart: "no"
 
 volumes:
   inframonitor-postgres-data:

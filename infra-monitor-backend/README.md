@@ -268,6 +268,13 @@ do usuário, depois de conferido o formato das mensagens.
 Atenção: o banco da carga real (`inframonitor-carga`) **já está em V21**, enquanto a pilha do dia a
 dia pode estar rodando código anterior à F1. Não aponte um jar antigo para ele sem o `UPDATE` acima.
 
+### Antes de qualquer implantação: estado de produção
+
+O que está no ar hoje (release, schema aplicado, flags, inventário) está em **`Docs/producao/estado-atual.md`**, e só lá.
+Os documentos de fase em `Docs/validacao-producao/` são histórico. **Regra:** a implantação, a migration aplicada ou a flag
+alterada atualiza esse arquivo **no mesmo commit**, nunca depois; o que não foi conferido no servidor fica "A CONFERIR NO
+SERVIDOR", com o comando. Os procedimentos abaixo dizem o que fazer; o estado de onde se parte vem de lá.
+
 ### V26 (sessão com refresh token) — aplicar em produção e rollback
 
 A **V26** cria só a tabela `sessao_usuario` (hash SHA-256 do refresh token, validade, último uso, revogação) e um índice.

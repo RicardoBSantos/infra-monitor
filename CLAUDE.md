@@ -199,6 +199,15 @@ Regras já definidas:
   `flyway_schema_history`. As tabelas de domínio entram a partir de `V2`.
 - **Nunca editar migration já executada.** Toda mudança é uma nova versão.
 
+## Produção: estado atual
+
+- **O que está no ar** (release, schema, flags, inventário) se lê **só** em `Docs/producao/estado-atual.md`.
+  Os documentos de fase em `Docs/validacao-producao/` são histórico; não deduza produção deles nem do repositório.
+- **Regra:** mudança que altera produção (implantação, migration aplicada, flag, inventário) atualiza
+  `Docs/producao/estado-atual.md` **no mesmo commit**, nunca depois. Campo não conferido no servidor fica
+  "A CONFERIR NO SERVIDOR", com o comando. Origem: em 2026-11-16 quatro documentos de fase diziam que produção
+  estava em `r-8f593ef`/V25 quando a V26 já estava aplicada.
+
 ## Particularidades do Spring Boot 4.1 (custaram tempo, não regredir)
 
 - Flyway precisa de `spring-boot-starter-flyway`. Só `flyway-core` não traz a
