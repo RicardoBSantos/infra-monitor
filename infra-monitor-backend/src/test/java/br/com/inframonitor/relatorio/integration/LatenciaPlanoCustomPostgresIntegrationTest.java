@@ -2,7 +2,10 @@ package br.com.inframonitor.relatorio.integration;
 
 import br.com.inframonitor.equipamento.dto.CreateEquipamentoRequest;
 import br.com.inframonitor.equipamento.service.EquipamentoService;
+import br.com.inframonitor.relatorio.exportacao.RelatorioExportService;
 import br.com.inframonitor.relatorio.service.RelatorioService;
+import br.com.inframonitor.security.UsuarioPrincipal;
+import br.com.inframonitor.usuario.entity.Papel;
 import br.com.inframonitor.testsupport.LimpezaBanco;
 import br.com.inframonitor.testsupport.RequerDocker;
 import br.com.inframonitor.tipoequipamento.dto.CreateTipoEquipamentoRequest;
@@ -18,6 +21,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.io.OutputStream;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,6 +58,7 @@ class LatenciaPlanoCustomPostgresIntegrationTest {
     @Autowired TipoEquipamentoService tipos;
     @Autowired EquipamentoService equipamentos;
     @Autowired RelatorioService relatorios;
+    @Autowired RelatorioExportService exportacoes;
 
     @BeforeEach
     void semear() {
@@ -88,5 +93,27 @@ class LatenciaPlanoCustomPostgresIntegrationTest {
                 + "where statement ilike '%count(md.id) quantidade%'", Long.class);
         assertThat(generic).as("planos genericos").isZero();
         assertThat(custom).as("planos custom").isGreaterThanOrEqualTo(24);
+    }
+
+    /**
+     * Escopo nas exportacoes: so o CSV de latencia forca plano custom. O CSV de medicoes fica de fora (a serie
+     * D-07 do benchmark de capacidade nao mediu degrau nele) e chega ao plano generico. As consultas de
+     * exportacao sao as unicas com quebra de linha no SQL, o que as separa das da tela.
+     */
+    @Test
+    void soOCsvDeLatenciaForcaPlanoCustom() throws Exception {
+        UsuarioPrincipal admin = new UsuarioPrincipal(1L, Papel.ADMIN);
+        for (int i = 0; i < 12; i++) {
+            exportacoes.latencia(INICIO, FIM, null, null, null, null, admin).body().writeTo(OutputStream.nullOutputStream());
+            exportacoes.medicoes(INICIO, FIM, null, null, null, null, null, admin).body().writeTo(OutputStream.nullOutputStream());
+        }
+        assertThat(planos("generic_plans", "%percentile_cont%")).as("CSV de latencia: planos genericos").isZero();
+        assertThat(planos("generic_plans", "%md.latencia_ms,md.executado_em%"))
+                .as("CSV de medicoes: sem plano custom forcado, o servidor adota o generico").isPositive();
+    }
+
+    private long planos(String coluna, String padrao) {
+        return jdbc.queryForObject("select coalesce(sum(" + coluna + "),0) from pg_prepared_statements "
+                + "where statement like ? and position(chr(10) in statement) > 0", Long.class, padrao);
     }
 }
