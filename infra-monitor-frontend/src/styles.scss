@@ -3,3 +3,6 @@
 @use './styles/typography';
 @use './styles/ui';
 @use './styles/login-graph';
+
+/* Modo TV: o que não cabe numa tela de parede some (filtros, ações, paginação, exportação). */
+.tv [data-tv-oculto] { display: none !important; }

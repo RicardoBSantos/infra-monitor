@@ -336,6 +336,68 @@ novo, ainda sem cookie, e entra uma vez. Ninguém fica trancado.
 
 Provado em 2026-11-11 em bancos descartáveis: jar novo aplicou a V26 sobre um banco em V25 (44 ms); jar de origin/main (920e4d5) com Flyway desligado subiu UP sobre o banco em V26 e o login respondeu 200; jar novo com Flyway desligado sobre banco sem V26 subiu UP, login 200 sem cookie, refresh 204.
 
+### V27 (configuração do modo TV) — aplicar em produção e rollback
+
+A **V27** cria só `configuracao_modo_tv` (linha única, garantida pelo índice `((true))`) e `configuracao_modo_tv_tela`.
+Não insere linha e não toca tabela existente. Desenho em `Docs/superpowers/specs/2026-11-12-modo-tv-design.md`.
+
+Mesmo princípio da V26: acesso por JDBC com falha tolerada, sem entidade JPA. **Sem a V27 o sistema funciona**: o
+`GET /api/v1/configuracoes/modo-tv` devolve os padrões (`persistida:false`), a TV roda com eles e só o `PUT` responde
+`503 CONFIGURATION_UNAVAILABLE`, com uma linha `WARN Configuracao do modo TV indisponivel (V27 aplicada?)` por chamada.
+
+**Pré-condição — trava de schema das ferramentas de release.** `package.py:92` grava `"schemaVersion":25` em todo pacote
+e `ReleaseTools.psm1:28/:83` só aceita 25, mas este jar carrega V26 e V27. Com a V27 aplicada, o Switch exige que o
+operador declare `-SchemaVersion 25` com o banco em 27. Resolver essa trava (ou registrar a decisão de seguir sem ela)
+antes da implantação. Investigação na revisão do PR #39.
+
+**Passo a passo** (segundo o responsável em 2026-11-16, produção está em `r-8f593ef`, Flyway V25, e V26 e V27 entram
+juntas; em 2026-11-12 tinha sido informado que a V26 já estava lá. Conferir `flyway_schema_history` antes do passo 2):
+
+1. Backup com `ops/Backup-InfraMonitorDatabase.ps1`.
+2. Aplicar as migrations com o jar **novo**, em console, como no passo 2 da V26, trocando só o alvo:
+   `--spring.flyway.target=27`. Esperar `Successfully applied 2 migrations to schema "public", now at version v27` (ou
+   `1 migration` se a V26 já estiver lá), depois `Started InfraMonitorApplication`, e parar com Ctrl+C. As mesmas
+   variáveis que desligam motor, Telegram, dispatcher, agendador, retenção e bootstrap.
+3. Conferir (parada obrigatória):
+
+```sql
+select version, success from flyway_schema_history where version in ('26','27') order by version;  -- 26 | t e 27 | t
+select has_table_privilege('inframonitor_app', 'configuracao_modo_tv', 'SELECT,INSERT,UPDATE,DELETE');       -- t
+select has_table_privilege('inframonitor_app', 'configuracao_modo_tv_tela', 'SELECT,INSERT,UPDATE,DELETE');  -- t
+select count(*) from configuracao_modo_tv;   -- 0: a migration não insere linha
+```
+
+   Se algum privilégio vier `f`, como dono do schema:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON configuracao_modo_tv, configuracao_modo_tv_tela TO inframonitor_app;
+GRANT USAGE, SELECT ON SEQUENCE configuracao_modo_tv_id_seq TO inframonitor_app;
+```
+
+4. Release `Both` (ver a pré-condição acima).
+5. Pós-subida (operador, estação da VLAN de TI):
+   - itens da V26 (health, login, cookie, F5, sair);
+   - `GET /api/v1/configuracoes/modo-tv` 200 com `persistida:false`;
+   - ADMIN: Administração › Configurações › Modo TV, mudar o intervalo e salvar → 200 (um 503 aqui = V27 ausente ou sem
+     privilégio); `select count(*) from configuracao_modo_tv` = 1;
+   - `/tv` abre **pelo IIS** (rota SPA, ainda não testada no ARR), troca de tela e mostra "Dados de HH:MM";
+   - uma aba normal em `/dashboard` não troca de tela;
+   - log sem `Configuracao do modo TV indisponivel`.
+
+Sessões abertas na troca: as da V26 (acima). Uma TV já aberta com o front antigo não existe: `/tv` só chega com o front novo.
+
+**Voltar atrás:**
+
+1. `Invoke-WindowsRelease.ps1 -Operation Rollback` para a release anterior.
+2. **Não** remova a V27: o jar antigo não a conhece (não é entidade JPA, `ddl-auto: validate` não a confere). Só se
+   for preciso removê-la, depois de backup: `DROP TABLE configuracao_modo_tv_tela; DROP TABLE configuracao_modo_tv;
+   DELETE FROM flyway_schema_history WHERE version = '27';`. Isso apaga a configuração salva.
+3. Front novo com backend antigo: `/tv` lê a configuração, recebe 404 e mostra "Não foi possível ler a configuração do
+   modo TV", tentando de novo. O resto do front funciona.
+
+**Não provado:** jar anterior à V27 subindo sobre banco em V27 (a prova equivalente da V26 foi feita, esta não);
+`/tv` atrás do IIS/ARR; a trava de schema com V26/V27.
+
 ## Executar a aplicação
 
 ```bash
@@ -362,7 +424,7 @@ java -jar target/infra-monitor-backend-0.0.1-SNAPSHOT.jar --spring.profiles.acti
 ./mvnw test
 ```
 
-As classes de integração Postgres (55 hoje) são marcadas com `@RequerDocker` e sobem
+As classes de integração Postgres (56 hoje) são marcadas com `@RequerDocker` e sobem
 um PostgreSQL real via Testcontainers. Sem Docker disponível elas são **puladas**, não
 falham, e o fim da execução imprime um aviso com a contagem e a lista
 (`!! N classes puladas: Docker indisponivel.`): uma suíte verde nesse estado **não**

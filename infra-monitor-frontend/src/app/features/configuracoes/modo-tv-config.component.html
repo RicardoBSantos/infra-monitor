@@ -1,0 +1,105 @@
+<section class="modo-tv" aria-labelledby="modo-tv-titulo">
+  <header class="modo-tv__cabecalho">
+    <div>
+      <h2 id="modo-tv-titulo" class="modo-tv__titulo">
+        Modo TV
+        @if (estado() === 'success') { <app-status-badge [status]="status()" /> }
+      </h2>
+      <p class="modo-tv__descricao">A TV da sala de TI percorre as telas abaixo em ciclo e rebusca os dados sozinha. Ela relê esta configuração a cada atualização: não é preciso mexer na TV.</p>
+    </div>
+    <a class="botao" href="/tv" target="_blank" rel="noopener"><app-icon name="external" />Abrir modo TV</a>
+  </header>
+
+  @if (estado() === 'loading') {
+    <div class="cartao">
+      <div class="esqueleto modo-tv__esqueleto" role="status" aria-label="Carregando configuração do modo TV">
+        @for (bloco of [1, 2, 3, 4, 5]; track bloco) { <span></span> }
+      </div>
+    </div>
+  } @else if (estado() === 'error') {
+    <div class="aviso aviso--erro" role="alert">
+      <div>
+        <strong>Não foi possível carregar a configuração.</strong>
+        <p>{{ erroCarga() }}</p>
+      </div>
+      <button class="botao" type="button" (click)="carregar()">Tentar novamente</button>
+    </div>
+  } @else {
+    @if (gravada()?.persistida === false) {
+      <p class="nota" role="note">Usando os valores padrão; nada foi salvo ainda.</p>
+    }
+
+    <section class="cartao" aria-labelledby="modo-tv-comportamento">
+      <h3 id="modo-tv-comportamento" class="cartao__titulo">COMPORTAMENTO</h3>
+      <div class="campos">
+        <div class="campo">
+          <label class="campo__rotulo" for="modo-tv-ativo">Modo TV ativo</label>
+          <p class="campo__ajuda" id="modo-tv-ativo-ajuda">Desligado, a TV mostra “Modo TV desativado pelo administrador” e espera ser religada.</p>
+          <input id="modo-tv-ativo" class="interruptor" type="checkbox" role="switch" aria-describedby="modo-tv-ativo-ajuda"
+                 [checked]="ativo()" (change)="alternarAtivo($any($event.target).checked)">
+        </div>
+        <div class="campo">
+          <label class="campo__rotulo" for="modo-tv-intervalo">Atualizar os dados a cada</label>
+          <p class="campo__ajuda">Intervalo entre duas buscas de dados nas telas montadas.</p>
+          <span class="campo-select">
+            <select id="modo-tv-intervalo" name="intervalo" (change)="escolherIntervalo($any($event.target).value)">
+              @for (op of opcoesIntervalo(); track op) { <option [value]="op" [selected]="op === intervalo()">{{ rotuloDuracao(op) }}</option> }
+            </select>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cartao" aria-labelledby="modo-tv-telas">
+      <h3 id="modo-tv-telas" class="cartao__titulo">TELAS DO CICLO</h3>
+      <ol class="telas">
+        @for (linha of linhas(); track linha.tela; let primeira = $first; let ultima = $last) {
+          <li class="tela" [class.tela--fora]="!linha.incluida">
+            <span class="tela__posicao" aria-hidden="true">{{ linha.incluida ? posicao(linha.tela) : '–' }}</span>
+            <label class="tela__incluir">
+              <input type="checkbox" [attr.data-tela]="linha.tela" [checked]="linha.incluida" (change)="incluir(linha.tela, $any($event.target).checked)">
+              <span class="tela__nome">{{ nome(linha.tela) }}</span>
+            </label>
+            <span class="campo-select tela__duracao">
+              <select [attr.aria-label]="'Duração de ' + nome(linha.tela)" [disabled]="!linha.incluida" (change)="escolherDuracao(linha.tela, $any($event.target).value)">
+                @for (op of opcoesDuracao(linha.duracao); track op) { <option [value]="op" [selected]="op === linha.duracao">{{ rotuloDuracao(op) }} na tela</option> }
+              </select>
+            </span>
+            <span class="tela__mover">
+              <button class="botao botao--discreto botao--icone" type="button" [attr.data-mover]="linha.tela + ':-1'"
+                      [attr.aria-label]="'Mover ' + nome(linha.tela) + ' para cima'" [disabled]="primeira" (click)="mover(linha.tela, -1)">
+                <app-icon class="seta-cima" name="chevron-down" />
+              </button>
+              <button class="botao botao--discreto botao--icone" type="button" [attr.data-mover]="linha.tela + ':1'"
+                      [attr.aria-label]="'Mover ' + nome(linha.tela) + ' para baixo'" [disabled]="ultima" (click)="mover(linha.tela, 1)">
+                <app-icon name="chevron-down" />
+              </button>
+            </span>
+          </li>
+        }
+      </ol>
+      <p class="telas__rodape">
+        @if (semTelas()) {
+          <span class="telas__alerta">Inclua ao menos uma tela no ciclo para salvar.</span>
+        } @else {
+          <span class="mono">Ciclo completo: {{ ciclo() }}</span>
+          <span class="apagado">· {{ incluidas().length }} de {{ linhas().length }} telas</span>
+        }
+      </p>
+    </section>
+
+    <footer class="acoes">
+      <div class="acoes__estado">
+        @if (erroSalvar()) {
+          <p class="acoes__erro" role="alert">{{ erroSalvar() }}</p>
+        } @else if (salvo()) {
+          <p class="acoes__ok" role="status">Configuração salva. A TV passa a usá-la na próxima atualização dos dados, quando relê a configuração.</p>
+        } @else if (alterado()) {
+          <p class="acoes__pendente" role="status">Alterações não salvas.</p>
+        }
+      </div>
+      <button class="botao" type="button" [disabled]="!alterado() || salvando()" (click)="descartar()">Descartar</button>
+      <button class="botao botao--primario" type="button" [disabled]="!podeSalvar()" (click)="salvar()">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
+    </footer>
+  }
+</section>

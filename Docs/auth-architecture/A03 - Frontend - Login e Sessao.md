@@ -1002,3 +1002,12 @@ compartilhado (voo único) e a requisição é repetida uma vez; se o refresh fa
 revoga a sessão no servidor (`POST /api/v1/auth/logout`). `authenticated()` não depende mais da validade do access token.
 
 Desenho e decisões: `Docs/superpowers/specs/2026-11-11-sessao-refresh-token-design.md`.
+
+## Pendência 2026-11-12 — sessão longa para o modo TV
+
+O modo TV (`/tv`, `Docs/superpowers/specs/2026-11-12-modo-tv-design.md`, decisão D4) só **avisa** quando a sessão cai:
+o interceptor leva a `/login?sessionExpired=1&origem=tv&returnUrl=/tv&encerradaEm=HH:MM` e o login mostra a faixa
+"Modo TV parado: a sessão encerrou às HH:MM. Entre novamente para retomar." A TV continua sujeita à duração normal da
+sessão (`JWT_REFRESH_TOKEN_DURATION`, padrão 10h): depois disso alguém precisa entrar de novo na TV. Sessão longa (ou
+credencial própria de painel de parede) para a conta VISUALIZADOR da TV é item futuro — não implementado.
+Prova em navegador da faixa: `infra-monitor-frontend/e2e/modo-tv.cjs`, passo 7.

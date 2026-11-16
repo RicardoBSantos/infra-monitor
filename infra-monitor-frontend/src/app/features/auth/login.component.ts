@@ -11,7 +11,9 @@ type LoginState = 'idle' | 'loading' | 'error';
 @Component({ selector: 'app-login', imports: [ReactiveFormsModule], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './login.component.html', styleUrl: './login.component.scss' })
 export class LoginComponent {
   private readonly auth = inject(AuthService); private readonly router = inject(Router); private readonly route = inject(ActivatedRoute); private readonly fb = inject(FormBuilder); protected readonly theme = inject(ThemeService);
-  protected readonly state = signal<LoginState>('idle'); protected readonly error = signal<string | null>(this.route.snapshot.queryParamMap.has('sessionExpired') ? 'Sua sessão expirou. Entre novamente.' : null);
+  /** Faixa do modo TV (auth.interceptor): substitui o aviso genérico; a hora só entra se for HH:MM. */
+  protected readonly avisoModoTv = avisoTv(this.route.snapshot.queryParamMap.get('origem'), this.route.snapshot.queryParamMap.get('encerradaEm'));
+  protected readonly state = signal<LoginState>('idle'); protected readonly error = signal<string | null>(this.route.snapshot.queryParamMap.has('sessionExpired') && !this.avisoModoTv ? 'Sua sessão expirou. Entre novamente.' : null);
   protected readonly form = this.fb.nonNullable.group({ email: ['', [Validators.required, Validators.email]], senha: ['', Validators.required] });
   /** Apenas UI: nao participa do payload de login nem do fluxo de sessao. */
   protected readonly manterConectado = signal(true);
@@ -25,5 +27,10 @@ export class LoginComponent {
     }, error: error => { this.state.set('error'); this.error.set(loginMessage(error)); } });
   }
   private safeReturnUrl(): string { const value = this.route.snapshot.queryParamMap.get('returnUrl'); return value && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'; }
+}
+function avisoTv(origem: string | null, encerradaEm: string | null): string | null {
+  if (origem !== 'tv') return null;
+  const quando = encerradaEm && /^([01]\d|2[0-3]):[0-5]\d$/.test(encerradaEm) ? ` às ${encerradaEm}` : '';
+  return `Modo TV parado: a sessão encerrou${quando}. Entre novamente para retomar.`;
 }
 function loginMessage(error: unknown): string { if (error instanceof HttpErrorResponse && isApiError(error.error)) { if (error.error.code === ApiErrorCode.AuthenticationFailed) return 'Credenciais inválidas.'; if (error.error.code === ApiErrorCode.AccountDisabled) return 'Esta conta está inativa.'; return error.error.message; } return 'Não foi possível entrar agora. Tente novamente.'; }

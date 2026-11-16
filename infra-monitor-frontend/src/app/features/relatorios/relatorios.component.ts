@@ -1,5 +1,5 @@
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, inject, input, signal, viewChildren } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, Observable, take } from 'rxjs';
@@ -28,6 +28,7 @@ import { MonitorApiService } from '../../core/services/monitor-api.service';
 import { RelatorioApiService } from '../../core/services/relatorio-api.service';
 import { TipoEquipamentoApiService } from '../../core/services/tipo-equipamento-api.service';
 import { UnidadeApiService } from '../../core/services/unidade-api.service';
+import { TelaTv } from '../tv/tela-tv';
 import { navegarAbas } from '../../shared/a11y/navegar-abas';
 import { PaginacaoComponent } from '../../shared/paginacao/paginacao.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
@@ -60,7 +61,15 @@ const latencySorts = [{ value: 'unidadeNome', label: 'Unidade' }, { value: 'equi
 const notificationSorts = [{ value: 'createdAt', label: 'Criada em' }, { value: 'enviadoEm', label: 'Enviada em' }, { value: 'status', label: 'Status' }, { value: 'canal', label: 'Canal' }, { value: 'tipoEvento', label: 'Evento' }, { value: 'tentativas', label: 'Tentativas' }] as const;
 
 @Component({ selector: 'app-relatorios', imports: [PaginacaoComponent, ReactiveFormsModule, RouterLink, StatusBadgeComponent], changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './relatorios.component.html', styleUrl: './relatorios.component.scss' })
-export class RelatoriosComponent {
+export class RelatoriosComponent implements OnInit, TelaTv {
+  /** Modo TV: abre direto na Visão geral, ignora a query string e atualiza em silêncio. */
+  readonly modoTv = input(false);
+  private readonly falhou = signal(false);
+  readonly falhouUltimaAtualizacao = this.falhou.asReadonly();
+  private readonly okEm = signal<Date | null>(null);
+  /** Carimbo do modo TV: quando os 4 widgets da Visão geral de uma mesma rodada responderam com sucesso. */
+  readonly ultimaAtualizacaoOk = this.okEm.asReadonly();
+  private overviewSucessos = 0;
   protected readonly plural = plural;
   private readonly reportsApi = inject(RelatorioApiService);
   private readonly unidadesApi = inject(UnidadeApiService);
@@ -158,7 +167,26 @@ export class RelatoriosComponent {
   protected readonly rotuloEvento = rotuloEventoNotificacao;
   protected readonly formatDuration = formatDurationSeconds;
 
-  constructor() { this.loadBaseLookups(); if (!this.applyQueryParams()) this.search(); }
+  /**
+   * A busca inicial roda aqui, e não no construtor, porque só em `ngOnInit` o input `modoTv`
+   * já está disponível. Na TV não há filtros, então as listas de consulta nem são carregadas.
+   */
+  ngOnInit(): void {
+    if (this.modoTv()) { this.activeTab.set('overview'); this.search(); return; }
+    this.loadBaseLookups();
+    if (!this.applyQueryParams()) this.search();
+  }
+
+  /**
+   * Atualização silenciosa do modo TV: a Visão geral das últimas 24 h deslizantes. Widgets que já
+   * têm valor não voltam a `loading`; falha mantém o valor anterior. Listas de consulta, CSV e PDF ficam de fora.
+   */
+  recarregarDados(): void {
+    this.falhou.set(false);
+    this.overviewForm.setValue({ inicio: localDateTime(-24), fim: localDateTime(0) });
+    const period = this.validPeriod(this.overviewForm, 31);
+    if (period) this.loadOverview(period.inicio, period.fim, true);
+  }
 
   /**
    * Entrada por link: `/relatorios?aba=medicoes&equipamentoId=12` abre a aba pedida já
@@ -360,13 +388,15 @@ export class RelatoriosComponent {
   private setExporting(tab: ExportTab, value: boolean) { this.exporting.update(state => ({ ...state, [tab]: value })); }
   private setExportNotice(tab: ExportTab, value: ExportNotice | null) { this.exportNotices.update(state => ({ ...state, [tab]: value })); }
   private overviewGeneration = 0;
-  private loadOverview(inicio: string, fim: string) {
+  private loadOverview(inicio: string, fim: string, silencioso = false) {
     const generation = ++this.overviewGeneration;
-    (Object.keys(this.overviewWidgets) as OverviewTarget[]).forEach(target => this.loadOverviewWidget(target, inicio, fim, generation));
+    this.overviewSucessos = 0;
+    (Object.keys(this.overviewWidgets) as OverviewTarget[]).forEach(target => this.loadOverviewWidget(target, inicio, fim, generation, silencioso));
   }
-  private loadOverviewWidget(target: OverviewTarget, inicio: string, fim: string, generation: number) {
+  private loadOverviewWidget(target: OverviewTarget, inicio: string, fim: string, generation: number, silencioso = false) {
     const widget = this.overviewWidgets[target];
-    widget.state.set('loading'); widget.error.set(null);
+    const mantemValor = silencioso && widget.value() !== null;
+    if (!mantemValor) { widget.state.set('loading'); widget.error.set(null); }
     // Os indicadores vêm prontos do servidor, da mesma query do PDF. Os rankings continuam
     // lendo `content` da lista paginada.
     const request = (target === 'indicators'
@@ -380,11 +410,14 @@ export class RelatoriosComponent {
       next: response => {
         if (generation !== this.overviewGeneration) return;
         const value = target === 'indicators' ? response as IndicadoresVisaoGeralResponse : (response as PageResponse<unknown>).content;
-        widget.value.set(value as never);
+        widget.value.set(value as never); widget.error.set(null);
         widget.state.set(Array.isArray(value) && value.length === 0 ? 'empty' : 'success');
+        if (++this.overviewSucessos === Object.keys(this.overviewWidgets).length) this.okEm.set(new Date());
       },
       error: error => {
         if (generation !== this.overviewGeneration) return;
+        if (silencioso) this.falhou.set(true);
+        if (mantemValor) return;
         widget.error.set(overviewErrorMessage(error)); widget.state.set('error');
       },
     });

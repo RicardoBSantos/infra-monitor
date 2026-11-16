@@ -1,9 +1,56 @@
 // @ts-expect-error -- sem @types/node no projeto; o vitest roda em Node e resolve o modulo (so este spec le o fonte).
 import { readFileSync } from 'node:fs';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { Observable, Subject, of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 import { DashboardEquipamento, DashboardUnidade } from '../../core/models/dashboard';
 import { EquipmentOperationalStatus, UnitOperationalStatus } from '../../core/models/api-enums';
-import { agruparUnidades, ajusteDeEncaixe, arcoEntre, caixaDosPontos, convexoIntersectaRetangulo, envoltoriaConvexa, margensParaEvitar, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseDeFluxo, opacidadeNaPonta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapMunicipio, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
+import { DashboardApiService } from '../../core/services/dashboard-api.service';
+import { GeoMunicipioService } from '../../core/services/geo-municipio.service';
+import { agruparUnidades, ajusteDeEncaixe, arcoEntre, caixaDosPontos, convexoIntersectaRetangulo, envoltoriaConvexa, margensParaEvitar, camadasDeConexao, centroideAproximado, cliqueVeioDeMarcador, conexoesDesenhaveis, contarPorStatus, equipamentosAfetados, faseDeFluxo, opacidadeNaPonta, interpolar, limitesDoEnquadramento, limitesDoMunicipio, MapaComponent, MapMunicipio, mesmaTopologia, pontoNoArco, rotuloDaUnidade, rotuloDoMunicipio } from './mapa.component';
 import { Municipio } from '../../core/services/geo-municipio.service';
+
+/*
+ * MapLibre falso, só para os testes de atualização no lugar (modo TV): o jsdom não tem WebGL. O
+ * Marker falso põe o elemento dentro do container do mapa, como a lib real, para que o botão da
+ * unidade possa ser achado por `[data-unidade-id]`. As funções puras acima não usam nada daqui.
+ */
+const maplibreFalso = vi.hoisted(() => {
+  const construcoes: unknown[] = [];
+  const setData = vi.fn();
+  const camera = { easeTo: vi.fn(), jumpTo: vi.fn(), fitBounds: vi.fn() };
+  return { construcoes, setData, camera };
+});
+vi.mock('maplibre-gl', () => {
+  class Map {
+    private readonly container: HTMLElement;
+    constructor(opcoes: { container: HTMLElement }) { this.container = opcoes.container; maplibreFalso.construcoes.push(this); }
+    addControl(): this { return this; }
+    on(): this { return this; }
+    getContainer(): HTMLElement { return this.container; }
+    getSource(id: string) { return id === 'conexoes' ? { setData: maplibreFalso.setData } : undefined; }
+    getBounds() { return { contains: () => true }; }
+    getCanvas() { return document.createElement('canvas'); }
+    easeTo(...a: unknown[]) { maplibreFalso.camera.easeTo(...a); }
+    jumpTo(...a: unknown[]) { maplibreFalso.camera.jumpTo(...a); }
+    fitBounds(...a: unknown[]) { maplibreFalso.camera.fitBounds(...a); }
+    remove(): void { /* nada */ }
+  }
+  class Marker {
+    private readonly elemento: HTMLElement;
+    constructor(opcoes: { element: HTMLElement }) { this.elemento = opcoes.element; }
+    setLngLat(): this { return this; }
+    setOpacity(): this { return this; }
+    addTo(mapa: { getContainer(): HTMLElement }): this { mapa.getContainer().appendChild(this.elemento); return this; }
+    getElement(): HTMLElement { return this.elemento; }
+    remove(): this { this.elemento.remove(); return this; }
+  }
+  class LngLatBounds { extend(): this { return this; } }
+  class NavigationControl {}
+  const LngLat = { convert: (c: unknown) => c };
+  return { Map, Marker, LngLatBounds, NavigationControl, LngLat, setWorkerUrl: () => undefined };
+});
 
 const geoJson={type:'FeatureCollection',features:[{type:'Feature',properties:{id:'2800308',name:'Aracaju'},geometry:{type:'Polygon',coordinates:[[[-38,-10],[-37,-10],[-37,-11],[-38,-10]]] }},{type:'Feature',properties:{id:'2800100',name:'Amparo'},geometry:{type:'Polygon',coordinates:[[[-38,-11],[-37,-11],[-37,-12],[-38,-11]]]}}]};
 const unit: DashboardUnidade={id:1,nome:'Matriz',codigoIbge:'2800308',ativo:true,status:UnitOperationalStatus.Available,equipamentosTotal:1,equipamentosAtivos:1,equipamentosDisponiveis:1,equipamentosDegradados:0,equipamentosIndisponiveis:0,equipamentosSemDados:0,equipamentosSemMonitoramento:0,equipamentosEmManutencao:0,incidentesAbertos:0,latitude:null,longitude:null,conectaAUnidadeId:null};
@@ -403,5 +450,230 @@ describe('placa do titulo e botoes (D23)', () => {
     expect(meta).not.toBeNull();
     expect(meta!.querySelector('.mono')).not.toBeNull();
     expect(scss).not.toMatch(/\.afetados__meta[^}]*var\(--im-mono\)/);
+  });
+
+  it('acoes e navegacao saem no modo TV (data-tv-oculto); a legenda fica', () => {
+    const textos = ['Atualizar', 'Ver estado inteiro', 'Corrigir unidades', 'Tentar novamente'];
+    for (const b of Array.from(doc.querySelectorAll('button')).filter(b => textos.includes(b.textContent?.trim() ?? ''))) {
+      expect(b.closest('[data-tv-oculto]'), b.textContent ?? '').not.toBeNull();
+    }
+    expect(doc.querySelector('.unit-panel__acoes')?.hasAttribute('data-tv-oculto')).toBe(true);
+    expect(doc.querySelector('details.legend-bloco')?.closest('[data-tv-oculto]')).toBeNull();
+  });
+});
+
+/*
+ * Modo TV: `recarregarDados()` remenda status no lugar. O MapLibre, a cartografia e a câmera nascem
+ * uma vez; só marcadores de unidade, conexões e pings são tocados.
+ */
+describe('recarregarDados (modo TV)', () => {
+  const aracaju: Municipio = { codigoIbge: '2800308', nome: 'Aracaju', uf: 'SE', feature: geoJson.features[0] as never };
+  const hub: DashboardUnidade = { ...unit, id: 1, nome: 'Hub', latitude: -10.5, longitude: -37.5, conectaAUnidadeId: null };
+  const filha: DashboardUnidade = { ...unit, id: 2, nome: 'Filha', latitude: -10.6, longitude: -37.6, conectaAUnidadeId: 1 };
+  let respostas: Observable<DashboardUnidade[]>[];
+  let getMunicipios: ReturnType<typeof vi.fn>;
+  let cancelar: ReturnType<typeof vi.fn>;
+  let pedirQuadro: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    maplibreFalso.construcoes.length = 0;
+    maplibreFalso.setData.mockClear();
+    Object.values(maplibreFalso.camera).forEach(f => f.mockClear());
+    respostas = [of([hub, filha])];
+    getMunicipios = vi.fn(() => of([aracaju]));
+    let quadro = 0;
+    pedirQuadro = vi.fn(() => ++quadro);
+    vi.stubGlobal('requestAnimationFrame', pedirQuadro);
+    cancelar = vi.fn();
+    vi.stubGlobal('cancelAnimationFrame', cancelar);
+    await TestBed.configureTestingModule({
+      imports: [MapaComponent],
+      providers: [
+        provideRouter([]),
+        { provide: GeoMunicipioService, useValue: { getMunicipios } },
+        { provide: DashboardApiService, useValue: {
+          getUnidades: () => respostas.shift() ?? of([hub, filha]),
+          getEquipamentosDaUnidade: () => of({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 200 }),
+        } },
+      ],
+    }).compileComponents();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function montar() {
+    const fixture = TestBed.createComponent(MapaComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+  async function recarregar(fixture: Awaited<ReturnType<typeof montar>>, resposta?: Observable<DashboardUnidade[]>) {
+    if (resposta) respostas.push(resposta);
+    fixture.componentInstance.recarregarDados();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+  const botao = (raiz: HTMLElement, id: number) => raiz.querySelector<HTMLButtonElement>(`[data-unidade-id="${id}"]`);
+
+  it('mesma topologia com status novo: pinta no lugar, sem novo MaplibreMap nem nova cartografia', async () => {
+    const fixture = await montar();
+    const raiz = fixture.nativeElement as HTMLElement;
+    const antes = botao(raiz, 2);
+    expect(antes).not.toBeNull();
+    expect(antes!.style.getPropertyValue('--cor-unidade')).toBe('#35e087');
+
+    await recarregar(fixture, of([hub, { ...filha, status: UnitOperationalStatus.Unavailable, incidentesAbertos: 3 }]));
+
+    expect(maplibreFalso.construcoes.length).toBe(1);
+    expect(getMunicipios).toHaveBeenCalledTimes(1);
+    const depois = botao(raiz, 2)!;
+    expect(depois).toBe(antes);
+    expect(depois.style.getPropertyValue('--cor-unidade')).toBe('#f84e54');
+    expect(depois.getAttribute('aria-label')).toContain('3 incidentes abertos');
+    expect(depois.querySelectorAll('.map__dica').length).toBe(1);
+    expect(depois.querySelector('.map__dica')!.textContent).toContain('3');
+    expect(maplibreFalso.setData).toHaveBeenCalledTimes(1);
+    const pings = Array.from(raiz.querySelectorAll<HTMLElement>('.map__ping'));
+    expect(pings.length).toBe(3);
+    for (const ping of pings) expect(ping.style.getPropertyValue('--cor-ping')).toBe('#f84e54');
+    expect(raiz.querySelector('.geo-status')?.textContent).toContain('Indisponível');
+    expect(maplibreFalso.camera.easeTo).not.toHaveBeenCalled();
+    expect(maplibreFalso.camera.jumpTo).not.toHaveBeenCalled();
+    expect(maplibreFalso.camera.fitBounds).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+  });
+
+  it('unidade nova: recria os marcadores de unidade, mantendo o mesmo MaplibreMap', async () => {
+    const fixture = await montar();
+    const raiz = fixture.nativeElement as HTMLElement;
+    const antes = botao(raiz, 1);
+    await recarregar(fixture, of([hub, filha, { ...filha, id: 3, nome: 'Nova', latitude: -10.7, longitude: -37.7 }]));
+
+    expect(maplibreFalso.construcoes.length).toBe(1);
+    expect(getMunicipios).toHaveBeenCalledTimes(1);
+    expect(botao(raiz, 3)).not.toBeNull();
+    expect(botao(raiz, 1)).not.toBe(antes);
+    expect(raiz.querySelectorAll('.map__unidade').length).toBe(3);
+    expect(raiz.querySelectorAll('.map__ping').length).toBe(6);
+    expect(maplibreFalso.setData).toHaveBeenCalledTimes(1);
+    expect(maplibreFalso.camera.easeTo).not.toHaveBeenCalled();
+    expect(maplibreFalso.camera.jumpTo).not.toHaveBeenCalled();
+    expect(maplibreFalso.camera.fitBounds).not.toHaveBeenCalled();
+  });
+
+  it('troca de topologia solta os ouvintes dos marcadores removidos (sem acumular por dias na TV)', async () => {
+    const sinais: AbortSignal[] = [];
+    const original = HTMLButtonElement.prototype.addEventListener;
+    const espiao = vi.spyOn(HTMLButtonElement.prototype, 'addEventListener').mockImplementation(function (this: HTMLButtonElement, tipo: string, fn: EventListenerOrEventListenerObject, opcoes?: boolean | AddEventListenerOptions) {
+      if (this.classList.contains('map__unidade') && typeof opcoes === 'object' && opcoes.signal) sinais.push(opcoes.signal);
+      return original.call(this, tipo, fn, opcoes);
+    });
+    try {
+      const fixture = await montar();
+      const raiz = fixture.nativeElement as HTMLElement;
+      const primeiro = botao(raiz, 2)!;
+      const sinaisDaMontagem = sinais.length;
+      expect(sinaisDaMontagem).toBeGreaterThan(0);
+      await recarregar(fixture, of([hub, filha, { ...filha, id: 3, nome: 'Nova', latitude: -10.7, longitude: -37.7 }]));
+      const segundo = botao(raiz, 2)!;
+      const sinaisDaSegunda = sinais.length;
+      await recarregar(fixture, of([hub, filha]));
+
+      expect(primeiro.isConnected).toBe(false);
+      expect(segundo.isConnected).toBe(false);
+      for (const sinal of sinais.slice(0, sinaisDaSegunda)) expect(sinal.aborted).toBe(true);
+      for (const sinal of sinais.slice(sinaisDaSegunda)) expect(sinal.aborted).toBe(false);
+      // Botão removido não reage mais: clicar nele não abre o painel da unidade.
+      primeiro.click(); segundo.click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('.unit-panel')).toBeNull();
+      // O botão vivo continua funcionando.
+      botao(raiz, 2)!.click();
+      fixture.detectChanges();
+      expect(raiz.querySelector('.unit-panel__nome')?.textContent).toBe('Filha');
+    } finally { espiao.mockRestore(); }
+  });
+
+  it('falha mantém marcadores e dado, e liga falhouUltimaAtualizacao', async () => {
+    const fixture = await montar();
+    const raiz = fixture.nativeElement as HTMLElement;
+    await recarregar(fixture, throwError(() => new Error('502')));
+
+    expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(true);
+    expect(raiz.querySelectorAll('.map__unidade').length).toBe(2);
+    expect(raiz.querySelector('.map-feedback--error')).toBeNull();
+    expect(raiz.querySelector('.map-loading')).toBeNull();
+    expect(maplibreFalso.construcoes.length).toBe(1);
+
+    await recarregar(fixture);
+    expect(fixture.componentInstance.falhouUltimaAtualizacao()).toBe(false);
+  });
+
+  it('ultimaAtualizacaoOk anda só quando GET /dashboard/unidades responde com sucesso', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-11-12T12:00:00Z'));
+      const fixture = await montar();
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      vi.setSystemTime(new Date('2026-11-12T12:01:00Z'));
+      const emVoo = new Subject<DashboardUnidade[]>();
+      await recarregar(fixture, emVoo);
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      emVoo.error(new Error('502'));
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:00:00.000Z');
+      vi.setSystemTime(new Date('2026-11-12T12:02:00Z'));
+      await recarregar(fixture, of([hub, filha]));
+      expect(fixture.componentInstance.ultimaAtualizacaoOk()?.toISOString()).toBe('2026-11-12T12:02:00.000Z');
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('unidade selecionada sobrevive com dado novo; some se a unidade sumiu', async () => {
+    const fixture = await montar();
+    const raiz = fixture.nativeElement as HTMLElement;
+    botao(raiz, 2)!.click();
+    fixture.detectChanges();
+    expect(raiz.querySelector('.unit-panel__nome')?.textContent).toBe('Filha');
+
+    await recarregar(fixture, of([hub, { ...filha, incidentesAbertos: 7 }]));
+    expect(raiz.querySelector('.unit-panel__nome')?.textContent).toBe('Filha');
+    expect(raiz.querySelector('.unit-kpis')?.textContent).toContain('7');
+    expect(botao(raiz, 2)!.getAttribute('aria-pressed')).toBe('true');
+
+    await recarregar(fixture, of([hub]));
+    expect(raiz.querySelector('.unit-panel')).toBeNull();
+  });
+
+  it('ativa=false cancela o laço dos pings; true o recria sem recriar Markers', async () => {
+    const fixture = await montar();
+    const raiz = fixture.nativeElement as HTMLElement;
+    const pings = Array.from(raiz.querySelectorAll('.map__ping'));
+    expect(pings.length).toBe(3);
+    // O agendador do Angular também usa rAF: conta só os quadros pedidos pelo laço dos pings.
+    const quadrosDoPing = () => pedirQuadro.mock.calls
+      .map((chamada, i) => ({ fn: chamada[0] as { name?: string }, id: pedirQuadro.mock.results[i].value as number }))
+      .filter(q => q.fn?.name === 'passo');
+    const ultimo = quadrosDoPing().at(-1)!.id;
+    fixture.componentRef.setInput('ativa', false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(cancelar).toHaveBeenCalledWith(ultimo);
+
+    const chamadas = quadrosDoPing().length;
+    fixture.componentRef.setInput('ativa', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(quadrosDoPing().length).toBe(chamadas + 1);
+    expect(Array.from(raiz.querySelectorAll('.map__ping'))).toEqual(pings);
+  });
+});
+
+describe('mesmaTopologia', () => {
+  const u = (id: number, extra: Partial<DashboardUnidade> = {}): DashboardUnidade => ({ ...unit, id, latitude: -10, longitude: -37, ...extra });
+  it('ignora status e ordem; muda com id, coordenada, conexao ou IBGE', () => {
+    expect(mesmaTopologia([u(1), u(2)], [u(2, { status: UnitOperationalStatus.Unavailable }), u(1)])).toBe(true);
+    expect(mesmaTopologia([u(1)], [u(1), u(2)])).toBe(false);
+    expect(mesmaTopologia([u(1)], [u(1, { latitude: -11 })])).toBe(false);
+    expect(mesmaTopologia([u(1)], [u(1, { conectaAUnidadeId: 9 })])).toBe(false);
+    expect(mesmaTopologia([u(1)], [u(1, { codigoIbge: '2800100' })])).toBe(false);
   });
 });

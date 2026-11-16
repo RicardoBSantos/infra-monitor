@@ -1,0 +1,23 @@
+<section class="pagina pagina--grade" aria-labelledby="configuracoes-titulo">
+  <header class="pagina__cabecalho">
+    <div>
+      <h1 id="configuracoes-titulo">Configurações do sistema</h1>
+      <p class="pagina__descricao">Ajustes que valem para todos os usuários. Alterações só têm efeito depois de salvas.</p>
+    </div>
+  </header>
+
+  <div class="configuracoes">
+    <nav class="secoes" aria-label="Seções de configuração">
+      @for (secao of secoes; track secao.caminho) {
+        <a class="secao" [routerLink]="[secao.caminho]" routerLinkActive="secao--ativa" ariaCurrentWhenActive="page">
+          <span class="secao__rotulo">{{ secao.rotulo }}</span>
+          <small class="secao__resumo">{{ secao.resumo }}</small>
+        </a>
+      }
+    </nav>
+
+    <div class="configuracoes__conteudo">
+      <router-outlet />
+    </div>
+  </div>
+</section>

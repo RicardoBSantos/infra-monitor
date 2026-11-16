@@ -2,11 +2,12 @@ import { routes } from './app.routes';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, UrlTree } from '@angular/router';
 import { AuthStateService } from './core/services/auth-state.service';
-import { passwordChangeGuard, roleGuard } from './core/guards/auth.guards';
+import { businessGuard, passwordChangeGuard, roleGuard } from './core/guards/auth.guards';
+import { TvComponent } from './features/tv/tv.component';
 
 describe('application routes', () => {
   it('lazy-loads every operational feature inside the protected application shell', async () => {
-    const paths = ['dashboard', 'mapa', 'unidades', 'tipos-equipamento', 'equipamentos', 'monitores', 'medicoes', 'incidentes', 'relatorios', 'notificacoes', 'usuarios'];
+    const paths = ['dashboard', 'mapa', 'unidades', 'tipos-equipamento', 'equipamentos', 'monitores', 'medicoes', 'incidentes', 'relatorios', 'notificacoes', 'usuarios', 'configuracoes'];
 
     for (const path of paths) {
       const shell = routes.find(candidate => candidate.path === '');
@@ -17,12 +18,47 @@ describe('application routes', () => {
     }
   });
 
+  it('serves /tv at the top level, outside the application shell, behind businessGuard', async () => {
+    const indiceTv = routes.findIndex(candidate => candidate.path === 'tv');
+    const indiceShell = routes.findIndex(candidate => candidate.path === '');
+    expect(indiceTv).toBeGreaterThanOrEqual(0);
+    expect(indiceTv).toBeLessThan(indiceShell);
+    expect(routes[indiceShell].children?.some(candidate => candidate.path === 'tv')).toBe(false);
+    const tv = routes[indiceTv];
+    expect(tv.canActivate).toEqual([businessGuard]);
+    expect(tv.title).toBe('Modo TV');
+    expect(tv.component).toBeUndefined();
+    expect(await tv.loadComponent!()).toBe(TvComponent);
+  });
+
   for (const [papel, allowed] of [['ADMIN', true], ['OPERADOR', false], ['VISUALIZADOR', false]] as const) {
     it(`uses the real /usuarios route metadata with roleGuard for ${papel}`, () => {
       TestBed.configureTestingModule({ providers: [provideRouter([])] });
       const auth = TestBed.inject(AuthStateService);
       auth.setSession({ accessToken: 'token', tokenType: 'Bearer', expiresIn: 60, usuario: { id: 1, nome: papel, email: `${papel}@example.test`, papel, trocaSenhaObrigatoria: false } });
       const route = routes.find(candidate => candidate.path === '')!.children!.find(candidate => candidate.path === 'usuarios')!;
+      const result = TestBed.runInInjectionContext(() => roleGuard(route as any, {} as any));
+      expect(result === true).toBe(allowed);
+      if (!allowed) expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/forbidden');
+    });
+  }
+
+  it('serves /configuracoes for ADMIN only, with modo-tv as the default child section', async () => {
+    const route = routes.find(candidate => candidate.path === '')!.children!.find(candidate => candidate.path === 'configuracoes')!;
+    expect(route.canActivate).toEqual([roleGuard]);
+    expect(route.data?.['roles']).toEqual(['ADMIN']);
+    expect(route.data?.['section']).toBe('Administração');
+    expect(route.children?.find(child => child.path === '')).toEqual(expect.objectContaining({ redirectTo: 'modo-tv', pathMatch: 'full' }));
+    const modoTv = route.children!.find(child => child.path === 'modo-tv')!;
+    expect(modoTv.loadComponent).toBeTypeOf('function');
+    await expect(modoTv.loadComponent!()).resolves.toBeDefined();
+  });
+
+  for (const [papel, allowed] of [['ADMIN', true], ['OPERADOR', false], ['VISUALIZADOR', false]] as const) {
+    it(`uses the real /configuracoes roleGuard for ${papel}`, () => {
+      TestBed.configureTestingModule({ providers: [provideRouter([])] });
+      TestBed.inject(AuthStateService).setSession({ accessToken: 'token', tokenType: 'Bearer', expiresIn: 60, usuario: { id: 1, nome: papel, email: `${papel}@example.test`, papel, trocaSenhaObrigatoria: false } });
+      const route = routes.find(candidate => candidate.path === '')!.children!.find(candidate => candidate.path === 'configuracoes')!;
       const result = TestBed.runInInjectionContext(() => roleGuard(route as any, {} as any));
       expect(result === true).toBe(allowed);
       if (!allowed) expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/forbidden');
