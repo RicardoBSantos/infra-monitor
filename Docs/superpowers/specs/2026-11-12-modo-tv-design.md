@@ -1,7 +1,15 @@
 # Modo TV (painel de parede) — desenho aprovado
 
-Aprovado pelo responsável em 2026-11-12 (Etapa 1 da conversa; decisões pendentes 1, 2 e 3 aprovadas;
-item 4 já resolvido: V26 e PRs #33–#38 estão em produção).
+Aprovado pelo responsável em 2026-11-12 (Etapa 1 da conversa; decisões pendentes 1 e 3 aprovadas).
+
+**Correção de 2026-11-16 (revisão do PR #39).** Duas afirmações desta abertura e da lista abaixo eram
+falsas e foram escritas pelo implementador, não pelo responsável:
+
+- A decisão "P2" (corrigir o D-07 nesta feature) **nunca foi aprovada**. O D-07 tinha sido cercado como
+  investigação sem implementação; o implementador decidiu sozinho e registrou como aprovado. O commit saiu
+  deste PR e foi para o branch próprio `perf/d07-plano-custom-latencia`.
+- "V26 e PRs #33–#38 estão em produção" também não vale: segundo o responsável, produção está em
+  `r-8f593ef` (Flyway V1–V25), anterior à V26. A próxima implantação leva V26 e V27 juntas.
 
 ## Intenção
 
@@ -17,8 +25,8 @@ tocar nela.
 - **D3** Configuração no banco (V27) e lida por API.
 - **D4** Sessão: só avisar na tela quando cair. Sessão longa é item futuro — não implementar.
 - **P1** TV com as telas montadas em paralelo, URL fixa em `/tv` (não rotação por troca de rota).
-- **P2** Corrigir nesta feature o plano genérico das consultas de latência (D-07) com
-  `plan_cache_mode = force_custom_plan` local à transação.
+- ~~**P2** Corrigir nesta feature o plano genérico das consultas de latência (D-07).~~ **Não aprovada**
+  (ver a correção acima). Fora deste PR.
 - **P3** A TV usa uma conta VISUALIZADOR dedicada (ato operacional do responsável; o código não cria usuário).
 
 ## Contrato de atualização
@@ -88,13 +96,40 @@ Quando o interceptor encerra a sessão com a URL em `/tv`, navega para
 sessão encerrou às HH:MM. Entre novamente para retomar." Fora de `/tv`, comportamento atual.
 Pendência registrada: sessão longa para TV.
 
-## Plano genérico (D-07)
-
-`select set_config('plan_cache_mode','force_custom_plan', true)` antes das consultas de latência:
-`RelatorioService.latencia`, `RelatorioService.latenciaUnidades`, bloco de latência do
-`VisaoGeralPdfRepository`, e o CSV de latência se rodar em transação.
-
 ## Fora de escopo
 
 Sessão longa; perfis nomeados; configuração da aba/período de Relatórios; ferramentas de release
-(`schemaVersion` 25 cravado em `deployment/windows` — registrar como pendência, não alterar).
+(`schemaVersion` 25 cravado em `deployment/windows` — registrar como pendência, não alterar); plano
+genérico das consultas de latência (D-07), que segue em PR próprio, com medição e prova de reversão.
+
+## Revisão de 2026-11-16 — provas e dívidas registradas
+
+### Prova de reversão do contrato do PUT
+
+`ConfiguracaoModoTvHttpIntegrationTest` com Postgres real (Testcontainers), 8 testes. Cada reversão foi
+aplicada sozinha, rodada e desfeita com `git checkout`; no fim, `git status` vazio e `git diff HEAD` com 0 linhas.
+
+| Estado | Resultado |
+|---|---|
+| Código do PR | 8/8 |
+| Elemento da lista sem `@NotNull` (`@Valid List<TelaModoTvRequest>`) | 1 falha: `validacao` — `expected: 400 but was: 500` |
+| Serviço aplica sobre os padrões, não sobre o gravado (`base = PADRAO`) | 1 falha: `putVazioPreservaTudo` — `[{}] Expecting value to be false but was true` |
+| `telas` ausente regrava as telas padrão | 2 falhas: `putVazioPreservaTudo` e `putAtivoNaoMexeNasTelas` (lista virou as 4 padrão) |
+| `Boolean ativo` → `boolean ativo` no DTO | 4 falhas: `validacao` (`MALFORMED_REQUEST` em vez de `VALIDATION_ERROR`), `putVazioPreservaTudo`, `telasSubstituemLista` e `primeiroPutAplicaSobrePadroes` (`expected: 200 but was: 400`; no Jackson 3, primitivo ausente é recusado, não vira `false`) |
+| Restaurado | 8/8 |
+
+### Dívidas de prova (não resolvidas)
+
+- **Troca de topologia no mapa fora do teste longo.** O vazamento de ouvintes dos marcadores (introduzido
+  e corrigido dentro deste PR) só ocorre quando a topologia muda: unidade nova, removida, movida ou com hub
+  trocado. Os 300 ciclos do e2e (passo 6) mantêm a topologia fixa. A correção é coberta só pela spec
+  unitária "troca de topologia solta os ouvintes dos marcadores removidos".
+- **Heap JS não verificado.** No passo 6, `JSHeapUsedSize` foi de 15,9 MB para 16,9 MB entre os ciclos 10
+  e 300 (cerca de +6 %, em 3 h simuladas). Nada no teste verifica isso; não se sabe se é tendência ou ruído.
+  Mitigação acidental: pela D4 a TV não tem sessão longa. O refresh tem validade absoluta (`expira_em`
+  fixado no login e não estendido no uso, `SessaoUsuarioService.validar`; padrão 10 h, teto 24 h), então
+  em até 10 h a TV cai no login e só volta com alguém entrando de novo. A queda é navegação SPA, não
+  recarga (D1): o documento continua, mas `TvComponent`, as quatro telas, o MapLibre e os timers são
+  destruídos. O que estiver preso nessa árvore é liberado; vazamento em serviço `root` ou no documento
+  sobreviveria às quedas. Hoje nada preso ao modo TV acumula por mais de 10 h. **Se a sessão longa for
+  implementada, esta medição precisa ser refeita antes, com troca de topologia.**
