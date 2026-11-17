@@ -66,9 +66,10 @@ function Invoke-Sql([string]$Database,[string]$Sql) {
     if ($LASTEXITCODE -ne 0) { throw "psql failed on $Database" }
 }
 $history='create table flyway_schema_history (installed_rank int primary key, version varchar(50), description varchar(200), success boolean not null)'
-$databases=@('guard_ok','guard_failed','guard_empty','guard_notable')
+$databases=@('guard_ok','guard_failed','guard_empty','guard_notable','guard_readonly')
 try {
     foreach ($db in $databases) { Invoke-Sql 'postgres' "drop database if exists $db"; Invoke-Sql 'postgres' "create database $db" }
+    Invoke-Sql 'postgres' 'drop role if exists guard_app'
     Invoke-Sql 'guard_ok' "$history; insert into flyway_schema_history select v, v::text, 'm', true from generate_series(1,27) v; insert into flyway_schema_history values (28, null, 'repeatable sem versao', true)"
     Invoke-Sql 'guard_failed' "$history; insert into flyway_schema_history select v, v::text, 'm', true from generate_series(1,27) v; insert into flyway_schema_history values (28, '28', 'falhou', false)"
     Invoke-Sql 'guard_empty' $history
@@ -86,8 +87,33 @@ try {
     try { Assert-Blocked { Get-DatabaseSchemaVersion @read -PasswordFile $wrong -Database 'guard_ok' } 'Could not read'; $count++ }
     finally { Remove-Item -LiteralPath $wrong -Force }
     if ($env:PGPASSWORD -cne [IO.File]::ReadAllText((Assert-AbsolutePath $PasswordFile)).Trim()) { throw 'Get-DatabaseSchemaVersion must restore PGPASSWORD' }; $count++
+    # Sessao SOMENTE LEITURA (puller, 2026-11-17): um flyway_schema_history que escreve ao ser lido tem de falhar.
+    # Sem o default_transaction_read_only a leitura passaria e gravaria em guard_trace.
+    Invoke-Sql 'guard_readonly' ("create table guard_trace (at timestamptz); create table guard_base (installed_rank int, version varchar(50), description varchar(200), success boolean); " +
+        "insert into guard_base select v, v::text, 'm', true from generate_series(1,27) v; " +
+        "create function guard_side_effect() returns setof guard_base language plpgsql volatile as 'begin insert into guard_trace values (now()); return query select * from guard_base; end'; " +
+        'create view flyway_schema_history as select * from guard_side_effect()')
+    $env:PGOPTIONS='-c work_mem=4MB'
+    Assert-Blocked { Get-DatabaseSchemaVersion @read -Database 'guard_readonly' } 'Could not read'; $count++
+    if ($env:PGOPTIONS -cne '-c work_mem=4MB') { throw 'Get-DatabaseSchemaVersion must restore PGOPTIONS' }; $count++
+    Remove-Item Env:PGOPTIONS
+    # -RefuseSuperuser: o papel da aplicacao passa; um superusuario e recusado. Sem o switch, nada muda.
+    $super=& $psql -h $DatabaseHost -p $Port -U $User -d postgres -w -At -X -c "show is_superuser"
+    if ($super -eq 'on') {
+        Assert-Blocked { Get-DatabaseSchemaVersion @read -Database 'guard_ok' -RefuseSuperuser } 'Superuser session refused'; $count++
+    }
+    $appPassword='guard-'+[guid]::NewGuid().ToString('N')
+    Invoke-Sql 'postgres' "create role guard_app login password '$appPassword' nosuperuser"
+    Invoke-Sql 'guard_ok' 'grant select on flyway_schema_history to guard_app'
+    $appFile=Join-Path ([IO.Path]::GetTempPath()) ('guard-app-'+[guid]::NewGuid())
+    Set-Content -LiteralPath $appFile -Value $appPassword -NoNewline
+    try {
+        $app=@{PostgreSQLHome=$PostgreSQLHome;PasswordFile=$appFile;User='guard_app';Port=$Port;DatabaseHost=$DatabaseHost}
+        if ((Get-DatabaseSchemaVersion @app -Database 'guard_ok' -RefuseSuperuser) -ne 27) { throw 'Application role must read the schema' }; $count++
+    } finally { Remove-Item -LiteralPath $appFile -Force }
 } finally {
     foreach ($db in $databases) { try { Invoke-Sql 'postgres' "drop database if exists $db" } catch { } }
+    try { Invoke-Sql 'postgres' 'drop role if exists guard_app' } catch { }
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 }
 
