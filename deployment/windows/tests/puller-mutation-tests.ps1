@@ -74,3 +74,4 @@ try {
 } finally { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
 if ($survivors.Count) { throw "Mutacoes sobreviventes: $($survivors -join ', ')" }
 Write-Output "Puller mutation tests: $killed/$($mutations.Count) verificacoes provadas por reversao"
+exit 0   # o ultimo filho mutado sai com 1 de proposito; o passo pwsh do Actions herdaria esse $LASTEXITCODE

@@ -352,3 +352,4 @@ try {
 }
 if ($failures.Count) { throw ("Puller: $($failures.Count) falha(s)`n"+($failures -join "`n")) }
 Write-Output "Release puller assertions passed: $passed"
+exit 0   # sem herdar $LASTEXITCODE de um processo filho
