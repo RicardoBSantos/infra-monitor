@@ -334,7 +334,10 @@ try {
     }
     # 2.5: nenhum segredo em relatorio, ULTIMO.txt ou estado, em nenhum cenario.
     if (-not $Only) {
-        foreach ($f in Get-ChildItem -LiteralPath $work -Recurse -File -Include '*.json','ULTIMO.txt' | Where-Object { $_.FullName -match '[\\/]puller[\\/]' }) {
+        # So o que o puller escreveu (<lab>\puller\...); routes.json do GitHub falso contem o token de proposito.
+        $written=@(Get-ChildItem -LiteralPath $work -Recurse -File -Include '*.json','ULTIMO.txt' | Where-Object { [IO.Path]::GetRelativePath($work,$_.FullName) -match '^[^\\/]+[\\/]puller[\\/]' })
+        if ($written.Count -lt 30) { $failures.Add("varredura de segredos leu so $($written.Count) arquivos") }
+        foreach ($f in $written) {
             $text=Get-Content -Raw -LiteralPath $f.FullName
             foreach ($secret in $token,$dbPassword,'SEGREDO-DE-URL-ASSINADA','nao-vaza') { if ($text.Contains($secret)) { $failures.Add("segredo em $($f.Name)") } }
         }
