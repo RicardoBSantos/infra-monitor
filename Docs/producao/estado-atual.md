@@ -32,7 +32,7 @@ trouxe o valor, o campo continua aberto (seção seguinte).
 |---|---|---|
 | Release no ar | **`r-921dd90321db113c8faff9f8b5e16463a3d4f614`** (merge do PR #38, sessão com refresh token, V26) | **[P, ensaio]** E7, `deployment-state.json` |
 | Quando foi implantada | `Switch` **START 2026-11-12T17:12:43.69Z → SUCCESS 17:13:00.34Z = 16,7 s**, parada, subida e health incluídos | **[P, ensaio]** E7, `logs\deployment.ndjson` |
-| Release anterior (`.previous`) | `r-8f593ef…` | **[P, ensaio]** E7 |
+| Release anterior (`.previous`) | era `r-8f593ef…` no ensaio; **removido pela P2 em 2026-11-18** (`r-8f593ef` arquivada em `C:\InfraMonitor-arquivo`) | **[P, ensaio]** E7; P2: **[E, responsável]**, o passo 2 do roteiro de 19/11 confere |
 | Manifesto da release no ar | `version = r-921dd903…`, **`schemaVersion = 25`**, **`minSchemaVersion` vazio** — com o banco em **26**. É a trava antiga declarando 25 qualquer que seja o conteúdo, agora **observada** em produção (antes era inferência, ver `D02.10-empacotamento-windows.md` e PR #41) | **[P, ensaio]** E7, `release-manifest.json` |
 | Schema | **26** | **[P, ensaio]** E6 (papel da aplicação) **e** E5 (superusuário): os dois leram 26 |
 | Histórico do Flyway | V24, V25 e V26 aplicadas, todas `success = t`. **V26 em 2026-11-12 14:11:47** (`installed_on` não tem fuso; em hora local UTC−03 são 17:11:47Z, **56 s antes do START do Switch**: a V26 foi aplicada e o Switch veio logo depois, a sequência do README **[I, fuso do servidor]**) | **[P, ensaio]** E8 |
@@ -47,7 +47,7 @@ trouxe o valor, o campo continua aberto (seção seguinte).
 | Fila de notificações | **65 `ENVIADA`, 33 `FALHA`** (um terço falhando). Item aberto: `pendencias.md`, **P-01** | **[P, ensaio]** E8 |
 | Credencial de superusuário | `C:\InfraMonitor\config\admin\postgres-superuser.txt` **existe**, 32 bytes, ACL **só SISTEMA e Administradores**; o E5 leu 26 com ela. Era o único caminho do deploy nunca exercitado nesta máquina | **[P, ensaio]** E4, E5 |
 | Default privileges | `inframonitor_app` recebe **`arwd`** em tabelas e **`rwU`** em sequências: os grants de tabelas novas (V27) vêm sozinhos | **[P, ensaio]** E8, `pg_default_acl` |
-| Raiz de implantação | **existe `.previous`** e há **2 releases** em `releases\`: o `Stage` recusa. **P2 necessária** antes da janela da V27 (com aval) | **[P, ensaio]** E7 |
+| Raiz de implantação | No ensaio: `.previous` e 2 releases. **Depois da P2 (2026-11-18):** `current\` só com `backend` e `frontend` → `r-921dd903…`; `releases\` com 1 diretório | ensaio **[P]**; P2 **[E, responsável]**, conferida no passo 2 de `janela-v27-2026-11-19.md` |
 | Cópias de ferramental no disco | **cinco** (tabela abaixo) | **[P, ensaio]** E7 |
 | Tempo de subida do backend no servidor | O trecho do E7 que lia o log **não produziu saída** (defeito do bloco, corrigido no plano, 1.1). Resposta pelo `deployment.ndjson`: o `Switch` completo de 12/11 levou **16,7 s** | **[P, ensaio]** ndjson |
 
@@ -136,8 +136,8 @@ commit só deste arquivo, ou junto com a mudança que motivou a conferência.
 Produção está em `r-921dd90…` com o banco em **26**. O `main` (`3df8253`) tem a **V27** (modo TV, PR #39), a trava de
 schema nova (PR #41) e o PR #40 (D-07, plano custom), que o PR #45 reverte (aberto; o `main` está com *CI Backend* e
 *CI Windows Packaging* vermelhos até ele entrar). A próxima implantação é a do pacote **`c6e3f48`**
-(`Docs/producao/implantacao-v27-modo-tv.md`); o ensaio de leitura passou (**E6 = 26**) e a janela pode ser marcada,
-com a **P2** antes.
+(`Docs/producao/implantacao-v27-modo-tv.md`); o ensaio de leitura passou (**E6 = 26**), a P2 foi feita em 18/11, e a
+janela está marcada para **2026-11-19 às 09h**, com o roteiro `Docs/producao/janela-v27-2026-11-19.md`.
 
 **Itens abertos de produção fora do deploy** (notificações falhando, D-07 fora da meta, retenção desligada com 102
 monitores): `Docs/producao/pendencias.md`.
