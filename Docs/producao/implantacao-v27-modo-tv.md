@@ -506,6 +506,12 @@ icacls "$Root\staging\$Nova\releases\$Nova\frontend"
 - **OK:** as duas entradas aparecem. O `Move-Item` do Switch é no mesmo volume e preserva a ACL **[I; o laboratório não
   tinha IIS para conferir]**.
 
+> **Substituído em 2026-11-18 pelo passo 4 de `janela-v27-2026-11-19.md`.** O comando abaixo (o do README) conecta como
+> `inframonitor_owner` e põe a senha **na linha de comando**; a senha do owner não está registrada. O roteiro aplica a
+> V27 com o Flyway como `postgres` + `SET ROLE inframonitor_owner` em cada conexão (`spring.flyway.init-sqls`),
+> senhas só em variável de ambiente. Sem o `SET ROLE`, as tabelas nascem do `postgres`, **sem grant**, e o
+> `inframonitor_app` não as acessa **[P-lab, prova de reversão no roteiro]**.
+
 **J5 — Aplicar a V27**, com o backend antigo **ainda no ar** na 8080. Comando do passo 2 da V26 no README do backend, com
 `--spring.flyway.target=27` e o `app.jar` em `$Root\staging\$Nova\releases\$Nova\backend\app.jar`.
 
@@ -743,6 +749,14 @@ só o PUT do modo TV.
    **[P-lab: SUCCESS em 22,8 s]**.
 
 **4.1-B — o Switch falhou depois de parar** (`Release operation failed; preserve stopped site…`).
+
+> **⚠ Não use o bloco de recuperação abaixo: use o R1 de `janela-v27-2026-11-19.md`.** Numa segunda recuperação na
+> mesma janela, `current\backend.falhou` já existe, e `Move-Item` para destino existente **move para dentro** sem dar
+> erro: a junção `current\backend` vai parar dentro da release nova, apontando para a própria pasta-mãe (idem no
+> frontend), e o bloco imprime "SITE NO AR" **[P-lab, 2026-11-18, reproduzido com o R1 da primeira versão do roteiro,
+que tem estes mesmos dois `Move-Item`]**. O R1 usa sufixo de
+> hora, confere destino livre antes de cada `Move-Item`, para no primeiro erro, e não abre o site se o Windows tiver
+> religado o serviço sozinho.
 
 O que fica para trás **[P-lab]**:
 - **falha depois da troca** (o caso típico: o health não subiu a tempo): junções na nova, `.previous` na antiga,
