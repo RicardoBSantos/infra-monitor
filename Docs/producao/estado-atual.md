@@ -46,7 +46,10 @@ trouxe o valor, o campo continua aberto (seção seguinte).
 | Estado operacional na conferência | **0** incidentes abertos; **nenhuma** janela de manutenção `AGENDADA`/`ATIVA`; **0** equipamentos em manutenção | **[P, ensaio]** E8 |
 | Fila de notificações | **65 `ENVIADA`, 33 `FALHA`** (um terço falhando). Item aberto: `pendencias.md`, **P-01** | **[P, ensaio]** E8 |
 | Credencial de superusuário | `C:\InfraMonitor\config\admin\postgres-superuser.txt` **existe**, 32 bytes, ACL **só SISTEMA e Administradores**; o E5 leu 26 com ela. Era o único caminho do deploy nunca exercitado nesta máquina | **[P, ensaio]** E4, E5 |
-| Default privileges | `inframonitor_app` recebe **`arwd`** em tabelas e **`rwU`** em sequências: os grants de tabelas novas (V27) vêm sozinhos | **[P, ensaio]** E8, `pg_default_acl` |
+| Default privileges | `inframonitor_app` recebe **`arwd`** em tabelas e **`rwU`** em sequências: os grants de tabelas novas (V27) vêm sozinhos — **desde que criadas pelo `inframonitor_owner`** (os default privileges são dele) | **[P, ensaio]** E8, `pg_default_acl` |
+| Dono das tabelas | **as 17 tabelas de `public` são do `inframonitor_owner`**, inclusive `sessao_usuario` (V26, 12/11) | **[P, servidor, responsável, 2026-11-18]** |
+| `SET ROLE` pelo superusuário | `postgres` assume o papel: `set role inframonitor_owner; select current_user, session_user` → `inframonitor_owner / postgres` (transação só de leitura) | **[P, servidor, responsável, 2026-11-18]** |
+| Senha do `inframonitor_owner` | **o repositório não registra onde fica**. A V27 é aplicada sem ela (roteiro de 19/11, passo 4: Flyway como `postgres` + `SET ROLE`) | — |
 | Raiz de implantação | No ensaio: `.previous` e 2 releases. **Depois da P2 (2026-11-18):** `current\` só com `backend` e `frontend` → `r-921dd903…`; `releases\` com 1 diretório | ensaio **[P]**; P2 **[E, responsável]**, conferida no passo 2 de `janela-v27-2026-11-19.md` |
 | Cópias de ferramental no disco | **cinco** (tabela abaixo) | **[P, ensaio]** E7 |
 | Tempo de subida do backend no servidor | O trecho do E7 que lia o log **não produziu saída** (defeito do bloco, corrigido no plano, 1.1). Resposta pelo `deployment.ndjson`: o `Switch` completo de 12/11 levou **16,7 s** | **[P, ensaio]** ndjson |
