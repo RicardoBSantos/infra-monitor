@@ -103,6 +103,11 @@ Sessão longa; perfis nomeados; configuração da aba/período de Relatórios; f
 (`schemaVersion` 25 cravado em `deployment/windows` — registrar como pendência, não alterar); plano
 genérico das consultas de latência (D-07), que segue em PR próprio, com medição e prova de reversão.
 
+> **Nota de 2026-11-18:** o PR próprio (#40) foi mergeado e está sendo revertido (#45): ganho de ~100 ms e misto, que
+> não depende do volume. O D-07 de verdade é volume, e **já está fora da meta em produção** (102 monitores, não 7:
+> ≈ 22 s no relatório de 30 dias contra 2 s). A estimativa anterior de que não era urgente partia do inventário de 7.
+> Correção = agregado por hora: `Docs/producao/pendencias.md`, P-02.
+
 ## Revisão de 2026-11-16 — provas e dívidas registradas
 
 ### Prova de reversão do contrato do PUT

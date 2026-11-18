@@ -189,6 +189,11 @@ o detalhe guardado (90 d):
 Se algum dos dois for requisito de auditoria, o detalhe precisa ser guardado por mais tempo ou o
 agregado precisa de histograma. Decisão do responsável pelo produto, antes de ligar a retenção.
 
+> **Nota de 2026-11-18:** os dois gatilhos acima foram escritos para até 50 equipamentos. Produção tem **102 monitores
+> a 60 s** (ensaio de 18/11). O do agregado por hora (latência de 30 d acima de 1 s, "perto de 20 equipamentos") **já foi
+> cruzado**; o da retenção (10 M linhas ou 2 GB) chega no fim de jan./começo de fev. de 2027. Contas e prazos:
+> `Docs/producao/pendencias.md`, P-02 e P-03.
+
 ## 7. Dimensionamento do disco da VM
 
 Base: até 50 equipamentos, 12 meses, **sem** retenção ligada (o gatilho de 10 M linhas dispara por
