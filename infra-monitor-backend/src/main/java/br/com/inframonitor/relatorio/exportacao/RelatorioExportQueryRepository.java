@@ -46,12 +46,6 @@ public class RelatorioExportQueryRepository {
             Instant deadline = Instant.now().plusSeconds(timeoutSeconds);
             if (definition.detailedHistory())
                 DetailedHistoryGuard.requireAvailable(connection, (Instant) definition.parameters().get("inicio"));
-            if (definition.planoCustom()) {
-                // D-07: plano custom, local a transacao (autocommit off).
-                try (Statement plano = connection.createStatement()) {
-                    plano.execute("select set_config('plan_cache_mode', 'force_custom_plan', true)");
-                }
-            }
             long count = count(connection, definition.countSql(), definition.parameters(), deadline);
             if (count > limit) {
                 throw new ExportLimitExceededException(limit, count);
@@ -128,19 +122,11 @@ public class RelatorioExportQueryRepository {
         try { connection.close(); } catch (SQLException ignored) { }
     }
 
-    /**
-     * {@code planoCustom} (D-07): so a exportacao de latencia. A serie do benchmark de capacidade mediu degrau
-     * de plano generico no CSV de latencia e nenhum no CSV de medicoes, que fica de fora.
-     */
     public record QueryDefinition(String countSql, String dataSql, Map<String, Object> parameters,
-                                  String[] headers, ResultRowMapper mapper, boolean detailedHistory, boolean planoCustom) {
-        public QueryDefinition(String countSql, String dataSql, Map<String,Object> parameters,
-                               String[] headers, ResultRowMapper mapper, boolean detailedHistory) {
-            this(countSql, dataSql, parameters, headers, mapper, detailedHistory, false);
-        }
+                                  String[] headers, ResultRowMapper mapper, boolean detailedHistory) {
         public QueryDefinition(String countSql, String dataSql, Map<String,Object> parameters,
                                String[] headers, ResultRowMapper mapper) {
-            this(countSql, dataSql, parameters, headers, mapper, false, false);
+            this(countSql, dataSql, parameters, headers, mapper, false);
         }
     }
     @FunctionalInterface public interface ResultRowMapper { Object[] map(ResultSet row) throws SQLException; }
