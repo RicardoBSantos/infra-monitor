@@ -25,7 +25,7 @@ env:
   # Constantes entre aspas: hash so com digitos viraria numero no YAML.
   # Runtime Cygwin a que pertence o COPYING.LIB versionado em third-party/ (LGPLv3 do cygwin1.dll).
   # A action instala a versao corrente do espelho: se mudar, o job falha ate o diretorio ser trocado.
-  CYGWIN_RUNTIME_VERSION: '3.6.12-1'
+  CYGWIN_RUNTIME_VERSION: '3.6.11-1' # TEMP: versao errada de proposito
   CYGWIN_COPYING_LIB: 'third-party/cygwin-3.6.12/COPYING.LIB'
   CYGWIN_COPYING_LIB_SHA256: 'da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768'
   # Oferta de fonte da LGPL: pacote de fonte da MESMA versao (setup.ini do espelho, 2026-11-23).
