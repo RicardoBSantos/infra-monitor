@@ -9,7 +9,7 @@ Todas foram fechadas pelo responsável em **2026-11-23**. Estado: **decididas, n
 **Revisão de 2026-11-23 (ajuste do PR #48):**
 - D4 e D5 mudaram de predicado. Ver C3 em [dividas.md](dividas.md).
 - D7, D9 e D14 foram detalhadas.
-- D15 e D16 são novas.
+- D15 e D16 são novas. A D16 foi fechada depois, no PR #49.
 
 Quando a verificação no código contraria uma decisão, o ponto fica em
 [dividas.md § Sinalizações](dividas.md#sinalizações-da-segunda-rodada--resolvidas-em-2026-11-23). Nenhuma decisão foi alterada sem o
@@ -350,13 +350,25 @@ Do lado do backend, entra ainda a lista de alvos permitidos (D13).
 - Desativar o equipamento (`EquipamentoService.desativar`) não dispara a FK **[P]**.
 - Limpar a referência automaticamente apagaria uma escolha de cadastro sem ninguém pedir **[I]**.
 
-## D16 — Retransmissões: decisão condicional (NOVA em 2026-11-23)
+## D16 — Retransmissões: FECHADA em 2026-11-23 (sem colunas)
 
-- **Se** o [laboratório](laboratorio.md), no item (e), provar que as retransmissões **não vêm** na
-  build Windows (Cygwin), as colunas `retransmissoes_download` e `retransmissoes_upload` **saem da
-  V28**. Elas não ficam sempre nulas.
-- **Se vierem**, ficam como estão em [v28-proposta.md](v28-proposta.md).
+**Texto condicional original:**
+
+> ~~**Se** o laboratório, no item (e), provar que as retransmissões **não vêm** na build Windows
+> (Cygwin), as colunas `retransmissoes_download` e `retransmissoes_upload` **saem da V28**. **Se
+> vierem**, ficam. Ordem obrigatória: o item (e) do laboratório roda antes de a V28 virar arquivo.~~
+
+**Decisão:**
+- `retransmissoes_download`, `retransmissoes_upload` e `ck_teste_banda_retransmissoes` **saem da
+  V28** ([v28-proposta.md](v28-proposta.md)).
+- O item (e) do laboratório foi retirado.
+
+**Evidência [P]:**
+- Execução [45191296655](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45191296655)
+  do workflow `build-iperf3-windows.yml` (PR #49), com o iperf3 3.22.1 compilado no Cygwin 3.6.12.
+- Testes em loopback (`127.0.0.1`), `-t 2`, nos dois sentidos: modo normal e `-R`.
+- Em nenhum dos dois o `end.sum_sent` traz a chave `retransmits`.
+- O iperf3 só emite essa chave quando a plataforma informa retransmissões. Uma chave ausente não
+  depende de haver perda **[I]**.
 
 **Motivo:** uma coluna sempre nula engana quem lê o histórico e o contrato da API **[I]**.
-
-**Ordem obrigatória:** o item (e) do laboratório roda **antes** de a V28 virar arquivo.

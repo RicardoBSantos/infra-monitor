@@ -4,9 +4,6 @@ name: Build iperf3 Windows
 # da aplicacao: nao usa ci-windows-packaging.yml, nao cria tag aprovada/ e o puller (PR #44)
 # so le tags aprovada/ e artefatos daquele workflow.
 on:
-  # TEMPORARIO (provas do ajuste): workflow_dispatch so dispara com o arquivo no branch padrao.
-  push:
-    branches: [ci/build-iperf3-windows]
   workflow_dispatch:
     inputs:
       publicar:

@@ -47,7 +47,7 @@ Releases do `esnet/iperf`, consultados na API do GitHub em 2026-11-23 **[P]**:
 
 ## Ambiente: Cygwin
 
-Escolha: **Cygwin**, no runner `windows-2022` **[I]**.
+Escolha: **Cygwin**, no runner `windows-2022`. Compilou sem patch na run 45191296655 **[P]**.
 
 **Por quê:**
 - **O iperf3 é código POSIX.** Windows não é plataforma suportada (`README.md:29-32`) **[P]**.
@@ -91,7 +91,7 @@ Escolha: **Cygwin**, no runner `windows-2022` **[I]**.
 
 ## DLLs de runtime
 
-- **Esperado [I]:** só `cygwin1.dll`.
+- **Confirmado [P, run 45191296655]:** fora de `C:\Windows`, só `cygwin1.dll` (as outras são `KERNEL32`, `ntdll` e `KERNELBASE`, do sistema). A lista permitida (`ALLOWED_DLLS`) contém só ela.
 - Se o `gcc` do Cygwin puxar `cyggcc_s-seh-1.dll`, ela entra na lista permitida **com justificativa
   registrada**.
 - A lista definitiva sai da execução do passo 6, e não desta previsão.
@@ -104,43 +104,162 @@ Escolha: **Cygwin**, no runner `windows-2022` **[I]**.
 | Componente | Licença | Arquivo no pacote |
 |---|---|---|
 | iperf3 | BSD de 3 cláusulas, com cláusula de "Enhancements" da LBNL (`LICENSE`) **[P]** | `LICENSE-iperf3.txt` (cópia do `LICENSE` da tag) |
-| cJSON (embutido em `src/cjson.{c,h}`) | MIT, cujo texto está no próprio `LICENSE` do iperf3 (linhas 43 em diante) **[P]** | coberto pelo arquivo acima |
-| Runtime Cygwin (`cygwin1.dll`) | LGPLv3+ **[E, conhecimento geral; conferir no pacote instalado]** | `COPYING-cygwin.txt` + `CYGWIN-SOURCE.txt` com a versão exata e o link do pacote de fonte correspondente |
-| `cyggcc_s-seh-1.dll` (se houver) | GPLv3 com GCC Runtime Library Exception **[E]** | `COPYING-gcc-runtime.txt` |
+| cJSON (embutido em `src/cjson.{c,h}`) | MIT, com o texto dentro do próprio `LICENSE` do iperf3 (linhas 43 em diante) **[P]** | coberto pelo arquivo acima |
+| Runtime Cygwin (`cygwin1.dll` 3.6.12-1) | LGPLv3+ com "Linking Exception", segundo o `CYGWIN_LICENSE` instalado **[P, run 45191296655]** | `COPYING-cygwin.txt`: `COPYING` (GPLv3) + `CYGWIN_LICENSE`, ambos instalados pelo pacote `cygwin`. `COPYING.LIB-cygwin.txt`: texto da LGPLv3. `CYGWIN-SOURCE.txt`: oferta de fonte |
+| `cyggcc_s-seh-1.dll` | não aparece: o `cygcheck` lista só `cygwin1.dll` **[P]** | — |
 
-A LGPL exige oferecer o fonte da biblioteca distribuída. O arquivo `CYGWIN-SOURCE.txt` aponta para
-o pacote de fonte da versão exata registrada no passo 2 **[I]**.
+**O `COPYING.LIB` não é instalado pelo pacote `cygwin`.** O `CYGWIN_LICENSE` remete a ele para o
+texto da LGPLv3 **[P, run 45191296655]**. Por isso o arquivo é versionado no repositório.
+
+**Origem escolhida: (b) versionar no repositório.** O arquivo fica em
+`third-party/cygwin-3.6.12/COPYING.LIB`, com SHA-256
+`da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768`.
+
+Conferência feita em 2026-11-23 **[P]**:
+- o arquivo é idêntico ao do cgit oficial
+  (`cygwin.com/cgit/newlib-cygwin/plain/winsup/COPYING.LIB?h=cygwin-3.6.12`);
+- é idêntico ao do espelho `github.com/cygwin/cygwin`, tag `cygwin-3.6.12`, commit `ed54dcfd…`;
+- o `CYGWIN_LICENSE` dessa tag é igual ao instalado.
+
+Por que versionar em vez de baixar no job (opção a):
+- **O build não depende do `cygwin.com` estar no ar** para um arquivo que não muda dentro de uma
+  versão.
+- **O texto entra no diff do PR e é revisado uma vez.** Baixado a cada execução, só o hash seria
+  revisado.
+- A origem fica registrada em `third-party/cygwin-3.6.12/README.md`, com as duas fontes.
+- Neste ambiente, o `cygwin.com` só respondeu desligando a verificação de revogação do certificado
+  (`CRYPT_E_REVOCATION_OFFLINE`) **[P-lab]**. Um job que dependesse disso herdaria a fragilidade.
+
+**O job falha se:**
+- o SHA-256 do arquivo não conferir com `CYGWIN_COPYING_LIB_SHA256`;
+- o runtime instalado (`cygcheck -c -d cygwin`) for diferente de `CYGWIN_RUNTIME_VERSION`
+  (`3.6.12-1`);
+- o arquivo não estiver no diretório dessa versão.
+
+**Consequência:** a `cygwin-install-action` instala a versão **corrente** do espelho, não uma versão
+fixa. Quando sair um Cygwin novo, o job passa a falhar até alguém trocar `third-party/` e as
+constantes. A falha é proposital: impede publicar uma DLL sem a licença e sem a oferta de fonte da
+mesma versão **[I]**.
+
+**Oferta de fonte (LGPL).** O `CYGWIN-SOURCE.txt` aponta para o pacote de fonte da versão exata
+**[P, `setup.ini` do espelho em 2026-11-23]**:
+- pacote: `https://mirrors.kernel.org/sourceware/cygwin/src/release/cygwin/cygwin-3.6.12-1-src.tar.xz`;
+- tamanho e SHA-512 do `setup.ini`: 9.318.356 bytes, `9d70312a…27889`. URL conferida com HTTP 200 e
+  o mesmo tamanho;
+- tag `cygwin-3.6.12` do `newlib-cygwin`.
 
 ## Conteúdo do pacote
 
 ```
-iperf3-<tag>-cygwin-x64-<run>.zip
+iperf3-<tag>-cygwin-x64-<número da execução>.zip
 ├── iperf3.exe
 ├── cygwin1.dll
 ├── LICENSE-iperf3.txt
-├── COPYING-cygwin.txt
-├── CYGWIN-SOURCE.txt
-├── BUILD-MANIFEST.txt   tag, commit, runner, versão do Cygwin e do gcc, flags do configure, run id
-└── SHA256SUMS           de cada arquivo acima
+├── COPYING-cygwin.txt       COPYING (GPLv3) + CYGWIN_LICENSE do pacote cygwin instalado
+├── COPYING.LIB-cygwin.txt   LGPLv3 (third-party/cygwin-3.6.12/COPYING.LIB)
+├── CYGWIN-SOURCE.txt        oferta de fonte da versão exata
+├── BUILD-MANIFEST.txt       tag, commit, runner, Cygwin e gcc, flags, COPYING.LIB, verificação funcional
+└── SHA256SUMS               de cada arquivo acima
 ```
 
 ## SHA-256 e onde o artefato fica
 
-- O hash do zip e do `iperf3.exe` aparecem em quatro lugares:
+- O hash do zip e do `iperf3.exe` aparece em quatro lugares:
   - no log do job;
   - no `SHA256SUMS`;
   - no corpo da release;
-  - numa tabela neste documento, quando houver o primeiro build. Cada build aprovado ganha uma linha
-    com data, tag, commit e hash.
-- **Onde fica (proposta [I]):** como asset de uma **GitHub Release do nosso repositório**, com tag
-  própria `iperf3-v3.22.1-cygwin.1`.
-  - Artefato de workflow expira (90 dias por padrão) **[E]**, e baixar o zip exige token mesmo em
-    repositório público **[E, memória do puller]**.
-  - Release não expira, e o `SHA256SUMS` fica ao lado.
+  - na [tabela de builds](#builds) abaixo.
+- O pacote fica como asset de uma **GitHub Release do nosso repositório** (D-B3), com
+  `--latest=false`.
+  - Artefato de workflow expira (90 dias) **[E]**, e baixar o zip exige token mesmo em repositório
+    público **[E, memória do puller]**.
+  - O puller (PR #44) não lê Releases: só lê tags `aprovada/` e artefatos do
+    `ci-windows-packaging.yml` (`Invoke-ReleasePuller.ps1:135, 161-175`) **[P]**.
 - **Opcional:** `actions/attest-build-provenance` para atestar a procedência **[I]**.
-- **Gatilho:** só `workflow_dispatch`, nunca em push. Não há motivo para recompilar a cada commit do
-  projeto **[I]**.
 
 **Instalação no servidor da unidade:** fora deste repositório e fora deste plano. O operador confere
 o SHA-256 com `Get-FileHash -Algorithm SHA256` antes de instalar, e o roteiro do
 [laboratório](laboratorio.md) vale como ensaio desse procedimento.
+
+## Implementação (PR #49) — decisões
+
+Workflow: `.github/workflows/build-iperf3-windows.yml`.
+
+### D-B1 — Disparo manual só a partir do branch padrão
+
+- O `workflow_dispatch` só dispara se o arquivo existir no branch padrão. Antes do merge, a API
+  responde `HTTP 404: workflow build-iperf3-windows.yml not found on the default branch` **[P]**.
+- O arquivo tem **somente** `workflow_dispatch`.
+- As provas no branch do PR usaram um gatilho `push` **temporário**, restrito ao próprio branch, num
+  commit `TEMP` que foi removido depois.
+- O arquivo final difere do provado **só** por esse gatilho. Isso aparece no `git diff` registrado
+  no PR.
+
+### D-B2 — `contents: write` por job, não por passo
+
+- O GitHub Actions só aceita `permissions` por workflow ou por job, não por passo.
+- O job `build` tem `contents: read`.
+- A Release é criada num job separado, `publicar`:
+  - depende do `build`;
+  - roda só com `publicar=true`;
+  - é o **único** com `contents: write`;
+  - não compila nada: baixa o artefato, confere o `.sha256` e cria a Release.
+
+### D-B3 — Tag da Release: `iperf3-v<tag>-cygwin.<número da execução>`
+
+- O `.1` fixo do plano colidiria na segunda publicação.
+- O número da execução (`GITHUB_RUN_NUMBER`) é único no workflow e liga a Release à execução que
+  gerou o pacote.
+- A Release usa `--latest=false` para não virar a "Latest" da aplicação.
+
+### D-B4 — Ruído de "cookie" no log do servidor é inofensivo
+
+- Na verificação funcional, `server.err` registra
+  `iperf3: error - unable to receive cookie at server: Software caused connection abort`
+  **[P, run 45191296655]**.
+- A origem é a sonda de prontidão, que abre e fecha uma conexão TCP para saber se a porta 5201
+  aceita.
+- Não afeta nenhum resultado: as três medições seguintes completam e saem no `funcional.json`.
+- Foi mantido assim para não alterar o arquivo já provado.
+
+### SHAs das actions (I2, 2026-11-23)
+
+| Action | Versão | SHA fixado | Origem |
+|---|---|---|---|
+| `actions/checkout` | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | já usado no repositório; confere com a tag na API **[P]** |
+| `actions/upload-artifact` | v7.0.2 | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` | idem **[P]** |
+| `actions/download-artifact` | v8.0.2 | `9000827ccba6bdab643e8b6fd33ac0654aef8333` | idem **[P]** |
+| `cygwin/cygwin-install-action` | v7 (2026-10-25) | `5a1b0cd107181fa6bb6bf3f90d500f4fb3132f18` | tag anotada `v7` desreferenciada na API **[P]** |
+
+### Builds
+
+**O hash oficial será o da primeira execução com `publicar=true` depois do merge.** As linhas abaixo
+são provas no branch do PR: não foram publicadas e não servem para instalar.
+
+| Data | Execução | Situação | Tag / commit iperf3 | Cygwin | `iperf3.exe` SHA-256 | zip SHA-256 |
+|---|---|---|---|---|---|---|
+| 2026-11-23 | [45191296655](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45191296655) | **prova, não publicado**. Pacote ainda sem `COPYING.LIB` | 3.22.1 / `acc0ed50` | 3.6.12-1 | `14384850c528f6a1153bf79cc4f298e11d3c3c342fa765b9ea8d1b236fca4c56` | `61d1968596b8c62c6b665f44b227b0bc723b34d996bb6ca2c09915ec03ab6b01` |
+| 2026-11-23 | [45200078545](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45200078545) | **prova, não publicado**. Primeiro pacote com `COPYING.LIB`; constantes ainda sem aspas | 3.22.1 / `acc0ed50` | 3.6.12-1 | `1476a2ddb7ac3a402c1203de5933dd2566c3a844f77ac2e41c4f92f43d5b4594` | `6fe64b95d17ce961230a0c383780464af297b3c7fd6b60bc459d124d049efed8` |
+| 2026-11-23 | [45200942215](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45200942215) | **prova, não publicado**. Conteúdo final do workflow, diferindo só pelo gatilho `push` temporário | 3.22.1 / `acc0ed50` | 3.6.12-1 | `c1e1aca3b288a13630d45043ec0ae600c204b50181d7d6997c3309d16a9cf236` | `49d21205825d9232d8bba316c7fa8b9f2e69c83cd146d90e6bc82c4768f6c2cc` |
+
+**O build não é reproduzível bit a bit [P].** As três execuções compilaram o mesmo commit, com o
+mesmo Cygwin e o mesmo gcc, e geraram três `iperf3.exe` com hashes diferentes. A causa provável é o
+carimbo de data no cabeçalho PE e nos caminhos de build **[I]**.
+
+Consequências:
+- O hash que vale é o **da execução publicada**. Recompilar não reproduz um hash anterior, e o
+  operador confere o hash contra a Release, não contra uma recompilação.
+- Tornar o build reproduzível fica como melhoria futura, fora deste PR. Exigiria pelo menos
+  `SOURCE_DATE_EPOCH` e `-Wl,--no-insert-timestamp`.
+
+### Provas de reversão das travas
+
+| Trava | Execução | Resultado |
+|---|---|---|
+| `IPERF_COMMIT` errado | [45192082462](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45192082462) | falha em "Conferir commit da tag" |
+| `ALLOWED_DLLS` vazia | [45192269673](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45192269673) | `DLL fora da lista permitida: C:\cygwin\bin\cygwin1.dll` |
+| SHA-256 do `COPYING.LIB` errado, sem aspas | [45200793971](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45200793971) | falha, mas o log mostra `esperado 0`: o YAML leu `000…0` como número. Por isso as constantes passaram a ficar entre aspas |
+| SHA-256 do `COPYING.LIB` errado, entre aspas | [45201643187](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45201643187) | `SHA-256 do COPYING.LIB nao confere` (`esperado 0000…0000`) |
+| Versão do runtime errada (`3.6.11-1`) | [45201759293](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45201759293) | `runtime Cygwin 3.6.12-1 difere de 3.6.11-1` |
+
+Todos os commits `TEMP` foram revertidos.
