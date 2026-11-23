@@ -86,24 +86,40 @@ function Get-DatabaseSchemaVersion {
     # arquivo legivel so por Administrators/SYSTEM e fica no ambiente deste processo so durante a consulta,
     # como no ops/Backup-InfraMonitorDatabase.ps1; nunca na linha de comando.
     param([Parameter(Mandatory)][string]$PostgreSQLHome,[Parameter(Mandatory)][string]$PasswordFile,
-          [string]$Database='inframonitor',[string]$User='postgres',[string]$DatabaseHost='127.0.0.1',[ValidateRange(1,65535)][int]$Port=5432)
+          [string]$Database='inframonitor',[string]$User='postgres',[string]$DatabaseHost='127.0.0.1',[ValidateRange(1,65535)][int]$Port=5432,
+          [switch]$RefuseSuperuser)
+    # A sessao e SOMENTE LEITURA (default_transaction_read_only via PGOPTIONS, so neste processo e so durante a
+    # consulta): mesmo um flyway_schema_history que fosse uma visao com efeito colateral nao escreve.
+    # -RefuseSuperuser: o puller exige o papel da aplicacao (decisao de 2026-11-16), nunca um superusuario.
     $pg=Assert-AbsolutePath $PostgreSQLHome
     $psql=Join-Path $pg ('bin/psql'+$(if ($IsWindows) { '.exe' } else { '' }))
     if (-not (Test-Path -LiteralPath $psql -PathType Leaf)) { throw 'psql not found under PostgreSQLHome' }
     $secret=Assert-AbsolutePath $PasswordFile
-    $previous=$env:PGPASSWORD
+    $previous=$env:PGPASSWORD; $previousOptions=$env:PGOPTIONS
     try {
         $env:PGPASSWORD=[IO.File]::ReadAllText($secret).Trim()
-        $answer=& $psql -h $DatabaseHost -p $Port -U $User -d $Database -w -At -X -v ON_ERROR_STOP=1 -c "select coalesce(max(version::int) filter (where success),0)||'|'||count(*) filter (where not success) from flyway_schema_history where version is not null"
+        $env:PGOPTIONS='-c default_transaction_read_only=on'
+        $answer=& $psql -h $DatabaseHost -p $Port -U $User -d $Database -w -At -X -v ON_ERROR_STOP=1 -c "select coalesce(max(version::int) filter (where success),0)||'|'||count(*) filter (where not success)||'|'||current_setting('is_superuser') from flyway_schema_history where version is not null"
         if ($LASTEXITCODE -ne 0) { throw 'Could not read flyway_schema_history' }
     } finally {
         if ($null -eq $previous) { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue } else { $env:PGPASSWORD=$previous }
+        if ($null -eq $previousOptions) { Remove-Item Env:PGOPTIONS -ErrorAction SilentlyContinue } else { $env:PGOPTIONS=$previousOptions }
     }
     $line=([string](@($answer)[0])).Trim()
-    if ($line -notmatch '^(\d+)\|(\d+)$') { throw 'Unexpected flyway_schema_history answer' }
+    if ($line -notmatch '^(\d+)\|(\d+)\|(on|off)$') { throw 'Unexpected flyway_schema_history answer' }
+    if ($RefuseSuperuser -and $Matches[3] -eq 'on') { throw 'Superuser session refused; use the application role' }
     if ([int]$Matches[2] -ne 0) { throw 'Failed migration recorded in flyway_schema_history; resolve before any release' }
     if ([int]$Matches[1] -lt 1) { throw 'No applied migration in flyway_schema_history' }
     return [int]$Matches[1]
+}
+function Test-DatabaseSchemaFit {
+    # O banco cabe no que o release suporta: de minSchemaVersion (declarado no JAR; ausente = sem tolerancia) ate
+    # schemaVersion. Banco a frente so com -AllowAhead (no Switch/Rollback: databaseAheadOfRelease=true na prova).
+    param([Parameter(Mandatory)][hashtable]$Target,[Parameter(Mandatory)][int]$DatabaseSchemaVersion,[switch]$AllowAhead)
+    if ($Target['historyGuard'] -ne $true -or $Target['schemaVersion'] -isnot [long] -or $Target['schemaVersion'] -lt 25) { throw 'Release below the V25 history protection' }
+    $minimum=if ($Target.ContainsKey('minSchemaVersion')) { $Target['minSchemaVersion'] } else { $Target['schemaVersion'] }
+    if ($DatabaseSchemaVersion -lt $minimum) { throw 'Database schema older than the release supports' }
+    if ($DatabaseSchemaVersion -gt $Target['schemaVersion'] -and -not $AllowAhead) { throw 'Database schema ahead of the release; explicit approval required' }
 }
 function Test-RollbackCompatibility {
     # Tres declaracoes do schema do banco tem de coincidir: a do operador (-SchemaVersion), a lida do banco e a da
@@ -114,10 +130,7 @@ function Test-RollbackCompatibility {
     if ($SchemaVersion -lt 1) { throw 'Operator schema declaration required' }
     if ($DatabaseSchemaVersion -ne $SchemaVersion) { throw 'Operator schema declaration does not match the database' }
     if ($Proof['approved'] -ne $true -or $Proof['schemaVersion'] -ne $SchemaVersion) { throw 'Schema compatibility not proven' }
-    if ($Target['historyGuard'] -ne $true -or $Target['schemaVersion'] -isnot [long] -or $Target['schemaVersion'] -lt 25) { throw 'Release below the V25 history protection' }
-    $minimum=if ($Target.ContainsKey('minSchemaVersion')) { $Target['minSchemaVersion'] } else { $Target['schemaVersion'] }
-    if ($DatabaseSchemaVersion -lt $minimum) { throw 'Database schema older than the release supports' }
-    if ($DatabaseSchemaVersion -gt $Target['schemaVersion'] -and $Proof['databaseAheadOfRelease'] -ne $true) { throw 'Database schema ahead of the release; explicit approval required' }
+    Test-DatabaseSchemaFit -Target $Target -DatabaseSchemaVersion $DatabaseSchemaVersion -AllowAhead:($Proof['databaseAheadOfRelease'] -eq $true)
     foreach ($key in @('backend','frontend')) {
         $desired=if ($Component -eq 'Both' -or $Component -eq $key) { $Target['version'] } else { $Current[$key] }
         if ($Proof['current'][$key] -cne $Current[$key] -or $Proof['target'][$key] -cne $desired) { throw 'Compatibility proof does not match release pair' }
@@ -138,6 +151,17 @@ function Test-BackendHealth {
     param([ValidateRange(1,65535)][int]$Port=8080)
     $r=Invoke-WebRequest -Uri "http://127.0.0.1:$Port/actuator/health" -TimeoutSec 10 -MaximumRedirection 0
     Test-HealthResult ([int]$r.StatusCode) (ConvertFrom-HealthContent $r.Content)
+}
+function Test-SecretFileAcl {
+    # Segredo em arquivo: heranca desligada e leitura so para as identidades listadas (SIDs). Usado pelos segredos
+    # da aplicacao (Prerequisites) e pelo token do puller.
+    param([Parameter(Mandatory)][string]$Path,[Parameter(Mandatory)][string[]]$AllowedSids)
+    $acl=Get-Acl -LiteralPath $Path
+    if (-not $acl.AreAccessRulesProtected) { throw 'Secret ACL inheritance must be disabled' }
+    foreach ($ace in $acl.Access) {
+        $sid=$ace.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
+        if ($ace.AccessControlType -eq 'Allow' -and $sid -notin $AllowedSids) { throw 'Secret ACL grants unexpected identity' }
+    }
 }
 function Test-WindowsPrerequisites {
     param([string]$JavaHome,[string]$Root,[string]$ServiceSid,[string]$WinSWExecutable,[string]$WinSWSha256,[string]$PostgreSQLHome)
@@ -160,14 +184,65 @@ function Test-WindowsPrerequisites {
         Assert-AbsolutePath $file | Out-Null
         if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-Item -LiteralPath $file).Length -eq 0) { throw 'Mandatory protected configuration missing' }
         if ($key -eq 'JWT_SECRET' -and (Get-Item -LiteralPath $file).Length -lt 32) { throw 'JWT key too short' }
-        $acl=Get-Acl -LiteralPath $file
-        if (-not $acl.AreAccessRulesProtected) { throw 'Secret ACL inheritance must be disabled' }
-        foreach ($ace in $acl.Access) {
-            $sid=$ace.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
-            if ($ace.AccessControlType -eq 'Allow' -and $sid -notin @('S-1-5-18','S-1-5-32-544',$ServiceSid)) { throw 'Secret ACL grants unexpected identity' }
-        }
+        Test-SecretFileAcl -Path $file -AllowedSids @('S-1-5-18','S-1-5-32-544',$ServiceSid)
     }
     [pscustomobject]@{ Java=21; IISModules='present'; SecretACL='checked'; WinSWInstall='not performed' }
+}
+$script:ToolingFiles=@('ReleaseTools.psm1','Invoke-WindowsRelease.ps1','winsw.xml.template','web.config.template')
+function Get-ToolingFileNames {
+    # Os arquivos que package.py copia de deployment/windows para a raiz do pacote. Mesma lista do assemble().
+    return $script:ToolingFiles
+}
+function Test-PackageTooling {
+    # Identidade do ferramental: cada arquivo de ferramental na raiz do pacote tem de ter o SHA-256 esperado. Quem
+    # chama fornece o esperado de uma fonte independente do pacote (o blob do commit aprovado, no puller). Um pacote
+    # montado com o ferramental de um PR, ou de outro dia do workflow_dispatch, diverge aqui.
+    param([Parameter(Mandatory)][string]$PackagePath,[Parameter(Mandatory)][hashtable]$ExpectedSha256)
+    $p=Assert-AbsolutePath $PackagePath
+    if (@($ExpectedSha256.Keys | Sort-Object) -join '|' -cne (@($script:ToolingFiles | Sort-Object) -join '|')) { throw 'Tooling expectation incomplete' }
+    foreach ($name in $script:ToolingFiles) {
+        if ($ExpectedSha256[$name] -cnotmatch '^[0-9a-f]{64}$') { throw 'Tooling expectation invalid' }
+        $file=Join-Path $p $name
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Tooling file missing: $name" }
+        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() -cne $ExpectedSha256[$name]) { throw "Tooling identity mismatch: $name" }
+    }
+}
+function Get-DeploymentMutexName([string]$Root) {
+    $rootPath=Assert-AbsolutePath $Root
+    $key=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($rootPath.ToLowerInvariant())))
+    return 'Global\InfraMonitorDeployment-'+$key
+}
+function Test-DeploymentOperationActive {
+    # So OBSERVA: o mutex nomeado existe enquanto algum Invoke-ReleaseOperation -Apply estiver vivo. Abrir o handle
+    # existente nao o adquire, entao quem observa nunca bloqueia o Switch do operador.
+    param([Parameter(Mandatory)][string]$Root)
+    $existing=$null
+    $found=[Threading.Mutex]::TryOpenExisting((Get-DeploymentMutexName $Root),[ref]$existing)
+    if ($existing) { $existing.Dispose() }
+    return $found
+}
+function Get-DeployedReleases {
+    # Leitura: release em uso (deployment-state.json) e alvo de rollback (current\<parte>.previous). Nao altera nada.
+    param([Parameter(Mandatory)][string]$Root)
+    $rootPath=Assert-AbsolutePath $Root
+    $state=Get-Content -Raw -LiteralPath (Join-Path $rootPath 'config/deployment-state.json') | ConvertFrom-Json -AsHashtable
+    $result=[ordered]@{ backend=$null; frontend=$null; previousBackend=$null; previousFrontend=$null; interrupted=$false }
+    foreach ($part in @('backend','frontend')) {
+        if ([string]$state[$part] -cnotmatch '^r-[0-9a-f]{40}$') { throw 'Invalid deployment state' }
+        $result[$part]=[string]$state[$part]
+        $current=Join-Path $rootPath 'current'
+        if (Test-Path -LiteralPath (Join-Path $current "$part.swap")) { $result.interrupted=$true }
+        $previous=Join-Path $current "$part.previous"
+        if (Test-Path -LiteralPath $previous) {
+            $item=Get-Item -Force -LiteralPath $previous
+            $target=[IO.Path]::GetFullPath([string]@($item.Target)[0])
+            $version=Split-Path -Leaf (Split-Path -Parent $target)
+            if ($item.LinkType -ne 'Junction' -or @($item.Target).Count -ne 1 -or $version -cnotmatch '^r-[0-9a-f]{40}$' -or
+                $target -ine [IO.Path]::GetFullPath((Join-Path $rootPath "releases/$version/$part"))) { throw 'Unexpected previous link' }
+            $result[$(if ($part -eq 'backend') { 'previousBackend' } else { 'previousFrontend' })]=$version
+        }
+    }
+    return [pscustomobject]$result
 }
 function Invoke-JunctionTransition([string]$Root,[string]$Version,[string]$Part,[bool]$Rollback) {
     if ($Version -notmatch '^r-[0-9a-f]{40}$' -or $Part -notin @('backend','frontend')) { throw 'Invalid junction identity' }
@@ -232,8 +307,7 @@ function Invoke-ReleaseOperation {
     if ([string]::IsNullOrWhiteSpace($ApprovalId)) { throw 'Explicit approval ID required' }
     if (-not $PSCmdlet.ShouldProcess($rootPath,"$Operation $Version")) { return }
     if (-not $IsWindows) { throw 'Windows required for mutations' }
-    $key=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($rootPath.ToLowerInvariant())))
-    $mutex=[Threading.Mutex]::new($false,('Global\InfraMonitorDeployment-'+$key))
+    $mutex=[Threading.Mutex]::new($false,(Get-DeploymentMutexName $rootPath))
     $held=$false
     try {
     $held=$mutex.WaitOne(0)
@@ -339,4 +413,4 @@ function Invoke-ReleaseOperation {
         $mutex.Dispose()
     }
 }
-Export-ModuleMember -Function Assert-AbsolutePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Get-DatabaseSchemaVersion,Test-RollbackCompatibility,Test-HealthResult,ConvertFrom-HealthContent,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation
+Export-ModuleMember -Function Assert-AbsolutePath,Assert-RelativePath,Test-FreeSpacePolicy,Test-PackageIntegrity,Test-ReleaseIntegrity,Get-DatabaseSchemaVersion,Test-DatabaseSchemaFit,Test-RollbackCompatibility,Test-SecretFileAcl,Get-ToolingFileNames,Test-PackageTooling,Get-DeploymentMutexName,Test-DeploymentOperationActive,Get-DeployedReleases,Test-HealthResult,ConvertFrom-HealthContent,Test-BackendHealth,Test-WindowsPrerequisites,Invoke-ReleaseOperation

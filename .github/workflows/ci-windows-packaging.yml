@@ -21,7 +21,7 @@ concurrency:
 jobs:
   validate:
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -38,7 +38,7 @@ jobs:
       - name: PowerShell syntax, space, health, rollback and dry-run tests
         shell: pwsh
         run: ./deployment/windows/tests/windows-tests.ps1 -FixturePackage "$env:RUNNER_TEMP/packaging-fixture/package"
-      - name: Schema guard against a real PostgreSQL (the runner's own, disposable)
+      - name: Schema guard and release puller against a real PostgreSQL (the runner's own, disposable)
         shell: pwsh
         run: |
           $pgHome = if ($env:PGROOT) { $env:PGROOT } else { Split-Path -Parent $env:PGBIN }
@@ -51,6 +51,13 @@ jobs:
           Set-Content -LiteralPath $password -Value $env:PGPASSWORD -NoNewline
           $user = if ($env:PGUSER) { $env:PGUSER } else { 'postgres' }
           ./deployment/windows/tests/schema-guard-tests.ps1 -PostgreSQLHome $pgHome -PasswordFile $password -User $user
+          # Puller de release contra um GitHub falso local; depois, cada verificacao removida tem de derrubar um cenario.
+          $work = Join-Path $env:RUNNER_TEMP 'puller'
+          New-Item -ItemType Directory -Path $work -Force | Out-Null
+          "Free on puller work volume: {0:N1} GiB" -f (([IO.DriveInfo]::new([IO.Path]::GetPathRoot($work))).AvailableFreeSpace/1GB)
+          $fixture = "$env:RUNNER_TEMP/packaging-fixture/package"
+          ./deployment/windows/tests/puller-tests.ps1 -FixturePackage $fixture -PostgreSQLHome $pgHome -PasswordFile $password -User $user -WorkRoot $work
+          ./deployment/windows/tests/puller-mutation-tests.ps1 -FixturePackage $fixture -PostgreSQLHome $pgHome -PasswordFile $password -User $user -WorkRoot $work
 
   assemble:
     needs: validate
