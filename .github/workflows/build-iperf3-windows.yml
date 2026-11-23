@@ -19,7 +19,7 @@ permissions:
 
 env:
   IPERF_TAG: '3.22.1'
-  IPERF_COMMIT: acc0ed500fb2c421999948a72bb6a9e05af528d8
+  IPERF_COMMIT: 926bd905501b792bd082d2200d1d1a84aa543e3a # TEMP P2: commit da 3.22, errado de proposito
   # DLLs permitidas FORA de C:\Windows (as do sistema operacional nao entram no pacote).
   ALLOWED_DLLS: 'cygwin1.dll'
 
