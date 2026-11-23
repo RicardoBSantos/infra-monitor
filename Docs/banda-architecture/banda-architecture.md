@@ -25,8 +25,10 @@ Toda afirmação traz uma marca:
 | [v28-proposta.md](v28-proposta.md) | Texto da V28 revisada e do `schema-compatibility.json`. **Não é arquivo de migration.** |
 | [laboratorio.md](laboratorio.md) | Roteiro do ensaio: supressão por medição com monitores de 20, 60 e 300 s, prova de reversão, rollback (h). |
 | [build-iperf3.md](build-iperf3.md) | Plano do job de CI que compila o iperf3 para Windows. |
-| [dividas.md](dividas.md) | Destaque de rollback, sinalizações S1–S4, estado de C1–C4, dívidas e lacunas. |
+| [dividas.md](dividas.md) | Bloqueio de produção (disco), destaque de rollback, S1–S4 resolvidas, C1–C4, dívidas e lacunas. |
 
+> **⛔ Bloqueio de produção:** Stage, Switch e Rollback são recusados abaixo de ~25 GiB livres, e hoje há ~26 GiB. A janela desta feature espera a frente de retenção e disco. Ver [dividas.md](dividas.md#-bloqueio-de-produção--espaço-em-disco).
+>
 > **Rollback da V28:** possível, mas exige `databaseAheadOfRelease=true`, e ainda falta provar que o
 > jar anterior tolera a coluna nova em `unidade`. Ver [dividas.md](dividas.md#rollback--leia-antes-da-janela-da-v28).
 
@@ -73,6 +75,7 @@ POST /api/v1/testes-banda {unidadeId}          (OPERADOR → 403; teste obrigat�
   │  COMMIT  ← a janela passa a valer aqui, ANTES do tráfego (D4; teste de integração da ordem)
   ▼
 Thread do executor (fora da transação do POST)
+  │  prazo duro: destroyForcibly em janela_fim − margem (D14); --server-max-duration no servidor
   ├─ iperf3 -c <ip> -t ≤15 --json-stream        (download: sede→unidade)
   ├─ iperf3 -c <ip> -t ≤15 --json-stream -R     (upload: unidade→sede)
   │     amostras em memória, por seq ──► GET /testes-banda/{id}?desde=<seq>  (front, 1 s)
@@ -81,7 +84,7 @@ Thread do executor (fora da transação do POST)
 Motor ICMP (paralelo, intocado)
   └─ cada medição → LatencyEpisodeProcessor (avaliação por nível sobre as últimas N)
         inserirSeElegivel(..., :iniciadoEm = mais antiga, :medicaoMaisRecente)
-          AND NOT EXISTS (teste_banda tb WHERE tb.iniciado_em <= :medicaoMaisRecente
+          AND NOT EXISTS (teste_banda tb WHERE tb.iniciado_em <= :medicaoMaisRecente + :timeoutMs
                                            AND tb.janela_fim  >= :iniciadoEm)
         └─ 0 linhas → episódio não abre, nenhuma notificação
 

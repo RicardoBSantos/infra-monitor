@@ -12,7 +12,7 @@ Todas foram fechadas pelo responsável em **2026-11-23**. Estado: **decididas, n
 - D15 e D16 são novas.
 
 Quando a verificação no código contraria uma decisão, o ponto fica em
-[dividas.md § Sinalizações](dividas.md#sinalizações-abertas). Nenhuma decisão foi alterada sem o
+[dividas.md § Sinalizações](dividas.md#sinalizações-da-segunda-rodada--resolvidas-em-2026-11-23). Nenhuma decisão foi alterada sem o
 responsável.
 
 ---
@@ -119,14 +119,43 @@ Durante o teste, **só a abertura de episódio de latência** é suprimida.
 
 **Decisão vigente:**
 
-1. **A supressão é POR MEDIÇÃO.** O episódio não abre se alguma das N medições da sequência
-   avaliada caiu dentro da janela de um teste. Predicado acrescentado em
-   `MonitorEpisodioLatenciaRepository.inserirSeElegivel`:
+1. **A supressão é por sobreposição. Texto final, ajuste S2 de 2026-11-23:** **"o episódio não abre
+   se o intervalo coberto pela sequência avaliada sobrepõe a janela de um teste."**
+   - ~~O episódio não abre se alguma das N medições da sequência avaliada caiu dentro da janela de um
+     teste.~~ Foi trocado porque o predicado testa sobreposição de intervalos, não medição a medição.
+   - **Atraso possível:** o predicado também segura a abertura quando o teste cai **entre** duas
+     medições da sequência. Num monitor de intervalo longo, por exemplo 300 s com um teste de ~40 s
+     entre duas medições, um episódio real pode abrir **um intervalo depois** do que abriria sem o
+     teste. O erro é sempre para o lado conservador: nunca abre episódio por causa do teste **[I]**.
+
+   **Predicado em `MonitorEpisodioLatenciaRepository.inserirSeElegivel`, com a borda esquerda do
+   ajuste S1 de 2026-11-23:**
    ```sql
    AND NOT EXISTS (SELECT 1 FROM teste_banda tb
-                    WHERE tb.iniciado_em <= :medicaoMaisRecente
+                    WHERE tb.iniciado_em <= :medicaoMaisRecente + make_interval(secs => :timeoutMs / 1000.0)
                       AND tb.janela_fim  >= :medicaoMaisAntigaDaSequencia)
    ```
+   - `:timeoutMs` é o `timeout_ms` **do monitor avaliado**.
+   - **Por que o timeout basta:**
+     - `executado_em` é gravado **antes** de o eco sair (`IcmpMonitorExecutor.java:38-40`) **[P]**;
+     - uma medição `SUCESSO` tem RTT ≤ `timeout_ms`, porque acima disso ela é `FALHA` e já não entra
+       na sequência de latência (`acimaDoLimiar` exige `SUCESSO`, `LatencyEpisodeProcessor.java:160-163`)
+       **[P/I]**;
+     - portanto, um eco que sai em `t` só pode ser afetado pelo tráfego do teste se `t + timeout_ms >=
+       iniciado_em`;
+     - o predicado cobre esse caso para a medição mais recente, e, por sobreposição, para todas as
+       anteriores **[I]**.
+   - **De onde vem o timeout [P]:**
+     - o motor grava a medição por `MedicaoService.criar` (`MonitorExecutionCoordinator.java:82`);
+     - `criar` carrega o `Monitor` com `monitorRepository.findById`, uma entidade inicializada e não
+       um proxy, e o associa à medição (`MedicaoService.java:47-51`);
+     - esse mesmo objeto chega ao processador como `medicaoPersistida.getMonitor()` e é passado a
+       `processarAbertura(Monitor monitor, ...)` (`LatencyEpisodeProcessor.java:93, 97`);
+     - `monitor.getTimeoutMs()` existe em `Monitor.java:89`;
+     - **não há consulta extra.**
+   - **Ressalva [I]:** o valor lido é o `timeout_ms` atual do monitor, e não o da época de cada medição.
+     Se alguém mudar o timeout entre duas medições, a borda usa o valor novo. Isso não tem efeito
+     prático: o CHECK da V5 limita o timeout a 100–60000 ms.
 2. **A janela é gravada no disparo:**
    ```
    janela_fim = iniciado_em + 2 × duracao_sentido_segundos + margem de fila
@@ -145,11 +174,11 @@ Durante o teste, **só a abertura de episódio de latência** é suprimida.
 - Os dois timestamps já estão disponíveis no ponto do insert, sem consulta extra
   ([contexto.md § Item 1](contexto.md#item-1--timestamps-da-sequência-no-ponto-do-insert)) **[P]**.
 
-**Sinalizações abertas:** S1, S2, S3 e S4 em [dividas.md](dividas.md#sinalizações-abertas):
-- borda esquerda e eco em voo;
-- predicado por intervalo de tempo × "alguma medição";
-- teste que passa de `janela_fim`;
-- ordem das colunas do índice.
+**S1–S4 resolvidas em 2026-11-23:**
+- **S1:** borda esquerda estendida pelo timeout (acima).
+- **S2:** o texto da decisão passa a falar em sobreposição (acima).
+- **S3:** prazo duro do executor (D14).
+- **S4:** índice `(janela_fim, iniciado_em)` ([v28-proposta.md](v28-proposta.md)).
 
 ## D6 — Relatórios não excluem as medições do teste neste ciclo
 
@@ -283,6 +312,17 @@ Do lado do backend, entra ainda a lista de alvos permitidos (D13).
 - `-t` de no máximo **15 s por sentido**.
 - **Um teste por vez** no sistema.
 - `destroyForcibly` no shutdown.
+- **Prazo duro, ajuste S3 de 2026-11-23.** O executor encerra o iperf3 com `destroyForcibly` em
+  **`janela_fim − margem de fila`**, qualquer que seja o sentido em execução.
+  - O teste é gravado como `FALHA`, com o valor parcial que houver e um `erro` dizendo que o prazo
+    estourou.
+  - Assim, `janela_fim` deixa de ser uma estimativa e vira garantia. Nenhum tráfego do teste
+    acontece depois de `janela_fim − margem`, e a margem cobre a fila que ainda escoa até
+    `janela_fim` **[I]**.
+  - **Segunda barreira:** `--server-max-duration` no servidor iperf3 da unidade
+    ([laboratorio.md](laboratorio.md), preparação). Ela corta pelo lado do servidor se o cliente
+    falhar em parar. A opção existe no fonte da 3.22 (`src/iperf_api.c:1122`) **[P]**; a prova é na
+    build Cygwin.
 
 **Limpeza de órfão:**
 - **No boot:** todo `EXECUTANDO` vira `FALHA` com `erro = INTERROMPIDO_REINICIO`.

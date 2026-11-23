@@ -2,89 +2,59 @@
 
 Legenda em [banda-architecture.md](banda-architecture.md).
 
+## ⛔ BLOQUEIO DE PRODUÇÃO — espaço em disco
+
+> **A janela desta feature não acontece antes de a frente de retenção e disco estar resolvida.**
+>
+> - **Implantar a V28 exige `Stage` e `Switch`. Reverter exige `Rollback`.** O ferramental recusa as
+>   três operações com pouco espaço livre, **inclusive o rollback de emergência** **[P]**.
+> - **Limiar no código [P], em `deployment/windows/ReleaseTools.psm1`:**
+>   - `Test-FreeSpacePolicy`, **linha 21**: `if ($projected -lt 22GB) { throw 'Projected free space below 22 GiB; operation blocked' }`;
+>   - `projected = livre − adicional − pico` (linha 20);
+>   - pico operacional padrão `$OperationalPeakBytes=3GB` (**linha 206**);
+>   - em `Stage`, o adicional é o tamanho do pacote mais 1 MB; nas outras operações, 1 MB
+>     (**linhas 227-229**).
+>   - O portão é avaliado **antes** de qualquer ação, em toda operação, `Rollback` incluído
+>     (linha 229).
+>   - **Na prática: recusa abaixo de ~25 GiB livres** (22 + 3 + pacote).
+> - **Hoje: cerca de 26 GiB livres e caindo** **[E, informado pelo responsável em 2026-11-23]**. O
+>   repositório ainda registra 34 GiB, um valor anterior ao inventário de 102 equipamentos
+>   (`Docs/producao/estado-atual.md:85`, `pendencias.md:140`) **[E]**: o documento está defasado.
+> - **Consequência [I]:**
+>   - a ~1 GiB do portão, um `Stage` da V28 pode ser recusado;
+>   - pior: um `Switch` aceito pode ser seguido de um `Rollback` **recusado** se o disco cair entre
+>     as duas operações. O sistema ficaria na versão nova sem caminho de volta pelo ferramental.
+>   - A coleta de medições consome cerca de 0,7 a 1 GiB por mês (`pendencias.md:147`) **[E]**.
+> - **Condição para abrir a janela:** espaço livre medido com folga sobre ~25 GiB, somando a V28, o
+>   pacote e um rollback. A frente de retenção e disco (`pendencias.md`) precisa ter entregue isso
+>   antes.
+
 ## Rollback — leia antes da janela da V28
 
 > **A V28 NÃO impede o rollback, mas ele NÃO é automático.**
 >
-> - A volta para o jar anterior, sobre um banco já na V28, é recusada pela trava de release, a menos
->   que a prova traga **`databaseAheadOfRelease=true`** (`ReleaseTools.psm1:120`) **[P]**.
+> - O ferramental recusa a volta para o jar anterior, sobre um banco já na V28, a menos que a prova
+>   traga **`databaseAheadOfRelease=true`** (`ReleaseTools.psm1:120`) **[P]**.
+> - O `Rollback` também está sujeito ao **bloqueio de espaço** acima **[P]**.
 > - O banco **fica** na V28: não existe migration de volta.
-> - Ainda falta provar que o jar anterior sobe com a coluna nova `unidade.ponta_teste_banda_id`, que
->   ele mapeia por tabela mas não por coluna. É o item (h) do [laboratório](laboratorio.md) **[I]**.
+> - Ainda falta provar que o jar anterior sobe com a coluna nova `unidade.ponta_teste_banda_id`, e o
+>   que ele devolve ao mover a ponta. É o item (h) do [laboratório](laboratorio.md) **[I]**.
 > - **Sem essa prova, o rollback da V28 é uma aposta.**
 >
 > Detalhes em [v28-proposta.md § Rollback](v28-proposta.md#rollback-e-minschemaversion).
 
-## Sinalizações abertas
+## Sinalizações da segunda rodada — resolvidas em 2026-11-23
 
-Aqui o código contraria, ou deixa uma lacuna em, uma decisão vigente. **Nenhuma foi ajustada sem o
-responsável.**
+| # | Sinalização | Resolução | Onde |
+|---|---|---|---|
+| S1 | Eco em voo antes de `iniciado_em`: `executado_em` é gravado **antes** do eco (`IcmpMonitorExecutor.java:38-40`) **[P]** | A borda esquerda passa a valer a partir de `iniciado_em` menos o `timeout_ms` do monitor avaliado: o predicado usa `iniciado_em <= :maisRecente + :timeoutMs`. Como RTT ≤ timeout, todo eco em voo fica coberto | D5 |
+| S2 | O predicado compara intervalos, enquanto o texto falava em medições | O predicado de sobreposição é mantido. O texto da D5 foi reescrito, com o atraso de até um intervalo em monitores de intervalo longo | D5 |
+| S3 | O teste podia passar de `janela_fim` | Prazo duro: `destroyForcibly` em `janela_fim − margem de fila`. `--server-max-duration` é a segunda barreira | D14 |
+| S4 | O índice `(iniciado_em, janela_fim)` lia o índice inteiro | Índice invertido para `(janela_fim, iniciado_em)`. Medição: 2 buffers contra 141 | [v28-proposta.md](v28-proposta.md#índice-da-supressão--justificativa-e-medição) |
 
-### S1 — Borda esquerda: eco em voo antes de `iniciado_em` (D5 revista)
-
-- `executado_em` é o instante **antes** de o eco sair (`IcmpMonitorExecutor.java:38-40`) **[P]**.
-- Cenário: o eco sai em `iniciado_em − ε`, o tráfego do teste começa e a resposta chega inflada.
-  - A medição fica com `executado_em < iniciado_em`, fora da janela, mas está contaminada **[I]**.
-- **Na prática o risco é pequeno [I]:**
-  - entre o commit da linha e o primeiro byte do iperf3 há o tempo de criar o processo e abrir a
-    conexão de controle;
-  - um eco normal, de dezenas de ms, volta antes disso.
-- O risco existe quando o link **já** está lento.
-- **Opções (DECISÃO DO RESPONSÁVEL):**
-  - aceitar;
-  - comparar com `tb.iniciado_em - make_interval(secs => <timeout máximo>)` no predicado;
-  - gravar `janela_inicio` separado.
-- Prova no item (g), passo 6, do laboratório.
-
-### S2 — O predicado compara intervalos, não medições (D5 revista)
-
-- **A decisão diz:** "não abre se **alguma das N medições** caiu dentro da janela".
-- **O predicado pedido testa sobreposição** entre `[mais antiga, mais recente]` e
-  `[iniciado_em, janela_fim]` **[P, texto da D5]**.
-- Ele também segura a abertura quando o teste cabe **entre** duas medições sem que nenhuma caia
-  dentro dele.
-  - Exemplo: monitor de 300 s, teste de ~40 s entre duas medições.
-  - Nesse caso o predicado é **mais conservador** que a frase da decisão **[I]**.
-- **Custo [I]:** atraso de mais uma sequência na abertura de um episódio real. O caso típico é um
-  monitor com intervalo maior que a janela. Não há falso positivo de contaminação.
-- **Forma exata, se a decisão quiser a frase ao pé da letra [I]:**
-  - os N timestamps já estão em memória (`medicoes`, [contexto.md § Item 1](contexto.md#item-1--timestamps-da-sequência-no-ponto-do-insert));
-  - eles podem ser passados como array:
-    ```sql
-    NOT EXISTS (SELECT 1 FROM teste_banda tb, unnest(CAST(:instantes AS timestamptz[])) AS m(t)
-                 WHERE m.t BETWEEN tb.iniciado_em AND tb.janela_fim)
-    ```
-  - Diante de S1, as duas formas se comportam igual: o eco em voo tem `executado_em` antes da
-    janela nas duas.
-  - **Recomendação: manter o predicado por intervalo.** Ele é mais simples, usa um único intervalo de
-    índice e erra só para o lado conservador. A frase da D5 ficaria "a sequência avaliada sobrepõe a
-    janela". **DECISÃO DO RESPONSÁVEL.**
-
-### S3 — Borda direita: teste que passa de `janela_fim` (D5 revista)
-
-- `janela_fim` é gravado **no disparo** como estimativa: `2 × duração + 10 s`.
-- O teste real tem mais etapas:
-  - criação de dois processos;
-  - duas conexões de controle;
-  - a troca de resultados no fim de cada sentido;
-  - eventuais tentativas de conexão.
-- Se o tráfego continuar depois de `janela_fim`, as medições desse trecho **não** são suprimidas
-  **[I]**.
-- **Condição de implementação proposta [I]:** `janela_fim` vira **prazo duro** do executor.
-  - O processo iperf3 é morto (`destroyForcibly`) em `janela_fim − margem de fila`.
-  - O teste é gravado como `FALHA` com o valor parcial.
-  - Isso transforma a estimativa em garantia, sem mudar o modelo.
-- Prova no item (g), passo 6, do laboratório.
-
-### S4 — Índice `(iniciado_em, janela_fim)` percorre o índice inteiro (V28)
-
-- **Medido [P-lab, 2026-11-23]:**
-  - 141 buffers com a ordem pedida, contra 2 com `(janela_fim, iniciado_em)`;
-  - 36.501 linhas, caso comum: nenhum teste sobreposto.
-- A coluna líder `iniciado_em <= :maisRecente` casa com quase todo o histórico.
-- **Recomendação:** `(janela_fim, iniciado_em)`.
-- O SQL da [v28-proposta.md](v28-proposta.md#índice-da-supressão--justificativa-e-sinalização)
-  mantém a ordem pedida até a decisão.
+**Ainda a provar no laboratório:**
+- S1 e S3: item (g), passo 6;
+- margem de fila: item (g), passo 4.
 
 ---
 
@@ -153,7 +123,7 @@ responsável.**
 
 ## Pendências de desenho
 
-- **S1–S4** (acima).
+- **S1–S4:** resolvidas por decisão; S1 e S3 ainda dependem de prova no laboratório (g).
 - **Margem de fila:** 10 s provisórios; o laboratório calibra no item (g), passo 4.
 - **Retransmissões:** decisão condicional D16, que depende do item (e) do laboratório.
 - **`minSchemaVersion` 28:** é proposta. Com ela, o jar da V28 não sobe em banco V27, e o rollback

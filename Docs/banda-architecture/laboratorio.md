@@ -190,8 +190,24 @@ NOT EXISTS (SELECT 1 FROM teste_banda tb
    ao serviço de produção (`winsw.xml.template:12`) **[P]**.
    - **Esperado:** sobe sem WARN nem ERROR, apesar de `unidade.ponta_teste_banda_id`, que ele não
      mapeia. Esse é o caso **não coberto** pelo Ensaio B da V27, que só tinha tabelas novas.
-3. Com o jar antigo, mover de unidade o equipamento que é ponta. Registrar o status HTTP e o código
-   de erro: 409 `DATA_INTEGRITY_VIOLATION` ou 500.
+3. **Mover a ponta de unidade com o jar antigo.** É o caso em que o jar V27 roda sobre o banco V28.
+   - **Preparação:** a unidade U1 tem `ponta_teste_banda_id = E`, marcada pelo jar novo antes do
+     rollback. Existe outra unidade, U2.
+   - **Ação:** com o jar V27 no ar, `PUT /api/v1/equipamentos/{E}` com o corpo completo e
+     `unidadeId = U2`. O jar V27 aceita a troca de unidade (`EquipamentoService.java:99`) **[P]**.
+   - **Esperado no banco:** violação da FK `fk_unidade_ponta_teste_banda`. O `UPDATE` de
+     `equipamento.unidade_id` deixa `(E, U1)` sem correspondente, e a FK é `NO ACTION` **[I]**.
+   - **Registrar o real, não o esperado:**
+     - o **código HTTP** que o jar V27 devolve;
+     - o `code` do `ErroResposta` (`DATA_INTEGRITY_VIOLATION`, `BUSINESS_CONFLICT` ou outro);
+     - a `message` exibida ao usuário;
+     - a linha do log com a exceção e a constraint.
+   - Hipóteses a confirmar ou derrubar **[I]**:
+     - **409** `DATA_INTEGRITY_VIOLATION`, se a violação chegar como `DataIntegrityViolationException`
+       (`TratadorGlobalDeErros.java:86-88`) **[P]**;
+     - **500**, se chegar embrulhada em outra exceção no commit.
+   - **Conferir depois:** E continua em U1 e U1 continua com a ponta. Ou seja, o `UPDATE` voltou
+     inteiro.
 4. Com o jar antigo, excluir uma unidade que tenha histórico de teste e nenhuma outra dependência.
    Esperado: o `CASCADE` apaga o histórico.
 5. Rodar `Test-RollbackCompatibility` sem e com `databaseAheadOfRelease` na prova.

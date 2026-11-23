@@ -39,8 +39,8 @@ Legenda em [banda-architecture.md](banda-architecture.md).
     intervalo, e mais com intervalos longos.
 - **Só se perde** a degradação que cabe inteira em sequências que tocam a janela. Com `ciclos=2` e
   60 s, é algo como 1 a 2 min em torno de um teste de ~40 s, exatamente o que se quer suprimir.
-- **Bordas.** O eco em voo antes de `iniciado_em` e o teste que passa de `janela_fim` estão em
-  [dividas.md](dividas.md#sinalizações-abertas), itens S1 e S3.
+- **Bordas.** O eco em voo antes de `iniciado_em` (coberto pelo `timeout_ms`, S1) e o teste que passaria de `janela_fim` (prazo duro, S3) estão resolvidos em
+  [dividas.md](dividas.md#sinalizações-da-segunda-rodada--resolvidas-em-2026-11-23), itens S1 e S3.
 
 **Conclusão:** D4 se sustenta com a D5 revista. O risco do enunciado ("perder um episódio que
 transita dentro da janela") não existe porque a avaliação não é por borda.

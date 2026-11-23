@@ -7,7 +7,7 @@ quando a implementação for autorizada. Aplica D3, D4, a D5 revista, D8 e D16. 
 > **ROLLBACK:** a V28 **não impede** voltar para o jar anterior. Mas a volta **exige**
 > `databaseAheadOfRelease=true` na prova, e um ponto ainda está sem prova: o jar antigo subir com uma
 > coluna nova numa tabela que ele mapeia. Leia [§ Rollback](#rollback-e-minschemaversion) antes da
-> janela.
+> janela. **E o `Rollback` está sujeito ao portão de espaço livre (~25 GiB): ver [dividas.md](dividas.md#-bloqueio-de-produção--espaço-em-disco).**
 
 ## Pré-condições
 
@@ -107,68 +107,64 @@ CREATE UNIQUE INDEX uq_teste_banda_um_executando ON teste_banda ((true)) WHERE s
 -- Historico por unidade (aba Banda).
 CREATE INDEX ix_teste_banda_unidade ON teste_banda (unidade_id, iniciado_em DESC);
 
--- D5 revista: predicado de sobreposicao de intervalos,
---   iniciado_em <= :medicaoMaisRecente AND janela_fim >= :medicaoMaisAntiga.
--- ATENCAO: ver "Indice da supressao" abaixo -- a ordem pedida (iniciado_em, janela_fim)
--- percorre o indice inteiro no caso comum; a medicao recomenda (janela_fim, iniciado_em).
-CREATE INDEX ix_teste_banda_janela ON teste_banda (iniciado_em, janela_fim);
+-- D5 revista: predicado de sobreposicao de intervalos (borda esquerda estendida pelo timeout, S1),
+--   iniciado_em <= :medicaoMaisRecente + timeout AND janela_fim >= :medicaoMaisAntiga.
+-- janela_fim na frente: e a coluna seletiva (so testes recentes passam); medido abaixo.
+CREATE INDEX ix_teste_banda_janela ON teste_banda (janela_fim, iniciado_em);
 ```
 
-## Diferenças em relação à versão anterior do PR
+## Diferenças em relação à primeira versão do PR
 
 | Antes | Agora | Motivo |
 |---|---|---|
 | `suprimir_ate TIMESTAMPTZ NOT NULL` | `janela_fim TIMESTAMPTZ NOT NULL` | D5 revista: a janela é do teste, não da configuração do motor. |
 | `ck_teste_banda_supressao` (teto de 5 min) | removida | O teto deixou de existir na D5 revista. |
-| — | `ck_teste_banda_janela CHECK (janela_fim > iniciado_em)` | Rede de segurança mínima. Não há teto superior: `duracao_sentido_segundos` já limita a 15 s. |
-| `ix_teste_banda_suprimir_ate (suprimir_ate)` | `ix_teste_banda_janela (iniciado_em, janela_fim)` | Pedido do ajuste. Ver a sinalização logo abaixo. |
+| — | `ck_teste_banda_janela CHECK (janela_fim > iniciado_em)` | Rede de segurança mínima. `duracao_sentido_segundos` já limita a 15 s. |
+| `ix_teste_banda_suprimir_ate (suprimir_ate)` | `ix_teste_banda_janela (janela_fim, iniciado_em)` | S4, decidido em 2026-11-23 com base na medição abaixo. |
 | Retransmissões incondicionais | Condicionais (D16) | — |
 
-## Índice da supressão — justificativa e sinalização
+## Índice da supressão — justificativa e medição
 
 O predicado consulta **sobreposição de intervalos**:
 
 ```
-tb.iniciado_em <= :medicaoMaisRecente  AND  tb.janela_fim >= :medicaoMaisAntiga
+tb.iniciado_em <= :medicaoMaisRecente + timeout  AND  tb.janela_fim >= :medicaoMaisAntiga
 ```
 
-Ele roda **a cada abertura candidata de episódio**, ou seja, a cada medição de um monitor cuja cauda
-inteira esteja acima do limiar. É um caminho quente do motor e precisa ser barato.
+Ele roda **a cada abertura candidata de episódio**: a cada medição de um monitor cuja cauda inteira
+esteja acima do limiar. É um caminho quente do motor e precisa ser barato.
 
-**Justificativa pedida para `(iniciado_em, janela_fim)`.**
-- Em B-tree, só a coluna líder delimita a varredura. A segunda só filtra dentro dela.
-- `iniciado_em <= :medicaoMaisRecente` é verdade para **quase todo o histórico**, porque todo teste
-  passado começou antes de agora.
-- A varredura percorre o índice inteiro e descarta pela segunda coluna. **A justificativa não se
-  sustenta.**
+**Por que `janela_fim` é a coluna líder:**
+- Num índice B-tree, só a coluna líder delimita a faixa varrida. A segunda apenas filtra dentro dela.
+- `janela_fim >= :medicaoMaisAntiga` só é verdadeiro para os testes **recentes**. Já
+  `iniciado_em <= :medicaoMaisRecente + timeout` é verdadeiro para **quase todo o histórico**.
+- A ordem `(iniciado_em, janela_fim)`, a do ajuste anterior, percorria o índice inteiro e descartava
+  pela segunda coluna.
 
-**Medição [P-lab, 2026-11-23, PostgreSQL 16.15 em container descartável, já removido]:**
-- Dados: 36.501 linhas, equivalentes a 10 anos com 10 testes por dia.
-- Caso medido: o mais comum, em que **nenhum teste** sobrepõe a sequência.
+**Medição [P-lab, 2026-11-23]:**
+- Ambiente: PostgreSQL 16.15 em container descartável, já removido.
+- Dados: 36,5 mil linhas (36.501), o equivalente a 10 anos com 10 testes por dia.
+- Caso medido: o mais comum, em que **nenhum teste** sobrepõe a sequência. Consulta medida sem o
+  termo do timeout; o termo não muda a forma do predicado sobre o índice **[I]**.
 
 | Índice | Plano | Buffers | Tempo |
 |---|---|---|---|
 | `(iniciado_em, janela_fim)` | Index Only Scan, `Index Cond` nas duas colunas | **141** (o índice inteiro) | 0,70 ms |
-| `(janela_fim, iniciado_em)` | Index Only Scan | **2** | 0,006 ms |
+| **`(janela_fim, iniciado_em)`** (adotado) | Index Only Scan | **2** | 0,006 ms |
 | nenhum, com 2.000 linhas (volume realista de anos) | Seq Scan | 65 | 0,11 ms |
 
-**O que a medição mostra:**
-- Com a ordem pedida, o custo cresce linearmente com o histórico.
-- Com `janela_fim` na frente, `janela_fim >= :medicaoMaisAntiga` seleciona só os testes recentes, e
-  o custo fica constante.
-- No volume realista, de alguns testes por dia, qualquer opção custa menos de 1 ms. **O problema é de
-  crescimento, não de hoje.**
-
-**Recomendação (DECISÃO DO RESPONSÁVEL, não aplicada):** trocar por
-`CREATE INDEX ix_teste_banda_janela ON teste_banda (janela_fim, iniciado_em);`.
-- O SQL acima mantém a ordem pedida até o responsável decidir.
-- Item S4 em [dividas.md](dividas.md#sinalizações-abertas).
+**Leitura:**
+- Com `janela_fim` na frente, o custo fica constante.
+- Na ordem inversa, o custo cresce linearmente com o histórico.
+- No volume realista, qualquer opção custa menos de 1 ms. O índice protege o **crescimento**.
 
 ## Mudanças que são código, não migration
 
 - **D5 revista:** acrescentar o `AND NOT EXISTS (...)` ao `WHERE` de
-  `MonitorEpisodioLatenciaRepository.inserirSeElegivel` (linhas 34-41) e um parâmetro
-  `:medicaoMaisRecente`.
+  `MonitorEpisodioLatenciaRepository.inserirSeElegivel` (linhas 34-41), mais dois parâmetros:
+  `:medicaoMaisRecente` e `:timeoutMs`.
+  - `:timeoutMs` vem de `monitor.getTimeoutMs()`, um objeto já carregado em `processarAbertura`
+    ([decisoes.md § D5](decisoes.md)) **[P]**.
   - `:iniciadoEm`, que já é passado, **é** a medição mais antiga da sequência
     ([contexto.md § Item 1](contexto.md#item-1--timestamps-da-sequência-no-ponto-do-insert)) **[P]**.
   - **Não tocar** em `IncidenteRepository.inserirSeElegivel` **[P]**.
