@@ -22,31 +22,57 @@ Legenda em [banda-architecture.md](banda-architecture.md).
 - O comentário da própria classe diz "Nao mantem contador" (linhas 32-33) **[P]**.
 - `iniciadoEm` é a medição mais antiga da cauda (linha 113) **[P]**.
 
-**Consequência para a supressão [I]:**
-- Um episódio real **não se perde** por ter começado dentro da janela. Na primeira medição depois
-  de `suprimir_ate`, a cauda é reavaliada do zero. Se a degradação continuar, o episódio abre.
-- O custo é **atraso**: no máximo o tempo até a primeira medição depois da janela, cerca de 1
-  intervalo.
-- **Só se perde** a degradação que começa **e** termina dentro da janela. Para abrir, ela precisaria
-  de `ciclos` medições acima do limiar, e a janela inteira dura no máximo 5 min (D5). Uma degradação
-  tão curta é exatamente o que se quer suprimir.
+**Com a D5 original (`suprimir_ate`), mantido como histórico [I]:**
+- Um episódio real não se perdia, só atrasava.
+- O risco residual era a cauda ainda conter uma medição do teste depois de `suprimir_ate`.
+- A D5 revista elimina esse risco por construção (ver abaixo).
 
-**Risco residual: cauda contaminada depois da janela [I].**
-- Na primeira avaliação depois de `suprimir_ate`, a cauda pode ainda conter a medição feita durante
-  o tráfego.
-- Isso só acontece se, entre o fim do tráfego e essa avaliação, couberem menos de `ciclos − 1`
-  medições.
-- Com o espaçamento real ≈ intervalo + tick de 1 s + RTT (`MonitorExecutionCoordinator.isDue`,
-  `now >= ultima + intervalo` **[E]**), a margem `ciclos × maior intervalo` de D5 garante essas
-  medições.
-- O risco reaparece se o motor atrasar mais de cerca de 1 intervalo entre medições: fila,
-  `LimiteDeEsperaPorLock` ou timeouts longos.
-- **Mitigação:**
-  - o laboratório mede o espaçamento real ([laboratorio.md](laboratorio.md), item g);
-  - se aparecer atraso, a margem vira `(ciclos + 1) × maior intervalo`, sem mudar o modelo.
+**Com a D5 revista, supressão por medição [I]:**
+- **Contaminação.** A sequência avaliada é a mesma que abriria o episódio. Se ela tocou a janela de
+  um teste, o episódio não abre.
+  - Não existe "cauda contaminada depois da janela": enquanto alguma medição da sequência estiver
+    dentro dela, o predicado segura a abertura.
+  - Isso vale para qualquer intervalo de monitor, de 10 a 86400 s.
+- **Episódio real.** Não se perde, só atrasa: a avaliação é por nível, então a primeira sequência
+  inteira fora da janela abre o episódio.
+  - O atraso é de até `ciclos` medições depois de `janela_fim`: cerca de 2 min com 60 s de
+    intervalo, e mais com intervalos longos.
+- **Só se perde** a degradação que cabe inteira em sequências que tocam a janela. Com `ciclos=2` e
+  60 s, é algo como 1 a 2 min em torno de um teste de ~40 s, exatamente o que se quer suprimir.
+- **Bordas.** O eco em voo antes de `iniciado_em` e o teste que passa de `janela_fim` estão em
+  [dividas.md](dividas.md#sinalizações-abertas), itens S1 e S3.
 
-**Conclusão:** D4 se sustenta. O risco descrito no enunciado ("perder um episódio que transita
-dentro da janela") não existe porque a avaliação não é por borda.
+**Conclusão:** D4 se sustenta com a D5 revista. O risco do enunciado ("perder um episódio que
+transita dentro da janela") não existe porque a avaliação não é por borda.
+
+### Item 1 — Timestamps da sequência no ponto do insert
+
+**Os dois timestamps já estão em memória no insert. Não precisa de consulta extra [P]:**
+- `processarAbertura` carrega a sequência em `List<Medicao> medicoes = ultimasMedicoes(monitorId)`.
+  A lista vem em ordem **DESC** de `executadoEm, id` (`LatencyEpisodeProcessor.java:98, 151-153`).
+- `sequenciaCompleta` exige exatamente `ciclos` elementos (linha 156).
+- **Medição mais antiga:** `medicoes.get(medicoes.size() - 1).getExecutadoEm()`.
+  - **Já é calculada** e passada ao insert como `iniciadoEm` (linhas 113-114).
+  - Ou seja, o `:iniciadoEm` do SQL **é** a medição mais antiga.
+- **Medição mais recente:** `medicoes.get(0).getExecutadoEm()`.
+  - É igual a `medicaoPersistida.getExecutadoEm()`, porque `process` já descarta a medição
+    atrasada que não é a última (linhas 69-73).
+- **Mudança necessária:**
+  - um parâmetro novo, `:medicaoMaisRecente`, em `inserirSeElegivel` e na chamada da linha 114;
+  - o `NOT EXISTS` usa `:iniciadoEm` como a medição mais antiga.
+
+**O que `executado_em` representa [P]:**
+- É o instante **antes** de enviar o eco.
+- `IcmpMonitorExecutor.execute` faz `Instant executedAt = clock.instant()` e só depois
+  `commandRunner.run(...)` (`IcmpMonitorExecutor.java:38-40`).
+- A resposta pode chegar até `timeout_ms` depois. Isso importa para a borda esquerda (S1).
+
+### Item 8 — Rollback × `minSchemaVersion`
+
+- Análise completa em [v28-proposta.md § Rollback](v28-proposta.md#rollback-e-minschemaversion),
+  citando `ReleaseTools.psm1:84-125` **[P]**.
+- A V28 não impede o rollback, mas ele exige `databaseAheadOfRelease=true`.
+- Falta provar que o jar antigo tolera a coluna nova em `unidade`.
 
 ### V2 — D4 não toca a inserção de incidente
 
@@ -58,8 +84,8 @@ dentro da janela") não existe porque a avaliação não é por borda.
 - O `IncidentProcessor` e o `LatencyEpisodeProcessor` rodam em transações `REQUIRES_NEW` separadas
   (linhas 28-30 da classe) **[P]**.
 
-**Confirmado:** D4 muda só o SQL da linha 34-41 do repositório de episódio, com um
-`AND NOT EXISTS (...)`.
+**Confirmado:** D4 muda só o SQL das linhas 34-41 do repositório de episódio, com um
+`AND NOT EXISTS (...)`. Com a D5 revista, entra também um parâmetro a mais (Item 1).
 
 **Corrida que a decisão MA01 já apontou [P/I]:**
 - `manutencao-agendada-decisoes.md` (MA01) descartou predicados que dependem "de linhas de outra
@@ -205,7 +231,7 @@ dentro da janela") não existe porque a avaliação não é por borda.
 - **Consequências:**
   - `POST /api/v1/testes-banda` cai na linha 18 e fica **só ADMIN** sem regra nova **[P]**;
   - `PUT` e `DELETE /api/v1/unidades/{id}/ponta-banda` caem nas linhas 15 e 17 e ficam
-    **ADMIN+OPERADOR** **[P]**. Ver dividas.md, item C2;
+    **ADMIN+OPERADOR** **[P]**. Isso é intencional pela D7 detalhada: a ponta é cadastro;
   - o histórico (`GET`) fica visível aos três papéis **[P]**.
 
 ## Segurança em dev

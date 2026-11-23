@@ -63,7 +63,7 @@ supressão (D4/D5) se comportam como o desenho supõe.
    - `MONITORING_ENGINE_ENABLED=true`;
    - `MONITORING_LATENCIA_CICLOS=2` e `MONITORING_LATENCIA_DEGRADADA_MS=250`, iguais aos padrões e
      ainda **a confirmar em produção** (dividas.md);
-   - monitores com intervalo de 60 s, igual a produção **[E]**.
+   - monitores com os intervalos da tabela do item (g): 60 s (igual a produção **[E]**), 20 s e 300 s.
 
 ## Casos a provar
 
@@ -86,8 +86,10 @@ O servidor da unidade é um Windows Server de produção, e o teste não pode de
 - Rodar `iperf3 -c <ip> -t 10 -R --json-stream`.
 - Conferir se `end.sum_sent.retransmits` vem preenchido quando quem envia é o **servidor**.
 - Sob gargalo com perda, o valor tem de ser maior que zero.
-- **Se não vier, `retransmissoes_upload` fica sempre `NULL`.** Registrar o fato, e a V28 mantém a
-  coluna anulável.
+- Repetir sem `-R` e conferir `retransmissoes_download` pelo mesmo caminho.
+- **Decisão condicional D16:** se as retransmissões **não vierem** na build Windows, as duas colunas
+  **saem da V28** e não ficam sempre nulas.
+- **Este item roda antes de a V28 virar arquivo.**
 - **Suspeita [I]:** o Cygwin pode não expor `TCP_INFO`, e então as retransmissões viriam ausentes
   **nos dois sentidos**. É exatamente o que este caso prova ou derruba.
 
@@ -111,34 +113,91 @@ O servidor da unidade é um Windows Server de produção, e o teste não pode de
 - Reiniciar o backend durante um teste: a linha vira `FALHA/INTERROMPIDO_REINICIO` e **nenhum
   processo iperf3 sobra órfão** (`Get-Process iperf3`).
 
-### (g) Supressão segura o episódio e a reversão prova que ele abriria
+### (g) Supressão por medição segura o episódio, e a reversão prova que ele abriria
 
-O teste só tem valor se **as duas metades** passarem com a **mesma** carga.
+Este caso testa o predicado da **D5 revista**:
 
-1. **Linha de base:**
-   - sem teste nenhum, saturar o gargalo por cerca de 2,5 min com um iperf3 manual, fora do backend;
-   - esperado: um episódio de latência abre nos monitores atrás do gargalo;
-   - essa é a prova de que o gargalo e o limiar estão calibrados. **Sem isso, o resto não vale.**
-2. **Com supressão:**
-   - disparar o teste **pelo backend** (`POST /testes-banda`) e, logo em seguida, manter a mesma
-     saturação manual até `suprimir_ate`;
-   - esperado: nenhuma linha nova em `monitor_episodio_latencia` com `iniciado_em` dentro da janela,
-     e nenhuma `notificacao` `LATENCIA_ALTA`;
-   - registrar `suprimir_ate`, as medições (`executado_em`, `latencia_ms`) e o espaçamento real entre
-     elas. Esse espaçamento é a evidência do risco residual de
-     [contexto.md § V1](contexto.md#v1--abertura-de-episódio-é-avaliada-por-nível).
+```sql
+NOT EXISTS (SELECT 1 FROM teste_banda tb
+             WHERE tb.iniciado_em <= :medicaoMaisRecente
+               AND tb.janela_fim  >= :medicaoMaisAntiga)
+```
+
+**Regra de validade:** o teste só vale se **as duas metades** (com e sem o predicado) passarem com a
+**mesma** carga.
+
+**Monitores atrás do gargalo, em duas "unidades" do laboratório:**
+
+| Monitor | Intervalo | Papel no ensaio |
+|---|---|---|
+| A1 | 60 s | Igual a produção **[E]** |
+| A2 | 60 s | Outra unidade; prova o escopo global (D4) |
+| **B** | **20 s** | Intervalo curto: **várias** medições caem dentro da janela, e a sequência inteira pode estar nela |
+| **C** | **300 s** | Intervalo longo: a sequência cobre muito mais tempo que a janela. É o caso que travava a D5 original (C3) |
+
+`MONITORING_LATENCIA_CICLOS=2` e `MONITORING_LATENCIA_DEGRADADA_MS=250`.
+
+**Passos:**
+
+1. **Linha de base, sem teste:**
+   - saturar o gargalo com um iperf3 manual, fora do backend, por tempo suficiente para A1, A2 e B
+     terem 2 medições acima de 250 ms;
+   - esperado: episódio abre em A1, A2 e B.
+   - Isso prova que o gargalo e o limiar estão calibrados. **Sem isso, o resto não vale.**
+2. **Com o predicado, só o teste:**
+   - disparar pelo backend (`POST /testes-banda`), sem carga extra.
+   - **Esperado:**
+     - nenhuma linha nova em `monitor_episodio_latencia` cuja sequência toque `[iniciado_em,
+       janela_fim]`;
+     - nenhuma `notificacao` `LATENCIA_ALTA`, em **nenhum** dos quatro monitores.
+   - **Registrar:**
+     - `iniciado_em`, `janela_fim` e `concluido_em`;
+     - a lista de medições de cada monitor (`executado_em`, `latencia_ms`, `status`);
+     - para cada avaliação de abertura no período, se o predicado segurou ou não.
 3. **Prova de reversão:**
-   - remover o `AND NOT EXISTS (...)` do build do laboratório, ou zerar a supressão;
-   - repetir o passo 2 com a mesma carga;
-   - esperado: **o episódio abre**.
-   - Se não abrir, o passo 2 não provou nada e o ensaio falha.
-4. **Fim da janela:**
-   - manter a saturação além de `suprimir_ate`;
-   - esperado: o episódio abre na primeira medição depois da janela, com `iniciado_em` **depois**
-     do fim do tráfego do teste (V1).
-5. **Incidente intocado:**
+   - build do laboratório **sem** o `AND NOT EXISTS (...)`; mesmo teste, mesma carga;
+   - **esperado:** o episódio **abre** pelo menos em B, cujas duas medições seguidas caem dentro do
+     teste;
+   - **se não abrir, o passo 2 não provou nada e o ensaio falha.**
+   - Repetir até ter uma execução em que, sem o predicado, A1 também abra. Para isso basta a
+     saturação manual cobrir a medição anterior à janela.
+4. **Margem de fila (calibra os 10 s provisórios da D5):**
+   - medir, após o fim do tráfego do iperf3, quanto tempo a latência leva para voltar abaixo de
+     250 ms;
+   - usar B (20 s) e pings manuais de 1 s em paralelo, fora do motor;
+   - **o maior valor observado mais uma folga vira a margem definitiva.**
+5. **Fim da janela, com degradação real que continua:**
+   - manter a saturação manual além de `janela_fim`;
+   - **esperado:** o episódio abre na primeira sequência **inteiramente** depois de `janela_fim`, com
+     `iniciado_em > janela_fim`;
+   - registrar o atraso por monitor: em B, de cerca de 40 s; em A1, de cerca de 2 min; em C, de
+     cerca de 10 min;
+   - **C é a prova de que o intervalo longo não trava mais o botão**: o POST foi aceito e o atraso
+     ficou limitado à própria cauda de C.
+6. **Bordas:**
+   - **S1:** disparar o teste com uma medição de A1 agendada para ~0,5 s antes de `iniciado_em`.
+     Registrar a latência dessa medição e se ela entrou numa sequência que abriu episódio;
+   - **S3:** com o gargalo mais apertado, forçar um teste cujo `concluido_em` passe de `janela_fim`,
+     por exemplo atrasando a conexão do segundo sentido. Registrar o que o executor faz.
+7. **Incidente intocado:**
    - derrubar um alvo ICMP durante a janela;
-   - esperado: o incidente segue o fluxo normal, sem nenhuma supressão (D4).
+   - **esperado:** incidente no fluxo normal (D4).
+
+### (h) Rollback: jar anterior sobre banco na V28
+
+1. Aplicar a V28 no banco do laboratório com o jar novo.
+2. Subir o **jar anterior** (V27) com `--spring.flyway.enabled=false` e `ddl-auto: validate`, igual
+   ao serviço de produção (`winsw.xml.template:12`) **[P]**.
+   - **Esperado:** sobe sem WARN nem ERROR, apesar de `unidade.ponta_teste_banda_id`, que ele não
+     mapeia. Esse é o caso **não coberto** pelo Ensaio B da V27, que só tinha tabelas novas.
+3. Com o jar antigo, mover de unidade o equipamento que é ponta. Registrar o status HTTP e o código
+   de erro: 409 `DATA_INTEGRITY_VIOLATION` ou 500.
+4. Com o jar antigo, excluir uma unidade que tenha histórico de teste e nenhuma outra dependência.
+   Esperado: o `CASCADE` apaga o histórico.
+5. Rodar `Test-RollbackCompatibility` sem e com `databaseAheadOfRelease` na prova.
+   - **Esperado:** recusa e depois aceite, como em
+     `deployment/windows/tests/schema-guard-tests.ps1:58` **[P]**.
+6. Voltar ao jar novo: um `EXECUTANDO` deixado de propósito vira `FALHA/INTERROMPIDO_REINICIO`.
 
 ## Desfazer
 

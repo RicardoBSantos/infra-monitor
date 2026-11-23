@@ -15,23 +15,30 @@ Releases do `esnet/iperf`, consultados na API do GitHub em 2026-11-23 **[P]**:
 | 3.20 | 2025-11-14 | `0711330bacfaf1c2a804be66e7ecc26f481ede5d` |
 | 3.19.1 | 2025-07-25 | — |
 
-**A tag mais recente é a 3.22.1. O piso de D9 (≥ 3.19.1) é insuficiente: o mínimo aceitável é a
-3.22** **[P]**:
+**Decisão (D9, detalhada em 2026-11-23): 3.22.1, tag `3.22.1`, commit
+`acc0ed500fb2c421999948a72bb6a9e05af528d8`** **[P]**.
 
+**Antes de ir para produção, reconferir se há versão mais nova:**
+- consultar `gh api repos/esnet/iperf/releases`;
+- ler a seção "Security notes" de cada release posterior;
+- se houver correção de segurança, subir a tag e o commit, recompilar e registrar o novo SHA-256.
+
+**Por que pelo menos a 3.22 [P]:**
 - A 3.22 corrige um **use-after-free remoto em `iperf_server_api.c`**, no código do **servidor**,
-  que é exatamente o papel da unidade (`RELNOTES.md`, "Security notes" da 3.22) **[P]**.
-- A mesma versão corrige também um DoS por laço infinito (CVE-2026-102253) e um problema nos
-  parâmetros de teste (CVE-2026-71217) **[P]**.
-- **Nenhum dos três está em `iperf_auth.c`.** Compilar sem OpenSSL **não** os elimina.
-- **Errata publicada na 3.22.1:** os identificadores CVE-2026-101283 e CVE-2026-101276 foram trocados
-  nas mensagens dos commits `d58ad3d` e `d08588a` **[P]**. Ao citar um CVE, usar o texto das notas de
-  release, não a mensagem do commit.
-
-**Recomendação [I]:**
-- Fixar **3.22.1**. Funcionalmente ela é igual à 3.22 sem OpenSSL: as mudanças são o build com
-  OpenSSL 1, a errata e o CI do upstream **[P]**.
-- A 3.22.1 tem só 3 dias. Se a regra da casa for não adotar release com menos de 2 semanas, fixar a
-  **3.22** agora e subir depois. **A escolha é do responsável.**
+  que é exatamente o papel da unidade (`RELNOTES.md`, "Security notes" da 3.22).
+- Corrige também um DoS por laço infinito (CVE-2026-102253) e um problema no tratamento dos
+  parâmetros de teste (CVE-2026-71217).
+- **Compilar sem OpenSSL não elimina nenhum desses três.** Eles estão no código do servidor e no
+  tratamento dos parâmetros, que rodam **antes** de qualquer autenticação. "Antes" é dedução **[I]**:
+  nesta build a autenticação RSA nem é compilada.
+- Sem OpenSSL, só sai o código de `iperf_auth.c`, onde estava o heap overflow corrigido na 3.22.
+- **A barreira real é o firewall restrito à D05, o bind em IP específico (`-B`) e a conta de baixo
+  privilégio** (D9).
+- **Errata da 3.22.1:** os identificadores CVE-2026-101283 e CVE-2026-101276 foram trocados nas
+  mensagens dos commits `d58ad3d` e `d08588a`. Ao citar um CVE, usar as notas de release, não a
+  mensagem do commit.
+- A 3.22.1, frente à 3.22, só muda o build com OpenSSL 1, a errata e o CI do upstream. Sem OpenSSL, o
+  binário é funcionalmente igual.
 
 **Como fixar:**
 - O job recebe `IPERF_TAG` e `IPERF_COMMIT` como constantes no workflow, nunca como entrada livre.

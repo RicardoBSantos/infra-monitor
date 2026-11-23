@@ -1,143 +1,193 @@
 # Teste de banda — log de decisões
 
-Todas fechadas pelo responsável em **2026-11-23**. Estado: **decididas, não implementadas.**
-Cada entrada traz o que foi decidido, por quê, e o que foi descartado quando houve alternativa.
-As marcas de origem seguem a legenda de [banda-architecture.md](banda-architecture.md).
+Todas foram fechadas pelo responsável em **2026-11-23**. Estado: **decididas, não implementadas.**
 
-Quando a verificação no código contraria uma decisão, isso está em
-[dividas.md § Contradições](dividas.md#contradições-entre-a-verificação-e-as-decisões). Nenhuma
-decisão foi alterada neste documento por causa disso.
+- Cada entrada diz o que foi decidido, por quê, e o que foi descartado.
+- Uma decisão revista mantém o texto antigo ~~riscado~~, com o motivo da revisão.
+- As marcas de origem seguem a legenda de [banda-architecture.md](banda-architecture.md).
+
+**Revisão de 2026-11-23 (ajuste do PR #48):**
+- D4 e D5 mudaram de predicado. Ver C3 em [dividas.md](dividas.md).
+- D7, D9 e D14 foram detalhadas.
+- D15 e D16 são novas.
+
+Quando a verificação no código contraria uma decisão, o ponto fica em
+[dividas.md § Sinalizações](dividas.md#sinalizações-abertas). Nenhuma decisão foi alterada sem o
+responsável.
 
 ---
 
 ## D1 — Link medido: unidade↔sede
 
-O teste mede o link MPLS/WAN entre a sede e a unidade. A **SED-TI-D05** é o cliente iperf3. Em cada
-unidade, **um Windows Server** é o servidor iperf3. Ele é marcado explicitamente como ponta (D3) e
-não é necessariamente o AD.
+O teste mede o link MPLS/WAN entre a sede e uma unidade.
+
+- **Cliente iperf3:** a **SED-TI-D05**.
+- **Servidor iperf3:** **um Windows Server** em cada unidade, marcado explicitamente como ponta
+  (D3). Não é necessariamente o AD.
 
 **Motivo:**
-- A D05 já é o ponto de onde o motor ICMP mede tudo **[E]**, então o teste reflete o mesmo caminho
+- A D05 já é o ponto de onde o motor ICMP mede tudo **[E]**. Assim o teste reflete o mesmo caminho
   que gera os alertas **[I]**.
-- O cadastro não tem como identificar o servidor da unidade. O tipo "Servidor" agrupa de 1 a 4
-  equipamentos por unidade no dev, e na carga há um firewall cadastrado com esse tipo **[P-lab]**.
-  Por isso a ponta é escolhida à mão (D3) **[I]**.
+- O cadastro não identifica o servidor da unidade:
+  - no dev, o tipo "Servidor" agrupa de 1 a 4 equipamentos por unidade **[P-lab]**;
+  - na carga, há um firewall cadastrado com esse tipo **[P-lab]**.
 
 ## D2 — Disparo somente manual; um clique = download + upload
 
-- Só pelo botão "Testar". Não há agendamento nem disparo automático.
-- Um clique faz dois sentidos, em sequência:
-  - **download** = sede→unidade, modo normal do iperf3 (a D05 envia);
-  - **upload** = unidade→sede, com `-R` (o servidor da unidade envia).
-- O valor de cada sentido é lido **do lado receptor** (`end.sum_received`).
-- Sem ping dentro do teste.
+- O teste só dispara pelo botão "Testar".
+- Um clique roda os dois sentidos, em sequência:
+  - **download**: sede→unidade, no modo normal do iperf3 (a D05 envia);
+  - **upload**: unidade→sede, com `-R` (o servidor da unidade envia).
+- O valor de cada sentido é lido **no lado receptor** (`end.sum_received`).
+- Não há ping dentro do teste.
 
 **Motivo:**
 - Um teste automático saturaria a WAN sem ninguém olhando **[I]**.
 - O lado receptor mede o que de fato atravessou o link. O lado emissor conta o que entrou no buffer
-  local, o que superestima em links com perda **[I]**.
-- A latência já é medida pelo motor ICMP. Um ping dentro do teste duplicaria a medição e geraria
-  tráfego extra **[I]**.
+  local **[I]**.
+- A latência já é medida pelo motor ICMP **[I]**.
 
 ## D3 — Ponta do teste é referência em `unidade`
 
-- Coluna `unidade.ponta_teste_banda_id`.
-- FK composta `(ponta_teste_banda_id, id) → equipamento(id, unidade_id)`, com
-  `ON DELETE SET NULL (ponta_teste_banda_id)`. Essa sintaxe com lista de colunas exige PostgreSQL 15
-  ou superior. Produção roda 16.15 **[E, `D02.10-B-infraestrutura-windows.md:87`]**.
-- Endpoints próprios: `PUT /api/v1/unidades/{id}/ponta-banda {equipamentoId}` e
-  `DELETE /api/v1/unidades/{id}/ponta-banda`.
+- **Coluna:** `unidade.ponta_teste_banda_id`.
+- **FK composta:** `(ponta_teste_banda_id, id) → equipamento(id, unidade_id)`, com
+  `ON DELETE SET NULL (ponta_teste_banda_id)`.
+  - Essa sintaxe exige PostgreSQL 15 ou superior. Produção roda 16.15
+    **[E, `D02.10-B-infraestrutura-windows.md:87`]**.
+- **Endpoints próprios:**
+  - `PUT /api/v1/unidades/{id}/ponta-banda {equipamentoId}`;
+  - `DELETE /api/v1/unidades/{id}/ponta-banda`.
 - O `PUT /unidades/{id}` **nunca** toca a ponta.
 - Mover o equipamento-ponta para outra unidade é recusado com **409** e mensagem clara.
 
 **Motivo:**
-- A FK composta garante no próprio banco que a ponta pertence à unidade. Uma coluna só já impõe
-  "uma ponta por unidade" sem índice extra **[I]**.
-- A V18 já recusou um booleano "principal" e adotou uma FK para o hub **[P]**.
-- O endpoint próprio segue o molde do endpoint de conexão da unidade **[E]**. Ele também evita a
-  dívida "PUT não distingue ausente de limpar" **[E, memória]**.
-- Ao mover o equipamento, o update de `equipamento.unidade_id` viola a FK, que é `NO ACTION` por
-  omissão. O serviço traduz o erro em 409 **[I]**.
-- `SET NULL` só na coluna da ponta. Sem a lista de colunas, o `SET NULL` tentaria anular também
-  `unidade.id` **[I]**.
+- A FK composta garante, no banco, que a ponta pertence à própria unidade.
+- Uma coluna só já impõe uma ponta por unidade **[I]**.
+- Há precedente: a V18 também usou uma FK em vez de booleano **[P]**.
+- O endpoint próprio evita a dívida "PUT não distingue ausente de limpar" **[E, memória]**.
+- Mover o equipamento viola a FK, que é `NO ACTION` por omissão, e o serviço traduz o erro em 409
+  **[I]**.
 
 **Descartado:**
-- **Flag no equipamento:** exigiria índice parcial e acompanharia o equipamento se ele mudasse de
-  unidade. Hoje `UpdateEquipamentoRequest` permite trocar `unidadeId` **[E, investigação]**.
-- **Escolha automática pelo tipo "Servidor":** ver D1.
+- **Flag no equipamento:** exige índice parcial e acompanharia o equipamento quando ele trocasse de
+  unidade **[E]**.
+- **Escolha automática pelo tipo do equipamento:** ver D1.
 
 ## D4 — Supressão só da abertura de episódio de latência, escopo global
 
-- Durante o teste, **só a abertura de episódio de latência** é suprimida.
+Durante o teste, **só a abertura de episódio de latência** é suprimida.
+
 - A abertura de incidente **não muda**.
-- O predicado é de tempo: `EXISTS (SELECT 1 FROM teste_banda WHERE now() < suprimir_ate)`.
-- Não há estado a desfazer, nem Telegram. Ping e SLA ficam intactos.
-- **Escopo GLOBAL (todas as unidades) — DECISÃO ASSUMIDA.** Não foi provada em laboratório. A
-  alternativa, só a unidade testada, foi deixada de lado conscientemente.
+- Não há estado a desfazer nem mensagem de Telegram.
+- Ping e SLA ficam intactos.
+- **Escopo GLOBAL, todas as unidades.** É uma **DECISÃO ASSUMIDA** e não foi provada.
+  - A alternativa, suprimir só a unidade testada, foi deixada de lado conscientemente.
+- O predicado ficou definido na D5 revista.
+  - ~~Predicado de tempo: `EXISTS (SELECT 1 FROM teste_banda WHERE now() < suprimir_ate)`.~~
+  - Esse predicado foi substituído em 2026-11-23 pelo predicado por medição da D5 revista.
 
 **Motivo:**
-- A D05 está na sede. Saturar o uplink da sede pode elevar a latência medida de **todas** as
-  unidades, e não só da unidade testada **[I]**. A prova está no [laboratório](laboratorio.md).
-- O predicado de tempo expira sozinho, inclusive com o serviço fora do ar. Passado `suprimir_ate`,
-  ele deixa de valer sem que ninguém precise agir **[I]**.
-- Incidente exige `falhas_para_incidente` falhas seguidas (10 em produção **[E]**). Um teste de até
-  30 s não chega lá, então não há o que suprimir **[I]**.
-- Os efeitos colaterais da manutenção não servem aqui: ela para o ping, fecha o SLA e envia Telegram
+- A D05 está na sede. Saturar o uplink da sede pode elevar a latência de **todas** as unidades **[I]**.
+- Incidente exige `falhas_para_incidente` falhas seguidas, 10 em produção **[E]**. Um teste de cerca
+  de 40 s não chega lá **[I]**.
+- A manutenção não serve: ela para o ping, fecha o SLA e manda Telegram
   **[P, contexto.md § Manutenção]**.
 
 **Descartado:**
 - **Reusar a manutenção agendada:** ver contexto.md.
-- **Flag booleana ligada e desligada:** se o serviço caísse no meio, o flag ficaria ligado **[I]**.
+- **Flag booleana ligada e desligada:** ficaria ligada se o serviço caísse no meio do teste **[I]**.
 
-**Condição de implementação [I]:** a linha `teste_banda` tem de estar **commitada antes** de o
-iperf3 começar. Ver [contexto.md § V2](contexto.md#v2--d4-não-toca-a-inserção-de-incidente).
+**Condição de implementação: a linha é commitada antes do iperf3 (C4, item 6 do ajuste)**
+- A linha `teste_banda` precisa estar **commitada antes** de o processo iperf3 iniciar.
+- Um teste de integração tem de **provar a ordem**: o runner falso registra o instante em que foi
+  chamado, e o teste confere que, nesse instante, outra conexão já enxerga a linha.
+- Motivo: a corrida contra outra tabela que o `FOR UPDATE OF e` não trava é benigna só nessa
+  ordem. Ver [contexto.md § V2](contexto.md#v2--d4-não-toca-a-inserção-de-incidente).
 
-## D5 — Cálculo de `suprimir_ate` e teto de 5 min
+## D5 — Janela do teste e supressão por medição (REVISTA em 2026-11-23)
 
-```
-suprimir_ate = início
-             + duração total (soma dos dois sentidos)
-             + monitoring.latencia-ciclos × max(monitor.intervalo_segundos dos monitores ativos)
-```
+**Texto original, substituído:**
 
-- Os fatores vêm da configuração e do banco no momento do POST. Nunca `2` fixo.
-- Se `suprimir_ate − início` passar de **5 min**, o POST é recusado com **409**.
+> ~~`suprimir_ate = início + duração total + latencia-ciclos × max(monitor.intervalo_segundos dos
+> monitores ativos)`, lidos da configuração (nunca "2" fixo). Se passar de 5 min → POST recusado com
+> 409.~~
+
+**Motivo da revisão: C3.**
+- `intervalo_segundos` é coluna **por monitor**, com `CHECK BETWEEN 10 AND 86400` (V5) **[P]**.
+- Bastava um monitor ativo acima de cerca de 135 s para que todo POST recebesse 409, para sempre.
+- A janela dependia de configuração de terceiros e não do próprio teste.
+
+**Decisão vigente:**
+
+1. **A supressão é POR MEDIÇÃO.** O episódio não abre se alguma das N medições da sequência
+   avaliada caiu dentro da janela de um teste. Predicado acrescentado em
+   `MonitorEpisodioLatenciaRepository.inserirSeElegivel`:
+   ```sql
+   AND NOT EXISTS (SELECT 1 FROM teste_banda tb
+                    WHERE tb.iniciado_em <= :medicaoMaisRecente
+                      AND tb.janela_fim  >= :medicaoMaisAntigaDaSequencia)
+   ```
+2. **A janela é gravada no disparo:**
+   ```
+   janela_fim = iniciado_em + 2 × duracao_sentido_segundos + margem de fila
+   ```
+   - A margem de fila vale **10 s, de forma provisória**. O valor definitivo sai do
+     [laboratório](laboratorio.md).
+   - A janela expira por tempo, mesmo que o teste fique órfão.
+3. **Removidos:** o 409 por teto, o teto de 5 min e toda dependência de `latencia-ciclos` e de
+   intervalo na supressão.
 
 **Motivo:**
-- Depois do fim do tráfego, uma medição contaminada pelo teste ainda pode estar na cauda de
-  `latencia-ciclos` medições que o processador avalia. A margem `ciclos × maior intervalo` cobre essa
-  cauda **[I]**. A dedução está em [contexto.md § V1](contexto.md#v1--abertura-de-episódio-é-avaliada-por-nível).
-- O teto de 5 min impede uma supressão global longa demais **[I]**.
+- A janela passa a depender só do próprio teste.
+- A sequência avaliada é a mesma que abriria o episódio. Se ela tocou o teste, o episódio não abre.
+  Assim que a sequência inteira estiver fora da janela, a avaliação por nível (V1) abre o episódio
+  real, sem margem calculada.
+- Os dois timestamps já estão disponíveis no ponto do insert, sem consulta extra
+  ([contexto.md § Item 1](contexto.md#item-1--timestamps-da-sequência-no-ponto-do-insert)) **[P]**.
 
-**Atenção:** `intervalo_segundos` é coluna por monitor (`CHECK BETWEEN 10 AND 86400`, V5) **[P]**,
-não configuração. Ver [dividas.md](dividas.md#contradições-entre-a-verificação-e-as-decisões),
-item C3.
+**Sinalizações abertas:** S1, S2, S3 e S4 em [dividas.md](dividas.md#sinalizações-abertas):
+- borda esquerda e eco em voo;
+- predicado por intervalo de tempo × "alguma medição";
+- teste que passa de `janela_fim`;
+- ordem das colunas do índice.
 
-## D6 — Relatórios não excluem medições do teste neste ciclo
+## D6 — Relatórios não excluem as medições do teste neste ciclo
 
 - As medições ICMP tomadas durante o teste **continuam** no relatório de latência, no PDF e na
   exportação.
 - A exclusão fica para o **agregado por hora (D-07)** e será aplicada na construção do agregado.
 
-**Impacto registrado:**
-- Cada teste contamina **no máximo 1 amostra por monitor**: o tráfego dura até 30 s e o intervalo é
-  de 60 s **[I]**.
-- O relatório de 30 dias filtra só `status='SUCESSO' AND latencia_ms IS NOT NULL` + período + tipo
-  ICMP (`RelatorioService.java:80`) **[P]**.
+**Impacto:**
+- No máximo 1 amostra por monitor por teste. A janela de cerca de 40 s é menor que o intervalo de
+  60 s **[I]**.
+- O filtro atual é `status='SUCESSO' AND latencia_ms IS NOT NULL`, mais período e tipo
+  (`RelatorioService.java:80`) **[P]**.
+- Com a D5 revista, a exclusão na D-07 usa o mesmo par (`iniciado_em`, `janela_fim`) **[I]**.
 
-**Motivo:** fazer um anti-join contra `teste_banda` na consulta atual pesaria numa consulta já
-sensível a desempenho **[E, memórias de latência]**. A D-07 vai reconstruir essa consulta de
-qualquer forma **[E]**.
+**Motivo:** um anti-join pesaria numa consulta já sensível a desempenho
+**[E, memórias de latência]**.
 
-## D7 — Somente ADMIN
+## D7 — Perfis (DETALHADA em 2026-11-23)
 
-**Motivo:** o teste satura a WAN de produção. Hoje a única ação comparável restrita ao ADMIN é o
-teste de envio do Telegram, que cai na regra geral `/api/**` **[P, `SecurityConfiguration.java:18`]**.
+| Ação | Rota | Perfis | Regra que se aplica |
+|---|---|---|---|
+| Marcar a ponta | `PUT /api/v1/unidades/{id}/ponta-banda` | ADMIN e OPERADOR | Regra atual de `/unidades/**` (`SecurityConfiguration.java:15`) **[P]** |
+| Limpar a ponta | `DELETE /api/v1/unidades/{id}/ponta-banda` | ADMIN e OPERADOR | Regra atual de `/unidades/**` (`SecurityConfiguration.java:17`) **[P]** |
+| **Disparar o teste** | `POST /api/v1/testes-banda` | **somente ADMIN** | Regra geral `/api/**` (`SecurityConfiguration.java:18`) **[P]** |
+| Consultar teste e histórico | `GET /api/v1/testes-banda/**` | ADMIN, OPERADOR e VISUALIZADOR | `SecurityConfiguration.java:13` **[P]** |
 
-**Atenção:** os endpoints de ponta de D3 ficam sob `/api/v1/unidades/**`, que hoje é
-ADMIN+OPERADOR. Ver dividas.md, item C2.
+**Marcar ou limpar a ponta é cadastro.** Disparar o teste satura a WAN de produção.
 
-## D8 — O que acontece com o histórico quando cadastros são excluídos
+**ARMADILHA.**
+- Um `POST /api/v1/unidades/{id}/...` (por exemplo `/unidades/{id}/teste-banda`) **herdaria
+  ADMIN+OPERADOR** pela linha 14 da `SecurityConfiguration` **[P]**.
+- Por isso a rota de disparo fica **fora de `/unidades/**`**.
+
+**Exigência de implementação:** um teste que prove que **OPERADOR recebe 403** no
+`POST /api/v1/testes-banda`, e que ADMIN não recebe. Sem esse teste, uma troca de rota passa
+despercebida.
+
+## D8 — O que acontece com o histórico quando um cadastro é excluído
 
 - **Excluir a unidade apaga o histórico:** `teste_banda.unidade_id ... ON DELETE CASCADE`.
 - **Excluir o equipamento preserva o histórico:**
@@ -145,104 +195,128 @@ ADMIN+OPERADOR. Ver dividas.md, item C2.
   - `equipamento_nome` e `ip_alvo` ficam gravados como retrato do momento do teste.
 
 **Motivo:**
-- Sem a unidade, o histórico não tem contexto para ser exibido **[I]**.
-- A ponta de uma unidade pode ser trocada, e o teste antigo continua valendo para o link **[I]**.
+- Sem a unidade, o histórico perde contexto **[I]**.
+- A ponta pode ser trocada, e o teste antigo continua valendo para o link **[I]**.
 
-**Nota [I]:** na prática, a exclusão da unidade continua barrada pelas outras dependências, como
-equipamentos e `manutencao_agendada`, que são `RESTRICT` **[P, V21]**. O CASCADE só age quando
-nada mais segura a unidade.
+**Nota [I]:** a exclusão da unidade continua barrada por outras dependências `RESTRICT`, como a
+`manutencao_agendada` (V21) **[P]**.
 
-## D9 — Binário compilado no nosso CI, sem OpenSSL
+## D9 — Binário compilado no nosso CI (DETALHADA em 2026-11-23)
 
-- Compilado a partir do fonte oficial (`esnet/iperf`), com tag fixa e commit fixo.
-- `--without-openssl`.
-- SHA-256 do artefato registrado.
-- Proteção de acesso:
-  - firewall de entrada no servidor da unidade, aceitando só o IP da D05;
-  - lista de alvos permitidos no backend (D13).
+**Versão:** iperf3 **3.22.1**, com tag e commit fixos (`acc0ed500fb2c421999948a72bb6a9e05af528d8`)
+**[P, API do GitHub]**.
+- ~~Tag ≥ 3.19.1~~. Foi substituída por causa da C1.
+- **Antes de ir para produção, reconferir se há versão mais nova** em `esnet/iperf/releases` e ler as
+  notas de segurança.
+
+**Build:** sem OpenSSL (`--without-openssl`). O SHA-256 do artefato é registrado.
+
+**Correção do texto original:**
+- ~~Sem OpenSSL (remove `iperf_auth.c`, onde estavam os CVEs).~~
+- **Compilar sem OpenSSL NÃO elimina os CVEs de 2026.** Eles estão:
+  - no código do **servidor**: use-after-free remoto em `iperf_server_api.c`;
+  - no tratamento de parâmetros do teste (CVE-2026-71217) e num laço infinito (CVE-2026-102253).
+- Esse código roda **antes de qualquer autenticação** **[P, notas da 3.22]**. A localização "antes
+  da autenticação" é dedução: a autenticação RSA nem é compilada nesta build **[I]**.
+- O que tirar o OpenSSL elimina de fato:
+  - o código de autenticação, cujo corpo está sob `#if defined(HAVE_SSL)` **[P]**;
+  - a dependência de uma biblioteca a mais.
+
+**A barreira real é a combinação de três coisas:**
+1. **Firewall de entrada** no servidor da unidade, restrito ao IP da D05 e ao programa `iperf3.exe`.
+2. **Bind em IP específico** (`-B <ip-do-servidor>`), em vez de todas as interfaces.
+3. **Conta de baixo privilégio** para o serviço iperf3: local, sem login interativo, não
+   administradora.
+
+Do lado do backend, entra ainda a lista de alvos permitidos (D13).
 
 **Motivo:**
-- O projeto oficial não publica build para Windows. Windows nem está entre as plataformas suportadas
-  (`README.md:29-32`) **[P]**.
-- Binário de terceiros sem procedência verificável não entra em servidor de produção **[I]**.
-- Sem OpenSSL, todo o código de autenticação RSA fica fora da compilação: o corpo de `iperf_auth.c`
-  está sob `#if defined(HAVE_SSL)` **[P]**.
-
-**Atenção:** a premissa de que "os CVEs estavam em iperf_auth.c" é só **parcialmente** verdadeira,
-e a versão mínima precisa subir para **3.22**. Ver dividas.md, item C1, e
-[build-iperf3.md](build-iperf3.md).
+- O upstream não publica build para Windows, e Windows não é plataforma suportada (`README.md:29-32`)
+  **[P]**.
+- Binário sem procedência verificável não entra em servidor de produção **[I]**.
 
 ## D10 — Tempo real por polling de 1 s
 
-- O front chama `GET /api/v1/testes-banda/{id}?desde=<seq>` a cada 1 s.
-- Durante a execução, as amostras ficam **em memória**.
-- No fim do teste, são gravadas em `teste_banda.amostras` (JSONB).
+- O front consulta `GET /api/v1/testes-banda/{id}?desde=<seq>`.
+- As amostras ficam em memória durante a execução e são gravadas em `amostras` (JSONB) ao final.
 
-**Motivo:**
-- SSE atrás do IIS/ARR exigiria mexer em buffering e compressão no servidor, numa configuração que
-  não está versionada **[P/E, contexto.md § IIS]**.
-- O polling usa o caminho HTTP já homologado **[I]**.
-- Se o serviço reiniciar, as amostras em memória se perdem. Isso já é coberto por D14
-  (`INTERROMPIDO_REINICIO`) **[I]**.
+**Motivo:** SSE atrás do IIS/ARR exigiria mexer em configuração não versionada do servidor
+**[P/E]**. O polling usa o caminho HTTP já homologado **[I]**.
 
-**Descartado:** SSE e WebSocket.
+## D11 — Status
 
-## D11 — Status: SUCESSO, FALHA e nova chave EXECUTANDO
+- `SUCESSO` e `FALHA` são reaproveitados **[P]**.
+- Entra uma chave nova, `EXECUTANDO`: rótulo "Em execução", tom `info`.
 
-- `SUCESSO` e `FALHA` já existem no `StatusBadgeComponent` **[P]**.
-- Entra uma chave nova: `EXECUTANDO`, rótulo "Em execução", tom `info`.
-
-**Motivo:** nenhuma chave existente tem o sentido certo. `ENVIANDO` é "Em envio" e `ATIVA` é
-"Ativa" **[P]**.
+**Motivo:** nenhuma chave existente tem esse sentido **[P]**.
 
 ## D12 — Velocímetro
 
-- Escala configurável: `BANDA_ESCALA_MAX_MBPS=1000`.
+- Escala máxima configurável: `BANDA_ESCALA_MAX_MBPS=1000`.
 - Escala não linear.
-- Desenhado em SVG próprio.
+- SVG próprio.
 - Sem "% do contratado".
 
 **Motivo:**
-- O projeto não usa biblioteca de gráfico: o drawer de equipamento já desenha em SVG próprio
-  **[E, investigação]**.
-- Banda contratada não está no cadastro, e mostrar um percentual sem esse dado induziria a erro
-  **[I]**.
+- O projeto não usa biblioteca de gráfico **[E]**.
+- A banda contratada não está no cadastro **[I]**.
 
 ## D13 — Proteção em dev e configuração
 
 | Variável | Padrão | Comportamento |
 |---|---|---|
 | `BANDA_TESTE_ENABLED` | `false` | Desligada, o POST responde 409. Coberta pelo `ConfiguracaoPadraoDesligadaTest`. |
-| `BANDA_TESTE_ALVOS_PERMITIDOS` | vazia | CIDR. Vazia recusa tudo. |
+| `BANDA_TESTE_ALVOS_PERMITIDOS` | vazia | Lista em CIDR. Vazia, recusa todos os alvos. |
 | `BANDA_TESTE_EXECUTAVEL` | — | Caminho absoluto. Validado no boot **só com a flag ligada**. |
 
-- Nos testes automatizados, o runner é falso.
-- O ensaio real usa a tag `banda-lab`, fora da suíte padrão, no mesmo idioma de `rede-real`.
+- Os testes automatizados usam um runner falso.
+- O teste contra iperf3 real recebe a tag `banda-lab`.
 
 **Motivo:**
-- O padrão "desligado sem variável" é obrigatório no projeto (CLAUDE.md) **[P]**.
-- Os IPs do dev e da carga colidem com a rede real: 10.79.10.6 é o AD real **[P-lab + E]**.
-- O serviço roda sob WinSW sem `PATH` próprio, então o executável precisa de caminho absoluto
-  **[P, `winsw.xml.template`]**.
+- O padrão do projeto é desligado sem variável **[P]**.
+- Os IPs do dev colidem com a rede real **[P-lab + E]**.
+- O WinSW não define `PATH` **[P]**.
 
-## D14 — Limites de execução e recuperação
+## D14 — Limites de execução e recuperação (cooldown DETALHADO em 2026-11-23)
 
+**Limites:**
 - `-t` de no máximo **15 s por sentido**.
-- **Cooldown global** de no mínimo **120 s**.
-- **Um teste por vez** no sistema inteiro.
+- **Um teste por vez** no sistema.
 - `destroyForcibly` no shutdown.
-- **Limpeza de órfão no BOOT:** `EXECUTANDO` → `FALHA`, com `erro = INTERROMPIDO_REINICIO`.
-- **Limpeza de órfão também no POST:** `UPDATE` condicional de `EXECUTANDO` mais antigo que a
-  duração máxima + margem.
-- **Nunca** reexecutar automaticamente.
+
+**Limpeza de órfão:**
+- **No boot:** todo `EXECUTANDO` vira `FALHA` com `erro = INTERROMPIDO_REINICIO`.
+- **No POST:** `UPDATE` condicional sobre `EXECUTANDO` mais antigo que a duração máxima + margem.
+- O teste **nunca** é reexecutado automaticamente.
+
+**Cooldown global de 120 s.**
+- Desde a D5 revista, o cooldown **não tem papel na supressão**. Ele existe só **por cortesia com o
+  link**.
+- A contagem parte de `concluido_em` do teste anterior.
+- Se o teste anterior for órfão (sem `concluido_em`), a contagem parte de `janela_fim`.
+- ~~Cooldown global ≥ 120 s~~: o mínimo vira um valor fixo de 120 s e a referência fica explícita.
 
 **Motivo:**
-- A D05 é o único cliente. Dois testes simultâneos se distorcem **[I]**.
-- O índice único parcial de "um `EXECUTANDO`" travaria o sistema para sempre se um órfão
-  sobrevivesse **[I]**.
-- A limpeza no POST cobre o órfão que não passou por um reboot: thread morta, exceção não tratada
-  **[I]**.
+- A D05 é o único cliente **[I]**.
+- Sem limpeza, o índice único de um `EXECUTANDO` travaria o sistema **[I]**.
 - Parar o serviço não mata o processo filho **[E, memória]**.
 
-**Pendente:** de quando conta o cooldown, do início ou de `concluido_em` do teste anterior. Ver
-dividas.md.
+## D15 — Ponta desativada (NOVA em 2026-11-23)
+
+- Se a ponta da unidade estiver com `ativo = false`, o POST é recusado com **409 "ponta inativa"**.
+- **A referência é mantida.** Reativar o equipamento basta para voltar a testar.
+
+**Motivo:**
+- Desativar o equipamento (`EquipamentoService.desativar`) não dispara a FK **[P]**.
+- Limpar a referência automaticamente apagaria uma escolha de cadastro sem ninguém pedir **[I]**.
+
+## D16 — Retransmissões: decisão condicional (NOVA em 2026-11-23)
+
+- **Se** o [laboratório](laboratorio.md), no item (e), provar que as retransmissões **não vêm** na
+  build Windows (Cygwin), as colunas `retransmissoes_download` e `retransmissoes_upload` **saem da
+  V28**. Elas não ficam sempre nulas.
+- **Se vierem**, ficam como estão em [v28-proposta.md](v28-proposta.md).
+
+**Motivo:** uma coluna sempre nula engana quem lê o histórico e o contrato da API **[I]**.
+
+**Ordem obrigatória:** o item (e) do laboratório roda **antes** de a V28 virar arquivo.

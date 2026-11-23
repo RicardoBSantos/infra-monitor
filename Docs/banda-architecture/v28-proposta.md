@@ -1,29 +1,32 @@
 # V28 — proposta em texto
 
-**Isto não é um arquivo de migration.** É o texto revisado que vai virar
-`V28__create_teste_banda.sql` quando a implementação for autorizada. Aplica D3, D4, D5 e D8, mais
-os ajustes pedidos na consolidação. Legenda em [banda-architecture.md](banda-architecture.md).
+**Isto não é um arquivo de migration.** É o texto que vai virar `V28__create_teste_banda.sql`
+quando a implementação for autorizada. Aplica D3, D4, a D5 revista, D8 e D16. Legenda em
+[banda-architecture.md](banda-architecture.md).
+
+> **ROLLBACK:** a V28 **não impede** voltar para o jar anterior. Mas a volta **exige**
+> `databaseAheadOfRelease=true` na prova, e um ponto ainda está sem prova: o jar antigo subir com uma
+> coluna nova numa tabela que ele mapeia. Leia [§ Rollback](#rollback-e-minschemaversion) antes da
+> janela.
 
 ## Pré-condições
 
-- **Nenhum branch** tinha V28 na investigação **[E, investigação 2026-11-23]**. Antes de criar o
-  arquivo, reconferir em `origin/main` e nos branches abertos **[I]**.
-- Última migration em `origin/main`: `V27__create_configuracao_modo_tv.sql` **[P]**.
-- PostgreSQL ≥ 15, por causa de `ON DELETE SET NULL (coluna)`. Produção roda 16.15 **[E]**, e os
-  testes usam Testcontainers 16 **[E]**.
-- **`duracao_sentido_segundos` é POR SENTIDO** (o `-t` do iperf3). A duração total é o dobro. O nome
-  da coluna deixa isso explícito para não haver dúvida na leitura **[I]**.
+- Nenhum branch tinha V28 na investigação **[E]**. Reconferir antes de criar o arquivo **[I]**.
+- A última migration em `origin/main` é `V27__create_configuracao_modo_tv.sql` **[P]**.
+- O PostgreSQL precisa ser ≥ 15, por causa de `ON DELETE SET NULL (coluna)`.
+  - Produção roda 16.15 **[E]**.
+  - O ensaio do índice rodou em 16.15 **[P-lab, 2026-11-23]**.
+- `duracao_sentido_segundos` é **por sentido**, o `-t` do iperf3. O total é o dobro.
+- **O item (e) do laboratório roda antes** de a V28 virar arquivo, porque decide se as colunas de
+  retransmissão existem (D16).
 
 ## SQL proposto
 
 ```sql
 -- V28 - Teste de banda manual unidade<->sede (iperf3).
--- Desenho: Docs/banda-architecture/ (D1-D14, 2026-11-23).
+-- Desenho: Docs/banda-architecture/ (D1-D16, 2026-11-23).
 
 -- D3: ponta do teste e referencia em unidade, no idioma da V18 (FK, nao booleano).
--- A FK composta garante no banco que a ponta pertence a propria unidade; uma coluna
--- = uma ponta por unidade, sem indice extra. Mover a ponta para outra unidade viola
--- a FK (NO ACTION) e o servico traduz em 409.
 ALTER TABLE equipamento ADD CONSTRAINT uq_equipamento_id_unidade UNIQUE (id, unidade_id);
 
 ALTER TABLE unidade ADD COLUMN ponta_teste_banda_id BIGINT;
@@ -41,15 +44,18 @@ CREATE TABLE teste_banda (
     equipamento_nome VARCHAR(150) NOT NULL,          -- retrato no disparo
     ip_alvo VARCHAR(45) NOT NULL,                    -- retrato no disparo
 
-    -- V4 da consolidacao: mesmo molde de manutencao_agendada.criado_por_id (V21).
+    -- Mesmo molde de manutencao_agendada.criado_por_id (V21).
     solicitado_por_id BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
 
     status VARCHAR(10) NOT NULL DEFAULT 'EXECUTANDO',
     iniciado_em TIMESTAMPTZ NOT NULL,
     concluido_em TIMESTAMPTZ,
 
-    -- D4/D5: supressao por predicado de tempo. Expira sozinha, mesmo com o servico fora.
-    suprimir_ate TIMESTAMPTZ NOT NULL,
+    -- D5 revista: janela do teste, gravada no disparo. Medicao com executado_em em
+    -- [iniciado_em, janela_fim] nao participa de abertura de episodio. Expira por tempo,
+    -- mesmo com o teste orfao.
+    -- janela_fim = iniciado_em + 2 x duracao_sentido_segundos + margem de fila (10 s provisorio).
+    janela_fim TIMESTAMPTZ NOT NULL,
 
     -- POR SENTIDO (-t do iperf3). Total = 2x. Teto de D14.
     duracao_sentido_segundos SMALLINT NOT NULL,
@@ -57,6 +63,7 @@ CREATE TABLE teste_banda (
     -- D2: lado receptor (end.sum_received). FALHA mantem o parcial que houver.
     download_mbps NUMERIC(10,2),
     upload_mbps NUMERIC(10,2),
+    -- D16: CONDICIONAIS. Saem da V28 se o laboratorio (e) provar que nao vem no Windows.
     retransmissoes_download INTEGER,
     retransmissoes_upload INTEGER,
 
@@ -69,23 +76,21 @@ CREATE TABLE teste_banda (
 
     CONSTRAINT ck_teste_banda_status CHECK (status IN ('EXECUTANDO', 'SUCESSO', 'FALHA')),
     CONSTRAINT ck_teste_banda_duracao CHECK (duracao_sentido_segundos BETWEEN 1 AND 15),
+    CONSTRAINT ck_teste_banda_janela CHECK (janela_fim > iniciado_em),
     CONSTRAINT ck_teste_banda_equipamento_nome CHECK (btrim(equipamento_nome) <> ''),
-    -- Mesma expressao de ck_equipamento_ip_ipv4 (V20), sem o ramo NULL: aqui e obrigatorio.
+    -- Mesma expressao de ck_equipamento_ip_ipv4 (V20), sem o ramo NULL.
     CONSTRAINT ck_teste_banda_ip_ipv4 CHECK (
         ip_alvo ~ '^(22[0-3]|2[01][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])){3}$'),
-    -- D5: o servico recusa com 409 antes; o CHECK e a rede de seguranca do teto.
-    CONSTRAINT ck_teste_banda_supressao CHECK (
-        suprimir_ate > iniciado_em AND suprimir_ate <= iniciado_em + INTERVAL '5 minutes'),
     CONSTRAINT ck_teste_banda_mbps CHECK (
         (download_mbps IS NULL OR download_mbps >= 0) AND (upload_mbps IS NULL OR upload_mbps >= 0)),
     CONSTRAINT ck_teste_banda_retransmissoes CHECK (
         (retransmissoes_download IS NULL OR retransmissoes_download >= 0)
         AND (retransmissoes_upload IS NULL OR retransmissoes_upload >= 0)),
-    -- 2 sentidos x 15 amostras de ~80 bytes ~ 2,4 kB; 32 kB e folga de ~13x.
+    -- 2 sentidos x 15 amostras de ~80 bytes ~ 2,4 kB; teto 32 kB.
     CONSTRAINT ck_teste_banda_amostras CHECK (
         amostras IS NULL
         OR (jsonb_typeof(amostras) = 'array' AND octet_length(amostras::text) <= 32768)),
-    -- Irma de ck_manutencao_agendada_coerente (V21): cada status com seus carimbos.
+    -- Irma de ck_manutencao_agendada_coerente (V21).
     -- SUCESSO exige OS DOIS sentidos; FALHA aceita parcial, mas exige erro.
     CONSTRAINT ck_teste_banda_coerente CHECK (
         (status = 'EXECUTANDO' AND concluido_em IS NULL AND erro IS NULL
@@ -96,46 +101,82 @@ CREATE TABLE teste_banda (
     CONSTRAINT ck_teste_banda_periodo CHECK (concluido_em IS NULL OR concluido_em >= iniciado_em)
 );
 
--- D14: um teste por vez no sistema. Exige a limpeza de orfaos (boot e POST),
--- senao um EXECUTANDO esquecido trava o botao para sempre.
+-- D14: um teste por vez no sistema. Exige a limpeza de orfaos (boot e POST).
 CREATE UNIQUE INDEX uq_teste_banda_um_executando ON teste_banda ((true)) WHERE status = 'EXECUTANDO';
 
 -- Historico por unidade (aba Banda).
 CREATE INDEX ix_teste_banda_unidade ON teste_banda (unidade_id, iniciado_em DESC);
 
--- D4: predicado global da supressao, EXISTS ... WHERE now() < suprimir_ate. So suprimir_ate.
-CREATE INDEX ix_teste_banda_suprimir_ate ON teste_banda (suprimir_ate);
+-- D5 revista: predicado de sobreposicao de intervalos,
+--   iniciado_em <= :medicaoMaisRecente AND janela_fim >= :medicaoMaisAntiga.
+-- ATENCAO: ver "Indice da supressao" abaixo -- a ordem pedida (iniciado_em, janela_fim)
+-- percorre o indice inteiro no caso comum; a medicao recomenda (janela_fim, iniciado_em).
+CREATE INDEX ix_teste_banda_janela ON teste_banda (iniciado_em, janela_fim);
 ```
 
-## Por que cada ajuste
+## Diferenças em relação à versão anterior do PR
 
-| Ajuste | Motivo |
-|---|---|
-| `uq_equipamento_id_unidade` | A FK composta precisa de uma chave única no alvo. Não existe hoje **[P, grep em `db/migration`]**. |
-| `ON DELETE SET NULL (ponta_teste_banda_id)` | D3. Excluir fisicamente a ponta só limpa a referência **[I]**. |
-| `unidade_id ... CASCADE`, `equipamento_id` anulável com `SET NULL` e `equipamento_nome` | D8. |
-| `ck_teste_banda_coerente` exige `download_mbps` **e** `upload_mbps` | Pedido da consolidação: SUCESSO é os dois sentidos. |
-| FALHA sem restrição em mbps | O valor parcial fica: download medido e upload que falhou continua visível **[I]**. |
-| `retransmissoes_download` / `retransmissoes_upload` | Separadas, porque o `-R` inverte quem envia. Que o `-R` reporta retransmissões está no [laboratório](laboratorio.md), item (e) **[I]**. |
-| Índice de supressão só em `(suprimir_ate)` | D4 é global, sem `unidade_id` no predicado. |
-| `ck_teste_banda_amostras` | Evita que um JSON anômalo, por exemplo um bug que grave a saída bruta do iperf3, cresça sem limite. O uso esperado é de cerca de 2,4 kB e o teto é 32 kB **[I]**. |
-| `duracao_sentido_segundos BETWEEN 1 AND 15` | D14 (`-t` ≤ 15 s por sentido). |
-| Sem coluna `direcao` | Um teste sempre faz os dois sentidos (D2). |
-| Sem trigger de `updated_at` | Padrão do projeto: JPA `@PrePersist`/`@PreUpdate` + `SET updated_at` explícito em `UPDATE` nativo ([contexto.md § V3](contexto.md#v3--como-updated_at-é-mantido)) **[P]**. |
+| Antes | Agora | Motivo |
+|---|---|---|
+| `suprimir_ate TIMESTAMPTZ NOT NULL` | `janela_fim TIMESTAMPTZ NOT NULL` | D5 revista: a janela é do teste, não da configuração do motor. |
+| `ck_teste_banda_supressao` (teto de 5 min) | removida | O teto deixou de existir na D5 revista. |
+| — | `ck_teste_banda_janela CHECK (janela_fim > iniciado_em)` | Rede de segurança mínima. Não há teto superior: `duracao_sentido_segundos` já limita a 15 s. |
+| `ix_teste_banda_suprimir_ate (suprimir_ate)` | `ix_teste_banda_janela (iniciado_em, janela_fim)` | Pedido do ajuste. Ver a sinalização logo abaixo. |
+| Retransmissões incondicionais | Condicionais (D16) | — |
+
+## Índice da supressão — justificativa e sinalização
+
+O predicado consulta **sobreposição de intervalos**:
+
+```
+tb.iniciado_em <= :medicaoMaisRecente  AND  tb.janela_fim >= :medicaoMaisAntiga
+```
+
+Ele roda **a cada abertura candidata de episódio**, ou seja, a cada medição de um monitor cuja cauda
+inteira esteja acima do limiar. É um caminho quente do motor e precisa ser barato.
+
+**Justificativa pedida para `(iniciado_em, janela_fim)`.**
+- Em B-tree, só a coluna líder delimita a varredura. A segunda só filtra dentro dela.
+- `iniciado_em <= :medicaoMaisRecente` é verdade para **quase todo o histórico**, porque todo teste
+  passado começou antes de agora.
+- A varredura percorre o índice inteiro e descarta pela segunda coluna. **A justificativa não se
+  sustenta.**
+
+**Medição [P-lab, 2026-11-23, PostgreSQL 16.15 em container descartável, já removido]:**
+- Dados: 36.501 linhas, equivalentes a 10 anos com 10 testes por dia.
+- Caso medido: o mais comum, em que **nenhum teste** sobrepõe a sequência.
+
+| Índice | Plano | Buffers | Tempo |
+|---|---|---|---|
+| `(iniciado_em, janela_fim)` | Index Only Scan, `Index Cond` nas duas colunas | **141** (o índice inteiro) | 0,70 ms |
+| `(janela_fim, iniciado_em)` | Index Only Scan | **2** | 0,006 ms |
+| nenhum, com 2.000 linhas (volume realista de anos) | Seq Scan | 65 | 0,11 ms |
+
+**O que a medição mostra:**
+- Com a ordem pedida, o custo cresce linearmente com o histórico.
+- Com `janela_fim` na frente, `janela_fim >= :medicaoMaisAntiga` seleciona só os testes recentes, e
+  o custo fica constante.
+- No volume realista, de alguns testes por dia, qualquer opção custa menos de 1 ms. **O problema é de
+  crescimento, não de hoje.**
+
+**Recomendação (DECISÃO DO RESPONSÁVEL, não aplicada):** trocar por
+`CREATE INDEX ix_teste_banda_janela ON teste_banda (janela_fim, iniciado_em);`.
+- O SQL acima mantém a ordem pedida até o responsável decidir.
+- Item S4 em [dividas.md](dividas.md#sinalizações-abertas).
 
 ## Mudanças que são código, não migration
 
-- **D4:** acrescentar `AND NOT EXISTS (SELECT 1 FROM teste_banda tb WHERE now() < tb.suprimir_ate)`
-  ao `WHERE` de `MonitorEpisodioLatenciaRepository.inserirSeElegivel` (linhas 34-41) **[P, local
-  confirmado]**.
-  - **Não tocar** em `IncidenteRepository.inserirSeElegivel`.
-  - `now()` é o início da transação, uma diferença de milissegundos e sem efeito prático **[I]**.
-- **Entidade `Unidade`:** a coluna nova precisa de mapeamento. Com `ddl-auto: validate`, **um jar
-  com esse mapeamento não sobe contra um banco na V27** **[I]**. Ver o JSON abaixo.
-- **Desativar a ponta** (`EquipamentoService.desativar`, `ativo = false`) não dispara a FK. O que
-  fazer com a referência, limpar ou recusar o teste, é regra de serviço pendente (dividas.md).
-  A exclusão física já é barrada quando o equipamento tem monitores
-  (`EquipamentoService.java:170-171`) **[P]**, o que deve ser o caso de toda ponta **[I]**.
+- **D5 revista:** acrescentar o `AND NOT EXISTS (...)` ao `WHERE` de
+  `MonitorEpisodioLatenciaRepository.inserirSeElegivel` (linhas 34-41) e um parâmetro
+  `:medicaoMaisRecente`.
+  - `:iniciadoEm`, que já é passado, **é** a medição mais antiga da sequência
+    ([contexto.md § Item 1](contexto.md#item-1--timestamps-da-sequência-no-ponto-do-insert)) **[P]**.
+  - **Não tocar** em `IncidenteRepository.inserirSeElegivel` **[P]**.
+- **D4, condição:** commitar `teste_banda` antes do iperf3, com teste de integração da ordem.
+- **D7:** teste de 403 para OPERADOR no `POST /api/v1/testes-banda`.
+- **D15:** recusar o POST com 409 "ponta inativa".
+- **Entidade `Unidade`:** precisa mapear `ponta_teste_banda_id`. Com `ddl-auto: validate`, um jar com
+  esse mapeamento não sobe em banco V27 **[I]**.
 
 ## `release/schema-compatibility.json` (atualizar no mesmo PR da V28)
 
@@ -151,11 +192,59 @@ Proposta **[I]**:
 {
   "schemaVersion": 28,
   "minSchemaVersion": 28,
-  "evidence": "Jar com V28 exige banco na V28: Unidade mapeia ponta_teste_banda_id e TesteBanda mapeia teste_banda; com ddl-auto=validate o contexto nao sobe em banco V27. Sem caminho de tolerancia (como o 503 do modo TV na V27), por decisao: a feature nao tem padrao util sem a tabela."
+  "evidence": "Jar com V28 exige banco na V28: Unidade mapeia ponta_teste_banda_id e TesteBanda mapeia teste_banda; com ddl-auto=validate o contexto nao sobe em banco V27. Sem caminho de tolerancia (como o 503 do modo TV na V27)."
 }
 ```
 
-- **`minSchemaVersion = 28` é proposta, não fato.** Se a implementação quiser 27, precisa de um
-  caminho de tolerância igual ao do modo TV, provado por teste de integração com o banco na V27
-  **[E, PR #41 e trava de release]**.
-- A trava compara o schema do jar, o banco lido e o operador **[E, memória]**.
+## Rollback e `minSchemaVersion`
+
+> **Resumo:** `minSchemaVersion = 28` **não bloqueia o rollback.** Ela restringe o jar **novo** a
+> bancos na V28. A volta do jar anterior, com `schemaVersion` 27 e `minSchemaVersion` 26, sobre um
+> banco já na V28 é **"banco à frente do release"**. A trava recusa isso por padrão e aceita **somente
+> com `databaseAheadOfRelease=true`** na prova. **A V28 não tem rollback de dados:** o banco fica na
+> V28, e quem roda por cima é o jar antigo.
+
+**O que o código da trava faz [P, `deployment/windows/ReleaseTools.psm1`]:**
+
+1. `Get-DatabaseSchemaVersion` (linhas 84-106) lê o schema **real** do banco: a maior `version` com
+   `success` em `flyway_schema_history`. Recusa se houver migration com falha.
+2. `Test-RollbackCompatibility` (linhas 108-125), aplicada ao release **alvo** do rollback:
+   - linha 118: `minimum = minSchemaVersion` do alvo (aqui, 26);
+   - linha 119: banco **abaixo** do mínimo → `Database schema older than the release supports`.
+     Não é o caso: 28 ≥ 26;
+   - linha 120: banco **acima** de `schemaVersion` do alvo (28 > 27) **e** sem
+     `databaseAheadOfRelease = true` na prova → `Database schema ahead of the release; explicit
+     approval required`.
+3. Com o campo na prova, a trava libera **[P]**. O caso está coberto em
+   `deployment/windows/tests/schema-guard-tests.ps1:58`, com banco 27 e alvo 26/26 **[P]**.
+4. Sem o campo, a recusa acontece **antes de parar qualquer coisa**. O processo e o site seguem com
+   a release nova **[E, P-lab do ensaio da V27, `implantacao-v27-modo-tv.md` § 4.3]**.
+
+**O jar antigo sobe sobre a V28?**
+
+| Ponto | Resposta | Origem |
+|---|---|---|
+| Flyway no boot | Não roda em produção: o serviço sobe com `--spring.flyway.enabled=false` | **[P, `winsw.xml.template:12`]** |
+| Tabela nova que o jar não mapeia (`teste_banda`) | `ddl-auto: validate` tolera. Provado com as tabelas da V27: jar antigo subiu em 10,5 s e 15,1 s, 0 WARN, 0 ERROR | **[E, P-lab do Ensaio B, `implantacao-v27-modo-tv.md:924-929`]** |
+| **Coluna nova numa tabela que o jar mapeia** (`unidade.ponta_teste_banda_id`) | **Sem prova.** O `SchemaValidator` do Hibernate confere só as colunas mapeadas, então deve tolerar. A V27 não tinha esse caso | **[I]**. Item (h) do [laboratório](laboratorio.md) |
+| Constraint nova `uq_equipamento_id_unidade` | Não afeta leitura nem escrita do jar antigo | **[I]** |
+
+**Comportamento do jar antigo sobre a V28 [I, salvo marcação]:**
+- **Mover a ponta de unidade** (`PUT /equipamentos/{id}` trocando `unidadeId`): a FK recusa. O jar
+  antigo não conhece a regra. O erro, se traduzido como `DataIntegrityViolationException`, vira
+  **409 `DATA_INTEGRITY_VIOLATION`** com mensagem genérica (`TratadorGlobalDeErros.java:86-88`
+  **[P]**). Se não for traduzido, vira 500. Isso se confere no item (h).
+- **Excluir unidade ou equipamento:** `CASCADE` e `SET NULL` agem no banco, em silêncio, como na
+  V28.
+- **Supressão:** o jar antigo não tem o predicado, mas também não dispara testes. Sem teste, não há
+  janela para suprimir.
+- **Um `EXECUTANDO` no momento do rollback:** fica parado. Ao voltar para o jar novo, a limpeza do
+  boot (D14) o converte em `FALHA`.
+
+**Roll-forward depois do rollback:** o banco continua na V28, e o jar novo exige 28. A trava aceita
+sem campo extra **[P, linhas 118-120]**.
+
+**O que `minSchemaVersion = 28` impede de fato:**
+- instalar o jar novo antes de aplicar a V28;
+- a sequência "aplica V28 → Switch" tem de seguir o roteiro da V27, com a migração isolada e o
+  Flyway como `postgres` + `SET ROLE` **[E]**.

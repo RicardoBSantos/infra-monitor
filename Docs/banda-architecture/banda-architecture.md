@@ -20,29 +20,41 @@ Toda afirmação traz uma marca:
 
 | Arquivo | Conteúdo |
 |---|---|
-| [decisoes.md](decisoes.md) | D1–D14, fechadas em 2026-11-23, com o motivo de cada uma. |
+| [decisoes.md](decisoes.md) | D1–D16 (2026-11-23), com motivo; D5 revista com o texto antigo riscado. |
 | [contexto.md](contexto.md) | Achados da investigação: motor ICMP, manutenção, IIS/ARR, WinSW/ACL, gráfico, perfis, e as verificações V1–V4. |
 | [v28-proposta.md](v28-proposta.md) | Texto da V28 revisada e do `schema-compatibility.json`. **Não é arquivo de migration.** |
-| [laboratorio.md](laboratorio.md) | Roteiro do ensaio que precisa acontecer antes de qualquer uso em produção. |
+| [laboratorio.md](laboratorio.md) | Roteiro do ensaio: supressão por medição com monitores de 20, 60 e 300 s, prova de reversão, rollback (h). |
 | [build-iperf3.md](build-iperf3.md) | Plano do job de CI que compila o iperf3 para Windows. |
-| [dividas.md](dividas.md) | Lacunas, dívidas relacionadas e pontos em que a verificação contraria uma decisão. |
+| [dividas.md](dividas.md) | Destaque de rollback, sinalizações S1–S4, estado de C1–C4, dívidas e lacunas. |
+
+> **Rollback da V28:** possível, mas exige `databaseAheadOfRelease=true`, e ainda falta provar que o
+> jar anterior tolera a coluna nova em `unidade`. Ver [dividas.md](dividas.md#rollback--leia-antes-da-janela-da-v28).
 
 ## Resumo
 
-- **O que mede:** o link MPLS/WAN entre a sede e uma unidade. A SED-TI-D05 é o cliente iperf3. Um
-  Windows Server de cada unidade, marcado explicitamente como ponta, é o servidor (D1) **[I]**.
-- **Como dispara:** só pelo botão "Testar", somente ADMIN. Um clique roda download e depois upload
-  (D2, D7) **[I]**.
+- **O que mede:** o link MPLS/WAN entre a sede e uma unidade.
+  - A SED-TI-D05 é o cliente iperf3.
+  - Em cada unidade, o servidor é um Windows Server marcado explicitamente como ponta (D1) **[I]**.
+- **Como dispara:** só pelo botão "Testar". Um clique roda download e depois upload (D2) **[I]**.
+- **Perfis (D7):**
+  - disparar o teste: **só ADMIN**, pela rota `/api/v1/testes-banda`, fora de `/unidades/**`;
+  - marcar a ponta: ADMIN e OPERADOR **[P]**.
 - **Alertas durante o teste:** só a **abertura de episódio de latência** é suprimida, em todas as
-  unidades, por um predicado de tempo que expira sozinho. Incidente, ping, SLA e Telegram não mudam
-  (D4, D5) **[I]**.
-- **Tela:** polling de 1 s com amostras incrementais, velocímetro em SVG próprio, histórico por
-  unidade (D10, D11, D12) **[I]**.
-- **Proteção:** desligada por padrão, lista de alvos em CIDR, executável por caminho absoluto, um
-  teste por vez, cooldown global e limpeza de órfãos (D13, D14) **[I]**.
-- **Binário:** iperf3 compilado no nosso CI a partir do fonte oficial, sem OpenSSL, com SHA-256
-  registrado (D9) **[I]**. **A versão mínima tem de subir para 3.22.** Ver
-  [dividas.md § Contradições](dividas.md#contradições-entre-a-verificação-e-as-decisões).
+  unidades.
+  - O episódio não abre se a sequência avaliada sobrepõe a janela `[iniciado_em, janela_fim]` de um
+    teste. A janela é gravada no disparo e expira por tempo.
+  - Incidente, ping, SLA e Telegram não mudam (D4, D5 revista) **[I]**.
+- **Tela:** polling de 1 s, velocímetro em SVG próprio, histórico por unidade (D10, D11, D12) **[I]**.
+- **Proteção:**
+  - desligado por padrão;
+  - lista de alvos em CIDR;
+  - executável por caminho absoluto;
+  - um teste por vez;
+  - limpeza de órfãos;
+  - recusa com a ponta inativa;
+  - cooldown de cortesia (D13, D14, D15) **[I]**.
+- **Binário:** iperf3 **3.22.1** compilado no nosso CI, sem OpenSSL, com SHA-256 registrado (D9).
+  - A barreira real é o firewall restrito à D05, mais o `-B` e a conta de baixo privilégio **[I]**.
 
 ## Fluxo de um teste
 
@@ -50,25 +62,27 @@ Toda afirmação traz uma marca:
 ADMIN clica "Testar" (unidade U)
   │
   ▼
-POST /api/v1/testes-banda {unidadeId}
-  │  flag BANDA_TESTE_ENABLED?                  não → 409
-  │  U tem ponta? ip da ponta ∈ ALVOS_PERMITIDOS? não → 409
-  │  suprimir_ate − início > 5 min?             sim → 409 (D5)
+POST /api/v1/testes-banda {unidadeId}          (OPERADOR → 403; teste obrigatório, D7)
+  │  flag BANDA_TESTE_ENABLED?                    não → 409
+  │  U tem ponta? ponta ativa?                    não → 409 ("ponta inativa", D15)
+  │  ip da ponta ∈ ALVOS_PERMITIDOS?              não → 409
   │  UPDATE condicional: EXECUTANDO velho → FALHA (órfão, D14)
-  │  cooldown global (120 s) ainda corre?        sim → 409
-  │  INSERT teste_banda (EXECUTANDO, suprimir_ate)
+  │  cooldown: 120 s desde concluido_em (ou janela_fim, se órfão)?  ainda corre → 409
+  │  INSERT teste_banda (EXECUTANDO, iniciado_em, janela_fim = início + 2×t + margem)
   │     └─ índice único parcial: outro EXECUTANDO → 409
-  │  COMMIT  ← a supressão passa a valer aqui, ANTES do tráfego
+  │  COMMIT  ← a janela passa a valer aqui, ANTES do tráfego (D4; teste de integração da ordem)
   ▼
 Thread do executor (fora da transação do POST)
   ├─ iperf3 -c <ip> -t ≤15 --json-stream        (download: sede→unidade)
   ├─ iperf3 -c <ip> -t ≤15 --json-stream -R     (upload: unidade→sede)
   │     amostras em memória, por seq ──► GET /testes-banda/{id}?desde=<seq>  (front, 1 s)
-  └─ UPDATE final: SUCESSO | FALHA, mbps, retransmissões, amostras (JSONB)
+  └─ UPDATE final: SUCESSO | FALHA, mbps, retransmissões (D16), amostras (JSONB)
 
 Motor ICMP (paralelo, intocado)
-  └─ cada medição → LatencyEpisodeProcessor
-        inserirSeElegivel(...) AND NOT EXISTS (teste_banda WHERE now() < suprimir_ate)
+  └─ cada medição → LatencyEpisodeProcessor (avaliação por nível sobre as últimas N)
+        inserirSeElegivel(..., :iniciadoEm = mais antiga, :medicaoMaisRecente)
+          AND NOT EXISTS (teste_banda tb WHERE tb.iniciado_em <= :medicaoMaisRecente
+                                           AND tb.janela_fim  >= :iniciadoEm)
         └─ 0 linhas → episódio não abre, nenhuma notificação
 
 Boot do backend
