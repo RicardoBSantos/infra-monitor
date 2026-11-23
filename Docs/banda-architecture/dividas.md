@@ -125,7 +125,7 @@ Legenda em [banda-architecture.md](banda-architecture.md).
 
 - **S1–S4:** resolvidas por decisão; S1 e S3 ainda dependem de prova no laboratório (g).
 - **Margem de fila:** 10 s provisórios; o laboratório calibra no item (g), passo 4.
-- **Retransmissões:** decisão condicional D16, que depende do item (e) do laboratório.
+- **Retransmissões:** D16 fechada; colunas fora da V28 (run 45191296655).
 - **`minSchemaVersion` 28:** é proposta. Com ela, o jar da V28 não sobe em banco V27, e o rollback
   segue o destaque do topo **[I]**.
 - **Onde fica o artefato do iperf3:** numa release do repositório ou em outro lugar

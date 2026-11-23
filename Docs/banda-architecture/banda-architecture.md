@@ -20,7 +20,7 @@ Toda afirmação traz uma marca:
 
 | Arquivo | Conteúdo |
 |---|---|
-| [decisoes.md](decisoes.md) | D1–D16 (2026-11-23), com motivo; D5 revista com o texto antigo riscado. |
+| [decisoes.md](decisoes.md) | D1–D16 (2026-11-23), com motivo; D5 revista e D16 fechada, com o texto antigo riscado. |
 | [contexto.md](contexto.md) | Achados da investigação: motor ICMP, manutenção, IIS/ARR, WinSW/ACL, gráfico, perfis, e as verificações V1–V4. |
 | [v28-proposta.md](v28-proposta.md) | Texto da V28 revisada e do `schema-compatibility.json`. **Não é arquivo de migration.** |
 | [laboratorio.md](laboratorio.md) | Roteiro do ensaio: supressão por medição com monitores de 20, 60 e 300 s, prova de reversão, rollback (h). |
@@ -79,7 +79,7 @@ Thread do executor (fora da transação do POST)
   ├─ iperf3 -c <ip> -t ≤15 --json-stream        (download: sede→unidade)
   ├─ iperf3 -c <ip> -t ≤15 --json-stream -R     (upload: unidade→sede)
   │     amostras em memória, por seq ──► GET /testes-banda/{id}?desde=<seq>  (front, 1 s)
-  └─ UPDATE final: SUCESSO | FALHA, mbps, retransmissões (D16), amostras (JSONB)
+  └─ UPDATE final: SUCESSO | FALHA, mbps, amostras (JSONB)  (sem retransmissões: D16)
 
 Motor ICMP (paralelo, intocado)
   └─ cada medição → LatencyEpisodeProcessor (avaliação por nível sobre as últimas N)

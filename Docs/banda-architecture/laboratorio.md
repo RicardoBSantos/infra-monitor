@@ -81,17 +81,17 @@ O servidor da unidade é um Windows Server de produção, e o teste não pode de
   existe no fonte da 3.22 (`src/iperf_api.c:1113`) **[P]**. A prova é na build Cygwin.
 - Conferir que `end.sum_received.bits_per_second` está presente nos dois sentidos.
 
-### (e) Retransmissões no modo `-R`
+### ~~(e) Retransmissões no modo `-R`~~ — retirado em 2026-11-23
 
-- Rodar `iperf3 -c <ip> -t 10 -R --json-stream`.
-- Conferir se `end.sum_sent.retransmits` vem preenchido quando quem envia é o **servidor**.
-- Sob gargalo com perda, o valor tem de ser maior que zero.
-- Repetir sem `-R` e conferir `retransmissoes_download` pelo mesmo caminho.
-- **Decisão condicional D16:** se as retransmissões **não vierem** na build Windows, as duas colunas
-  **saem da V28** e não ficam sempre nulas.
-- **Este item roda antes de a V28 virar arquivo.**
-- **Suspeita [I]:** o Cygwin pode não expor `TCP_INFO`, e então as retransmissões viriam ausentes
-  **nos dois sentidos**. É exatamente o que este caso prova ou derruba.
+- **Retirado** porque a pergunta já foi respondida no CI.
+- Na execução [45191296655](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45191296655),
+  a build Cygwin não emitiu a chave `retransmits` em nenhum sentido (loopback, modo normal e `-R`)
+  **[P]**.
+- Uma chave ausente indica que a plataforma não reporta retransmissões. Um gargalo com perda não
+  mudaria isso **[I]**.
+- A D16 foi fechada: as colunas saíram da V28.
+- **(d) segue válido para a build final.** O `--json-stream` e o `sum_received` já foram vistos na
+  mesma execução (loopback); falta confirmar atravessando o gargalo.
 
 ### (f) Cliente não autorizado é recusado — pelo firewall
 

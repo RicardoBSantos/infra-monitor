@@ -17,8 +17,10 @@ quando a implementação for autorizada. Aplica D3, D4, a D5 revista, D8 e D16. 
   - Produção roda 16.15 **[E]**.
   - O ensaio do índice rodou em 16.15 **[P-lab, 2026-11-23]**.
 - `duracao_sentido_segundos` é **por sentido**, o `-t` do iperf3. O total é o dobro.
-- **O item (e) do laboratório roda antes** de a V28 virar arquivo, porque decide se as colunas de
-  retransmissão existem (D16).
+- **Sem colunas de retransmissão (D16 fechada em 2026-11-23).** Na execução
+  [45191296655](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45191296655), a build
+  Cygwin não emitiu a chave `retransmits` em `end.sum_sent` em nenhum dos dois sentidos (loopback,
+  `-t 2`, modo normal e `-R`) **[P]**.
 
 ## SQL proposto
 
@@ -63,9 +65,7 @@ CREATE TABLE teste_banda (
     -- D2: lado receptor (end.sum_received). FALHA mantem o parcial que houver.
     download_mbps NUMERIC(10,2),
     upload_mbps NUMERIC(10,2),
-    -- D16: CONDICIONAIS. Saem da V28 se o laboratorio (e) provar que nao vem no Windows.
-    retransmissoes_download INTEGER,
-    retransmissoes_upload INTEGER,
+    -- D16: sem colunas de retransmissao; a build Cygwin nao as reporta (run 45191296655).
 
     -- D10: curva do teste, gravada so no fim. [{seq, t, sentido, mbps}].
     amostras JSONB,
@@ -83,9 +83,6 @@ CREATE TABLE teste_banda (
         ip_alvo ~ '^(22[0-3]|2[01][0-9]|1[0-9]{2}|[1-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])){3}$'),
     CONSTRAINT ck_teste_banda_mbps CHECK (
         (download_mbps IS NULL OR download_mbps >= 0) AND (upload_mbps IS NULL OR upload_mbps >= 0)),
-    CONSTRAINT ck_teste_banda_retransmissoes CHECK (
-        (retransmissoes_download IS NULL OR retransmissoes_download >= 0)
-        AND (retransmissoes_upload IS NULL OR retransmissoes_upload >= 0)),
     -- 2 sentidos x 15 amostras de ~80 bytes ~ 2,4 kB; teto 32 kB.
     CONSTRAINT ck_teste_banda_amostras CHECK (
         amostras IS NULL
@@ -121,7 +118,7 @@ CREATE INDEX ix_teste_banda_janela ON teste_banda (janela_fim, iniciado_em);
 | `ck_teste_banda_supressao` (teto de 5 min) | removida | O teto deixou de existir na D5 revista. |
 | — | `ck_teste_banda_janela CHECK (janela_fim > iniciado_em)` | Rede de segurança mínima. `duracao_sentido_segundos` já limita a 15 s. |
 | `ix_teste_banda_suprimir_ate (suprimir_ate)` | `ix_teste_banda_janela (janela_fim, iniciado_em)` | S4, decidido em 2026-11-23 com base na medição abaixo. |
-| Retransmissões incondicionais | Condicionais (D16) | — |
+| `retransmissoes_download`, `retransmissoes_upload` e `ck_teste_banda_retransmissoes` | removidas | D16 fechada: a build Cygwin não reporta retransmissões (run 45191296655) **[P]**. |
 
 ## Índice da supressão — justificativa e medição
 
