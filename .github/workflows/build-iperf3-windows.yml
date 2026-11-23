@@ -19,6 +19,15 @@ env:
   IPERF_COMMIT: acc0ed500fb2c421999948a72bb6a9e05af528d8
   # DLLs permitidas FORA de C:\Windows (as do sistema operacional nao entram no pacote).
   ALLOWED_DLLS: 'cygwin1.dll'
+  # Runtime Cygwin a que pertence o COPYING.LIB versionado em third-party/ (LGPLv3 do cygwin1.dll).
+  # A action instala a versao corrente do espelho: se mudar, o job falha ate o diretorio ser trocado.
+  CYGWIN_RUNTIME_VERSION: '3.6.12-1'
+  CYGWIN_COPYING_LIB: third-party/cygwin-3.6.12/COPYING.LIB
+  CYGWIN_COPYING_LIB_SHA256: da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768
+  # Oferta de fonte da LGPL: pacote de fonte da MESMA versao (setup.ini do espelho, 2026-11-23).
+  CYGWIN_SRC_URL: https://mirrors.kernel.org/sourceware/cygwin/src/release/cygwin/cygwin-3.6.12-1-src.tar.xz
+  CYGWIN_SRC_SHA512: 9d70312a931f06d1158e7e913a23fb4aec4bb5fce6c5b55caf274a6d63905248625beaf1391f2d4518fbf5099523fdab2aa26834651856f4693fbf8862027889
+  CYGWIN_SRC_GIT: 'https://cygwin.com/cgit/newlib-cygwin/ tag cygwin-3.6.12 (commit ed54dcfd953ac0798802d3ef9deec5ff11edb47b)'
 
 jobs:
   build:
@@ -42,6 +51,22 @@ jobs:
           ref: refs/tags/${{ env.IPERF_TAG }}
           path: iperf-src
           persist-credentials: false
+
+      - name: Checkout dos arquivos de terceiros (este repositorio)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repo
+          sparse-checkout: third-party
+          persist-credentials: false
+
+      - name: Conferir COPYING.LIB (LGPLv3 do runtime)
+        shell: pwsh
+        run: |
+          $f = Join-Path 'repo' $env:CYGWIN_COPYING_LIB
+          if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { "::error::$env:CYGWIN_COPYING_LIB ausente"; exit 1 }
+          $h = (Get-FileHash -Algorithm SHA256 -LiteralPath $f).Hash.ToLowerInvariant()
+          "SHA-256 $h ; esperado $env:CYGWIN_COPYING_LIB_SHA256"
+          if ($h -cne $env:CYGWIN_COPYING_LIB_SHA256) { "::error::SHA-256 do COPYING.LIB nao confere"; exit 1 }
 
       - name: Conferir commit da tag
         shell: pwsh
@@ -67,6 +92,16 @@ jobs:
           mkdir -p "$(cygpath -u "$GITHUB_WORKSPACE")/out"
           cygcheck -c cygwin gcc-core make | tee "$(cygpath -u "$GITHUB_WORKSPACE")/out/toolchain.txt"
           uname -a | tee -a "$(cygpath -u "$GITHUB_WORKSPACE")/out/toolchain.txt"
+          INSTALADA="$(cygcheck -c -d cygwin | awk '$1=="cygwin"{print $2}')"
+          echo "runtime instalado: $INSTALADA ; COPYING.LIB pertence a: $CYGWIN_RUNTIME_VERSION"
+          if [ "$INSTALADA" != "$CYGWIN_RUNTIME_VERSION" ]; then
+            echo "::error::runtime Cygwin $INSTALADA difere de $CYGWIN_RUNTIME_VERSION (versao do COPYING.LIB e da oferta de fonte). Trocar third-party/ e as constantes."
+            exit 1
+          fi
+          case "$CYGWIN_COPYING_LIB" in
+            "third-party/cygwin-${CYGWIN_RUNTIME_VERSION%-*}/"*) ;;
+            *) echo "::error::$CYGWIN_COPYING_LIB nao e do diretorio da versao ${CYGWIN_RUNTIME_VERSION%-*}"; exit 1 ;;
+          esac
 
       - name: Configure (sem OpenSSL)
         run: |
@@ -134,12 +169,17 @@ jobs:
           [ -n "$LIC" ] || { echo '::error::licenca do runtime Cygwin nao encontrada'; exit 1; }
           : > "$PKG/COPYING-cygwin.txt"
           for f in $LIC; do printf '===== %s =====\n' "$f" >> "$PKG/COPYING-cygwin.txt"; cat "$f" >> "$PKG/COPYING-cygwin.txt"; printf '\n' >> "$PKG/COPYING-cygwin.txt"; done
+          # LGPLv3 referenciada pelo CYGWIN_LICENSE; o pacote cygwin nao a instala. Hash ja conferido.
+          cp "$WS/repo/$CYGWIN_COPYING_LIB" "$PKG/COPYING.LIB-cygwin.txt"
           cat > "$PKG/CYGWIN-SOURCE.txt" <<EOF
-          cygwin1.dll distribuido sob a licenca em COPYING-cygwin.txt.
-          Versao do pacote cygwin: $CYGVER
-          Fonte correspondente (pacote de fonte da mesma versao):
-            https://cygwin.com/packages/summary/cygwin-src.html
-            https://cygwin.com/cgit/newlib-cygwin/
+          cygwin1.dll (Cygwin $CYGVER) e distribuido sob a LGPLv3+ com a "Linking Exception"
+          descrita em CYGWIN_LICENSE (dentro de COPYING-cygwin.txt). Texto da LGPLv3:
+          COPYING.LIB-cygwin.txt. Texto da GPLv3 a que a LGPLv3 remete: COPYING-cygwin.txt.
+
+          Fonte correspondente, da MESMA versao do runtime distribuido ($CYGVER):
+            pacote de fonte: $CYGWIN_SRC_URL
+            SHA-512 (setup.ini do espelho): $CYGWIN_SRC_SHA512
+            repositorio:     $CYGWIN_SRC_GIT
           EOF
           cat > "$PKG/BUILD-MANIFEST.txt" <<EOF
           iperf3 para Windows (Cygwin), compilado sem OpenSSL.
@@ -150,6 +190,7 @@ jobs:
           workflow run:     $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (tentativa $GITHUB_RUN_ATTEMPT)
           runner:           $ImageOS $ImageVersion
           cygwin:           $CYGVER
+          COPYING.LIB:      $CYGWIN_COPYING_LIB sha256 $CYGWIN_COPYING_LIB_SHA256
           configure:        --without-openssl --disable-shared --enable-static --prefix=/opt/iperf3
           DLLs permitidas:  $ALLOWED_DLLS (fora de C:\\Windows)
 
