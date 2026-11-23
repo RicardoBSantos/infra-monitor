@@ -21,7 +21,7 @@ env:
   IPERF_TAG: '3.22.1'
   IPERF_COMMIT: acc0ed500fb2c421999948a72bb6a9e05af528d8
   # DLLs permitidas FORA de C:\Windows (as do sistema operacional nao entram no pacote).
-  ALLOWED_DLLS: 'cygwin1.dll'
+  ALLOWED_DLLS: '' # TEMP P2b: lista vazia de proposito
 
 jobs:
   build:
