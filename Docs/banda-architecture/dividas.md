@@ -38,7 +38,8 @@ Legenda em [banda-architecture.md](banda-architecture.md).
 > - O `Rollback` também está sujeito ao **bloqueio de espaço** acima **[P]**.
 > - O banco **fica** na V28: não existe migration de volta.
 > - Ainda falta provar que o jar anterior sobe com a coluna nova `unidade.ponta_teste_banda_id`, e o
->   que ele devolve ao mover a ponta. É o item (h) do [laboratório](laboratorio.md) **[I]**.
+>   que ele devolve ao mover a ponta. É o item C.h do [laboratório](laboratorio.md), um ensaio da
+>   fase de implantação que depende do código e da V28 **[I]**.
 > - **Sem essa prova, o rollback da V28 é uma aposta.**
 >
 > Detalhes em [v28-proposta.md § Rollback](v28-proposta.md#rollback-e-minschemaversion).
@@ -52,9 +53,25 @@ Legenda em [banda-architecture.md](banda-architecture.md).
 | S3 | O teste podia passar de `janela_fim` | Prazo duro: `destroyForcibly` em `janela_fim − margem de fila`. `--server-max-duration` é a segunda barreira | D14 |
 | S4 | O índice `(iniciado_em, janela_fim)` lia o índice inteiro | Índice invertido para `(janela_fim, iniciado_em)`. Medição: 2 buffers contra 141 | [v28-proposta.md](v28-proposta.md#índice-da-supressão--justificativa-e-medição) |
 
-**Ainda a provar no laboratório:**
-- S1 e S3: item (g), passo 6;
-- margem de fila: item (g), passo 4.
+**Ainda a provar ([laboratório revisto em 2026-11-23](laboratorio.md)):**
+- S1: teste de integração C.g, linhas g-4 e g-5 (borda esquerda), depende do código e da V28;
+- S3: teste de integração C.g com o runner falso (prazo duro), depende do código;
+- margem de fila: Parte B, **bloqueada na D07** (B.0).
+
+---
+
+## Revisão do laboratório (2026-11-23) — sinalizações abertas
+
+Não existe Windows Server de laboratório. O plano foi refeito em três partes
+([laboratorio.md](laboratorio.md)). **Nenhuma decisão foi alterada.** Ficam sem prova:
+
+| # | O que fica sem prova | Decisão afetada | Por quê | Saída (decisão do responsável) |
+|---|---|---|---|---|
+| L-A1 | **O binário não roda na D07: o ASR do domínio o bloqueia** (regra `01443614-CD74-433A-B99E-2ECDC07BFC25`, evento 1121) **[P]** | **D9** e toda a Parte A | Binário sem assinatura e sem prevalência. A build não é reprodutível, então cada build nova volta à estaca zero **[I]**. A D05 e os servidores das unidades provavelmente têm a mesma política de domínio **[I, não conferido]** | Exceção da TI (caminho, hash ou certificado) ou assinatura de código. Sem isso, nem a Parte A nem a produção rodam |
+| L-A2 | Comportamento específico do Windows Server: CPU durante o teste, ASR/Defender de servidor, perfil `Domain`, GPO de logon como serviço | D9 (barreira), D14 (segunda barreira) | Só há Windows 10/11. O binário já rodou em Windows Server 2022 no runner do CI, em loopback e como processo comum **[P]** | Primeira instalação numa unidade, em janela combinada, com desinstalação como reversão (A.6) |
+| L-B1 | **Margem de fila** | **D5** (`janela_fim`) e **D14** (prazo duro em `janela_fim − margem`) | O kernel do Docker Desktop da D07 não tem `tbf`, `netem`, `htb`, `cake`, `ifb` nem `police` **[P]**. Os 10 s seguem provisórios | Kernel WSL2 próprio, máquina Linux, WSL/Docker mais novo, ou medir no enlace real (B.0) |
+| L-C1 | Supressão **ponta a ponta com fila real**: latência subindo por causa do teste e o episódio sendo segurado | D4, D5 | O antigo item (g) usava gargalo e monitores reais. Agora o predicado é provado com medições sintéticas (C.g); a parte "o teste de fato eleva a latência e o motor a vê" só aparece em produção **[I]** | Aceitar o risco, ou combinar com a Parte B quando ela for possível |
+| L-C2 | Escopo global (D4) com tráfego real | D4 | A D4 já era "decisão assumida, não provada". C.g prova que o predicado vale para outra unidade, não que o uplink da sede eleva a latência de todas | Sem mudança: segue assumida |
 
 ---
 
@@ -123,8 +140,9 @@ Legenda em [banda-architecture.md](banda-architecture.md).
 
 ## Pendências de desenho
 
-- **S1–S4:** resolvidas por decisão; S1 e S3 ainda dependem de prova no laboratório (g).
-- **Margem de fila:** 10 s provisórios; o laboratório calibra no item (g), passo 4.
+- **S1–S4:** resolvidas por decisão; S1 e S3 ainda dependem do teste de integração C.g.
+- **Margem de fila:** 10 s provisórios; a Parte B do laboratório calibra, mas está bloqueada na D07
+  (L-B1).
 - **Retransmissões:** D16 fechada; colunas fora da V28 (run 45191296655).
 - **`minSchemaVersion` 28:** é proposta. Com ela, o jar da V28 não sobe em banco V27, e o rollback
   segue o destaque do topo **[I]**.
