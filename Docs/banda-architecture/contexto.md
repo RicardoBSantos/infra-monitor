@@ -202,6 +202,108 @@ transita dentro da janela") não existe porque a avaliação não é por borda.
   - a entrada no servidor da unidade é nova: TCP 5201, ou outra porta, aberta só para o IP da D05
     (D9) **[I]**.
 
+## Controle de aplicativos: por que o `iperf3.exe` não roda (diagnóstico de 2026-11-24)
+
+Diagnóstico **somente leitura** na `SED-TI-D07` (Windows 11 Enterprise 10.0.26200, domínio
+`sesc-se.lan`), sessão do usuário `SESC-SE\rbfilho`. Nada foi contornado: sem `Unblock-File`, sem
+copiar o binário para outra pasta, sem mexer em política, Defender ou ACL. Arquivo examinado: o
+`iperf3.exe` extraído do artefato da execução
+[45215529546](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45215529546).
+O bloqueio e o que falta decidir estão em [dividas.md](dividas.md) e na D17 de
+[decisoes.md](decisoes.md).
+
+**Conclusão [P]: quem bloqueia é a regra de ASR do Microsoft Defender
+`01443614-CD74-433A-B99E-2ECDC07BFC25`** ("bloquear executáveis, a menos que atendam a um critério de
+prevalência, idade ou lista confiável"). Nenhum outro mecanismo participa.
+
+| # | Mecanismo | O que foi lido | Resultado |
+|---|---|---|---|
+| 1 | Marca da internet | `Get-Item -Stream *` | Só o fluxo `:$DATA` (710.409 bytes). **Sem `Zone.Identifier`** **[P]** |
+| 2 | ACL | `icacls` do arquivo, da pasta e da pasta pai | `SESC-SE\rbfilho:(I)(F)`, mais SISTEMA e Administradores com controle total. O usuário tem leitura e execução de sobra **[P]** |
+| 3 | AppLocker | `Get-AppLockerPolicy -Effective -Xml`; log `AppLocker/EXE and DLL` | Política efetiva **vazia**, sem nenhuma coleção. `AppIDSvc` parado (manual). Nenhum evento desde 23/11 **[P]** |
+| 4 | SRP | `HKLM\SOFTWARE\Policies\Microsoft\Windows\Safer\CodeIdentifiers` | A chave existe: `DefaultLevel=262144` (irrestrito), duas regras de caminho irrestritas (`%SystemRoot%`, `%ProgramFilesDir%`), **nenhuma regra de bloqueio**. Nada em HKCU **[P]** |
+| 5 | WDAC | `Win32_DeviceGuard`; log `CodeIntegrity/Operational`; `CiTool` | `UsermodeCodeIntegrityPolicyEnforcementStatus=0` (sem política para modo usuário). Nenhum evento citando iperf3 ou cygwin. `CiTool --list-policies` recusado (`0x80070005`) **[P]** |
+| 6 | Defender | `Get-MpThreatDetection`, `Get-MpThreat`, log `Windows Defender/Operational` | **Nenhuma detecção de malware.** Três eventos **1121** da regra ASR `01443614-…` (abaixo). Nenhum evento cita a `cygwin1.dll` **[P]** |
+| 7 | GPOs | `gpresult /r /scope computer` (recusado: "Acesso negado"); lista lida em `HKLM\...\Group Policy\State\Machine\GPO-List` | 20 GPOs de computador, nenhuma com nome de controle de aplicativos ou Defender **[I]**. **As chaves de ASR que uma GPO criaria não existem** (`Policies\Microsoft\Windows Defender\Windows Defender Exploit Guard\ASR`) **[P]** |
+
+**Eventos 1121 que citam o `iperf3.exe` [P]** (horário local, UTC-03):
+
+| Horário | Usuário | Processo | O que aconteceu |
+|---|---|---|---|
+| 2026-11-23 13:25:15 | `SESC-SE\rbfilho` | `powershell.exe` | Primeira tentativa de execução. O arquivo tinha sido criado às 13:24:51 |
+| 2026-11-23 13:25:17 | idem | idem | Segunda tentativa, pelo caminho curto (`DCE6E5~1\…`) |
+| 2026-11-24 10:35:33 | idem | idem | **Leitura** para calcular o SHA-256 (`Get-FileHash`), durante este diagnóstico. **A regra bloqueia até a leitura do arquivo**, por isso o hash não foi reconferido na D07 |
+
+No mesmo log há 183 eventos 1121 da regra `9E6C4E1F-…` (proteção de credenciais do LSASS, ligada ao
+SysMain), sem relação com o iperf3.
+
+**Origem da política [I, forte]:** Intune ou Microsoft Defender for Endpoint (MDE), não GPO.
+- A máquina está inscrita no Intune (`HKLM\SOFTWARE\Microsoft\Enrollments`, provedor `MS DM Server`,
+  tenant `sesesc.onmicrosoft.com`) e cadastrada no MDE (`OnboardingState=1`) **[P]**.
+- A GPO "Define - Registro Intune Estacoes" faz a inscrição; nenhuma GPO aplicada traz ASR **[P/I]**.
+- A prova direta seria a chave `HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager`,
+  que recusou a leitura nesta sessão. Fica com o administrador do Intune/MDE.
+
+**O que permitiria a execução (todas as vias com o administrador do Intune/MDE):** indicador
+"Permitir" por SHA-256, exclusão de ASR por caminho, ou binário assinado com indicador de
+certificado. Prós e contras na D17.
+
+### D05 e conta de serviço
+
+- **A D05 está no mesmo domínio e na mesma OU que a D07? Sem registro no repositório.**
+  - A D07 está em `OU=Computadores,OU=TecnologiaDaInformacao,OU=Sede,OU=SESC-SE,DC=sesc-se,DC=lan`
+    **[P]**.
+  - A D05 roda o `IntuneManagementExtension`
+    (`Docs/validacao-producao/D02.10-B-infraestrutura-windows.md:95`) **[E]**, logo também é
+    gerenciada pelo Intune.
+  - `D02.11-A.1-estabilizacao-operacional.md:157` escreve `DOMÍNIO\SED-TI-D05$`: indica máquina no
+    domínio, sem nomear o domínio **[E]**. O nome `SED-TI-*` sugere a mesma OU **[I]**.
+- **Mudaria algo para a conta virtual `NT SERVICE\InfraMonitorBackend`?**
+  - AppLocker e SRP: não, porque na D07 não há nenhuma regra por SID **[P]**.
+  - **ASR não filtra por usuário nem por SID.** Só tem exclusões por caminho e indicadores. A conta
+    de serviço seria bloqueada igual **[I, documentação da Microsoft; não provado na D05]**.
+- **Como a política vem do tenant e não da OU, ela deve valer para toda máquina com o mesmo perfil
+  de ASR**, inclusive os servidores das unidades **[I]**.
+
+### Roteiro somente leitura para a D05 (e para um servidor de unidade)
+
+- Rodar em janela combinada, num Windows PowerShell 5.1 elevado, **sem copiar nenhum binário** para
+  a máquina.
+- **O roteiro escreve um arquivo:** a transcrição em `C:\src\packages\`, a mesma pasta da transcrição
+  do ensaio de 18/11. É a única escrita. Se a pasta não existir na máquina, trocar o caminho antes de
+  rodar.
+- **Repetir o mesmo roteiro num servidor de unidade.** A D05 é o cliente, mas o servidor iperf3 roda
+  na unidade, e a política de servidor pode ser outra.
+
+```powershell
+$out = "C:\src\packages\leitura-asr-$env:COMPUTERNAME-$(Get-Date -f yyyyMMdd-HHmm).txt"
+Start-Transcript -Path $out
+Get-CimInstance Win32_ComputerSystem | Format-List Name,Domain,PartOfDomain
+(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Group Policy\State\Machine').'Distinguished-Name'
+gpresult /r /scope computer
+dsregcmd /status
+Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Advanced Threat Protection\Status' -EA SilentlyContinue | Format-List OnboardingState,OrgId
+Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Enrollments' | % { $p = Get-ItemProperty $_.PSPath; if ($p.ProviderID) { "$($_.PSChildName) $($p.ProviderID)" } }
+Get-AppLockerPolicy -Effective -Xml; Get-Service AppIDSvc
+Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Safer\CodeIdentifiers' -EA SilentlyContinue
+Get-CimInstance -Namespace root\Microsoft\Windows\DeviceGuard Win32_DeviceGuard | Format-List *Enforcement*
+CiTool.exe --list-policies
+Get-MpComputerStatus | Format-List AMRunningMode,IsTamperProtected,AMProductVersion,AntivirusSignatureVersion
+$p = Get-MpPreference; for ($i = 0; $i -lt @($p.AttackSurfaceReductionRules_Ids).Count; $i++) { "$($p.AttackSurfaceReductionRules_Ids[$i]) = $($p.AttackSurfaceReductionRules_Actions[$i])" }
+$p.AttackSurfaceReductionOnlyExclusions
+Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Windows Defender/Operational'; Id=1121,1122} -MaxEvents 500 -EA SilentlyContinue |
+  % { if ($_.Message -match 'ID: ([0-9A-F-]{36})') { $matches[1] } } | Group-Object | Format-Table Name,Count
+Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-CodeIntegrity/Operational'; Id=3033,3077} -MaxEvents 50 -EA SilentlyContinue | Format-List TimeCreated,Id,Message
+Stop-Transcript
+```
+
+**Como ler o resultado:**
+- `01443614-…` com ação `1` (bloquear) ou `6` (avisar): a máquina bloqueia como a D07.
+- Ação `2` (auditar): não bloqueia, só registra o evento 1122.
+- Regra ausente: não bloqueia por ASR.
+- Se `Get-MpPreference` falhar como na D07 (`0x8007000d`), a resposta vem dos eventos 1121/1122 já
+  existentes ou do portal do MDE, com o administrador.
+
 ## Gráfico
 
 - O projeto **não tem biblioteca de gráfico**. O drawer de equipamento desenha em SVG próprio, com

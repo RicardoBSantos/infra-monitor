@@ -233,11 +233,16 @@ Workflow: `.github/workflows/build-iperf3-windows.yml`.
 
 ### Builds
 
-**O hash oficial será o da primeira execução com `publicar=true` depois do merge.** As linhas abaixo
-são provas no branch do PR: não foram publicadas e não servem para instalar.
+**Build oficial: execução [45407615612](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45407615612)
+(número 10), Release
+[`iperf3-v3.22.1-cygwin.10`](https://github.com/RicardoBSantos/infra-monitor/releases/tag/iperf3-v3.22.1-cygwin.10),
+publicada em 2026-11-24 a partir de `main` `9c23a5d`.** É o único pacote que serve para instalar.
+As demais linhas são provas e não foram publicadas.
 
 | Data | Execução | Situação | Tag / commit iperf3 | Cygwin | `iperf3.exe` SHA-256 | zip SHA-256 |
 |---|---|---|---|---|---|---|
+| **2026-11-24** | [**45407615612**](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45407615612) (nº 10) | **OFICIAL, publicada** na Release `iperf3-v3.22.1-cygwin.10` | 3.22.1 / `acc0ed50` | 3.6.12-1 | `0f2e15029a3aaaab5043b609876b4d0d7ec6a2222163727c153d458cf2ab8a0a` | `47de9236f7baa5aac8a0817e26e550fd37f2ca1481bb94804759bd5ad848dab2` |
+| 2026-11-23 | [45215529546](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45215529546) (nº 9) | **prova em `main`, não publicada** (`publicar=false`). É o binário bloqueado pelo ASR na D07 | 3.22.1 / `acc0ed50` | 3.6.12-1 | `af1416ca5aa0bc8ef4c48a65c14b94393beb9163c0bce1a9d84dae5943394651` | `aeba0c15bf1cf833d1dac2c642554863b2a4f292b452c6a949f37ff6410fda7c` |
 | 2026-11-23 | [45191296655](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45191296655) | **prova, não publicado**. Pacote ainda sem `COPYING.LIB` | 3.22.1 / `acc0ed50` | 3.6.12-1 | `14384850c528f6a1153bf79cc4f298e11d3c3c342fa765b9ea8d1b236fca4c56` | `61d1968596b8c62c6b665f44b227b0bc723b34d996bb6ca2c09915ec03ab6b01` |
 | 2026-11-23 | [45200078545](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45200078545) | **prova, não publicado**. Primeiro pacote com `COPYING.LIB`; constantes ainda sem aspas | 3.22.1 / `acc0ed50` | 3.6.12-1 | `1476a2ddb7ac3a402c1203de5933dd2566c3a844f77ac2e41c4f92f43d5b4594` | `6fe64b95d17ce961230a0c383780464af297b3c7fd6b60bc459d124d049efed8` |
 | 2026-11-23 | [45200942215](https://github.com/RicardoBSantos/infra-monitor/actions/runs/45200942215) | **prova, não publicado**. Conteúdo final do workflow, diferindo só pelo gatilho `push` temporário | 3.22.1 / `acc0ed50` | 3.6.12-1 | `c1e1aca3b288a13630d45043ec0ae600c204b50181d7d6997c3309d16a9cf236` | `49d21205825d9232d8bba316c7fa8b9f2e69c83cd146d90e6bc82c4768f6c2cc` |
@@ -251,6 +256,50 @@ Consequências:
   operador confere o hash contra a Release, não contra uma recompilação.
 - Tornar o build reproduzível fica como melhoria futura, fora deste PR. Exigiria pelo menos
   `SOURCE_DATE_EPOCH` e `-Wl,--no-insert-timestamp`.
+
+**O hash da `cygwin1.dll` é estável por versão do Cygwin [P].** A DLL não é compilada: o job copia
+a do pacote `cygwin` instalado. As cinco execuções acima, todas com o Cygwin 3.6.12-1, trazem a
+mesma `cygwin1.dll`: `ed9d5379061e5de79c3375cc62246c2142ea1c97d94f4d16bfbea6fb1b7fc889`. O hash só
+muda quando o Cygwin muda, e nesse caso o job já falha até `third-party/` e as constantes serem
+trocados.
+
+**Regra: não recompilar sem motivo.**
+- Cada `iperf3.exe` novo tem hash novo e precisa de **liberação nova no ASR** (D17, em
+  [decisoes.md](decisoes.md)) e de nova conferência pelo operador.
+- **Motivos válidos para publicar outra build:**
+  - versão nova do iperf3 com correção de segurança (reconferência antes de ir para produção, acima);
+  - Cygwin novo, quando o job passar a falhar pela versão do runtime;
+  - defeito no próprio pacote.
+- Fora disso, não disparar `publicar=true`. Uma execução com `publicar=false` não cria Release, mas
+  gera um binário diferente, que também não pode ir para nenhuma máquina.
+
+### Conferência da build oficial (2026-11-24)
+
+Assets baixados da Release e artefato da execução 45407615612. **O `iperf3.exe` e a `cygwin1.dll`
+foram lidos dentro do zip, em memória, sem extrair para o disco e sem executar**: na D07, abrir o
+arquivo extraído aciona o ASR e gera o evento 1121 (ver
+[dividas.md](dividas.md#-bloqueio-externo--o-asr-do-defender-impede-o-iperf3exe-de-rodar)). Nenhum
+evento 1121 novo durante a conferência **[P]**.
+
+| # | Conferência | Resultado |
+|---|---|---|
+| 1 | Conteúdo do zip | Os 8 arquivos previstos, nada a mais **[P]** |
+| 2 | `SHA256SUMS` | Os 7 hashes conferem com o conteúdo. O `.zip.sha256` da Release confere com o zip, que é idêntico ao do artefato do workflow **[P]** |
+| 3 | `COPYING.LIB-cygwin.txt` | SHA-256 `da7eabb7…4768`, igual a `third-party/cygwin-3.6.12/COPYING.LIB` **[P]** |
+| 4 | `CYGWIN-SOURCE.txt` | Cita Cygwin 3.6.12-1, a URL do `cygwin-3.6.12-1-src.tar.xz`, o SHA-512 `9d70312a…27889` e o commit `ed54dcfd…` **[P]** |
+| 5 | `BUILD-MANIFEST.txt` | Tag 3.22.1, commit `acc0ed50…`, repositório em `9c23a5d`, execução 45407615612 (tentativa 1), runner win22 20261116.370.1, Cygwin 3.6.12-1, flags sem OpenSSL **[P]** |
+| 6 | Retransmissões | `end.sum_sent` sem a chave `retransmits` no modo normal e no `-R` (D16 continua valendo) **[P]** |
+| 7 | `--json-stream` | 4 linhas, todas JSON: `start`, 2 × `interval`, `end` **[P]** |
+| 8 | Sem OpenSSL | `version.txt`: `iperf 3.22.1 (cJSON 1.7.15)`, sem OpenSSL nem authentication; `configure.log` com "Building without OpenSSL"; `--help` sem `--rsa-*`; fora de `C:\Windows`, só a `cygwin1.dll` **[P]** |
+
+**`--latest=false` não impediu a marca "Latest" [P].** A execução passou `--latest=false` (log do
+passo "Criar release"), mas `GET /repos/RicardoBSantos/infra-monitor/releases/latest` devolve
+`iperf3-v3.22.1-cygwin.10`, e `gh release list` a mostra como "Latest". É a **única** Release do
+repositório; com uma só, o GitHub a trata como a mais recente **[I]**.
+- **Impacto hoje: nenhum.** O puller não lê Releases, só tags `aprovada/` e artefatos do
+  `ci-windows-packaging.yml` (acima) **[P]**.
+- **Atenção:** quem usar "a Latest" do repositório como sinônimo de "release da aplicação" vai pegar
+  o pacote do iperf3. Reconferir quando a aplicação passar a publicar Releases.
 
 ### Provas de reversão das travas
 
