@@ -178,8 +178,10 @@ iperf3-<tag>-cygwin-x64-<número da execução>.zip
 - **Opcional:** `actions/attest-build-provenance` para atestar a procedência **[I]**.
 
 **Instalação no servidor da unidade:** fora deste repositório e fora deste plano. O operador confere
-o SHA-256 com `Get-FileHash -Algorithm SHA256` antes de instalar, e o roteiro do
-[laboratório](laboratorio.md) vale como ensaio desse procedimento.
+o SHA-256 com `Get-FileHash -Algorithm SHA256` antes de instalar, e a Parte A do
+[laboratório](laboratorio.md#parte-a--binário-no-windows-sem-windows-server) vale como ensaio desse
+procedimento, num Windows 10/11. **O ASR do domínio bloqueia este binário na D07** (laboratório,
+inventário) **[P]**: ver [dividas.md](dividas.md#revisão-do-laboratório-2026-11-23--sinalizações-abertas).
 
 ## Implementação (PR #49) — decisões
 

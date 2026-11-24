@@ -23,7 +23,7 @@ Toda afirmação traz uma marca:
 | [decisoes.md](decisoes.md) | D1–D16 (2026-11-23), com motivo; D5 revista e D16 fechada, com o texto antigo riscado. |
 | [contexto.md](contexto.md) | Achados da investigação: motor ICMP, manutenção, IIS/ARR, WinSW/ACL, gráfico, perfis, e as verificações V1–V4. |
 | [v28-proposta.md](v28-proposta.md) | Texto da V28 revisada e do `schema-compatibility.json`. **Não é arquivo de migration.** |
-| [laboratorio.md](laboratorio.md) | Roteiro do ensaio: supressão por medição com monitores de 20, 60 e 300 s, prova de reversão, rollback (h). |
+| [laboratorio.md](laboratorio.md) | Plano sem Windows Server: A) binário e serviço num Windows 10/11 com a D07 de cliente; B) margem de fila em Docker (bloqueada na D07); C) supressão (g) como teste de integração e rollback (h) como ensaio de implantação. Inventário da D07. |
 | [build-iperf3.md](build-iperf3.md) | Plano do job de CI que compila o iperf3 para Windows. |
 | [dividas.md](dividas.md) | Bloqueio de produção (disco), destaque de rollback, S1–S4 resolvidas, C1–C4, dívidas e lacunas. |
 

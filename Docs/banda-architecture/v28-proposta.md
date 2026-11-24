@@ -219,14 +219,14 @@ Proposta **[I]**:
 |---|---|---|
 | Flyway no boot | Não roda em produção: o serviço sobe com `--spring.flyway.enabled=false` | **[P, `winsw.xml.template:12`]** |
 | Tabela nova que o jar não mapeia (`teste_banda`) | `ddl-auto: validate` tolera. Provado com as tabelas da V27: jar antigo subiu em 10,5 s e 15,1 s, 0 WARN, 0 ERROR | **[E, P-lab do Ensaio B, `implantacao-v27-modo-tv.md:924-929`]** |
-| **Coluna nova numa tabela que o jar mapeia** (`unidade.ponta_teste_banda_id`) | **Sem prova.** O `SchemaValidator` do Hibernate confere só as colunas mapeadas, então deve tolerar. A V27 não tinha esse caso | **[I]**. Item (h) do [laboratório](laboratorio.md) |
+| **Coluna nova numa tabela que o jar mapeia** (`unidade.ponta_teste_banda_id`) | **Sem prova.** O `SchemaValidator` do Hibernate confere só as colunas mapeadas, então deve tolerar. A V27 não tinha esse caso | **[I]**. Item C.h do [laboratório](laboratorio.md#ch-rollback-ensaio-na-fase-de-implantação-da-v28), no ensaio de implantação |
 | Constraint nova `uq_equipamento_id_unidade` | Não afeta leitura nem escrita do jar antigo | **[I]** |
 
 **Comportamento do jar antigo sobre a V28 [I, salvo marcação]:**
 - **Mover a ponta de unidade** (`PUT /equipamentos/{id}` trocando `unidadeId`): a FK recusa. O jar
   antigo não conhece a regra. O erro, se traduzido como `DataIntegrityViolationException`, vira
   **409 `DATA_INTEGRITY_VIOLATION`** com mensagem genérica (`TratadorGlobalDeErros.java:86-88`
-  **[P]**). Se não for traduzido, vira 500. Isso se confere no item (h).
+  **[P]**). Se não for traduzido, vira 500. Isso se confere no item C.h do laboratório.
 - **Excluir unidade ou equipamento:** `CASCADE` e `SET NULL` agem no banco, em silêncio, como na
   V28.
 - **Supressão:** o jar antigo não tem o predicado, mas também não dispara testes. Sem teste, não há

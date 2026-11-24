@@ -11,6 +11,10 @@ Todas foram fechadas pelo responsável em **2026-11-23**. Estado: **decididas, n
 - D7, D9 e D14 foram detalhadas.
 - D15 e D16 são novas. A D16 foi fechada depois, no PR #49.
 
+**Revisão do laboratório em 2026-11-23 (sem Windows Server):** só as referências ao laboratório
+mudaram (D5 e D14). **Nenhuma decisão foi alterada.** O que ficou sem prova está em
+[dividas.md § Revisão do laboratório](dividas.md#revisão-do-laboratório-2026-11-23--sinalizações-abertas).
+
 Quando a verificação no código contraria uma decisão, o ponto fica em
 [dividas.md § Sinalizações](dividas.md#sinalizações-da-segunda-rodada--resolvidas-em-2026-11-23). Nenhuma decisão foi alterada sem o
 responsável.
@@ -160,8 +164,9 @@ Durante o teste, **só a abertura de episódio de latência** é suprimida.
    ```
    janela_fim = iniciado_em + 2 × duracao_sentido_segundos + margem de fila
    ```
-   - A margem de fila vale **10 s, de forma provisória**. O valor definitivo sai do
-     [laboratório](laboratorio.md).
+   - A margem de fila vale **10 s, de forma provisória**. O valor definitivo sai da Parte B do
+     [laboratório](laboratorio.md#parte-b--calibração-da-margem-de-fila-docker-na-d07), que está
+     **bloqueada na D07** desde a revisão de 2026-11-23 (B.0) **[P]**. Até lá, valem os 10 s.
    - A janela expira por tempo, mesmo que o teste fique órfão.
 3. **Removidos:** o 409 por teto, o teto de 5 min e toda dependência de `latencia-ciclos` e de
    intervalo na supressão.
@@ -320,9 +325,9 @@ Do lado do backend, entra ainda a lista de alvos permitidos (D13).
     acontece depois de `janela_fim − margem`, e a margem cobre a fila que ainda escoa até
     `janela_fim` **[I]**.
   - **Segunda barreira:** `--server-max-duration` no servidor iperf3 da unidade
-    ([laboratorio.md](laboratorio.md), preparação). Ela corta pelo lado do servidor se o cliente
-    falhar em parar. A opção existe no fonte da 3.22 (`src/iperf_api.c:1122`) **[P]**; a prova é na
-    build Cygwin.
+    ([laboratorio.md](laboratorio.md), Parte A, A.3). Ela corta pelo lado do servidor se o cliente
+    falhar em parar. A opção existe no fonte da 3.22 (`src/iperf_api.c:1122`) e no `--help` da build
+    Cygwin **[P]**; a prova de que corta é o caso A-4, num Windows 10/11, não num Windows Server.
 
 **Limpeza de órfão:**
 - **No boot:** todo `EXECUTANDO` vira `FALHA` com `erro = INTERROMPIDO_REINICIO`.
