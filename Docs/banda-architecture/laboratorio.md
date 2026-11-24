@@ -4,8 +4,8 @@
 
 | Parte | O que prova | Onde | Depende de |
 |---|---|---|---|
-| [A](#parte-a--binário-no-windows-sem-windows-server) | O binário, o serviço e a proteção de acesso no Windows | Um Windows 10/11 fora de produção (servidor) e a D07 (cliente) | Artefato do [build](build-iperf3.md) e, antes, a liberação do ASR (A.0) |
-| [B](#parte-b--calibração-da-margem-de-fila-docker-na-d07) | A margem de fila da `janela_fim` (D5) | Containers Linux na D07 | **Bloqueada na D07 hoje** (B.0) |
+| [A](#parte-a--binário-no-windows-sem-windows-server) | O binário, o serviço e a proteção de acesso no Windows | Um Windows 10/11 fora de produção (servidor) e a D07 (cliente) | **Bloqueada pelo ASR** até a liberação (A.0, D17 pendente) |
+| [B](#parte-b--calibração-da-margem-de-fila-docker-na-d07) | A margem de fila da `janela_fim` (D5) | Containers Linux na D07 | **Bloqueada na D07**: reconferido em 2026-11-24 (B.0) |
 | [C](#parte-c--supressão-e-rollback-na-implementação-não-é-laboratório) | A supressão (g) e o rollback da V28 (h) | Testes de integração e ensaio de implantação | Código da feature e V28 |
 
 - Tudo aqui é **[I]** até ser executado. Ao executar, cada passo recebe **[P-lab]** com data e
@@ -50,12 +50,32 @@ Lido nesta sessão, somente leitura (exceto os containers de prova, removidos co
   prevalência, idade ou lista confiável" **[E, documentação da Microsoft]**. Um binário novo, sem
   assinatura e sem histórico de prevalência, cai nela **[I]**.
 - A política vem do domínio (administrador de TI), não da máquina **[I]**.
+- **Atualização de 2026-11-24 (diagnóstico somente leitura):**
+  - a política chega pelo **Intune/MDE**, não por GPO **[I, forte]**: a máquina está inscrita no
+    Intune e cadastrada no MDE, e não existem as chaves de ASR de GPO **[P]**;
+  - AppLocker, SRP, WDAC, a marca da internet e a ACL foram descartados **[P]**;
+  - **a regra bloqueia até a leitura do arquivo extraído** (`Get-FileHash` gerou outro 1121)
+    **[P]**.
+  - Diagnóstico completo e roteiro para a D05: `contexto.md` (PR #51).
 
 ---
 
 ## Parte A — binário no Windows (sem Windows Server)
 
 ### A.0 Pré-condição: o binário precisa poder rodar
+
+> **⛔ PARTE A BLOQUEADA pelo ASR (2026-11-24).** Nenhum caso da Parte A roda antes da liberação.
+>
+> - Regra ASR `01443614-…`, eventos 1121 na D07 **[P]**.
+> - Dono da liberação: o **administrador do Intune/MDE**.
+> - Forma: **D17, pendente**. Recomendado: indicador "Permitir" por SHA-256 (PR #51).
+> - Os hashes a liberar são os da **Release oficial
+>   [`iperf3-v3.22.1-cygwin.10`](https://github.com/RicardoBSantos/infra-monitor/releases/tag/iperf3-v3.22.1-cygwin.10)**
+>   (execução 45407615612):
+>   - `iperf3.exe`: `0f2e15029a3aaaab5043b609876b4d0d7ec6a2222163727c153d458cf2ab8a0a`;
+>   - `cygwin1.dll`: `ed9d5379061e5de79c3375cc62246c2142ea1c97d94f4d16bfbea6fb1b7fc889`.
+> - **Na D07, não extrair nem executar o binário** antes da liberação: cada tentativa gera um 1121
+>   novo. Para conferir hashes, ler o zip em memória, como em `build-iperf3.md` (PR #51).
 
 **Hoje não roda na D07 [P].** Antes de qualquer caso da Parte A:
 
@@ -90,8 +110,10 @@ Lido nesta sessão, somente leitura (exceto os containers de prova, removidos co
 
 ### A.3 Preparação do servidor
 
-1. **Binário:** o artefato do [build](build-iperf3.md) com o SHA-256 conferido contra
-   `SHA256SUMS` (`sha256sum -c` ou `Get-FileHash`). Nenhum binário de outra fonte.
+1. **Binário:** o zip da Release oficial `iperf3-v3.22.1-cygwin.10`
+   (SHA-256 `47de9236f7baa5aac8a0817e26e550fd37f2ca1481bb94804759bd5ad848dab2`), com cada arquivo
+   conferido contra `SHA256SUMS` (`sha256sum -c` ou `Get-FileHash`). Nenhum binário de outra fonte,
+   nem o de uma execução não publicada.
 2. **Pasta:** `C:\iperf3\` com os 8 arquivos do zip. ACL: leitura e execução para a conta do
    serviço; escrita só para administradores.
 3. **Conta local de baixo privilégio:**
@@ -207,6 +229,27 @@ Get-NetTCPConnection -LocalPort 5201 -ErrorAction SilentlyContinue  # vazio
 > - Sem nenhum deles não existe gargalo: os containers trocam tráfego na velocidade da memória, a
 >   fila não enche, e a medição sairia "zero", sem provar nada.
 > - **A margem de fila continua com os 10 s provisórios.**
+>
+> **Reconferido em 2026-11-24 [P-lab]**, mesmo Docker Desktop 27.5.1, mesmo kernel
+> `5.15.167.4-microsoft-standard-WSL2`:
+>
+> - Na config do kernel (`/proc/config.gz`), **nenhum qdisc que modele tráfego**. Só `fifo`,
+>   `fq_codel`, `multiq` e `ingress` estão ligados. Ausentes: `tbf`, `netem`, `htb`, `hfsc`, `fq`,
+>   `sfq`, `prio`, `red`, `cake`, `codel`, `pie`, `drr`, `qfq`, `cbs`, `etf`, `taprio`. Também não
+>   há `ifb` nem as ações `police` e `gact`.
+> - A topologia da B.1 foi montada: projeto `banda-lab`, duas redes `internal: true`, roteador com
+>   `NET_ADMIN` e `ip_forward=1`, imagem `alpine` fixada por digest. No roteador:
+>   - `tc qdisc add dev eth1 root handle 1: <tbf|netem|htb|hfsc|fq|sfq|prio|red>` →
+>     `Error: Specified qdisc kind is unknown.`, em todos;
+>   - `tc filter … police rate 20mbit` → `Error: Failed to load TC action module.`
+> - **Achado lateral [P-lab]:** com as duas redes `internal: true`, o ping do cliente ao servidor
+>   **através do roteador** perdeu 100% dos pacotes, mesmo com as rotas e o `ip_forward` no lugar.
+>   Quando o bloqueio cair, a B.1 precisa primeiro provar o encaminhamento entre as duas redes, antes
+>   de qualquer medição. Causa provável: o isolamento de redes `internal` do próprio Docker **[I]**.
+> - **Desmontagem provada:** `docker compose -p banda-lab down --volumes --remove-orphans --rmi local`.
+>   Depois disso, nenhum container, rede ou imagem com o rótulo `banda-lab`. Os totais voltaram aos
+>   de antes: 13 redes e 16 containers. Os containers de outros projetos não foram tocados.
+> - **Nenhuma margem foi medida.** Seguem valendo os 10 s provisórios.
 >
 > **Saídas possíveis — decisão do responsável, nenhuma foi tentada [I]:**
 >
