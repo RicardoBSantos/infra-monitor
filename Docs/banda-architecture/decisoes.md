@@ -11,6 +11,9 @@ Todas foram fechadas pelo responsável em **2026-11-23**. Estado: **decididas, n
 - D7, D9 e D14 foram detalhadas.
 - D15 e D16 são novas. A D16 foi fechada depois, no PR #49.
 
+**2026-11-24:** entra a **D17, PENDENTE** (forma de liberar o binário no ASR). Não altera nenhuma
+decisão anterior.
+
 Quando a verificação no código contraria uma decisão, o ponto fica em
 [dividas.md § Sinalizações](dividas.md#sinalizações-da-segunda-rodada--resolvidas-em-2026-11-23). Nenhuma decisão foi alterada sem o
 responsável.
@@ -372,3 +375,26 @@ Do lado do backend, entra ainda a lista de alvos permitidos (D13).
   depende de haver perda **[I]**.
 
 **Motivo:** uma coluna sempre nula engana quem lê o histórico e o contrato da API **[I]**.
+
+## D17 — Forma de liberar o binário no ASR: PENDENTE (2026-11-24)
+
+**Estado: pendente.** Decisão do responsável, executada pelo administrador do Intune/MDE. Contexto em
+[dividas.md § Bloqueio externo](dividas.md#-bloqueio-externo--o-asr-do-defender-impede-o-iperf3exe-de-rodar).
+
+**Problema [P]:** a regra ASR `01443614-…` bloqueia o `iperf3.exe` (eventos 1121 na D07). Sem
+liberação, o binário não roda nem no laboratório nem em produção.
+
+**Recomendação: indicador "Permitir" por SHA-256 no MDE**, para o `iperf3.exe` e a `cygwin1.dll`
+da Release oficial.
+
+| Opção | A favor | Contra |
+|---|---|---|
+| **Hash (recomendada)** | Mais estreita: libera exatamente o artefato publicado e nada mais. Independe da pasta e da conta. O hash já é publicado na Release e conferido pelo operador | **Cada build nova pede liberação nova**, porque o build não é reproduzível ([build-iperf3.md](build-iperf3.md#builds)). Mitigação: a regra "não recompilar sem motivo". O hash da `cygwin1.dll` só muda com a versão do Cygwin. **Falta confirmar** que esta regra ASR respeita o indicador **[I]** |
+| Caminho (exclusão de ASR por pasta, por exemplo `C:\InfraMonitor\tools\iperf3\`) | Sobrevive a uma recompilação. Uma liberação só | Libera **qualquer executável** colocado na pasta. A proteção passa a depender da ACL da pasta (escrita só para administradores), em cada máquina. Se a exclusão for global (`AttackSurfaceReductionOnlyExclusions`) e não por regra, desliga **todas** as regras de ASR para a pasta |
+| Assinatura de código + indicador de certificado | Sobrevive a recompilações. Procedência mais forte que o hash | Exige certificado de assinatura de código, que não temos, e guardar a chave privada no CI. Ainda precisa do indicador de certificado no MDE. É o maior trabalho das três |
+
+**Descartado:** esperar a prevalência subir. Não depende de nós e não tem prazo **[I]**.
+
+**Ao decidir, registrar aqui:** a opção, a data, quem aplicou no Intune/MDE, os hashes ou o caminho
+liberados, e a prova de que a execução passou (ausência do evento 1121 e `iperf3.exe --version` na
+D07, na D05 e num servidor de unidade).

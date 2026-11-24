@@ -2,6 +2,33 @@
 
 Legenda em [banda-architecture.md](banda-architecture.md).
 
+## ⛔ BLOQUEIO EXTERNO — o ASR do Defender impede o `iperf3.exe` de rodar
+
+> **O binário publicado não roda onde precisa rodar. A liberação não depende de nós.**
+>
+> - **Regra:** ASR `01443614-CD74-433A-B99E-2ECDC07BFC25`, a que bloqueia executáveis "a menos que
+>   atendam a um critério de prevalência, idade ou lista confiável", em modo de bloqueio **[P]**.
+> - **Evidência:** eventos **1121** no log `Microsoft-Windows-Windows Defender/Operational` da
+>   **SED-TI-D07**, em **2026-11-23 às 13:25:15 e 13:25:17** (UTC-03), usuário `SESC-SE\rbfilho`,
+>   caminho do `iperf3.exe` da execução 45215529546 **[P]**. Um terceiro evento, em 2026-11-24 às
+>   10:35:33, mostra que a regra **bloqueia até a leitura** do arquivo **[P]**.
+> - **Entrega: Intune/MDE, não GPO** **[I, forte]**. A máquina está inscrita no Intune e cadastrada
+>   no Microsoft Defender for Endpoint, e as chaves de ASR de GPO não existem **[P]**. Diagnóstico
+>   completo em [contexto.md](contexto.md#controle-de-aplicativos-por-que-o-iperf3exe-não-roda-diagnóstico-de-2026-11-24).
+> - **Dono:** o **administrador do Intune/MDE**. Não é o administrador das GPOs.
+> - **Opção pedida:** **indicador "Permitir" por SHA-256** no MDE, para o `iperf3.exe` e a
+>   `cygwin1.dll` da Release oficial ([build-iperf3.md § Builds](build-iperf3.md#builds)). A forma da
+>   liberação é a **D17, pendente** ([decisoes.md](decisoes.md)).
+> - **Pendente confirmar, com o administrador:**
+>   1. que o indicador "Permitir" é respeitado **por esta regra** de ASR **[I]**;
+>   2. que a mesma política vale para a **D05** e para os **servidores das unidades**. Roteiro somente
+>      leitura em [contexto.md](contexto.md#roteiro-somente-leitura-para-a-d05-e-para-um-servidor-de-unidade).
+> - **Consequências:**
+>   - **a Parte A do [laboratório](laboratorio.md) fica bloqueada** até a liberação;
+>   - a produção também: a D05 é o cliente e executa o mesmo binário (D9) **[I]**.
+> - **Cada build nova pede liberação nova**, porque o build não é reproduzível. Daí a regra "não
+>   recompilar sem motivo" em [build-iperf3.md](build-iperf3.md#builds).
+
 ## ⛔ BLOQUEIO DE PRODUÇÃO — espaço em disco
 
 > **A janela desta feature não acontece antes de a frente de retenção e disco estar resolvida.**

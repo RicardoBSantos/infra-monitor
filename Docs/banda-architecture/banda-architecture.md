@@ -20,13 +20,15 @@ Toda afirmação traz uma marca:
 
 | Arquivo | Conteúdo |
 |---|---|
-| [decisoes.md](decisoes.md) | D1–D16 (2026-11-23), com motivo; D5 revista e D16 fechada, com o texto antigo riscado. |
-| [contexto.md](contexto.md) | Achados da investigação: motor ICMP, manutenção, IIS/ARR, WinSW/ACL, gráfico, perfis, e as verificações V1–V4. |
+| [decisoes.md](decisoes.md) | D1–D16 (2026-11-23), com motivo; D5 revista e D16 fechada, com o texto antigo riscado. D17 (liberação no ASR) pendente. |
+| [contexto.md](contexto.md) | Achados da investigação: motor ICMP, manutenção, IIS/ARR, WinSW/ACL, gráfico, perfis, as verificações V1–V4 e o diagnóstico do ASR (2026-11-24), com o roteiro somente leitura para a D05. |
 | [v28-proposta.md](v28-proposta.md) | Texto da V28 revisada e do `schema-compatibility.json`. **Não é arquivo de migration.** |
 | [laboratorio.md](laboratorio.md) | Roteiro do ensaio: supressão por medição com monitores de 20, 60 e 300 s, prova de reversão, rollback (h). |
-| [build-iperf3.md](build-iperf3.md) | Plano do job de CI que compila o iperf3 para Windows. |
-| [dividas.md](dividas.md) | Bloqueio de produção (disco), destaque de rollback, S1–S4 resolvidas, C1–C4, dívidas e lacunas. |
+| [build-iperf3.md](build-iperf3.md) | Job de CI que compila o iperf3 para Windows; build oficial (Release `iperf3-v3.22.1-cygwin.10`) e regra "não recompilar sem motivo". |
+| [dividas.md](dividas.md) | Bloqueio externo (ASR), bloqueio de produção (disco), destaque de rollback, S1–S4 resolvidas, C1–C4, dívidas e lacunas. |
 
+> **⛔ Bloqueio externo:** o ASR do Defender bloqueia o `iperf3.exe`; a liberação é do administrador do Intune/MDE (D17 pendente). Ver [dividas.md](dividas.md#-bloqueio-externo--o-asr-do-defender-impede-o-iperf3exe-de-rodar).
+>
 > **⛔ Bloqueio de produção:** Stage, Switch e Rollback são recusados abaixo de ~25 GiB livres, e hoje há ~26 GiB. A janela desta feature espera a frente de retenção e disco. Ver [dividas.md](dividas.md#-bloqueio-de-produção--espaço-em-disco).
 >
 > **Rollback da V28:** possível, mas exige `databaseAheadOfRelease=true`, e ainda falta provar que o
